@@ -107,6 +107,55 @@ function normalizeText(str) {
   return res.trim().replace(/\s+/g, ' ');
 }
 
+function hasReopenTime(reason) {
+  if (!reason) return false;
+  const lower = reason.toLowerCase();
+  
+  const permanentKeywords = [
+    'ngưng hoạt động',
+    'không tồn tại',
+    'địa điểm này chưa có',
+    'bài viết không tồn tại',
+    'chưa có dịch vụ',
+    'tạm ngưng dịch vụ trực tuyến',
+    'tạm ngưng hoạt động'
+  ];
+  if (permanentKeywords.some(kw => lower.includes(kw))) {
+    return false;
+  }
+
+  const tempKeywords = [
+    'ngày mai',
+    'hôm sau',
+    'giờ làm việc',
+    'trở lại sau',
+    'quay lại',
+    'hẹn đơn',
+    'mở cửa',
+    'ngoài giờ',
+    'khung giờ'
+  ];
+  
+  const timePattern = /\d{1,2}[:h]\d{2}/;
+  
+  return tempKeywords.some(kw => lower.includes(kw)) || timePattern.test(lower);
+}
+
+function resetClosedIfNextAttemptReached(restaurant) {
+  if (restaurant && restaurant.isClosed && restaurant.crawlNextAttempt) {
+    if (new Date() >= new Date(restaurant.crawlNextAttempt)) {
+      console.log(`[Database] 🔄 Resetting closed state for "${restaurant.name}" as crawlNextAttempt (${restaurant.crawlNextAttempt}) has been reached.`);
+      restaurant.isClosed = false;
+      delete restaurant.closedAt;
+      delete restaurant.closedReason;
+      delete restaurant.crawlNextAttempt;
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // ── DYNAMIC MENU GENERATORS (Bản sao đồng bộ để chạy Search trực tiếp) ───────
 const SEARCHED_RESTAURANTS_CACHE = new Map(); // id -> restaurant object
 
@@ -641,7 +690,25 @@ function sanitizeLocalJsonData() {
       const localData = JSON.parse(raw);
       if (Array.isArray(localData)) {
         let changed = false;
-        localData.forEach(restaurant => {
+
+        // Lọc bỏ các quán đã đóng cửa hoàn toàn
+        const cleanData = localData.filter(restaurant => {
+          if (restaurant.isClosed) {
+            if (!hasReopenTime(restaurant.closedReason)) {
+              console.log(`[Sanitization] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi database: "${restaurant.name}" (${restaurant.closedReason || 'Không rõ lý do'})`);
+              changed = true;
+              return false; // Remove
+            }
+          }
+          return true; // Keep
+        });
+
+        cleanData.forEach(restaurant => {
+          // Reset trạng thái đóng cửa nếu đã đến giờ hẹn
+          if (resetClosedIfNextAttemptReached(restaurant)) {
+            changed = true;
+          }
+
           // Bỏ qua quán đang đóng cửa - không gán template menu
           if (restaurant.isClosed) return;
           // Bỏ qua quán menu rỗng - để scraper detect đóng cửa khi client vào trang
@@ -656,11 +723,12 @@ function sanitizeLocalJsonData() {
             }
           }
         });
+
         if (changed) {
-          fs.writeFileSync(localJsonPath, JSON.stringify(localData, null, 2), 'utf8');
+          fs.writeFileSync(localJsonPath, JSON.stringify(cleanData, null, 2), 'utf8');
           console.log('[Sanitization] 💾 Đã lưu thay đổi làm sạch vào restaurants-local.json');
         } else {
-          console.log('[Sanitization] ✨ Không phát hiện sai sót menu nào cần sửa đổi!');
+          console.log('[Sanitization] ✨ Không phát hiện sai sót menu hay quán đóng cửa cần xử lý!');
         }
       }
     }
@@ -1580,16 +1648,39 @@ function triggerBackgroundMenuScrape(restaurant) {
 
     if (isClosed) {
       console.log(`[Background Scraper] 🔴 Xác nhận quán ĐÓNG CỬA: "${restaurant.name}"`);
+      
+      if (!hasReopenTime(closedReason)) {
+        console.log(`[Background Scraper] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi cache & DB: "${restaurant.name}"`);
+        SEARCHED_RESTAURANTS_CACHE.delete(restaurant.id);
+        updateLocalDatabase((localData) => {
+          const idx = localData.findIndex(r => String(r.id) === String(restaurant.id));
+          if (idx !== -1) {
+            localData.splice(idx, 1);
+            return true;
+          }
+          return false;
+        }).catch(err => {
+          console.error('[Background Scraper] Lỗi khi xóa quán khỏi database:', err.message);
+        });
+        return;
+      }
+
+      // Quán đóng cửa tạm thời
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(7, 0, 0, 0);
+
       restaurant.isClosed = true;
       restaurant.closedAt = new Date().toISOString();
       restaurant.closedReason = closedReason;
+      restaurant.crawlNextAttempt = tomorrow.toISOString();
 
       if (menu) {
         restaurant.menu = menu;
         restaurant.hasRealMenu = true;
         restaurant.menuUpdatedAt = new Date().toISOString();
         delete restaurant.menuTemplateFallback;
-        console.log(`[Background Scraper] ⚡ Cập nhật menu thực tế thành công cho quán ĐÓNG CỬA: "${restaurant.name}" (${menu.length} món)`);
+        console.log(`[Background Scraper] ⚡ Cập nhật menu thực tế thành công cho quán ĐÓNG CỬA TẠM THỜI: "${restaurant.name}" (${menu.length} món)`);
       }
 
       SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
@@ -1600,6 +1691,7 @@ function triggerBackgroundMenuScrape(restaurant) {
           localData[idx].isClosed = true;
           localData[idx].closedAt = restaurant.closedAt;
           localData[idx].closedReason = restaurant.closedReason;
+          localData[idx].crawlNextAttempt = restaurant.crawlNextAttempt;
           if (menu) {
             localData[idx].menu = menu;
             localData[idx].hasRealMenu = true;
@@ -1614,7 +1706,7 @@ function triggerBackgroundMenuScrape(restaurant) {
           return true;
         }
       }).then(() => {
-        console.log(`[Background Scraper] 💾 Đã lưu trạng thái đóng cửa (và menu nếu có) cho "${restaurant.name}"`);
+        console.log(`[Background Scraper] 💾 Đã lưu trạng thái đóng cửa tạm thời cho "${restaurant.name}"`);
       }).catch(err => {
         console.error('[Background Scraper] Lỗi khi ghi đè cập nhật restaurants-local.json:', err.message);
       });
@@ -1772,6 +1864,21 @@ app.get('/api/restaurants/:id', async (req, res) => {
   }
 
   if (found) {
+    if (resetClosedIfNextAttemptReached(found)) {
+      await updateLocalDatabase((localData) => {
+        const idx = localData.findIndex(r => String(r.id) === String(found.id));
+        if (idx !== -1) {
+          localData[idx].isClosed = false;
+          delete localData[idx].closedAt;
+          delete localData[idx].closedReason;
+          delete localData[idx].crawlNextAttempt;
+          return true;
+        }
+        return false;
+      });
+      SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
+    }
+
     // Chỉ cào đồng bộ nếu chưa có menu thực tế VÀ chưa bị đóng cửa
     if (!found.hasRealMenu && !found.isClosed) {
       console.log(`[Details] ⚡ Quán chưa có menu thực tế. Đang phân giải và cào đồng bộ cho khách...`);
@@ -1822,17 +1929,36 @@ app.get('/api/restaurants/:id', async (req, res) => {
         }
 
         if (isClosed) {
-          console.log(`[Details] 🔴 Quán "${found.name}" ĐÓNG CỬA — Thông báo cho khách hàng.`);
+          if (!hasReopenTime(closedReason)) {
+            console.log(`[Details] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi cache & DB: "${found.name}"`);
+            SEARCHED_RESTAURANTS_CACHE.delete(found.id);
+            await updateLocalDatabase((localData) => {
+              const idx = localData.findIndex(r => String(r.id) === String(found.id));
+              if (idx !== -1) {
+                localData.splice(idx, 1);
+                return true;
+              }
+              return false;
+            });
+            return res.status(404).json({ error: 'Quán ăn này đã đóng cửa hoàn toàn hoặc không còn hoạt động.' });
+          }
+
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(7, 0, 0, 0);
+
+          console.log(`[Details] 🔴 Quán "${found.name}" ĐÓNG CỬA TẠM THỜI — Thông báo cho khách hàng.`);
           found.isClosed = true;
           found.closedAt = new Date().toISOString();
           found.closedReason = closedReason;
+          found.crawlNextAttempt = tomorrow.toISOString();
 
           if (menu) {
             found.menu = menu;
             found.hasRealMenu = true;
             found.menuUpdatedAt = new Date().toISOString();
             delete found.menuTemplateFallback;
-            console.log(`[Details] ⚡ Cào đồng bộ thành công menu thực tế cho quán ĐÓNG CỬA: "${found.name}" (${menu.length} món)`);
+            console.log(`[Details] ⚡ Cào đồng bộ thành công menu thực tế cho quán ĐÓNG CỬA TẠM THỜI: "${found.name}" (${menu.length} món)`);
           }
 
           SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
@@ -1843,6 +1969,7 @@ app.get('/api/restaurants/:id', async (req, res) => {
               localData[idx].isClosed = true;
               localData[idx].closedAt = found.closedAt;
               localData[idx].closedReason = found.closedReason;
+              localData[idx].crawlNextAttempt = found.crawlNextAttempt;
               if (menu) {
                 localData[idx].menu = menu;
                 localData[idx].hasRealMenu = true;
@@ -1853,7 +1980,7 @@ app.get('/api/restaurants/:id', async (req, res) => {
             }
             return false;
           });
-          console.log(`[Details] 💾 Đã lưu trạng thái đóng cửa cho "${found.name}" với lý do chi tiết.`);
+          console.log(`[Details] 💾 Đã lưu trạng thái đóng cửa tạm thời cho "${found.name}" với lý do chi tiết.`);
 
         } else if (menu) {
           found.menu = menu;
@@ -1992,6 +2119,27 @@ function runSweepIteration() {
       return;
     }
 
+    let dbChanged = false;
+    localData.forEach(r => {
+      if (resetClosedIfNextAttemptReached(r)) {
+        dbChanged = true;
+      }
+    });
+
+    if (dbChanged) {
+      updateLocalDatabase((dbData) => {
+        let changed = false;
+        dbData.forEach(r => {
+          if (resetClosedIfNextAttemptReached(r)) {
+            changed = true;
+          }
+        });
+        return changed;
+      }).then(() => {
+        console.log('[Sweep Worker] 💾 Đã lưu thay đổi reset các quán hết hạn đóng cửa tạm thời.');
+      });
+    }
+
     // Tìm các quán ăn chưa có menu chuẩn thực tế và chưa bị đóng cửa
     const candidates = localData.filter(r => r && r.id && r.hasRealMenu !== true && r.isClosed !== true && !r._isScraping);
     
@@ -2057,9 +2205,34 @@ function runSweepIteration() {
       }
 
       if (isClosed) {
+        if (!hasReopenTime(closedReason)) {
+          // Đóng cửa hoàn toàn: xóa khỏi database!
+          console.log(`[Sweep Worker] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi cache & DB: "${target.name}"`);
+          SEARCHED_RESTAURANTS_CACHE.delete(target.id);
+          updateLocalDatabase((dbData) => {
+            const idx = dbData.findIndex(r => String(r.id) === String(target.id));
+            if (idx !== -1) {
+              dbData.splice(idx, 1);
+              return true;
+            }
+            return false;
+          }).then(() => {
+            console.log(`[Sweep Worker] 🗑️ Đã xóa "${target.name}" khỏi database.`);
+          });
+          
+          setTimeout(runSweepIteration, 30 * 1000);
+          return;
+        }
+
+        // Đóng cửa tạm thời
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(7, 0, 0, 0);
+
         target.isClosed = true;
         target.closedAt = new Date().toISOString();
         target.closedReason = closedReason;
+        target.crawlNextAttempt = tomorrow.toISOString();
 
         if (menu) {
           target.menu = menu;
@@ -2074,6 +2247,7 @@ function runSweepIteration() {
             dbData[idx].isClosed = true;
             dbData[idx].closedAt = target.closedAt;
             dbData[idx].closedReason = target.closedReason;
+            dbData[idx].crawlNextAttempt = target.crawlNextAttempt;
             if (menu) {
               dbData[idx].menu = menu;
               dbData[idx].hasRealMenu = true;
@@ -2084,7 +2258,7 @@ function runSweepIteration() {
           }
           return false;
         }).then(() => {
-          console.log(`[Sweep Worker] 🔴 Xác nhận quán đã ĐÓNG CỬA trên ShopeeFood (menu saved: ${!!menu}): "${target.name}"`);
+          console.log(`[Sweep Worker] 🔴 Xác nhận quán đã ĐÓNG CỬA TẠM THỜI trên ShopeeFood (menu saved: ${!!menu}): "${target.name}"`);
         });
 
       } else if (menu) {

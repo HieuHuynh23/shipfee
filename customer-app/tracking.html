@@ -505,18 +505,81 @@
     let deliveryMarker = null;
     let shipperMarker = null;
     let routeLine = null;
+    let restCoords = null;
+    let shipperToRestRoute = [];
+    let restToDeliveryRoute = [];
+    let shipperAnimationInterval = null;
 
-    function initTrackingMap() {
+    async function fetchRoute(startLat, startLon, endLat, endLon) {
+      const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('OSRM API returned error status');
+        const data = await response.json();
+        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
+          const coords = data.routes[0].geometry.coordinates;
+          return coords.map(c => [c[1], c[0]]); // convert from [lon, lat] to [lat, lon]
+        }
+      } catch (err) {
+        console.warn('Error fetching route from OSRM:', err.message);
+      }
+      
+      // Fallback: simple linear interpolation (15 steps)
+      const steps = [];
+      for (let i = 0; i <= 15; i++) {
+        const t = i / 15;
+        steps.push([
+          startLat + (endLat - startLat) * t,
+          startLon + (endLon - startLon) * t
+        ]);
+      }
+      return steps;
+    }
+
+    function animateShipper(routeCoordinates, onComplete) {
+      if (shipperAnimationInterval) {
+        clearInterval(shipperAnimationInterval);
+      }
+      
+      if (!routeCoordinates || routeCoordinates.length === 0) {
+        if (onComplete) onComplete();
+        return;
+      }
+      
+      let index = 0;
+      shipperMarker.setLatLng(routeCoordinates[0]);
+      
+      // Calculate speed: total animation takes 5 seconds (5000ms)
+      const totalDuration = 5000;
+      const intervalTime = Math.max(50, Math.min(250, Math.floor(totalDuration / routeCoordinates.length)));
+      
+      shipperAnimationInterval = setInterval(() => {
+        index++;
+        if (index >= routeCoordinates.length) {
+          clearInterval(shipperAnimationInterval);
+          shipperAnimationInterval = null;
+          if (onComplete) onComplete();
+        } else {
+          shipperMarker.setLatLng(routeCoordinates[index]);
+        }
+      }, intervalTime);
+    }
+
+    async function initTrackingMap() {
       if (!order) return;
 
       const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
-      const restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
       
       const restLat = order.restaurantLat || restCoords.lat;
       const restLon = order.restaurantLon || restCoords.lon;
 
       const deliveryLat = order.pinnedLat || 10.0345;
       const deliveryLon = order.pinnedLon || 105.7876;
+
+      // Define a shipper starting coordinates (offset from restaurant)
+      const shipperStartLat = restLat + 0.005;
+      const shipperStartLon = restLon - 0.005;
 
       try {
         trackingMap = L.map('tracking-map').setView([(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2], 14);
@@ -559,10 +622,27 @@
 
         shipperMarker = L.marker([restLat, restLon], { icon: shipIcon }).addTo(trackingMap);
         
-        updateShipperLocationOnMap(order.status);
-
         const group = new L.featureGroup([restMarker, deliveryMarker]);
         trackingMap.fitBounds(group.getBounds().pad(0.2));
+
+        // Fetch actual street routes asynchronously
+        console.log('[Routing] Đang tối ưu lộ trình di chuyển của shipper...');
+        
+        const [routeToRest, routeToDelivery] = await Promise.all([
+          fetchRoute(shipperStartLat, shipperStartLon, restLat, restLon),
+          fetchRoute(restLat, restLon, deliveryLat, deliveryLon)
+        ]);
+
+        shipperToRestRoute = routeToRest;
+        restToDeliveryRoute = routeToDelivery;
+
+        if (restToDeliveryRoute && restToDeliveryRoute.length > 0) {
+          routeLine.setLatLngs(restToDeliveryRoute);
+          routeLine.setStyle({ dashArray: null, color: '#3B82F6', weight: 5 }); // Solid sleek route line
+        }
+
+        console.log('[Routing] Đã tối ưu hóa lộ trình đường đi thực tế thành công.');
+        updateShipperLocationOnMap(order.status);
       } catch (e) {
         console.error('Lỗi map tracking:', e);
       }
@@ -572,28 +652,38 @@
       if (!trackingMap || !shipperMarker) return;
 
       const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
-      const restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      const rCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
       
-      const restLat = order.restaurantLat || restCoords.lat;
-      const restLon = order.restaurantLon || restCoords.lon;
+      const restLat = order.restaurantLat || rCoords.lat;
+      const restLon = order.restaurantLon || rCoords.lon;
 
       const deliveryLat = order.pinnedLat || 10.0345;
       const deliveryLon = order.pinnedLon || 105.7876;
 
       if (status === 'PENDING') {
+        if (shipperAnimationInterval) {
+          clearInterval(shipperAnimationInterval);
+          shipperAnimationInterval = null;
+        }
         shipperMarker.setLatLng([10.0345, 105.7876]);
         shipperMarker.bindPopup('<b>Shipper tự do:</b> Đang tìm tài xế lân cận...').openPopup();
       } else if (status === 'ACCEPTED') {
-        const startLat = restLat + 0.003;
-        const startLon = restLon - 0.003;
-        shipperMarker.setLatLng([startLat, startLon]);
         shipperMarker.bindPopup('<b>Shipper:</b> Đang di chuyển đến quán...').openPopup();
+        animateShipper(shipperToRestRoute, () => {
+          shipperMarker.setLatLng([restLat, restLon]);
+          shipperMarker.bindPopup('<b>Shipper:</b> Đã đến quán, đang chuẩn bị mua hàng...').openPopup();
+        });
       } else if (status === 'PURCHASED') {
-        const midLat = (restLat + deliveryLat) / 2;
-        const midLon = (restLon + deliveryLon) / 2;
-        shipperMarker.setLatLng([midLat, midLon]);
         shipperMarker.bindPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...').openPopup();
+        animateShipper(restToDeliveryRoute, () => {
+          shipperMarker.setLatLng([deliveryLat, deliveryLon]);
+          shipperMarker.bindPopup('<b>Shipper:</b> Đã đến địa điểm nhận hàng!').openPopup();
+        });
       } else if (status === 'DELIVERED') {
+        if (shipperAnimationInterval) {
+          clearInterval(shipperAnimationInterval);
+          shipperAnimationInterval = null;
+        }
         shipperMarker.setLatLng([deliveryLat, deliveryLon]);
         shipperMarker.bindPopup('<b>Shipper:</b> Đã giao hàng thành công!').openPopup();
       }

@@ -80,8 +80,10 @@ d:\FOOD DELIVERY\
 
 ### Theo Dõi Đơn Hàng
 - Bản đồ Leaflet hiển thị 3 markers: Quán (🏪) / Điểm giao (🏠) / Shipper (🛵)
-- Shipper di chuyển theo từng bước: PENDING → ACCEPTED → PURCHASED → DELIVERED
-- Timeline 4 bước với timestamp
+- **Lộ trình đường phố thực tế (Real Street Routing)**: Bản đồ kết nối lộ trình thực tế qua đường bộ bằng OSRM API thay vì đường chim bay.
+- **Mô phỏng chuyển động mượt mà (Smooth Animation)**: Shipper di chuyển mượt mà dọc theo các cung đường phố thực tế trong suốt quá trình giao nhận.
+- Shipper di chuyển qua các bước: PENDING → ACCEPTED (đi đến quán) → PURCHASED (đang giao) → DELIVERED.
+- Timeline 4 bước với timestamp chi tiết.
 
 ## Hiệu Năng (sau khi nâng cấp)
 
@@ -123,6 +125,7 @@ node bulk_crawl.js --concurrency=2
 ## Lưu Ý Quan Trọng
 
 - `restaurants-local.json` là database chính — **không xóa**
+- **Làm sạch database tự động**: Loại bỏ các quán đóng cửa hoàn toàn / không hoạt động khỏi database, chỉ giữ lại các quán mở cửa hoặc đóng cửa tạm thời (đặt lịch cào lại vào hôm sau bằng cách kiểm tra `crawlNextAttempt`).
 - Sweep Worker daemon tự động crawl lại menu mỗi 30 giây
 - Puppeteer dùng Chrome tại `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`
 - GitNexus dùng `--skip-git` vì project không dùng git truyền thống
