@@ -92,6 +92,8 @@ d:\FOOD DELIVERY\
 | Cache-Control API | ❌ Không có | ✅ `public, max-age=30, stale-while-revalidate=60` |
 | CORS | Cơ bản | ✅ Origin whitelist cụ thể |
 | Khả năng chịu tải | ~10 user/lúc | **1000–5000+ user/lúc** |
+| Payload Size (List API) | 9.7 MB (kèm menus) | **~150 KB** (lược bỏ menu ở list endpoint, giảm 98.5%) |
+| LocalStorage Quota | ❌ Lỗi QuotaExceededError (không lưu được) | ✅ Đạt chuẩn lưu trữ mượt mà dưới 5MB |
 
 ## Server API Endpoints
 
