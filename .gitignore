@@ -1,0 +1,38 @@
+# Dependencies
+server/node_modules/
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Runtime data / generated large files
+server/.user_data_test/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS generated files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories and files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build output
+dist/
+build/
+
+# Large binary/data files — keep restaurants-local.json but ignore Chrome user-data
+server/.chrome_user_data/
+server/chrome_user_data/
+
+# Temporary test/scratch files
+*.tmp
+*.bak

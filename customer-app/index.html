@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShipFree — Đặt Món Tiện Lợi & Giao Hàng Siêu Tốc</title>
+  <meta name="description" content="Đặt đồ ăn trực tuyến nhanh chóng, tiện lợi, giao hàng siêu tốc tận nơi tại Cần Thơ. Đa dạng món ăn, an toàn thanh toán.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* ── PAGE-SPECIFIC STYLES ── */
+    .hero-search-wrap {
+      position: relative;
+      z-index: 1;
+    }
+
+    .promo-banner {
+      background: linear-gradient(135deg, #7C3AED, #DB2777);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      color: white;
+      cursor: pointer;
+      transition: transform var(--transition-base);
+      overflow: hidden;
+      position: relative;
+    }
+    .promo-banner::after {
+      content: '🎉';
+      position: absolute;
+      right: 70px;
+      top: -5px;
+      font-size: 40px;
+      opacity: 0.3;
+    }
+    .promo-banner:hover { transform: translateY(-2px); }
+    .promo-banner__text { font-size: 13px; font-weight: 700; line-height: 1.4; }
+    .promo-banner__tag {
+      background: rgba(255,255,255,0.25);
+      border: 1px solid rgba(255,255,255,0.3);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .address-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius-md);
+      padding: 10px var(--space-md);
+      cursor: pointer;
+      margin-bottom: var(--space-md);
+      transition: background var(--transition-fast);
+    }
+    .address-row:hover { background: rgba(255,255,255,0.14); }
+    .address-row__icon { color: var(--clr-primary); font-size: 16px; flex-shrink: 0; }
+    .address-row__text { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.85); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .address-row__chevron { color: rgba(255,255,255,0.4); font-size: 12px; flex-shrink: 0; }
+
+    .how-it-works {
+      background: var(--clr-dark);
+      border-radius: var(--radius-xl);
+      padding: var(--space-lg) var(--space-md);
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+    .how-it-works::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 250px; height: 250px;
+      background: radial-gradient(circle, rgba(239,68,68,0.18) 0%, transparent 70%);
+    }
+    .how-it-works__title { font-size: 16px; font-weight: 800; margin-bottom: 4px; }
+    .how-it-works__sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: var(--space-lg); }
+    .how-step { display: flex; gap: var(--space-md); align-items: flex-start; margin-bottom: var(--space-md); }
+    .how-step__num {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; color: white; flex-shrink: 0;
+    }
+    .how-step__title { font-size: 13px; font-weight: 700; color: white; margin-bottom: 2px; }
+    .how-step__desc { font-size: 12px; color: rgba(255,255,255,0.5); line-height: 1.5; }
+
+    .restaurant-grid {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+
+    /* ── CLOSED CARD STATE ── */
+    .card.is-closed {
+      opacity: 0.85;
+      cursor: pointer;
+    }
+    .card.is-closed .card__img {
+      filter: grayscale(60%) brightness(0.7);
+    }
+    .closed-overlay-strip {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 80%, transparent 100%);
+      padding: 10px 12px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .closed-overlay-strip__badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(239,68,68,0.9);
+      color: white;
+      font-size: 11px; font-weight: 800;
+      padding: 3px 10px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .closed-overlay-strip__time {
+      color: rgba(255,255,255,0.85);
+      font-size: 11px; font-weight: 600;
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .section { padding: var(--space-lg) var(--space-md); }
+    .section:first-child { padding-top: var(--space-md); }
+
+    .category-icon {
+      width: 48px; height: 48px;
+      border-radius: var(--radius-lg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      background: var(--clr-surface-2);
+      margin-bottom: 6px;
+      transition: transform var(--transition-fast);
+    }
+    .chip:hover .category-icon, .chip.active .category-icon {
+      transform: scale(1.1);
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── HORIZONTAL CAROUSELS & MINI CARDS ── */
+    .horizontal-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: var(--space-md);
+      padding: 10px 4px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      margin-bottom: var(--space-md);
+    }
+    .horizontal-scroll::-webkit-scrollbar {
+      display: none;
+    }
+    .card-mini {
+      flex: 0 0 200px;
+      scroll-snap-align: start;
+      background: var(--clr-surface);
+      border: 1px solid var(--clr-border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform var(--transition-base), box-shadow var(--transition-base);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .card-mini:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+    .card-mini__img-wrap {
+      position: relative;
+      width: 100%;
+      height: 110px;
+      overflow: hidden;
+      background: var(--clr-surface-2);
+    }
+    .card-mini__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform var(--transition-base);
+    }
+    .card-mini:hover .card-mini__img {
+      transform: scale(1.05);
+    }
+    .card-mini__body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .card-mini__name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--clr-text-primary);
+      margin: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-mini__meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--clr-text-secondary);
+    }
+    .card-mini__rating {
+      color: var(--clr-warning);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .card-mini__distance {
+      color: var(--clr-text-muted);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ── NAVIGATION ── -->
+  <nav class="nav" id="main-nav">
+    <div class="nav__inner">
+      <a href="index.html" class="nav__logo">
+        <div class="nav__logo-icon"><i class="fa-solid fa-motorcycle"></i></div>
+        <span class="nav__logo-text">ShipFree</span>
+      </a>
+      <div class="nav__actions">
+        <button class="nav__icon-btn" onclick="document.getElementById('search-input').focus()" title="Tìm kiếm" id="nav-search-btn">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        <button class="nav__icon-btn" onclick="goToCart()" title="Giỏ hàng" id="nav-cart-btn">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="nav__badge hidden" id="nav-cart-badge">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── TOAST CONTAINER ── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── PAGE WRAPPER ── -->
+  <div class="page-wrapper">
+
+    <!-- HERO SECTION -->
+    <section class="hero">
+      <div class="hero__tag">
+        <span class="animate-pulse" style="width:8px;height:8px;background:#4ADE80;border-radius:50%;display:inline-block;"></span>
+        Đang hoạt động · 3 shipper lân cận
+      </div>
+      <h1 class="hero__title animate-fade-in">
+        Đặt đồ ăn <br><span>tiện lợi</span> & nhanh
+      </h1>
+      <p class="hero__subtitle animate-fade-in anim-delay-1">
+        Giao hàng siêu tốc tận tay — kết nối trực tiếp với tài xế lân cận. Ăn ngon nóng hổi, thanh toán tiền mặt an toàn.
+      </p>
+
+      <!-- Address Selector -->
+      <div class="address-row animate-fade-in anim-delay-2" onclick="promptAddress()">
+        <i class="fa-solid fa-location-dot address-row__icon"></i>
+        <span class="address-row__text" id="hero-address-text">Nhập địa chỉ giao hàng của bạn...</span>
+        <i class="fa-solid fa-chevron-right address-row__chevron"></i>
+      </div>
+
+      <!-- Search Bar -->
+      <div class="hero-search-wrap animate-fade-in anim-delay-3">
+        <div class="search-bar">
+          <input type="text" id="search-input" class="search-bar__input"
+            placeholder="Tìm món ăn, quán ăn..."
+            oninput="onSearch(this.value)"
+            autocomplete="off">
+          <i class="fa-solid fa-magnifying-glass search-bar__icon"></i>
+        </div>
+      </div>
+
+      <div class="hero__stats animate-fade-in anim-delay-4">
+        <div class="hero__stat">
+          <div class="hero__stat-value">100%</div>
+          <div class="hero__stat-label">Minh bạch giá</div>
+        </div>
+        <div class="hero__stat" style="border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;">
+          <div class="hero__stat-value">15-30'</div>
+          <div class="hero__stat-label">Thời gian giao</div>
+        </div>
+        <div class="hero__stat" style="border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;">
+          <div class="hero__stat-value">0đ</div>
+          <div class="hero__stat-label">Phí nền tảng</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROMO BANNER -->
+    <section class="section" style="padding-bottom:0;">
+      <div class="promo-banner animate-fade-in" onclick="SF.showToast('Ưu đãi đặc biệt', 'Áp dụng cho đơn đầu tiên của bạn hôm nay!', 'success')">
+        <div>
+          <div class="promo-banner__text">🎁 Đơn đầu tiên miễn phí ship<br><span style="font-weight:400;opacity:0.85;">Dùng mã: <strong>SHIPFREE1</strong></span></div>
+        </div>
+        <div class="promo-banner__tag">Nhận ngay</div>
+      </div>
+    </section>
+
+    <!-- CATEGORY FILTER -->
+    <section class="section" style="padding-bottom:0;">
+      <div class="category-scroll" id="category-row">
+        <button class="chip active" onclick="filterCategory('all', this)">
+          🍽️ Tất cả
+        </button>
+        <button class="chip" onclick="filterCategory('Hủ Tiếu', this)">
+          🍜 Hủ Tiếu
+        </button>
+        <button class="chip" onclick="filterCategory('Bún Bò', this)">
+          🥣 Bún Bò
+        </button>
+        <button class="chip" onclick="filterCategory('Bánh Mì', this)">
+          🥖 Bánh Mì
+        </button>
+        <button class="chip" onclick="filterCategory('Cơm', this)">
+          🍚 Cơm
+        </button>
+        <button class="chip" onclick="filterCategory('Đồ Uống', this)">
+          🧋 Đồ Uống
+        </button>
+      </div>
+    </section>
+
+    <!-- RESTAURANT LIST -->
+    <section class="section" id="restaurants-section">
+      <!-- Featured Section (New) -->
+      <div id="featured-section-wrap" class="animate-fade-in" style="margin-bottom: 25px;">
+        <div class="section-header" style="margin-bottom: 12px;">
+          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-fire" style="color:#ef4444;"></i> Quán Nổi Bật
+          </h3>
+        </div>
+        <div class="horizontal-scroll" id="featured-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Near Me Section (New) -->
+      <div id="near-section-wrap" class="animate-fade-in" style="margin-bottom: 25px;">
+        <div class="section-header" style="margin-bottom: 12px;">
+          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary); display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-location-crosshairs" style="color:#f97316;"></i> Gần Bạn Nhất
+          </h3>
+        </div>
+        <div class="horizontal-scroll" id="near-list">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <div class="section-header">
+        <h2 class="section-title" id="restaurant-section-title">🔥 Tất Cả Cửa Hàng</h2>
+        <span class="section-link" id="restaurant-count"></span>
+      </div>
+
+      <!-- Delivery Callout -->
+      <div class="transparency-banner mb-md animate-fade-in" style="background: linear-gradient(135deg, #ECFDF5, #D1FAE5); border-color: #A7F3D0; color: #065F46;">
+        <div class="transparency-banner__icon" style="background: #34D399; color: white;">
+          <i class="fa-solid fa-truck-fast"></i>
+        </div>
+        <div class="transparency-banner__text">
+          <strong>Giao hàng nhanh chóng:</strong> Đặt món tiện lợi, kết nối trực tiếp với hàng ngàn shipper tự do tại Cần Thơ.
+        </div>
+      </div>
+
+      <div class="restaurant-grid" id="restaurant-list">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section">
+      <div class="how-it-works">
+        <div class="how-it-works__title">⚡ Mô hình hoạt động</div>
+        <div class="how-it-works__sub">Nhanh chóng, tiện lợi và an tâm</div>
+
+        <div class="how-step">
+          <div class="how-step__num">1</div>
+          <div>
+            <div class="how-step__title">Bạn chọn món & đặt hàng</div>
+            <div class="how-step__desc">Giá hiển thị là giá cuối cùng bạn trả (COD). Không phí dịch vụ, không phụ phí ẩn.</div>
+          </div>
+        </div>
+        <div class="how-step">
+          <div class="how-step__num">2</div>
+          <div>
+            <div class="how-step__title">Shipper nhận đơn & giao hàng</div>
+            <div class="how-step__desc">Tài xế tự do lân cận sẽ nhận món ăn tại quán và nhanh chóng giao đến địa chỉ của bạn.</div>
+          </div>
+        </div>
+        <div class="how-step" style="margin-bottom:0;">
+          <div class="how-step__num">3</div>
+          <div>
+            <div class="how-step__title">Nhận hàng & thanh toán (COD)</div>
+            <div class="how-step__desc">Bạn nhận món ăn nóng hổi từ tay tài xế, kiểm tra chất lượng và thanh toán tiền mặt trực tiếp.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <strong>ShipFree</strong> — Đặt món nhanh chóng, giao hàng siêu tốc<br>
+      Kết nối trực tiếp tài xế lân cận · Thanh toán COD an toàn<br>
+      <span style="opacity:0.4;">© 2026 ShipFree. Thiết kế với ❤️ tại Việt Nam.</span>
+    </footer>
+  </div>
+
+  <!-- ADDRESS MODAL -->
+  <div class="overlay" id="address-overlay" onclick="closeAddressModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal__handle"></div>
+      <h3 class="modal__title">📍 Địa chỉ giao hàng</h3>
+      
+      <!-- HÌNH THỨC ĐẶT HÀNG (BẮT BUỘC CHỌN) -->
+      <div class="form-group" style="margin-bottom: 15px;">
+        <label class="form-label">Hình thức đặt hàng <span style="color:#ef4444;">*</span></label>
+        <div style="display: flex; gap: 10px;">
+          <button type="button" id="btn-order-self" class="btn btn--secondary" style="flex: 1; border: 2px solid var(--clr-border); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-weight: 700;" onclick="setOrderType('self')">
+            <i class="fa-solid fa-user"></i> Đặt cho bạn
+          </button>
+          <button type="button" id="btn-order-relative" class="btn btn--secondary" style="flex: 1; border: 2px solid var(--clr-border); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-weight: 700;" onclick="setOrderType('relative')">
+            <i class="fa-solid fa-user-group"></i> Đặt cho người thân
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn--secondary btn--full" onclick="detectUserLocation()" style="margin-bottom: 15px; background: rgba(124, 58, 237, 0.1); color: var(--clr-primary); border: 1px dashed var(--clr-primary);">
+        <i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại
+      </button>
+      
+      <!-- Leaflet map container for dragging pin -->
+      <div id="modal-map" style="height: 180px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--clr-border); margin-bottom: 15px; display: none; z-index: 100;"></div>
+      
+      <!-- Precise pin indicator -->
+      <div id="map-pin-badge" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10B981; font-size: 11px; font-weight: 700; padding: 8px 10px; border-radius: var(--radius-md); margin-bottom: 15px; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác trên bản đồ!
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="modal-address-input">Địa chỉ nhận hàng</label>
+        <input type="text" id="modal-address-input" class="form-input"
+          placeholder="Số nhà, tên đường, phường/quận..."
+          value="">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modal-name-input">Tên người nhận</label>
+        <input type="text" id="modal-name-input" class="form-input"
+          placeholder="Nhập tên đầy đủ">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="modal-phone-input">Số điện thoại</label>
+        <input type="tel" id="modal-phone-input" class="form-input"
+          placeholder="0xxx xxx xxx">
+      </div>
+
+      <!-- SĐT người đặt (ẩn mặc định, hiện khi chọn đặt cho người thân) -->
+      <div class="form-group" id="group-orderer-phone" style="display: none;">
+        <label class="form-label" for="modal-orderer-phone-input">Số điện thoại của bạn (người đặt hộ) <span style="color:#ef4444;">*</span></label>
+        <input type="tel" id="modal-orderer-phone-input" class="form-input"
+          placeholder="Nhập số điện thoại của bạn">
+      </div>
+
+      <button class="btn btn--primary btn--full btn--lg" onclick="saveAddress()" style="margin-top: 15px;">
+        <i class="fa-solid fa-check"></i> Xác nhận địa chỉ
+      </button>
+    </div>
+  </div>
+
+  <script src="restaurants-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    const API_BASE  = 'http://localhost:3001';
+    let   ALL_DATA  = []; // Danh sách quán đang hiển thị
+
+    // ── PAGE INIT ──
+    document.addEventListener('DOMContentLoaded', async () => {
+      SF.initNavScroll();
+      loadSavedAddress();
+      updateNavCartBadge();
+
+      // Hiển thị skeleton loading
+      showLoadingSkeleton();
+
+      // Thử fetch từ proxy server (ShopeeFood real-time)
+      const state = SF.getState();
+      const loaded = await loadRestaurantsFromServer(state.userLat, state.userLon);
+      if (!loaded) {
+        // Fallback về data local
+        const userLat = state.userLat || 10.0345;
+        const userLon = state.userLon || 105.7876;
+        ALL_DATA = SF.RESTAURANTS.map(r => {
+          const item = { ...r };
+          const streetCoords = localGeocode(item.address);
+          item.distanceValue = clientHaversine(userLat, userLon, streetCoords.lat, streetCoords.lon);
+          if (item.distanceValue < 1) {
+            item.distance = `${Math.round(item.distanceValue * 1000)} m`;
+          } else {
+            item.distance = `${item.distanceValue.toFixed(1)} km`;
+          }
+          const estMins = 12 + Math.round(item.distanceValue * 5);
+          item.time = `${estMins}-${estMins + 8} phút`;
+          return item;
+        });
+
+        // Filter to 3km (fallback to closest 10 if empty)
+        let filtered = ALL_DATA.filter(r => r.distanceValue <= 3.0);
+        if (filtered.length === 0) {
+          filtered = [...ALL_DATA].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
+        }
+        const openRests = filtered.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+        const closedRests = filtered.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+        ALL_DATA = [...openRests, ...closedRests];
+
+        SF.showToast('Dùng data offline', 'Server chưa chạy — hiển thị data có sẵn.', 'info');
+      }
+
+      renderAll();
+
+      // Animate section elements
+      document.querySelectorAll('.animate-fade-in').forEach((el) => {
+        el.style.animationDelay = el.classList.contains('anim-delay-1') ? '0.1s' :
+                                   el.classList.contains('anim-delay-2') ? '0.2s' :
+                                   el.classList.contains('anim-delay-3') ? '0.3s' :
+                                   el.classList.contains('anim-delay-4') ? '0.4s' : '0s';
+      });
+
+      // Map input syncer
+      const modalAddrInput = document.getElementById('modal-address-input');
+      if (modalAddrInput) {
+        modalAddrInput.addEventListener('input', (e) => {
+          const addr = e.target.value.trim();
+          if (addr && !addr.includes('GPS') && !addr.includes('Ghim Bản Đồ')) {
+            const resolved = localGeocode(addr);
+            showMapAt(resolved.lat, resolved.lon, false); // false = don't update typed input value
+          }
+        });
+      }
+    });
+
+    async function loadRestaurantsFromServer(lat, lon) {
+      const state = SF.getState();
+      const queryLat = lat !== undefined ? lat : (state.userLat || 10.0345);
+      const queryLon = lon !== undefined ? lon : (state.userLon || 105.7876);
+      try {
+        const res = await fetch(`${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}`, { signal: AbortSignal.timeout(6000) });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        if (json.data && json.data.length > 0) {
+          ALL_DATA = json.data;
+          // Cập nhật RESTAURANTS global để các trang khác dùng được
+          SF.RESTAURANTS = ALL_DATA;
+          const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
+                           json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
+          document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
+          console.log(`[Data] ${srcLabel} — ${json.total} quán`);
+          SF.showToast(srcLabel, `${json.total} quán ăn tại Cần Thơ`, 'success');
+          return true;
+        }
+      } catch (err) {
+        console.warn('[Server] Không kết nối được:', err.message);
+      }
+      return false;
+    }
+
+    function showLoadingSkeleton() {
+      const container = document.getElementById('restaurant-list');
+      container.innerHTML = Array(4).fill(`
+        <div class="card" style="pointer-events:none;">
+          <div style="height:160px;background:linear-gradient(90deg,var(--clr-surface-2) 25%,var(--clr-border) 50%,var(--clr-surface-2) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:var(--radius-lg) var(--radius-lg) 0 0;"></div>
+          <div class="card__body">
+            <div style="height:16px;width:70%;background:var(--clr-border);border-radius:4px;margin-bottom:8px;animation:shimmer 1.5s infinite;"></div>
+            <div style="height:12px;width:50%;background:var(--clr-border);border-radius:4px;animation:shimmer 1.5s infinite;"></div>
+          </div>
+        </div>`).join('');
+    }
+
+    function loadSavedAddress() {
+      const state = SF.getState();
+      if (state.deliveryAddress) {
+        document.getElementById('hero-address-text').textContent = state.deliveryAddress;
+      }
+    }
+
+    function updateNavCartBadge() {
+      const { itemCount } = SF.getCartTotal();
+      const badge = document.getElementById('nav-cart-badge');
+      if (itemCount > 0) {
+        badge.textContent = itemCount;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    function clientHaversine(lat1, lon1, lat2, lon2) {
+      const R = 6371; // Earth's radius in km
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = 
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    // ── RENDER RESTAURANTS ──
+    function renderRestaurants(list) {
+      const container = document.getElementById('restaurant-list');
+      const countEl   = document.getElementById('restaurant-count');
+
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state__icon">🔍</div>
+            <div class="empty-state__title">Không tìm thấy</div>
+            <div class="empty-state__desc">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác.</div>
+          </div>`;
+        countEl.textContent = '';
+        return;
+      }
+
+      countEl.textContent = list.length + ' quán';
+
+      list.forEach((r, i) => {
+        const card = document.createElement('article');
+        const isClosed = r.isClosed === true;
+        card.className = 'card animate-fade-in' + (isClosed ? ' is-closed' : '');
+        card.style.animationDelay = (i * 0.08) + 's';
+        card.style.opacity = '0';
+        // Quán đóng cửa vẫn cho xem trang nhưng sẽ hiện thông báo đóng cửa
+        card.onclick = () => SF.navigate('restaurant.html', { id: r.id });
+
+        // Tính thời gian mở lại (nếu có closedAt, ước tính 8 tiếng sau)
+        let reopenText = 'Mở cửa lại sau';
+        if (r.closedAt) {
+          const closedTime = new Date(r.closedAt);
+          const reopenTime = new Date(closedTime.getTime() + 8 * 60 * 60 * 1000);
+          const now = new Date();
+          const diffMs = reopenTime - now;
+          if (diffMs > 0) {
+            const diffH = Math.floor(diffMs / 3600000);
+            const diffM = Math.floor((diffMs % 3600000) / 60000);
+            if (diffH > 0) reopenText = `Mở lại sau ~${diffH}h${diffM > 0 ? diffM + 'm' : ''}`;
+            else reopenText = `Mở lại sau ~${diffM} phút`;
+          } else {
+            reopenText = 'Có thể đã mở cửa';
+          }
+        }
+
+        const closedOverlayHtml = isClosed ? `
+          <div class="closed-overlay-strip">
+            <span class="closed-overlay-strip__badge">
+              <i class="fa-solid fa-lock" style="font-size:9px;"></i> Đang đóng cửa
+            </span>
+            <span class="closed-overlay-strip__time">
+              <i class="fa-regular fa-clock"></i> ${reopenText}
+            </span>
+          </div>` : '';
+
+        card.innerHTML = `
+          <div class="card__img-wrap">
+            <img src="${r.img}" alt="${r.name}" class="card__img" loading="lazy">
+            <div class="card__badge">
+              ${isClosed
+                ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;">🔒 Đóng cửa</span>`
+                : r.tags.map(t => `<span class="badge badge--glass">${t}</span>`).join('')
+              }
+            </div>
+            ${closedOverlayHtml}
+          </div>
+          <div class="card__body">
+            <h3 class="card__name" style="${isClosed ? 'color:var(--clr-text-muted);' : ''}">${r.name}</h3>
+            <div class="card__meta">
+              <span class="card__meta-item rating">
+                <i class="fa-solid fa-star"></i> ${r.rating} (${r.reviews.toLocaleString()})
+              </span>
+              <span class="card__meta-item">
+                <i class="fa-solid fa-location-dot"></i> ${r.distance}
+              </span>
+              <span class="card__meta-item">
+                <i class="fa-solid fa-clock"></i>
+                ${isClosed
+                  ? `<span style="color:#f87171;font-weight:700;">Đóng cửa</span>`
+                  : r.time
+                }
+              </span>
+            </div>
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    function renderMiniCards(containerId, list) {
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div style="padding:20px;color:var(--clr-text-muted);font-size:12px;text-align:center;width:100%;">
+            Không có quán ăn lân cận phù hợp
+          </div>`;
+        return;
+      }
+
+      list.forEach((r, i) => {
+        const isClosed = r.isClosed === true;
+        const card = document.createElement('div');
+        card.className = 'card-mini animate-fade-in' + (isClosed ? ' is-closed' : '');
+        card.style.animationDelay = (i * 0.05) + 's';
+        card.onclick = () => SF.navigate('restaurant.html', { id: r.id });
+
+        const badgeHtml = isClosed
+          ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">🔒 Đóng</span>`
+          : `<span class="badge badge--glass" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">${r.tags[0] || r.category || 'Món ngon'}</span>`;
+
+        card.innerHTML = `
+          <div class="card-mini__img-wrap">
+            <img src="${r.img}" alt="${r.name}" class="card-mini__img" loading="lazy">
+            ${badgeHtml}
+          </div>
+          <div class="card-mini__body">
+            <h4 class="card-mini__name" title="${r.name}">${r.name}</h4>
+            <div class="card-mini__meta">
+              <span class="card-mini__rating">
+                <i class="fa-solid fa-star"></i> ${r.rating}
+              </span>
+              <span class="card-mini__distance">
+                <i class="fa-solid fa-location-dot"></i> ${r.distance}
+              </span>
+            </div>
+          </div>`;
+        container.appendChild(card);
+      });
+    }
+
+    function renderAll() {
+      // 1. Quán Nổi Bật: Top 10 open restaurants sorted by rating/reviews
+      const openRests = ALL_DATA.filter(r => !r.isClosed);
+      const featuredList = [...openRests]
+        .sort((a, b) => (b.rating - a.rating) || (b.reviews - a.reviews))
+        .slice(0, 10);
+      renderMiniCards('featured-list', featuredList);
+
+      // 2. Gần Bạn Nhất: Top 10 open restaurants sorted by distance
+      const nearList = [...openRests]
+        .sort((a, b) => a.distanceValue - b.distanceValue)
+        .slice(0, 10);
+      renderMiniCards('near-list', nearList);
+
+      // 3. Tất Cả Cửa Hàng
+      renderRestaurants(ALL_DATA);
+    }
+
+    // ── CATEGORY FILTER ──
+    function filterCategory(cat, btn) {
+      document.querySelectorAll('#category-row .chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Reset search bar when selecting category
+      document.getElementById('search-input').value = '';
+
+      const titleEl = document.getElementById('restaurant-section-title');
+      const featuredWrap = document.getElementById('featured-section-wrap');
+      const nearWrap = document.getElementById('near-section-wrap');
+      let filtered;
+
+      if (cat === 'all') {
+        filtered = ALL_DATA;
+        titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
+        if (featuredWrap) featuredWrap.style.display = 'block';
+        if (nearWrap) nearWrap.style.display = 'block';
+      } else {
+        filtered = ALL_DATA.filter(r =>
+          r.category.toLowerCase().includes(cat.toLowerCase()) ||
+          r.menu.some(m => m.category?.toLowerCase().includes(cat.toLowerCase()))
+        );
+        titleEl.textContent = `🔎 Kết quả: ${cat}`;
+        if (featuredWrap) featuredWrap.style.display = 'none';
+        if (nearWrap) nearWrap.style.display = 'none';
+      }
+      renderRestaurants(filtered);
+    }
+
+    // ── SEARCH ──
+    const onSearch = SF.debounce ? SF.debounce(_doSearch, 400) : _doSearch;
+    async function _doSearch(q) {
+      const query = q.trim();
+      const titleEl = document.getElementById('restaurant-section-title');
+      const featuredWrap = document.getElementById('featured-section-wrap');
+      const nearWrap = document.getElementById('near-section-wrap');
+
+      // Reset category chips to "Tất cả" when a query is entered
+      if (query) {
+        document.querySelectorAll('#category-row .chip').forEach(c => {
+          if (c.getAttribute('onclick').includes("'all'")) {
+            c.classList.add('active');
+          } else {
+            c.classList.remove('active');
+          }
+        });
+      }
+
+      if (!query) {
+        titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
+        if (featuredWrap) featuredWrap.style.display = 'block';
+        if (nearWrap) nearWrap.style.display = 'block';
+        renderRestaurants(ALL_DATA);
+        return;
+      }
+      
+      if (featuredWrap) featuredWrap.style.display = 'none';
+      if (nearWrap) nearWrap.style.display = 'none';
+
+      titleEl.textContent = `🔎 Đang tìm kiếm: "${query}"...`;
+      showLoadingSkeleton();
+
+      const state = SF.getState();
+      const queryLat = state.userLat || 10.0345;
+      const queryLon = state.userLon || 105.7876;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        
+        if (json.data && json.data.length > 0) {
+          titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
+          
+          // Trộn các kết quả tìm kiếm mới vào đầu danh sách RESTAURANTS hiện tại (đồng bộ localStorage)
+          // để khi click vào chi tiết, trang restaurant.html có thể tìm thấy quán đó.
+          const mergedList = [...SF.RESTAURANTS];
+          json.data.forEach(newRes => {
+            if (!mergedList.some(r => r.id === newRes.id)) {
+              mergedList.push(newRes);
+            }
+          });
+          SF.RESTAURANTS = mergedList;
+          
+          renderRestaurants(json.data);
+        } else {
+          titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
+          renderRestaurants([]);
+        }
+      } catch (err) {
+        console.warn('[Search] Lỗi kết nối tìm kiếm:', err.message);
+        // Fallback: lọc dữ liệu hiện tại đang hiển thị
+        const qLower = query.toLowerCase();
+        const results = ALL_DATA.filter(r =>
+          r.name.toLowerCase().includes(qLower) ||
+          r.category.toLowerCase().includes(qLower) ||
+          r.menu.some(m => m.name.toLowerCase().includes(qLower))
+        );
+        titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}" (Ngoại tuyến)`;
+        renderRestaurants(results);
+      }
+    }
+
+    // ── ADDRESS MODAL ──
+    let tempGpsCoords = null;
+
+    function localGeocode(address) {
+      const text = (address || '').toLowerCase();
+      // Basic Vietnamese tone removal
+      const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const STREETS_COORDS = {
+        'nguyen van cu': { lat: 10.0298, lon: 105.7584 },
+        'mau than': { lat: 10.0276, lon: 105.7725 },
+        '3 thang 2': { lat: 10.0244, lon: 105.7676 },
+        'ba thang hai': { lat: 10.0244, lon: 105.7676 },
+        '3/2': { lat: 10.0244, lon: 105.7676 },
+        '30 thang 4': { lat: 10.0165, lon: 105.7708 },
+        'ba muoi thang tu': { lat: 10.0165, lon: 105.7708 },
+        '30/4': { lat: 10.0165, lon: 105.7708 },
+        'tran hung dao': { lat: 10.0381, lon: 105.7801 },
+        'ly tu trong': { lat: 10.0354, lon: 105.7825 },
+        'cach mang thang 8': { lat: 10.0492, lon: 105.7615 },
+        'cmt8': { lat: 10.0492, lon: 105.7615 },
+        'hung vuong': { lat: 10.0415, lon: 105.7818 },
+        'tran van hoai': { lat: 10.0261, lon: 105.7772 },
+        'tam vu': { lat: 10.0182, lon: 105.7720 },
+        'de tham': { lat: 10.0336, lon: 105.7828 },
+        'quang trung': { lat: 10.0229, lon: 105.7905 },
+        'vo van kiet': { lat: 10.0526, lon: 105.7502 },
+        'cai rang': { lat: 9.9968, lon: 105.7505 },
+        'o mon': { lat: 10.1205, lon: 105.6292 },
+        'binh thuy': { lat: 10.0763, lon: 105.7289 }
+      };
+
+      for (const [key, coords] of Object.entries(STREETS_COORDS)) {
+        if (cleanText.includes(key)) {
+          return coords;
+        }
+      }
+
+      // Default Ninh Kieu Center
+      return { lat: 10.0345, lon: 105.7876 };
+    }
+
+    let leafletMap = null;
+    let mapMarker = null;
+    let selectedOrderType = null;
+
+    function setOrderType(type) {
+      selectedOrderType = type;
+      const btnSelf = document.getElementById('btn-order-self');
+      const btnRel = document.getElementById('btn-order-relative');
+      const groupOrdererPhone = document.getElementById('group-orderer-phone');
+      
+      const addrLabel = document.querySelector('label[for="modal-address-input"]');
+      const nameLabel = document.querySelector('label[for="modal-name-input"]');
+      const phoneLabel = document.querySelector('label[for="modal-phone-input"]');
+      
+      const addrInput = document.getElementById('modal-address-input');
+      const nameInput = document.getElementById('modal-name-input');
+      const phoneInput = document.getElementById('modal-phone-input');
+
+      // Reset styles
+      if (btnSelf && btnRel) {
+        btnSelf.style.borderColor = 'var(--clr-border)';
+        btnSelf.style.background = 'transparent';
+        btnSelf.style.color = 'var(--clr-text-primary)';
+        btnRel.style.borderColor = 'var(--clr-border)';
+        btnRel.style.background = 'transparent';
+        btnRel.style.color = 'var(--clr-text-primary)';
+
+        if (type === 'self') {
+          btnSelf.style.borderColor = 'var(--clr-primary)';
+          btnSelf.style.background = 'rgba(124, 58, 237, 0.08)';
+          btnSelf.style.color = 'var(--clr-primary)';
+          
+          if (groupOrdererPhone) groupOrdererPhone.style.display = 'none';
+          
+          if (addrLabel) addrLabel.innerHTML = 'Địa chỉ giao hàng <span style="color:#ef4444;">*</span>';
+          if (nameLabel) nameLabel.innerHTML = 'Tên người nhận <span style="color:#ef4444;">*</span>';
+          if (phoneLabel) phoneLabel.innerHTML = 'Số điện thoại nhận hàng <span style="color:#ef4444;">*</span>';
+          
+          addrInput.placeholder = "Số nhà, tên đường, phường/quận...";
+          nameInput.placeholder = "Nhập tên đầy đủ";
+          phoneInput.placeholder = "0xxx xxx xxx";
+        } else if (type === 'relative') {
+          btnRel.style.borderColor = 'var(--clr-primary)';
+          btnRel.style.background = 'rgba(124, 58, 237, 0.08)';
+          btnRel.style.color = 'var(--clr-primary)';
+          
+          if (groupOrdererPhone) groupOrdererPhone.style.display = 'block';
+          
+          if (addrLabel) addrLabel.innerHTML = 'Địa chỉ người thân chính xác <span style="color:#ef4444;">*</span>';
+          if (nameLabel) nameLabel.innerHTML = 'Tên người thân nhận hàng <span style="color:#ef4444;">*</span>';
+          if (phoneLabel) phoneLabel.innerHTML = 'Số điện thoại người thân <span style="color:#ef4444;">*</span>';
+          
+          addrInput.placeholder = "Nhập số nhà, tên đường, phường/quận người thân...";
+          nameInput.placeholder = "Nhập tên đầy đủ người thân";
+          phoneInput.placeholder = "Nhập số điện thoại người thân chính xác";
+        }
+      }
+    }
+
+    function showMapAt(lat, lon, updateInput = true) {
+      const mapDiv = document.getElementById('modal-map');
+      if (mapDiv) mapDiv.style.display = 'block';
+
+      const coords = [lat, lon];
+      tempGpsCoords = { lat, lon };
+
+      if (updateInput) {
+        document.getElementById('modal-address-input').value = `Vị trí Ghim Bản Đồ (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+      }
+
+      if (!leafletMap) {
+        leafletMap = L.map('modal-map').setView(coords, 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(leafletMap);
+
+        mapMarker = L.marker(coords, { draggable: true }).addTo(leafletMap);
+
+        mapMarker.on('dragend', function (e) {
+          const position = mapMarker.getLatLng();
+          tempGpsCoords = { lat: position.lat, lon: position.lng };
+          
+          const pinBadge = document.getElementById('map-pin-badge');
+          if (pinBadge) {
+            pinBadge.style.display = 'flex';
+            pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}!`;
+          }
+
+          const addrVal = document.getElementById('modal-address-input').value.trim();
+          if (!addrVal || addrVal.includes('GPS') || addrVal.includes('Ghim')) {
+            document.getElementById('modal-address-input').value = `Vị trí Ghim Bản Đồ (${position.lat.toFixed(4)}, ${position.lng.toFixed(4)})`;
+          }
+          SF.showToast('📍 Đã ghim vị trí', `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`, 'info');
+        });
+      } else {
+        leafletMap.setView(coords, 16);
+        mapMarker.setLatLng(coords);
+      }
+
+      setTimeout(() => {
+        leafletMap.invalidateSize();
+      }, 150);
+    }
+
+    function promptAddress() {
+      const state = SF.getState();
+      document.getElementById('modal-address-input').value = state.deliveryAddress || '';
+      document.getElementById('modal-name-input').value    = state.deliveryName    || '';
+      document.getElementById('modal-phone-input').value   = state.deliveryPhone   || '';
+      
+      const ordererInput = document.getElementById('modal-orderer-phone-input');
+      if (ordererInput) {
+        ordererInput.value = state.ordererPhone || '';
+      }
+      
+      selectedOrderType = state.isRelative ? 'relative' : (state.deliveryAddress ? 'self' : null);
+      setOrderType(selectedOrderType);
+
+      // Reset GPS button state
+      const gpsBtn = document.querySelector('button[onclick="detectUserLocation()"]');
+      if (gpsBtn) {
+        gpsBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại`;
+        gpsBtn.style.cssText = "margin-bottom: 15px; background: rgba(124, 58, 237, 0.1); color: var(--clr-primary); border: 1px dashed var(--clr-primary);";
+      }
+
+      // Initialize map location based on saved values or default to Ninh Kieu
+      const currentLat = state.userLat || 10.0345;
+      const currentLon = state.userLon || 105.7876;
+      tempGpsCoords = { lat: currentLat, lon: currentLon };
+
+      document.getElementById('address-overlay').classList.add('active');
+      
+      // Render map with Leaflet
+      showMapAt(currentLat, currentLon, false);
+
+      // Set badge if coordinates exist and are not default Ninh Kieu
+      const pinBadge = document.getElementById('map-pin-badge');
+      if (pinBadge && (state.userLat && state.userLon && (state.userLat !== 10.0345 || state.userLon !== 105.7876))) {
+        pinBadge.style.display = 'flex';
+        pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác: ${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}!`;
+      } else if (pinBadge) {
+        pinBadge.style.display = 'none';
+      }
+    }
+
+    function closeAddressModal(e) {
+      if (e.target === document.getElementById('address-overlay')) {
+        document.getElementById('address-overlay').classList.remove('active');
+      }
+    }
+
+    function detectUserLocation() {
+      if (!navigator.geolocation) {
+        SF.showToast('Không hỗ trợ', 'Trình duyệt không hỗ trợ định vị GPS.', 'error');
+        return;
+      }
+      
+      const btn = document.querySelector('button[onclick="detectUserLocation()"]');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tìm vị trí GPS...`;
+      btn.disabled = true;
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          tempGpsCoords = { lat, lon };
+          
+          document.getElementById('modal-address-input').value = `Vị trí GPS (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+          
+          btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
+          btn.disabled = false;
+          btn.style.background = 'rgba(16, 185, 129, 0.1)';
+          btn.style.color = '#10B981';
+          btn.style.borderColor = '#10B981';
+          SF.showToast('📍 Đã định vị', 'Lấy tọa độ GPS thành công!', 'success');
+
+          // Update map and marker location
+          showMapAt(lat, lon, false);
+
+          const pinBadge = document.getElementById('map-pin-badge');
+          if (pinBadge) {
+            pinBadge.style.display = 'flex';
+            pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí GPS chính xác: ${lat.toFixed(5)}, ${lon.toFixed(5)}!`;
+          }
+        },
+        (error) => {
+          console.error(error);
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+          let msg = 'Không thể lấy vị trí của bạn.';
+          if (error.code === error.PERMISSION_DENIED) {
+            msg = 'Vui lòng cho phép quyền định vị trong trình duyệt.';
+          }
+          SF.showToast('Lỗi định vị', msg, 'error');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    function saveAddress() {
+      if (!selectedOrderType) {
+        SF.showToast('Chưa chọn hình thức', 'Vui lòng chọn đặt cho bạn hoặc đặt cho người thân.', 'warning');
+        return;
+      }
+
+      const isRelative = (selectedOrderType === 'relative');
+      const address = document.getElementById('modal-address-input').value.trim();
+      const name    = document.getElementById('modal-name-input').value.trim();
+      const phone   = document.getElementById('modal-phone-input').value.trim();
+      
+      const ordererPhoneInput = document.getElementById('modal-orderer-phone-input');
+      const ordererPhone = ordererPhoneInput ? ordererPhoneInput.value.trim() : '';
+
+      const phoneRegex = /^0[35789]\d{8}$/;
+
+      if (isRelative) {
+        if (!address || address.length < 10) {
+          SF.showToast('Địa chỉ người thân không chính xác', 'Vui lòng nhập địa chỉ người thân đầy đủ và chính xác (hẻm, số nhà, tên đường, phường/quận).', 'warning');
+          return;
+        }
+        if (!name) {
+          SF.showToast('Thiếu tên người thân', 'Vui lòng nhập họ tên người thân nhận hàng.', 'warning');
+          return;
+        }
+        if (!phone || !phoneRegex.test(phone)) {
+          SF.showToast('SĐT người thân không hợp lệ', 'Vui lòng nhập số điện thoại người thân chính xác (10 số, bắt đầu bằng 03/05/07/08/09).', 'warning');
+          return;
+        }
+        if (!ordererPhone || !phoneRegex.test(ordererPhone)) {
+          SF.showToast('SĐT người đặt không hợp lệ', 'Vui lòng nhập số điện thoại của bạn chính xác (10 số, bắt đầu bằng 03/05/07/08/09).', 'warning');
+          return;
+        }
+        if (phone === ordererPhone) {
+          SF.showToast('SĐT trùng nhau', 'Số điện thoại người thân nhận hàng và số điện thoại người đặt không được trùng nhau.', 'warning');
+          return;
+        }
+      } else {
+        if (!address || address.length < 5) {
+          SF.showToast('Thiếu địa chỉ', 'Vui lòng nhập địa chỉ giao hàng đầy đủ.', 'warning');
+          return;
+        }
+        if (!name) {
+          SF.showToast('Thiếu tên người nhận', 'Vui lòng nhập tên người nhận hàng.', 'warning');
+          return;
+        }
+        if (!phone || !phoneRegex.test(phone)) {
+          SF.showToast('SĐT không hợp lệ', 'Vui lòng nhập số điện thoại nhận hàng chính xác (10 số, bắt đầu bằng 03/05/07/08/09).', 'warning');
+          return;
+        }
+      }
+
+      let coords = null;
+      if (tempGpsCoords) {
+        coords = tempGpsCoords;
+      } else {
+        coords = localGeocode(address);
+      }
+
+      const state = SF.getState();
+      state.deliveryAddress = address;
+      state.deliveryName    = name;
+      state.deliveryPhone   = phone;
+      state.ordererPhone    = isRelative ? ordererPhone : '';
+      state.isRelative      = isRelative;
+      state.userLat         = coords.lat;
+      state.userLon         = coords.lon;
+      SF.saveState(state);
+
+      document.getElementById('hero-address-text').textContent = address;
+      document.getElementById('address-overlay').classList.remove('active');
+      SF.showToast('Đã lưu địa chỉ', address, 'success');
+
+      // Reload restaurants from server with new coordinates!
+      showLoadingSkeleton();
+      loadRestaurantsFromServer(coords.lat, coords.lon).then(() => {
+        renderAll();
+      });
+    }
+
+    // ── CART REDIRECT ──
+    function goToCart() {
+      const { itemCount, restaurantId } = (() => {
+        const c = SF.getCart();
+        return { itemCount: Object.values(c.items).reduce((a,b) => a+b, 0), restaurantId: c.restaurantId };
+      })();
+      if (itemCount > 0 && restaurantId) {
+        SF.navigate('restaurant.html', { id: restaurantId });
+      } else {
+        SF.showToast('Giỏ hàng trống', 'Chọn món từ quán ăn để bắt đầu.', 'info');
+      }
+    }
+
+    // Expose for search input
+    window.onSearch = onSearch;
+    window.filterCategory = filterCategory;
+    window.promptAddress = promptAddress;
+    window.closeAddressModal = closeAddressModal;
+    window.detectUserLocation = detectUserLocation;
+    window.saveAddress = saveAddress;
+    window.goToCart = goToCart;
+  </script>
+</body>
+</html>
+
+

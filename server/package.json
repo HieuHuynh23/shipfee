@@ -1,0 +1,20 @@
+{
+  "name": "shipfree-proxy-server",
+  "version": "1.1.0",
+  "description": "Proxy server tự động lấy data quán ăn từ ShopeeFood Cần Thơ",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cheerio": "^1.2.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "puppeteer-core": "^25.1.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}

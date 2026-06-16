@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Theo Dõi Đơn Hàng — ShipFree</title>
+  <meta name="description" content="Theo dõi trạng thái đơn hàng của bạn theo thời gian thực.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  
+  <!-- Leaflet Map library -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    /* ── PAGE-SPECIFIC ── */
+    .order-id-bar {
+      background: var(--clr-dark);
+      color: white;
+      padding: 14px var(--space-md);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .order-id-bar__label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.05em; }
+    .order-id-bar__id { font-size: 15px; font-weight: 800; font-family: monospace; color: #FCA5A5; }
+    .order-id-bar__status {
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Status colors */
+    .status-PENDING   { background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); }
+    .status-ACCEPTED  { background: rgba(59,130,246,0.15); color: #3B82F6; border: 1px solid rgba(59,130,246,0.3); }
+    .status-PURCHASED { background: rgba(139,92,246,0.15); color: #8B5CF6; border: 1px solid rgba(139,92,246,0.3); }
+    .status-DELIVERED { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3); }
+
+    /* Map placeholder */
+    .map-container {
+      height: 180px;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .map-container__dots {
+      position: absolute;
+      inset: 0;
+      background-image:
+        radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .map-route {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+    .map-pin {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .map-pin__icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .map-pin__label {
+      font-size: 10px; font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      background: rgba(0,0,0,0.5);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      white-space: nowrap;
+    }
+    .map-dashed-line {
+      width: 2px; height: 36px;
+      border-left: 2px dashed rgba(255,255,255,0.2);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .map-shipper-dot {
+      width: 32px; height: 32px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 14px;
+      box-shadow: 0 0 0 6px rgba(239,68,68,0.2);
+      animation: pulse-ring 2s infinite;
+      position: absolute;
+    }
+    .map-eta-badge {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .map-eta-badge span { font-size: 18px; font-weight: 900; display: block; }
+
+    .section-card {
+      background: var(--clr-surface);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--clr-border);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .section-card__title {
+      font-size: 13px; font-weight: 800;
+      color: var(--clr-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-md);
+      display: flex; align-items: center; gap: var(--space-sm);
+    }
+    .section-card__title i { color: var(--clr-primary); }
+
+    /* Progress bar for ETA */
+    .eta-progress { margin-bottom: var(--space-md); }
+    .eta-progress__label {
+      display: flex; justify-content: space-between;
+      font-size: 12px; color: var(--clr-text-muted);
+      margin-bottom: 6px;
+    }
+    .eta-progress__label strong { color: var(--clr-text-primary); font-size: 14px; }
+
+    /* Next action prompt */
+    .action-prompt {
+      background: linear-gradient(135deg, var(--clr-primary-light), #FFF7ED);
+      border: 1px solid #FED7AA;
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      display: flex; gap: var(--space-md); align-items: flex-start;
+      margin-bottom: var(--space-md);
+    }
+    .action-prompt__icon {
+      width: 40px; height: 40px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+      color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .action-prompt__title { font-size: 14px; font-weight: 700; color: var(--clr-text-primary); }
+    .action-prompt__desc  { font-size: 12px; color: var(--clr-text-secondary); margin-top: 2px; line-height: 1.5; }
+
+    /* Rating stars */
+    .rating-card {
+      background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+      border: 1px solid #6EE7B7;
+      border-radius: var(--radius-xl);
+      padding: var(--space-lg);
+      text-align: center;
+    }
+    .rating-card__title { font-size: 18px; font-weight: 800; color: #064E3B; margin-bottom: 6px; }
+    .rating-card__sub   { font-size: 13px; color: #065F46; margin-bottom: var(--space-md); }
+    .rating-card__stars { display: flex; justify-content: center; gap: 8px; margin-bottom: var(--space-md); }
+
+    /* Order summary mini */
+    .mini-summary-row {
+      display: flex; justify-content: space-between;
+      font-size: 13px; padding: 6px 0;
+      border-bottom: 1px solid var(--clr-border);
+      color: var(--clr-text-secondary);
+    }
+    .mini-summary-row:last-child { border: none; }
+    .mini-summary-row.total { font-weight: 800; font-size: 15px; color: var(--clr-text-primary); padding-top: 10px; }
+
+    /* Demo control bar */
+    .demo-bar {
+      background: var(--clr-dark-card);
+      border: 1px solid var(--clr-dark-border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .demo-bar__title {
+      font-size: 11px; font-weight: 800;
+      color: rgba(255,255,255,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-sm);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .demo-bar__title::before {
+      content: '';
+      width: 8px; height: 8px;
+      background: #4ADE80;
+      border-radius: 50%;
+      animation: pulse-ring 1.5s infinite;
+      flex-shrink: 0;
+    }
+    .demo-steps {
+      display: flex; gap: var(--space-sm); overflow-x: auto;
+      scrollbar-width: none; padding-bottom: 2px;
+    }
+    .demo-steps::-webkit-scrollbar { display: none; }
+    .demo-step-btn {
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 12px; font-weight: 700;
+      white-space: nowrap; flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.6);
+      background: rgba(255,255,255,0.05);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    .demo-step-btn:hover { background: rgba(255,255,255,0.12); color: white; }
+    .demo-step-btn.done  { border-color: var(--clr-success); color: var(--clr-success); }
+    .demo-step-btn.active { border-color: var(--clr-primary); color: white; background: var(--clr-primary); }
+  </style>
+</head>
+
+<body>
+  <!-- ── NAVIGATION ── -->
+  <nav class="nav" id="main-nav">
+    <div class="nav__inner">
+      <a href="index.html" class="nav__back-btn">
+        <i class="fa-solid fa-house"></i> Trang chủ
+      </a>
+      <span style="font-size:15px;font-weight:700;color:var(--clr-text-primary);">Theo dõi đơn</span>
+      <button onclick="SF.navigate('index.html')" style="font-size:12px;font-weight:600;color:var(--clr-primary);padding:8px;">
+        Đặt thêm
+      </button>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── PAGE WRAPPER ── -->
+  <div class="page-wrapper">
+
+    <!-- ORDER ID BAR -->
+    <div class="order-id-bar" id="order-id-bar">
+      <div>
+        <div class="order-id-bar__label">Mã đơn hàng</div>
+        <div class="order-id-bar__id" id="order-id-display">SPF-———</div>
+      </div>
+      <span class="order-id-bar__status status-PENDING" id="order-status-badge">Đang tìm shipper</span>
+    </div>
+
+    <!-- MAP AREA -->
+    <div style="position: relative; width: 100%;">
+      <div id="tracking-map" style="height: 240px; width: 100%; border-bottom: 1px solid var(--clr-border); z-index: 10;"></div>
+    </div>
+
+    <div class="container" style="padding-top:var(--space-lg);padding-bottom:var(--space-2xl);">
+
+      <!-- ETA PROGRESS -->
+      <div class="eta-progress animate-fade-in">
+        <div class="eta-progress__label">
+          <span id="eta-status-text">Đang tìm tài xế...</span>
+          <strong id="eta-time-text">~20 phút</strong>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-bar__fill" id="order-progress" style="width:10%;"></div>
+        </div>
+      </div>
+
+      <!-- DEMO CONTROL BAR (Simulation) -->
+      <div class="demo-bar animate-fade-in">
+        <div class="demo-bar__title">Điều khiển giả lập — Nhấn để mô phỏng tiến trình</div>
+        <div class="demo-steps">
+          <button class="demo-step-btn active" id="demo-btn-PENDING" onclick="simulateStep('PENDING')">
+            1. Tìm Shipper
+          </button>
+          <button class="demo-step-btn" id="demo-btn-ACCEPTED" onclick="simulateStep('ACCEPTED')">
+            2. Shipper nhận đơn
+          </button>
+          <button class="demo-step-btn" id="demo-btn-PURCHASED" onclick="simulateStep('PURCHASED')">
+            3. Đã mua hàng
+          </button>
+          <button class="demo-step-btn" id="demo-btn-DELIVERED" onclick="simulateStep('DELIVERED')">
+            4. Giao thành công
+          </button>
+        </div>
+      </div>
+
+      <!-- ACTION PROMPT -->
+      <div class="action-prompt animate-fade-in" id="action-prompt">
+        <div class="action-prompt__icon"><i class="fa-solid fa-radar" id="prompt-icon"></i></div>
+        <div>
+          <div class="action-prompt__title" id="prompt-title">Đang phát tín hiệu đến shipper lân cận</div>
+          <div class="action-prompt__desc" id="prompt-desc">Hệ thống đang tìm kiếm tài xế phù hợp trong khu vực của bạn. Vui lòng chờ trong giây lát.</div>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="section-card animate-fade-in anim-delay-1">
+        <div class="section-card__title">
+          <i class="fa-solid fa-timeline"></i> Tiến trình đơn hàng
+        </div>
+        <div class="timeline" id="order-timeline">
+          <div class="timeline__step active" id="step-PENDING">
+            <div class="timeline__icon"><i class="fa-solid fa-radar"></i></div>
+            <div class="timeline__body">
+              <div class="timeline__title">Đang tìm shipper lân cận</div>
+              <div class="timeline__desc">Hệ thống đang phát tín hiệu đến các tài xế tự do...</div>
+              <div class="timeline__time" id="time-PENDING">—</div>
+            </div>
+          </div>
+          <div class="timeline__step" id="step-ACCEPTED">
+            <div class="timeline__icon"><i class="fa-solid fa-handshake"></i></div>
+            <div class="timeline__body">
+              <div class="timeline__title">Shipper đã nhận đơn</div>
+              <div class="timeline__desc" id="desc-ACCEPTED">Tài xế đang di chuyển đến quán để mua hàng</div>
+              <div class="timeline__time" id="time-ACCEPTED">—</div>
+            </div>
+          </div>
+          <div class="timeline__step" id="step-PURCHASED">
+            <div class="timeline__icon"><i class="fa-solid fa-bag-shopping"></i></div>
+            <div class="timeline__body">
+              <div class="timeline__title">Đã mua hàng tại quán</div>
+              <div class="timeline__desc">Shipper đã ứng tiền trả quán và đang trên đường đến bạn</div>
+              <div class="timeline__time" id="time-PURCHASED">—</div>
+            </div>
+          </div>
+          <div class="timeline__step" id="step-DELIVERED">
+            <div class="timeline__icon"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="timeline__body">
+              <div class="timeline__title">Giao hàng thành công 🎉</div>
+              <div class="timeline__desc">Cảm ơn bạn đã dùng ShipFree! Nhớ đánh giá tài xế nhé.</div>
+              <div class="timeline__time" id="time-DELIVERED">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHIPPER CARD -->
+      <div class="section-card animate-fade-in anim-delay-2" id="shipper-section" style="display:none;">
+        <div class="section-card__title">
+          <i class="fa-solid fa-id-card"></i> Thông tin tài xế
+        </div>
+        <div class="shipper-card">
+          <div class="shipper-card__avatar-placeholder" id="shipper-avatar">T</div>
+          <div class="shipper-card__info">
+            <div class="shipper-card__name" id="shipper-name">—</div>
+            <div class="shipper-card__rating">
+              <i class="fa-solid fa-star"></i>
+              <span id="shipper-rating">—</span>
+              <span style="color:var(--clr-text-muted);font-weight:400;">· Tài xế tự do ShipFree</span>
+            </div>
+            <div class="shipper-card__meta" id="shipper-phone">—</div>
+          </div>
+          <div class="shipper-card__actions">
+            <button class="shipper-card__action-btn" title="Gọi tài xế"
+              onclick="SF.showToast('Đang kết nối', 'Đang gọi cho tài xế...', 'info')">
+              <i class="fa-solid fa-phone"></i>
+            </button>
+            <button class="shipper-card__action-btn" title="Nhắn tin"
+              onclick="SF.showToast('Tin nhắn', 'Tính năng chat đang phát triển!', 'info')">
+              <i class="fa-solid fa-comment"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRICE SUMMARY -->
+      <div class="section-card animate-fade-in anim-delay-3">
+        <div class="section-card__title">
+          <i class="fa-solid fa-receipt"></i> Tóm tắt thanh toán
+        </div>
+        <div class="mini-summary-row">
+          <span>Tổng tiền món ăn</span>
+          <span id="summary-total-items">—</span>
+        </div>
+        <div class="mini-summary-row">
+          <span>Phí giao hàng</span>
+          <span style="color:var(--clr-success);font-weight:600;">Miễn phí</span>
+        </div>
+        <div class="mini-summary-row total">
+          <span>Bạn trả (COD)</span>
+          <span id="summary-total" class="text-primary">—</span>
+        </div>
+      </div>
+
+      <!-- DELIVERY ADDRESS -->
+      <div class="section-card animate-fade-in anim-delay-4">
+        <div class="section-card__title">
+          <i class="fa-solid fa-location-dot"></i> Địa chỉ giao hàng
+        </div>
+        <div style="font-size:14px;font-weight:600;color:var(--clr-text-primary);" id="track-addr-name">—</div>
+        <div style="font-size:13px;color:var(--clr-text-muted);margin-top:4px;line-height:1.6;" id="track-addr-addr">—</div>
+        <div style="font-size:13px;color:var(--clr-text-muted);margin-top:2px;" id="track-addr-phone">—</div>
+      </div>
+
+      <!-- RATING SECTION (visible after delivery) -->
+      <div class="rating-card animate-fade-in" id="rating-section" style="display:none;">
+        <div style="font-size:40px;margin-bottom:8px;">🎉</div>
+        <div class="rating-card__title">Giao hàng thành công!</div>
+        <div class="rating-card__sub">Bạn cảm thấy thế nào về dịch vụ lần này?</div>
+        <div class="rating-card__stars" id="star-rating">
+          <span class="star active" data-v="1" onclick="setRating(1)">★</span>
+          <span class="star active" data-v="2" onclick="setRating(2)">★</span>
+          <span class="star active" data-v="3" onclick="setRating(3)">★</span>
+          <span class="star active" data-v="4" onclick="setRating(4)">★</span>
+          <span class="star active" data-v="5" onclick="setRating(5)">★</span>
+        </div>
+        <button class="btn btn--success btn--full" id="submit-rating-btn" onclick="submitRating()">
+          <i class="fa-solid fa-paper-plane"></i> Gửi đánh giá
+        </button>
+        <div style="margin-top:var(--space-md);">
+          <button class="btn btn--primary btn--full" onclick="orderAgain()">
+            <i class="fa-solid fa-rotate-right"></i> Đặt hàng lại
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /container -->
+  </div><!-- /page-wrapper -->
+
+  <script src="restaurants-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let order      = null;
+    let currentRating = 5;
+
+    const STATUS_CONFIG = {
+      PENDING:   { label: 'Đang tìm shipper', badge: 'Đang tìm shipper', progress: 10, eta: '~20', etaText: 'Đang tìm tài xế gần bạn...', promptIcon: 'fa-radar', promptTitle: 'Đang phát tín hiệu đến shipper lân cận', promptDesc: 'Hệ thống đang tìm kiếm tài xế phù hợp trong khu vực. Vui lòng chờ trong giây lát.' },
+      ACCEPTED:  { label: 'Shipper đã nhận',  badge: 'Shipper đang đến',  progress: 35, eta: '15',  etaText: 'Tài xế đang di chuyển đến quán...', promptIcon: 'fa-motorcycle', promptTitle: 'Tài xế đã nhận đơn và đang đi lấy hàng', promptDesc: 'Tài xế đang trên đường đến quán để mua món ăn của bạn. Họ sẽ thanh toán đúng giá gốc tại quán.' },
+      PURCHASED: { label: 'Đang giao hàng',  badge: 'Đang giao đến bạn', progress: 70, eta: '8',   etaText: 'Tài xế đang trên đường đến bạn...', promptIcon: 'fa-bag-shopping', promptTitle: 'Shipper đã mua hàng & đang giao đến bạn', promptDesc: 'Tài xế đã ứng tiền mua đúng giá gốc tại quán. Họ đang di chuyển đến địa chỉ của bạn. Chuẩn bị tiền mặt!' },
+      DELIVERED: { label: 'Đã giao xong',    badge: 'Giao thành công',   progress: 100, eta: '0',  etaText: 'Đã giao hàng thành công! 🎉',     promptIcon: 'fa-circle-check', promptTitle: 'Đơn hàng đã được giao thành công!', promptDesc: 'Cảm ơn bạn đã sử dụng ShipFree. Tài xế đã hoàn thành nhiệm vụ xuất sắc!' }
+    };
+
+    const STATUS_BADGE_CLASS = {
+      PENDING:   'status-PENDING',
+      ACCEPTED:  'status-ACCEPTED',
+      PURCHASED: 'status-PURCHASED',
+      DELIVERED: 'status-DELIVERED'
+    };
+
+    const FLOW = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
+
+    document.addEventListener('DOMContentLoaded', () => {
+      SF.initNavScroll();
+      order = SF.getActiveOrder();
+
+      if (!order) {
+        SF.showToast('Không có đơn hàng', 'Hãy đặt đơn trước.', 'warning');
+        setTimeout(() => SF.navigate('index.html'), 1500);
+        return;
+      }
+
+      renderOrderInfo();
+      renderUI(order.status);
+      initTrackingMap();
+    });
+
+    function localGeocode(address) {
+      const text = (address || '').toLowerCase();
+      const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const STREETS_COORDS = {
+        'nguyen van cu': { lat: 10.0298, lon: 105.7584 },
+        'mau than': { lat: 10.0276, lon: 105.7725 },
+        '3 thang 2': { lat: 10.0244, lon: 105.7676 },
+        'ba thang hai': { lat: 10.0244, lon: 105.7676 },
+        '3/2': { lat: 10.0244, lon: 105.7676 },
+        '30 thang 4': { lat: 10.0165, lon: 105.7708 },
+        'ba muoi thang tu': { lat: 10.0165, lon: 105.7708 },
+        '30/4': { lat: 10.0165, lon: 105.7708 },
+        'tran hung dao': { lat: 10.0381, lon: 105.7801 },
+        'ly tu trong': { lat: 10.0354, lon: 105.7825 },
+        'cach mang thang 8': { lat: 10.0492, lon: 105.7615 },
+        'cmt8': { lat: 10.0492, lon: 105.7615 },
+        'hung vuong': { lat: 10.0415, lon: 105.7818 },
+        'tran van hoai': { lat: 10.0261, lon: 105.7772 },
+        'tam vu': { lat: 10.0182, lon: 105.7720 },
+        'de tham': { lat: 10.0336, lon: 105.7828 },
+        'quang trung': { lat: 10.0229, lon: 105.7905 },
+        'vo van kiet': { lat: 10.0526, lon: 105.7502 },
+        'cai rang': { lat: 9.9968, lon: 105.7505 },
+        'o mon': { lat: 10.1205, lon: 105.6292 },
+        'binh thuy': { lat: 10.0763, lon: 105.7289 }
+      };
+
+      for (const [key, coords] of Object.entries(STREETS_COORDS)) {
+        if (cleanText.includes(key)) {
+          return coords;
+        }
+      }
+      return { lat: 10.0345, lon: 105.7876 };
+    }
+
+    let trackingMap = null;
+    let restMarker = null;
+    let deliveryMarker = null;
+    let shipperMarker = null;
+    let routeLine = null;
+
+    function initTrackingMap() {
+      if (!order) return;
+
+      const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
+      const restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      
+      const restLat = order.restaurantLat || restCoords.lat;
+      const restLon = order.restaurantLon || restCoords.lon;
+
+      const deliveryLat = order.pinnedLat || 10.0345;
+      const deliveryLon = order.pinnedLon || 105.7876;
+
+      try {
+        trackingMap = L.map('tracking-map').setView([(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2], 14);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap'
+        }).addTo(trackingMap);
+
+        const restIcon = L.divIcon({
+          html: `<div style="background:#EF4444; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:16px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏪</div>`,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const destIcon = L.divIcon({
+          html: `<div style="background:#3B82F6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:16px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏠</div>`,
+          className: '',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16]
+        });
+
+        const shipIcon = L.divIcon({
+          html: `<div style="background:#8B5CF6; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:18px; border: 2px solid white; box-shadow: 0 2px 8px rgba(139,92,246,0.5);"><i class="fa-solid fa-motorcycle"></i></div>`,
+          className: '',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18]
+        });
+
+        restMarker = L.marker([restLat, restLon], { icon: restIcon }).addTo(trackingMap).bindPopup(`<b>Quán ăn:</b> ${order.restaurantName}`);
+        deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: destIcon }).addTo(trackingMap).bindPopup(`<b>Địa chỉ nhận:</b> ${order.deliveryAddress}`);
+        
+        routeLine = L.polyline([[restLat, restLon], [deliveryLat, deliveryLon]], {
+          color: '#8B5CF6',
+          weight: 4,
+          opacity: 0.7,
+          dashArray: '5, 10'
+        }).addTo(trackingMap);
+
+        shipperMarker = L.marker([restLat, restLon], { icon: shipIcon }).addTo(trackingMap);
+        
+        updateShipperLocationOnMap(order.status);
+
+        const group = new L.featureGroup([restMarker, deliveryMarker]);
+        trackingMap.fitBounds(group.getBounds().pad(0.2));
+      } catch (e) {
+        console.error('Lỗi map tracking:', e);
+      }
+    }
+
+    function updateShipperLocationOnMap(status) {
+      if (!trackingMap || !shipperMarker) return;
+
+      const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
+      const restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      
+      const restLat = order.restaurantLat || restCoords.lat;
+      const restLon = order.restaurantLon || restCoords.lon;
+
+      const deliveryLat = order.pinnedLat || 10.0345;
+      const deliveryLon = order.pinnedLon || 105.7876;
+
+      if (status === 'PENDING') {
+        shipperMarker.setLatLng([10.0345, 105.7876]);
+        shipperMarker.bindPopup('<b>Shipper tự do:</b> Đang tìm tài xế lân cận...').openPopup();
+      } else if (status === 'ACCEPTED') {
+        const startLat = restLat + 0.003;
+        const startLon = restLon - 0.003;
+        shipperMarker.setLatLng([startLat, startLon]);
+        shipperMarker.bindPopup('<b>Shipper:</b> Đang di chuyển đến quán...').openPopup();
+      } else if (status === 'PURCHASED') {
+        const midLat = (restLat + deliveryLat) / 2;
+        const midLon = (restLon + deliveryLon) / 2;
+        shipperMarker.setLatLng([midLat, midLon]);
+        shipperMarker.bindPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...').openPopup();
+      } else if (status === 'DELIVERED') {
+        shipperMarker.setLatLng([deliveryLat, deliveryLon]);
+        shipperMarker.bindPopup('<b>Shipper:</b> Đã giao hàng thành công!').openPopup();
+      }
+    }
+
+    function renderOrderInfo() {
+      document.getElementById('order-id-display').textContent = order.id;
+      document.getElementById('summary-total-items').textContent = SF.formatCurrency(order.appTotal);
+      document.getElementById('summary-total').textContent   = SF.formatCurrency(order.appTotal);
+      
+      if (order.isRelative) {
+        document.getElementById('track-addr-name').innerHTML  = `<span style="color:var(--clr-primary); font-weight: 800;">👤 Người nhận hộ:</span> ${order.deliveryName} <span class="badge" style="background:#f59e0b; color:white; font-size:9px; padding:1px 6px; border-radius:10px; border:none; margin-left:5px; display:inline-block;">Người thân</span>`;
+        document.getElementById('track-addr-addr').innerHTML  = `<span style="font-weight: 600; color: var(--clr-text-primary);">📍 Địa chỉ người thân:</span> ${order.deliveryAddress}`;
+        document.getElementById('track-addr-phone').innerHTML = `
+          <div style="margin-bottom:4px;"><span style="font-weight: 600; color: var(--clr-text-primary);">📞 SĐT người thân:</span> ${order.deliveryPhone}</div>
+          <div><span style="font-weight: 600; color: var(--clr-text-primary);">📱 SĐT người đặt:</span> ${order.ordererPhone}</div>`;
+      } else {
+        document.getElementById('track-addr-name').textContent  = order.deliveryName || 'Khách hàng';
+        document.getElementById('track-addr-addr').textContent  = order.deliveryAddress;
+        document.getElementById('track-addr-phone').textContent = order.deliveryPhone || '';
+      }
+    }
+
+    function renderUI(status) {
+      const cfg = STATUS_CONFIG[status];
+      if (!cfg) return;
+
+      // Badge
+      const badge = document.getElementById('order-status-badge');
+      if (badge) {
+        badge.textContent = cfg.badge;
+        badge.className   = 'order-id-bar__status ' + STATUS_BADGE_CLASS[status];
+      }
+
+      // Progress & ETA
+      const oProgress = document.getElementById('order-progress');
+      if (oProgress) oProgress.style.width  = cfg.progress + '%';
+      
+      const etaStatus = document.getElementById('eta-status-text');
+      if (etaStatus) etaStatus.textContent = cfg.etaText;
+      
+      const etaTime = document.getElementById('eta-time-text');
+      if (etaTime) etaTime.textContent   = cfg.eta === '0' ? 'Đã giao' : '~' + cfg.eta + ' phút';
+      
+      const mapEta = document.getElementById('map-eta-min');
+      if (mapEta) mapEta.textContent     = cfg.eta === '0' ? '✓' : cfg.eta;
+
+      // Action prompt
+      const pIcon = document.getElementById('prompt-icon');
+      if (pIcon) pIcon.className   = 'fa-solid ' + cfg.promptIcon;
+      
+      const pTitle = document.getElementById('prompt-title');
+      if (pTitle) pTitle.textContent = cfg.promptTitle;
+      
+      const pDesc = document.getElementById('prompt-desc');
+      if (pDesc) pDesc.textContent  = cfg.promptDesc;
+
+      // Timeline
+      const idx = FLOW.indexOf(status);
+      FLOW.forEach((s, i) => {
+        const step = document.getElementById('step-' + s);
+        if (!step) return;
+        step.className = 'timeline__step' +
+          (i < idx  ? ' done'   : '') +
+          (i === idx ? ' active' : '');
+
+        const histEntry = order.statusHistory?.find(h => h.status === s);
+        const timeEl = document.getElementById('time-' + s);
+        if (timeEl) timeEl.textContent = histEntry ? SF.formatTime(histEntry.time) : (i <= idx ? SF.formatTime(Date.now()) : '');
+      });
+
+      // Shipper info
+      if (status !== 'PENDING') {
+        const shipperSec = document.getElementById('shipper-section');
+        if (shipperSec) shipperSec.style.display = '';
+        
+        const sAvatar = document.getElementById('shipper-avatar');
+        if (sAvatar) sAvatar.textContent = order.shipperName?.charAt(0) || 'T';
+        
+        const sName = document.getElementById('shipper-name');
+        if (sName) sName.textContent   = order.shipperName   || '—';
+        
+        const sRating = document.getElementById('shipper-rating');
+        if (sRating) sRating.textContent = order.shipperRating || '—';
+        
+        const sPhone = document.getElementById('shipper-phone');
+        if (sPhone) sPhone.textContent  = order.shipperPhone  || '—';
+      }
+
+      // Demo buttons
+      FLOW.forEach((s, i) => {
+        const btn = document.getElementById('demo-btn-' + s);
+        if (!btn) return;
+        btn.className = 'demo-step-btn ' +
+          (i < idx  ? 'done'   : '') +
+          (i === idx ? 'active' : '');
+        if (i < idx) btn.innerHTML = '✓ ' + btn.innerHTML.replace(/^.*?[0-9]\. /, '');
+      });
+
+      // Rating section
+      if (status === 'DELIVERED') {
+        const rSec = document.getElementById('rating-section');
+        if (rSec) rSec.style.display = '';
+        
+        const aPrompt = document.getElementById('action-prompt');
+        if (aPrompt) {
+          aPrompt.style.background = 'linear-gradient(135deg, #ECFDF5, #D1FAE5)';
+          aPrompt.style.borderColor = '#6EE7B7';
+        }
+      }
+
+      // Update shipper icon on map
+      updateShipperLocationOnMap(status);
+    }
+
+    // ── SIMULATE STEP ──
+    function simulateStep(targetStatus) {
+      const currentIdx = FLOW.indexOf(order.status);
+      const targetIdx  = FLOW.indexOf(targetStatus);
+
+      if (targetIdx <= currentIdx) return; // Can't go back
+
+      let i = currentIdx + 1;
+      function step() {
+        if (i > targetIdx) return;
+        order = SF.progressOrder();
+        renderUI(order.status);
+
+        const msgs = {
+          ACCEPTED:  ['🛵 Shipper đã nhận đơn!', 'Nguyễn Văn Tài đang di chuyển đến quán lấy hàng.'],
+          PURCHASED: ['🛒 Đã mua hàng tại quán!', 'Shipper đã ứng tiền trả giá gốc và đang giao đến bạn.'],
+          DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán COD và đánh giá tài xế nhé!']
+        };
+        if (msgs[order.status]) {
+          SF.showToast(msgs[order.status][0], msgs[order.status][1], 'success');
+        }
+        i++;
+        if (i <= targetIdx) setTimeout(step, 600);
+      }
+      step();
+    }
+
+    // ── RATING ──
+    function setRating(val) {
+      currentRating = val;
+      document.querySelectorAll('#star-rating .star').forEach(s => {
+        s.classList.toggle('active', parseInt(s.dataset.v) <= val);
+      });
+    }
+
+    function submitRating() {
+      const btn = document.getElementById('submit-rating-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
+
+      setTimeout(() => {
+        SF.showToast('Cảm ơn bạn! ⭐', `Bạn đã đánh giá ${currentRating} sao cho tài xế.`, 'success');
+        SF.completeOrder();
+        btn.innerHTML = '✓ Đã gửi đánh giá';
+        btn.style.background = 'var(--clr-success)';
+        setTimeout(() => document.getElementById('rating-section').querySelector('.btn--primary').focus(), 500);
+      }, 1000);
+    }
+
+    function orderAgain() {
+      SF.completeOrder();
+      SF.navigate('index.html');
+    }
+
+    window.simulateStep = simulateStep;
+    window.setRating    = setRating;
+    window.submitRating = submitRating;
+    window.orderAgain   = orderAgain;
+  </script>
+</body>
+</html>
+
+
