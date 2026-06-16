@@ -521,10 +521,13 @@
           
           // Trộn vào danh sách local của client và lưu lại
           const mergedList = [...SF.RESTAURANTS];
-          if (!mergedList.some(r => String(r.id) === String(RESTAURANT.id))) {
+          const idx = mergedList.findIndex(r => String(r.id) === String(RESTAURANT.id));
+          if (idx === -1) {
             mergedList.push(RESTAURANT);
-            SF.RESTAURANTS = mergedList;
+          } else {
+            mergedList[idx] = RESTAURANT;
           }
+          SF.RESTAURANTS = mergedList;
           return true;
         }
       } catch (err) {

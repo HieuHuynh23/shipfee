@@ -1223,6 +1223,14 @@ async function fetchFromShopeeFood() {
 
 // ── ROUTES ───────────────────────────────────────────────────────────────────
 
+function stripMenus(restaurants) {
+  if (!Array.isArray(restaurants)) return restaurants;
+  return restaurants.map(r => {
+    const { menu, ...rest } = r;
+    return rest;
+  });
+}
+
 /**
  * GET /api/restaurants
  * Ưu tiên: Cache → ShopeeFood API → Fallback local data
@@ -1444,7 +1452,7 @@ app.get('/api/restaurants', async (req, res) => {
     console.log(`[Search] ✅ Trả về tổng cộng ${processedResults.length} quán ăn sau khi gộp và lọc khoảng cách.`);
     // Tìm kiếm thời gian thực: không cache vì kết quả thay đổi theo từ khóa
     res.set('Cache-Control', 'no-cache, no-store');
-    return res.json({ source: 'merged_search', data: processedResults, total: processedResults.length });
+    return res.json({ source: 'merged_search', data: stripMenus(processedResults), total: processedResults.length });
   }
 
   const localJsonPath = path.join(__dirname, 'restaurants-local.json');
@@ -1494,7 +1502,7 @@ app.get('/api/restaurants', async (req, res) => {
         }
         // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
         if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-        return res.json({ source: query ? 'local_search_fallback' : 'local', data: responseData, total: responseData.length });
+        return res.json({ source: query ? 'local_search_fallback' : 'local', data: stripMenus(responseData), total: responseData.length });
       }
     }
   } catch (jsonErr) {
@@ -1521,7 +1529,7 @@ app.get('/api/restaurants', async (req, res) => {
         responseData = processRestaurantsWithLocation(localData, req.query.lat, req.query.lon);
       }
       console.log(`[Fallback] ✅ ${responseData.length} quán từ restaurants-data.js sau khi lọc khoảng cách`);
-      return res.json({ source: 'local', data: responseData, total: responseData.length });
+      return res.json({ source: 'local', data: stripMenus(responseData), total: responseData.length });
     }
   } catch (evalErr) {
     console.error('[Fallback] Lỗi đọc restaurants-data.js:', evalErr.message);

@@ -139,15 +139,11 @@ if ($restResp) {
 
             # Kiem tra cau truc mot phan tu
             $r = $json.data[0]
-            if ($r.id -and $r.name -and $r.menu) { Write-Pass "Cau truc phan tu hop le (id, name, menu)" }
-            else { Write-Fail "Thieu truong du lieu: id/name/menu" }
+            if ($r.id -and $r.name) { Write-Pass "Cau truc phan tu hop le (id, name)" }
+            else { Write-Fail "Thieu truong du lieu: id/name" }
 
             if ($r.rating -and $r.distance) { Write-Pass "Co rating va distance" }
             else { Write-Warn "Thieu rating hoac distance" }
-
-            $menuCount = @($r.menu).Count
-            if ($menuCount -gt 0) { Write-Pass "Menu co $menuCount mon an" }
-            else { Write-Warn "Menu trong" }
 
             Write-Info "Quan dau tien : $firstName (ID: $firstId)"
         } else {

@@ -60,24 +60,33 @@ async function sleep(ms) {
 
 // ── Inject fake state into localStorage ──────────────────────────────────────
 async function injectTestState(page, restaurantId, menuItemId) {
-  await page.evaluate((rId, mId) => {
-    // Set up a complete state: relative order with valid data
-    const state = {
-      cart: {
-        restaurantId: rId,
-        items: { [mId]: 1 }
-      },
-      activeOrder: null,
-      deliveryAddress: '123 Mậu Thân, Ninh Kiều, Cần Thơ',
-      deliveryName: 'Nguyễn Thị Bé',
-      deliveryPhone: '0912345678',
-      ordererPhone: '0987654321',
-      isRelative: true,
-      userLat: 10.0276,
-      userLon: 105.7725
-    };
-    localStorage.setItem('shipfree_state', JSON.stringify(state));
-    console.log('[TEST] State injected:', JSON.stringify(state));
+  await page.evaluate(async (rId, mId) => {
+    try {
+      const detailRes = await fetch(`http://localhost:3001/api/restaurants/${rId}`);
+      const detailJson = await detailRes.json();
+      const fullRest = detailJson.data;
+
+      // Set up a complete state: relative order with valid data
+      const state = {
+        cart: {
+          restaurantId: rId,
+          items: { [mId]: 1 }
+        },
+        activeOrder: null,
+        deliveryAddress: '123 Mậu Thân, Ninh Kiều, Cần Thơ',
+        deliveryName: 'Nguyễn Thị Bé',
+        deliveryPhone: '0912345678',
+        ordererPhone: '0987654321',
+        isRelative: true,
+        userLat: 10.0276,
+        userLon: 105.7725
+      };
+      localStorage.setItem('shipfree_state', JSON.stringify(state));
+      localStorage.setItem('shipfree_restaurants', JSON.stringify([fullRest]));
+      console.log('[TEST] State and restaurant injected successfully:', JSON.stringify(state));
+    } catch (e) {
+      console.error('[TEST ERROR] Failed to inject test state:', e.message);
+    }
   }, restaurantId, menuItemId);
 }
 
@@ -99,9 +108,33 @@ async function runTest() {
     const page = await browser.newPage();
 
     // Intercept console logs from the page
-    page.on('console', msg => {
-      if (msg.type() === 'error') {
-        console.log(`  ${C.red}[PAGE ERROR]${C.reset} ${msg.text()}`);
+    page.on('console', async msg => {
+      const type = msg.type();
+      const text = msg.text();
+      if (type === 'error') {
+        console.log(`  ${C.red}[PAGE ERROR]${C.reset} ${text}`);
+      } else if (type === 'warning') {
+        console.log(`  ${C.yellow}[PAGE WARN]${C.reset} ${text}`);
+      } else {
+        console.log(`  ${C.gray}[PAGE LOG]${C.reset} ${text}`);
+        if (text.includes('[Data]')) {
+          try {
+            const keys = await page.evaluate(() => Object.keys(localStorage));
+            console.log(`  [TEST LOG] LocalStorage keys when data loaded: ${JSON.stringify(keys)}`);
+            const val = await page.evaluate(() => localStorage.getItem('shipfree_restaurants'));
+            console.log(`  [TEST LOG] shipfree_restaurants length in storage: ${val ? JSON.parse(val).length : 'null'}`);
+          } catch (e) {}
+        }
+      }
+    });
+
+    page.on('requestfailed', request => {
+      console.log(`  ${C.red}[REQUEST FAIL]${C.reset} ${request.url()} - ${request.failure() ? request.failure().errorText : 'Unknown error'}`);
+    });
+
+    page.on('response', response => {
+      if (response.status() >= 400) {
+        console.log(`  ${C.red}[RESPONSE ERROR]${C.reset} ${response.status()} for ${response.url()}`);
       }
     });
 
@@ -109,7 +142,15 @@ async function runTest() {
     section('BƯỚC 1: Lấy thông tin quán ăn và món ăn');
 
     await page.goto(`${BASE_URL}/index.html`, { waitUntil: 'domcontentloaded', timeout: 15000 });
-    await sleep(2000);
+    
+    // Wait until index.html finishes loading restaurants and populating localStorage
+    info('Đang chờ index.html tải danh sách quán ăn vào localStorage...');
+    await page.waitForFunction(() => {
+      const rests = localStorage.getItem('shipfree_restaurants');
+      return rests && JSON.parse(rests).length > 0;
+    }, { timeout: 15000 }).catch(err => {
+      console.log('  [WARN] Chờ localStorage timeout, có thể sử dụng dữ liệu tĩnh fallback');
+    });
 
     // Read restaurants from API
     const apiData = await page.evaluate(async () => {
@@ -118,14 +159,23 @@ async function runTest() {
         const json = await res.json();
         if (json.data && json.data.length > 0) {
           const r = json.data[0];
-          const menu = r.menu || [];
+          const detailRes = await fetch(`http://localhost:3001/api/restaurants/${r.id}`);
+          const detailJson = await detailRes.json();
+          const menu = detailJson.data.menu || [];
           return { id: r.id, name: r.name, menu: menu.slice(0, 1) };
         }
       } catch (e) {}
       // fallback: read from page's ACTIVE_RESTAURANTS
       if (typeof SF !== 'undefined' && SF.RESTAURANTS && SF.RESTAURANTS.length > 0) {
         const r = SF.RESTAURANTS[0];
-        return { id: r.id, name: r.name, menu: (r.menu || []).slice(0, 1) };
+        try {
+          const detailRes = await fetch(`http://localhost:3001/api/restaurants/${r.id}`);
+          const detailJson = await detailRes.json();
+          const menu = detailJson.data.menu || [];
+          return { id: r.id, name: r.name, menu: menu.slice(0, 1) };
+        } catch (err) {
+          return { id: r.id, name: r.name, menu: (r.menu || []).slice(0, 1) };
+        }
       }
       return null;
     });
@@ -147,6 +197,20 @@ async function runTest() {
 
     await injectTestState(page, restaurantId, menuItemId);
     pass('Đã inject trạng thái đặt hàng cho người thân vào localStorage');
+
+    const localRests = await page.evaluate(() => {
+      return localStorage.getItem('shipfree_restaurants');
+    });
+    info(`LocalStorage shipfree_restaurants length: ${localRests ? JSON.parse(localRests).length : 'null/empty'}`);
+    if (localRests) {
+      const parsed = JSON.parse(localRests);
+      const found = parsed.find(r => r.id === restaurantId);
+      if (found) {
+        pass(`Restaurant "${restaurantId}" found in localStorage!`);
+      } else {
+        fail(`Restaurant "${restaurantId}" NOT found in localStorage! First 3 IDs in storage: ${parsed.slice(0, 3).map(r => r.id).join(', ')}`);
+      }
+    }
 
     await page.goto(`${BASE_URL}/checkout.html`, { waitUntil: 'networkidle2', timeout: 20000 });
     await sleep(2500);
