@@ -4,7 +4,10 @@
 
 'use strict';
 
-const _API_BASE = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+let _API_BASE = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+if (_API_BASE.endsWith('/')) {
+  _API_BASE = _API_BASE.slice(0, -1);
+}
 
 /* --------------------------------------------------------------------------
    Data: Loaded from restaurants-data.js (included before app.js in HTML)

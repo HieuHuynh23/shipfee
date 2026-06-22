@@ -4,7 +4,10 @@
 
 'use strict';
 
-const API_BASE = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+let API_BASE = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+if (API_BASE.endsWith('/')) {
+  API_BASE = API_BASE.slice(0, -1);
+}
 if (API_BASE !== 'http://localhost:3001') {
   const originalFetch = window.fetch;
   window.fetch = function(input, init) {

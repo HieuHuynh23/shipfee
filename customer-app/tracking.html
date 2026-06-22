@@ -658,7 +658,10 @@
   <script src="restaurants-data.js"></script>
   <script src="app.js"></script>
   <script>
-    const API_BASE = SF.API_BASE;
+    let API_BASE = SF.API_BASE;
+    if (API_BASE.endsWith('/')) {
+      API_BASE = API_BASE.slice(0, -1);
+    }
     // Intercept fetch to support dynamic API URL
     if (API_BASE !== 'http://localhost:3001') {
       const originalFetch = window.fetch;
