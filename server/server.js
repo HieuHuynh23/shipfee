@@ -75,9 +75,23 @@ app.use(compression({
   }
 }));
 
-// CORS: cho phép frontend (port 8000) gọi API (port 3001)
+// CORS: cho phép localhost và các tên miền Vercel gọi API
+const whitelist = [
+  'http://localhost:8000',
+  'http://127.0.0.1:8000',
+  'https://shipfee.vercel.app'
+];
 app.use(cors({
-  origin: ['http://localhost:8000', 'http://127.0.0.1:8000'],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    const isVercel = origin.endsWith('.vercel.app');
+    const isWhitelisted = whitelist.indexOf(origin) !== -1;
+    if (isWhitelisted || isVercel) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ['GET', 'POST'],
   optionsSuccessStatus: 200
 }));
