@@ -652,6 +652,13 @@
           <i class="fa-solid fa-phone-slash"></i>
         </button>
       </div>
+
+      <div class="call-diagnostics-panel" id="call-diagnostics-panel" style="width: 100%; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(2, 6, 23, 0.4); border: 1px solid rgba(148, 163, 184, 0.16); border-radius: var(--radius-md); text-align: left; margin-top: 10px; font-family: sans-serif;">
+        <div class="call-diagnostic warn" style="display: flex; align-items: flex-start; gap: 8px; font-size: 11px; line-height: 1.35; color: rgba(255, 255, 255, 0.72);">
+          <i class="fa-solid fa-signal" style="color: #F59E0B;"></i>
+          <span>Đang kiểm tra chất lượng cuộc gọi...</span>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1575,6 +1582,7 @@
         { urls: 'stun:stun.stunprotocol.org:3478' }
       ]
     };
+    let remoteAudioNodes = [];
 
     async function fetchIceServers() {
       try {
@@ -1594,11 +1602,13 @@
     function getOrCreateRemoteAudioEl(unlock = false) {
       let audioEl = document.getElementById('remote-audio-el');
       if (!audioEl) {
-        audioEl = document.createElement('video');
+        audioEl = document.createElement('audio');
         audioEl.id = 'remote-audio-el';
         audioEl.setAttribute('autoplay', 'true');
         audioEl.setAttribute('playsinline', 'true');
         audioEl.setAttribute('webkit-playsinline', 'true');
+        audioEl.preload = 'auto';
+        audioEl.controls = false;
         audioEl.style.position = 'absolute';
         audioEl.style.width = '10px';
         audioEl.style.height = '10px';
@@ -1616,14 +1626,94 @@
       }
       if (unlock) {
         audioEl.muted = false;
+        audioEl.volume = 1;
         audioEl.play().catch(e => console.log('[WebRTC] Silent pre-play caught (expected):', e));
       }
       return audioEl;
     }
 
+    function getCallDiagnostics() {
+      const hasTurn = (iceServersConfig.iceServers || []).some(server => {
+        const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+        return urls.some(url => String(url || '').startsWith('turn:') || String(url || '').startsWith('turns:'));
+      });
+      const apiUrl = localStorage.getItem('shipfee_api_url') || API_BASE;
+      const usingHttpsPage = window.location.protocol === 'https:';
+      const usingHttpApi = String(apiUrl).startsWith('http://');
+      return {
+        secureContext: window.isSecureContext,
+        hasMediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+        hasTurn,
+        mixedContentRisk: usingHttpsPage && usingHttpApi,
+        apiUrl
+      };
+    }
+
+    function renderCallDiagnostics() {
+      const panel = document.getElementById('call-diagnostics-panel');
+      if (!panel) return;
+      const diag = getCallDiagnostics();
+      const rows = [
+        {
+          ok: diag.secureContext,
+          label: diag.secureContext ? 'Mic được phép trên HTTPS/localhost' : 'Cần HTTPS để trình duyệt cho phép microphone'
+        },
+        {
+          ok: diag.hasTurn,
+          label: diag.hasTurn ? 'TURN server sẵn sàng cho gọi ngoài mạng LAN' : 'Thiếu TURN server, gọi qua internet/NAT dễ mất tiếng'
+        },
+        {
+          ok: !diag.mixedContentRisk,
+          label: diag.mixedContentRisk ? 'Frontend HTTPS đang gọi API HTTP, có thể bị chặn' : 'API signaling không bị mixed-content'
+        }
+      ];
+      panel.innerHTML = rows.map(row => `
+        <div class="call-diagnostic ${row.ok ? 'ok' : 'warn'}" style="display: flex; align-items: flex-start; gap: 8px; font-size: 11px; line-height: 1.35; color: rgba(255, 255, 255, 0.72); margin-bottom: 4px;">
+          <i class="fa-solid ${row.ok ? 'fa-circle-check' : 'fa-triangle-exclamation'}" style="color: ${row.ok ? '#10B981' : '#F59E0B'}"></i>
+          <span>${row.label}</span>
+        </div>
+      `).join('');
+    }
+
+    function attachRemoteAudioStream(remoteStream, label) {
+      const audioEl = getOrCreateRemoteAudioEl();
+      audioEl.srcObject = remoteStream;
+      audioEl.muted = false;
+      audioEl.volume = 1;
+
+      const playPromise = audioEl.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.then(() => {
+          console.log(`[WebRTC] ${label} remote audio playback started successfully`);
+        }).catch(e => {
+          console.warn(`[WebRTC] ${label} audio element play failed, routing via AudioContext:`, e);
+          try {
+            const ctx = getSharedAudioCtx();
+            if (ctx) {
+              const source = ctx.createMediaStreamSource(remoteStream);
+              source.connect(ctx.destination);
+              remoteAudioNodes.push(source);
+            }
+          } catch (audioCtxErr) {
+            console.warn(`[WebRTC] ${label} AudioContext routing failed:`, audioCtxErr);
+          }
+          const playFallback = () => {
+            audioEl.play().then(() => {
+              console.log(`[WebRTC] ${label} remote audio playback started on user gesture`);
+              document.removeEventListener('click', playFallback);
+              document.removeEventListener('touchstart', playFallback);
+            }).catch(err => console.error(`[WebRTC] ${label} play retry failed:`, err));
+          };
+          document.addEventListener('click', playFallback);
+          document.addEventListener('touchstart', playFallback);
+        });
+      }
+    }
+
     async function initiateCall() {
       getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
-      getOrCreateRemoteAudioEl(true); // Unlock video element synchronously under user gesture context
+      getOrCreateRemoteAudioEl(true); // Unlock audio element synchronously under user gesture context
+      renderCallDiagnostics();
       if (!order || !order.id) {
         SF.showToast('Lỗi', 'Không có thông tin đơn hàng.', 'error');
         return;
@@ -1692,32 +1782,7 @@
             remoteStream = new MediaStream();
             remoteStream.addTrack(event.track);
           }
-          let audioEl = getOrCreateRemoteAudioEl();
-          audioEl.srcObject = remoteStream;
-          audioEl.play().then(() => {
-            console.log('[WebRTC] Caller Remote audio playback started successfully');
-          }).catch(e => {
-            console.warn('[WebRTC] Caller Audio play failed, retrying on user click:', e);
-            const playFallback = () => {
-              audioEl.play().then(() => {
-                console.log('[WebRTC] Caller Remote audio playback started on user click');
-                document.removeEventListener('click', playFallback);
-              }).catch(err => console.error('[WebRTC] Caller Play retry failed:', err));
-            };
-            document.addEventListener('click', playFallback);
-          });
-
-          // Route via shared AudioContext as fallback
-          try {
-            const ctx = getSharedAudioCtx();
-            if (ctx) {
-              const source = ctx.createMediaStreamSource(remoteStream);
-              source.connect(ctx.destination);
-              console.log('[WebRTC] Caller Remote audio connected to shared AudioContext destination');
-            }
-          } catch (audioCtxErr) {
-            console.warn('[WebRTC] Caller AudioContext routing failed:', audioCtxErr);
-          }
+          attachRemoteAudioStream(remoteStream, 'Caller');
         };
         peerConnection.onicecandidate = async (event) => {
           if (event.candidate) {
@@ -1839,7 +1904,8 @@
 
     async function acceptCall() {
       getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
-      getOrCreateRemoteAudioEl(true); // Unlock video element synchronously under user gesture context
+      getOrCreateRemoteAudioEl(true); // Unlock audio element synchronously under user gesture context
+      renderCallDiagnostics();
       stopIncomingRingtone();
       const statusLabel = document.getElementById('call-status-label');
       if (statusLabel) statusLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...';
@@ -1912,32 +1978,7 @@
             remoteStream = new MediaStream();
             remoteStream.addTrack(event.track);
           }
-          let audioEl = getOrCreateRemoteAudioEl();
-          audioEl.srcObject = remoteStream;
-          audioEl.play().then(() => {
-            console.log('[WebRTC] Callee Remote audio playback started successfully');
-          }).catch(e => {
-            console.warn('[WebRTC] Callee Audio play failed, retrying on user click:', e);
-            const playFallback = () => {
-              audioEl.play().then(() => {
-                console.log('[WebRTC] Callee Remote audio playback started on user click');
-                document.removeEventListener('click', playFallback);
-              }).catch(err => console.error('[WebRTC] Callee Play retry failed:', err));
-            };
-            document.addEventListener('click', playFallback);
-          });
-
-          // Route via shared AudioContext as fallback
-          try {
-            const ctx = getSharedAudioCtx();
-            if (ctx) {
-              const source = ctx.createMediaStreamSource(remoteStream);
-              source.connect(ctx.destination);
-              console.log('[WebRTC] Callee Remote audio connected to shared AudioContext destination');
-            }
-          } catch (audioCtxErr) {
-            console.warn('[WebRTC] Callee AudioContext routing failed:', audioCtxErr);
-          }
+          attachRemoteAudioStream(remoteStream, 'Callee');
         };
         peerConnection.onicecandidate = async (event) => {
           if (event.candidate) {
@@ -2105,6 +2146,11 @@
 
       const audioEl = document.getElementById('remote-audio-el');
       if (audioEl) audioEl.srcObject = null;
+
+      remoteAudioNodes.forEach(node => {
+        try { node.disconnect(); } catch (e) {}
+      });
+      remoteAudioNodes = [];
     }
 
     window.simulateStep = simulateStep;

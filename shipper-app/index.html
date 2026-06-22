@@ -177,6 +177,17 @@
 
     <!-- CONTENT AREA -->
     <main class="content">
+      <section class="driver-command">
+        <div class="driver-command__main">
+          <span class="driver-command__eyebrow">Ca vận hành</span>
+          <strong>Ưu tiên đơn gần, thao tác ít chạm</strong>
+          <small>GPS, chat và gọi khách được gom ngay trong chuyến hiện tại.</small>
+        </div>
+        <div class="driver-command__signal">
+          <i class="fa-solid fa-satellite-dish"></i>
+          <span>Live</span>
+        </div>
+      </section>
       
       <!-- TAB 1: NEW ORDERS -->
       <section id="tab-orders" class="tab-content active">
@@ -380,6 +391,13 @@
         <h3 id="call-contact-name" style="margin: 0 0 6px 0; font-size: 18px; font-weight: 800; color: white;">Khách hàng</h3>
         <div id="call-status-label" style="font-size: 12px; color: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center; gap: 8px;">
           <i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...
+        </div>
+      </div>
+
+      <div class="call-diagnostics-panel" id="call-diagnostics-panel">
+        <div class="call-diagnostic warn">
+          <i class="fa-solid fa-signal"></i>
+          <span>Đang kiểm tra chất lượng cuộc gọi...</span>
         </div>
       </div>
       

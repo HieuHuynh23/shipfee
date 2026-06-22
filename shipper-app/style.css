@@ -196,6 +196,68 @@ input:checked + .slider:before {
   overflow-y: auto;
 }
 
+.driver-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: 14px;
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, 0.16), rgba(59, 130, 246, 0.1)),
+    var(--clr-surface-card);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
+}
+
+.driver-command__main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.driver-command__eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--clr-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.driver-command strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.driver-command small {
+  color: var(--clr-text-secondary);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.driver-command__signal {
+  width: 54px;
+  min-width: 54px;
+  height: 54px;
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--clr-primary);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.driver-command__signal i {
+  font-size: 18px;
+}
+
 .tab-content {
   display: none;
   animation: fadeIn 0.4s ease;
@@ -981,6 +1043,35 @@ input:checked + .slider:before {
 .toast__icon { font-size: 16px; }
 .toast__text { flex: 1; font-size: 12px; font-weight: 500; }
 .toast__close { background: none; border: none; color: var(--clr-text-muted); font-size: 12px; cursor: pointer; }
+
+.call-diagnostics-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: var(--radius-md);
+  text-align: left;
+}
+
+.call-diagnostic {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.call-diagnostic.ok i {
+  color: var(--clr-primary);
+}
+
+.call-diagnostic.warn i {
+  color: #F59E0B;
+}
 
 /* ── MISC UTILS ────────────────────────────────────────────────────────── */
 .fa-spin-slow {

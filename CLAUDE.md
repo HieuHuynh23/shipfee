@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **FOOD DELIVERY** (1062 symbols, 1727 relationships, 94 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **shipfee** (2198 symbols, 3784 relationships, 194 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -24,10 +24,10 @@ This project is indexed by GitNexus as **FOOD DELIVERY** (1062 symbols, 1727 rel
 
 | Resource | Use for |
 |----------|---------|
-| `gitnexus://repo/FOOD DELIVERY/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/FOOD DELIVERY/clusters` | All functional areas |
-| `gitnexus://repo/FOOD DELIVERY/processes` | All execution flows |
-| `gitnexus://repo/FOOD DELIVERY/process/{name}` | Step-by-step execution trace |
+| `gitnexus://repo/shipfee/context` | Codebase overview, check index freshness |
+| `gitnexus://repo/shipfee/clusters` | All functional areas |
+| `gitnexus://repo/shipfee/processes` | All execution flows |
+| `gitnexus://repo/shipfee/process/{name}` | Step-by-step execution trace |
 
 ## CLI
 
