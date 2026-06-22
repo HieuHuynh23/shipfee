@@ -1211,6 +1211,8 @@ let simulatedCallInterval = null;
 let callStartTime = null;
 let localCallStream = null;
 let remoteAudioNodes = [];
+let iceFallbackTimer = null;
+let iceFallbackNotified = false;
 
 // Audio context and oscillators
 let ringbackOsc1 = null;
@@ -1488,6 +1490,58 @@ function attachRemoteAudioStream(remoteStream, label) {
   }
 }
 
+function clearIceFallbackTimer() {
+  if (iceFallbackTimer) {
+    clearTimeout(iceFallbackTimer);
+    iceFallbackTimer = null;
+  }
+}
+
+function runWebRtcFallback(label, startFallback, notifyFallback) {
+  clearIceFallbackTimer();
+  if (!callActive || iceFallbackNotified) return;
+
+  const state = peerConnection ? peerConnection.iceConnectionState : 'closed';
+  if (state === 'connected' || state === 'completed') return;
+
+  iceFallbackNotified = true;
+  console.warn(`[WebRTC] ${label} ICE ${state}, falling back to simulated call`);
+  showToast('Ket noi that bai', 'Khong co duong am thanh truc tiep. Hay cau hinh TURN server khi goi qua internet.', 'warning');
+
+  try {
+    if (typeof notifyFallback === 'function') notifyFallback();
+  } catch (e) {}
+
+  if (peerConnection) {
+    try { peerConnection.close(); } catch (e) {}
+    peerConnection = null;
+  }
+  startFallback();
+}
+
+function handleIceConnectionState(label, startFallback, notifyFallback) {
+  if (!peerConnection) return;
+  const state = peerConnection.iceConnectionState;
+  console.log(`[WebRTC] ${label} ICE Connection State Changed:`, state);
+
+  if (state === 'connected' || state === 'completed') {
+    clearIceFallbackTimer();
+    return;
+  }
+
+  if (state === 'disconnected') {
+    if (!iceFallbackTimer) {
+      console.warn(`[WebRTC] ${label} ICE disconnected; waiting before fallback`);
+      iceFallbackTimer = setTimeout(() => runWebRtcFallback(label, startFallback, notifyFallback), 12000);
+    }
+    return;
+  }
+
+  if (state === 'failed') {
+    runWebRtcFallback(label, startFallback, notifyFallback);
+  }
+}
+
 async function acceptCall() {
   getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
   getOrCreateRemoteAudioEl(true); // Unlock audio element synchronously under user gesture context
@@ -1533,8 +1587,18 @@ async function acceptCall() {
       throw new Error('Simulated call offer');
     }
 
+    iceFallbackNotified = false;
+    clearIceFallbackTimer();
     peerConnection = new RTCPeerConnection(iceServersConfig);
     peerConnection.oniceconnectionstatechange = () => {
+      handleIceConnectionState('Callee', startShipperSimulatedCall, () => {
+        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
+        }).catch(e => {});
+      });
+      return;
       console.log('[WebRTC] Callee ICE Connection State Changed:', peerConnection.iceConnectionState);
       if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
         console.warn('[WebRTC] Callee ICE Connection failed/disconnected, falling back to simulated call');
@@ -1677,8 +1741,18 @@ async function initiateCall() {
     startOutgoingRingback();
     statusLabel.innerHTML = '<i class="fa-solid fa-phone-volume animate-pulse"></i> Đang đổ chuông...';
 
+    iceFallbackNotified = false;
+    clearIceFallbackTimer();
     peerConnection = new RTCPeerConnection(iceServersConfig);
     peerConnection.oniceconnectionstatechange = () => {
+      handleIceConnectionState('Caller', startShipperSimulatedCall, () => {
+        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
+        }).catch(e => {});
+      });
+      return;
       console.log('[WebRTC] Caller ICE Connection State Changed:', peerConnection.iceConnectionState);
       if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
         console.warn('[WebRTC] Caller ICE Connection failed/disconnected, falling back to simulated call');
@@ -1879,6 +1953,8 @@ function endCallLocally() {
   if (callPollInterval) { clearInterval(callPollInterval); callPollInterval = null; }
   if (simulatedCallTimeout) { clearTimeout(simulatedCallTimeout); simulatedCallTimeout = null; }
   if (simulatedCallInterval) { clearInterval(simulatedCallInterval); simulatedCallInterval = null; }
+  clearIceFallbackTimer();
+  iceFallbackNotified = false;
 
   if (peerConnection) {
     try { peerConnection.close(); } catch (e) {}

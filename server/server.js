@@ -2609,6 +2609,25 @@ app.get('/api/webrtc/ice-servers', async (req, res) => {
   // 2. Kiểm tra TURN_USERNAME và TURN_CREDENTIAL tĩnh
   const turnUsername = process.env.TURN_USERNAME;
   const turnCredential = process.env.TURN_CREDENTIAL || process.env.TURN_PASSWORD;
+  const turnUrls = (process.env.TURN_URLS || '')
+    .split(',')
+    .map(url => url.trim())
+    .filter(Boolean);
+
+  if (turnUsername && turnCredential && turnUrls.length > 0) {
+    const configuredTurnServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      ...turnUrls.map(url => ({
+        urls: url,
+        username: turnUsername,
+        credential: turnCredential
+      }))
+    ];
+    cachedIceServers = configuredTurnServers;
+    cachedIceServersExpiry = Date.now() + 5 * 60 * 1000;
+    return res.json(configuredTurnServers);
+  }
+
   if (turnUsername && turnCredential) {
     const staticTurnServers = [
       { urls: 'stun:stun.l.google.com:19302' },

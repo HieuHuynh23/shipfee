@@ -3338,5 +3338,50 @@
     "deliveredAt": 1782154253129,
     "rating": null,
     "comment": null
+  },
+  {
+    "id": "SPF-606863",
+    "restaurantId": "r_ct_highlands_coffee_tra_ca_phe_banh_ttc_hotel_can_tho",
+    "restaurantName": "Highlands Coffee - Trà, Cà Phê & Bánh - TTC Hotel Cần Thơ",
+    "restaurantAddress": "TTC Hotel Cần Thơ, 2 Hai Bà Trưng, P. Tân An, Quận Ninh Kiều, Cần Thơ",
+    "restaurantLat": null,
+    "restaurantLon": null,
+    "items": [
+      {
+        "id": "highlands-coffee-tra-ca-phe-banh-ttc-hotel-can-tho-item-0",
+        "name": "Trà Thạch Đào-Trà Sữa Highlands",
+        "desc": "Sự hoà quyện của hương thơm đào và độ thơm béo của sữa. Thêm ngon cùng topping miếng đào và thạch đào dai giòn.",
+        "inStorePrice": 49000,
+        "appPrice": 62700,
+        "img": "https://mms.img.susercontent.com/vn-11134517-7r98o-lz4nw5mnjuzl9c@resize_ss400x400!@crop_w400_h400_cT",
+        "category": "Món Đang Giảm",
+        "qty": 1
+      }
+    ],
+    "storeTotal": 49000,
+    "appTotal": 64000,
+    "shipperEarning": 15000,
+    "discountValue": 0,
+    "minServiceFee": 1300,
+    "status": "DELIVERED",
+    "shipperId": "shipper-default",
+    "shipperName": "Nguyễn Văn Tài",
+    "shipperPhone": "0901 234 567",
+    "shipperLat": null,
+    "shipperLon": null,
+    "deliveryAddress": "123 Mậu Thân, Ninh Kiều, Cần Thơ",
+    "deliveryName": "Nguyễn Thị Bé",
+    "deliveryPhone": "0912345678",
+    "ordererPhone": "0987654321",
+    "pinnedLat": 10.0276,
+    "pinnedLon": 105.7725,
+    "isRelative": true,
+    "note": "",
+    "createdAt": 1782155078168,
+    "acceptedAt": 1782155085163,
+    "purchasedAt": 1782155087125,
+    "deliveredAt": 1782155089080,
+    "rating": null,
+    "comment": null
   }
 ]
