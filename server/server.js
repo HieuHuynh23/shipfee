@@ -2571,6 +2571,77 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+/**
+ * GET /api/webrtc/ice-servers
+ * Trả về danh sách ICE/TURN servers động cho WebRTC
+ */
+let cachedIceServers = null;
+let cachedIceServersExpiry = 0;
+
+app.get('/api/webrtc/ice-servers', async (req, res) => {
+  // Trả về cache nếu còn hạn
+  if (cachedIceServers && Date.now() < cachedIceServersExpiry) {
+    return res.json(cachedIceServers);
+  }
+
+  // 1. Kiểm tra METERED_API_KEY
+  const meteredApiKey = process.env.METERED_API_KEY;
+  if (meteredApiKey) {
+    try {
+      console.log('[WebRTC] Requesting fresh TURN credentials from Metered.ca...');
+      const apiFetch = globalThis.fetch || fetch;
+      const meteredResponse = await apiFetch(`https://openrelay.metered.ca/api/v1/turn/credentials?apiKey=${meteredApiKey}`);
+      if (meteredResponse.ok) {
+        const data = await meteredResponse.json();
+        if (Array.isArray(data)) {
+          cachedIceServers = data;
+          cachedIceServersExpiry = Date.now() + 5 * 60 * 1000; // Cache 5 phút
+          console.log('[WebRTC] Successfully loaded TURN servers from Metered.ca');
+          return res.json(data);
+        }
+      }
+      console.warn('[WebRTC] Metered.ca API responded with status:', meteredResponse.status);
+    } catch (e) {
+      console.error('[WebRTC] Failed to fetch TURN credentials from Metered.ca:', e);
+    }
+  }
+
+  // 2. Kiểm tra TURN_USERNAME và TURN_CREDENTIAL tĩnh
+  const turnUsername = process.env.TURN_USERNAME;
+  const turnCredential = process.env.TURN_CREDENTIAL || process.env.TURN_PASSWORD;
+  if (turnUsername && turnCredential) {
+    const staticTurnServers = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:openrelay.metered.ca:80' },
+      {
+        urls: 'turn:openrelay.metered.ca:80',
+        username: turnUsername,
+        credential: turnCredential
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443',
+        username: turnUsername,
+        credential: turnCredential
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: turnUsername,
+        credential: turnCredential
+      }
+    ];
+    return res.json(staticTurnServers);
+  }
+
+  // 3. Fallback: Trả về danh sách STUN servers công cộng mặc định
+  const defaultStunServers = [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun.stunprotocol.org:3478' }
+  ];
+  res.json(defaultStunServers);
+});
+
 // ── DATABASE SWEEP WORKER DEAMON ──────────────────────────────────────────────
 function startBackgroundDatabaseSweepWorker() {
   console.log('[Sweep Worker] 🚀 Khởi động luồng quét tự động toàn bộ cơ sở dữ liệu để làm mới thực đơn...');
