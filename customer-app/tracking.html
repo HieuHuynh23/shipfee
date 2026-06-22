@@ -496,7 +496,7 @@
           </div>
 
           <!-- Microphone Calling -->
-          <div class="permission-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
+          <div class="permission-item" style="display: none; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
             <div style="display: flex; align-items: center; gap: 10px;">
               <span style="font-size: 18px;">🎙️</span>
               <div>
@@ -527,7 +527,7 @@
           </div>
           <div class="shipper-card__actions">
             <button class="shipper-card__action-btn" title="Gọi tài xế"
-              onclick="initiateCall()">
+              onclick="if (order && order.shipperPhone) { window.location.href = 'tel:' + order.shipperPhone; } else { SF.showToast('Lỗi', 'Không có SĐT tài xế.', 'error'); }">
               <i class="fa-solid fa-phone"></i>
             </button>
             <button class="shipper-card__action-btn" title="Nhắn tin"
@@ -1935,6 +1935,7 @@
     }
 
     async function checkIncomingCall(orderId) {
+      return; // VoIP calling disabled
       if (callActive) return;
       try {
         const res = await fetch(`http://localhost:3001/api/orders/${orderId}/call/poll?role=customer`);

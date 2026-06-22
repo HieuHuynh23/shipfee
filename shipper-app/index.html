@@ -290,12 +290,9 @@
               <button class="btn btn--secondary" style="display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;" onclick="openQuickChat()">
                 <i class="fa-regular fa-comment-dots"></i> Nhắn tin nhanh
               </button>
-              <div style="display: flex; gap: 8px; width: 100%;">
-                <button id="shipper-direct-call-btn" class="btn" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(59, 130, 246, 0.1); border: 1.5px solid var(--clr-accent); color: var(--clr-accent); font-weight: 700; border-radius: var(--radius-md); font-size: 13px; height: 38px; padding: 0 12px;" onclick="makeDirectCall()">
-                  <i class="fa-solid fa-mobile-screen-button"></i> Gọi SĐT
-                </button>
-                <button id="shipper-call-btn" class="btn btn--primary" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--clr-primary); font-size: 13px; height: 38px; padding: 0 12px;" onclick="initiateCall()">
-                  <i class="fa-solid fa-phone-volume"></i> Gọi điện (Free)
+              <div style="width: 100%;">
+                <button id="shipper-direct-call-btn" class="btn btn--primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--clr-primary); font-size: 13px; height: 38px;" onclick="makeDirectCall()">
+                  <i class="fa-solid fa-phone"></i> Gọi điện thoại cho khách
                 </button>
               </div>
             </div>
@@ -376,7 +373,7 @@
   </div>
 
   <!-- ── VoIP CALL OVERLAY ── -->
-  <div class="overlay" id="call-overlay" onclick="event.stopPropagation()">
+  <div class="overlay" id="call-overlay" onclick="event.stopPropagation()" style="display: none !important;">
     <div class="modal call-modal" style="max-width: 330px; text-align: center; background: rgba(15, 23, 42, 0.95); border: 1.5px solid rgba(255,255,255,0.15); backdrop-filter: blur(16px); color: white; display: flex; flex-direction: column; align-items: center; gap: 20px; padding: var(--space-xl); border-radius: var(--radius-xl);">
       <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.5); font-weight: 700;">Cuộc gọi internet miễn phí</div>
       

@@ -1324,6 +1324,7 @@ function playSyntheticAudioBeep() {
 }
 
 async function checkIncomingCall(orderId) {
+  return; // VoIP calling disabled
   if (callActive) return;
   try {
     const res = await fetch(`http://localhost:3001/api/orders/${orderId}/call/poll?role=shipper`);
@@ -1701,119 +1702,7 @@ function declineCall() {
 }
 
 async function initiateCall() {
-  getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
-  getOrCreateRemoteAudioEl(true); // Unlock audio element synchronously under user gesture context
-  renderCallDiagnostics();
-  if (!activeOrder || !activeOrder.id) {
-    showToast('Lỗi', 'Không có đơn hàng hoạt động.', 'error');
-    return;
-  }
-
-  const overlay = document.getElementById('call-overlay');
-  if (overlay) overlay.classList.add('active');
-
-  document.getElementById('call-contact-name').textContent = activeOrder.deliveryName || 'Khách hàng';
-  document.getElementById('call-avatar-display').textContent = (activeOrder.deliveryName || 'K').charAt(0);
-
-  const statusLabel = document.getElementById('call-status-label');
-  if (statusLabel) statusLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...';
-
-  document.getElementById('call-actions-incoming').style.display = 'none';
-  document.getElementById('call-actions-active').style.display = 'block';
-
-  callActive = true;
-  let hasMicrophone = false;
-
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach(t => t.stop());
-    hasMicrophone = true;
-  } catch (err) {
-    console.warn('Microphone access failed for shipper, using simulated call', err);
-  }
-
-  if (!hasMicrophone) {
-    startShipperOutgoingSimulatedCall();
-    return;
-  }
-
-  try {
-    startOutgoingRingback();
-    statusLabel.innerHTML = '<i class="fa-solid fa-phone-volume animate-pulse"></i> Đang đổ chuông...';
-
-    iceFallbackNotified = false;
-    clearIceFallbackTimer();
-    peerConnection = new RTCPeerConnection(iceServersConfig);
-    peerConnection.oniceconnectionstatechange = () => {
-      handleIceConnectionState('Caller', startShipperSimulatedCall, () => {
-        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
-        }).catch(e => {});
-      });
-      return;
-      console.log('[WebRTC] Caller ICE Connection State Changed:', peerConnection.iceConnectionState);
-      if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
-        console.warn('[WebRTC] Caller ICE Connection failed/disconnected, falling back to simulated call');
-        showToast('Kết nối thất bại', 'Không thể kết nối trực tiếp (do chặn mạng/WiFi). Chuyển sang cuộc gọi mô phỏng.', 'warning');
-        
-        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
-        }).catch(e => {});
-
-        if (peerConnection) {
-          try { peerConnection.close(); } catch(e){}
-          peerConnection = null;
-        }
-        startShipperSimulatedCall();
-      }
-    };
-    peerConnection.onconnectionstatechange = () => {
-      console.log('[WebRTC] Caller Connection State Changed:', peerConnection.connectionState);
-    };
-    peerConnection.ontrack = (event) => {
-      console.log('[WebRTC] Caller Remote track received:', event.track.kind);
-      let remoteStream = event.streams[0];
-      if (!remoteStream) {
-        console.log('[WebRTC] Caller Fallback: creating new MediaStream for track');
-        remoteStream = new MediaStream();
-        remoteStream.addTrack(event.track);
-      }
-      attachRemoteAudioStream(remoteStream, 'Caller');
-    };
-    peerConnection.onicecandidate = async (event) => {
-      if (event.candidate) {
-        await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/candidate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sender: 'shipper', candidate: event.candidate })
-        });
-      }
-    };
-
-    const localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    localCallStream = localStream;
-    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-
-    const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-
-    const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/initiate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caller: 'shipper', offer })
-    });
-    if (!res.ok) throw new Error('Call initiate failed');
-
-    startCallPolling('shipper');
-  } catch (err) {
-    console.error('Shipper VoIP call initiation failed, fallback to simulated', err);
-    stopOutgoingRingback();
-    startShipperOutgoingSimulatedCall();
-  }
+  makeDirectCall();
 }
 
 async function startShipperOutgoingSimulatedCall() {
