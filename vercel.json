@@ -1,7 +1,7 @@
 {
   "cleanUrls": true,
-  "rewrites": [
-    { "source": "/", "destination": "/customer-app/index.html" },
-    { "source": "/shipper", "destination": "/shipper-app/index.html" }
+  "redirects": [
+    { "source": "/", "destination": "/customer-app/", "permanent": false },
+    { "source": "/shipper", "destination": "/shipper-app/", "permanent": false }
   ]
 }
