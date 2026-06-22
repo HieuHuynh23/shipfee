@@ -42,9 +42,8 @@ function extractMenuFromApiData(apiData, slug) {
       const inStorePrice = dish.price?.value || 35000;
       if (inStorePrice <= 100) return; // Bỏ qua các món ghi chú/admin 1đ
       
-      // Thêm markup cho shipper COD (+25% đến 35%)
-      const markup = Math.round(inStorePrice * (0.25 + Math.random() * 0.10));
-      const appPrice = Math.max(1000, Math.round((inStorePrice + markup) / 1000) * 1000);
+      // Thêm 28% markup cố định (làm tròn 100đ)
+      const appPrice = Math.round((inStorePrice * 1.28) / 100) * 100;
 
       // Lấy ảnh CDN chất lượng cao
       let img = getHighQualityImg(dish.photos);
@@ -433,8 +432,8 @@ async function scrapeMenu(slug) {
     if (rawDishes.length > 0) {
       const cleanDishes = rawDishes.map((dish, i) => {
         const inStorePrice = parseInt(dish.priceText.replace(/[^\d]/g, '')) || 35000;
-        const markup = Math.round(inStorePrice * (0.25 + Math.random() * 0.10));
-        const appPrice = Math.round((inStorePrice + markup) / 1000) * 1000;
+        // Thêm 28% markup cố định (làm tròn 100đ)
+        const appPrice = Math.round((inStorePrice * 1.28) / 100) * 100;
 
         let img = dish.img;
         if (!img || img.includes('placeholder') || img.startsWith('data:')) {

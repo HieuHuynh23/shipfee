@@ -1,5 +1,5 @@
-/**
- * ShipFree — Automated Foody Cần Thơ Scraper
+﻿/**
+ * ShipFee — Automated Foody Cần Thơ Scraper
  * Tự động cào danh sách quán ăn mở cửa tại Cần Thơ từ Foody.vn.
  * Siêu nhẹ, siêu nhanh (0.5s), 100% ổn định, không bị CORS hay Cloudflare chặn.
  */
@@ -166,7 +166,7 @@ function getShortBrand(name) {
   let brand = (name || '').split(/[-|,|(|]/)[0].trim();
   // Loại bỏ các tiền tố chung chung để lấy thương hiệu ngắn gọn
   brand = brand.replace(/^(hệ thống|quán cơm|quán bún|quán phở|quán|tiệm cơm|tiệm bánh|tiệm|bánh mì|bánh mỳ|cơm tấm|cơm gà|bún bò huế|bún bò|hủ tiếu mực|hủ tiếu|phở bò|phở|bún riêu|bánh canh|gà rán|sushi|ốc|lẩu nướng|lẩu|nướng|trà sữa|cà phê|càphê|cafe|coffee|ăn vặt)\s+/i, '');
-  return brand.trim() || 'ShipFree';
+  return brand.trim() || 'ShipFee';
 }
 
 function selectMenuTemplate(name) {
@@ -298,10 +298,8 @@ function generateMenuForRestaurant(name, resId) {
   const brand = getShortBrand(name);
   
   return template.map((item, i) => {
-    // Tính giá app với markup 25% - 35% cho tài xế nhận trọn
-    const markup = Math.round(item.inStorePrice * (0.25 + Math.random() * 0.10));
-    // Làm tròn đến hàng nghìn
-    const appPrice = Math.round((item.inStorePrice + markup) / 1000) * 1000;
+    // Tính giá app với markup 28% cố định (làm tròn 100đ)
+    const appPrice = Math.round((item.inStorePrice * 1.28) / 100) * 100;
 
     return {
       id:           `${resId}-item-${i}`,

@@ -81,8 +81,8 @@ async function injectTestState(page, restaurantId, menuItemId) {
         userLat: 10.0276,
         userLon: 105.7725
       };
-      localStorage.setItem('shipfree_state', JSON.stringify(state));
-      localStorage.setItem('shipfree_restaurants', JSON.stringify([fullRest]));
+      localStorage.setItem('shipfee_state', JSON.stringify(state));
+      localStorage.setItem('shipfee_restaurants', JSON.stringify([fullRest]));
       console.log('[TEST] State and restaurant injected successfully:', JSON.stringify(state));
     } catch (e) {
       console.error('[TEST ERROR] Failed to inject test state:', e.message);
@@ -93,7 +93,7 @@ async function injectTestState(page, restaurantId, menuItemId) {
 // ── Main Test ─────────────────────────────────────────────────────────────────
 async function runTest() {
   console.log(`\n${C.bold}${C.cyan}╔══════════════════════════════════════════════════════╗`);
-  console.log(`║  ShipFree — Kiểm thử Checkout → Tracking             ║`);
+  console.log(`║  ShipFee — Kiểm thử Checkout → Tracking             ║`);
   console.log(`╚══════════════════════════════════════════════════════╝${C.reset}\n`);
 
   const browser = await puppeteer.launch({
@@ -121,8 +121,8 @@ async function runTest() {
           try {
             const keys = await page.evaluate(() => Object.keys(localStorage));
             console.log(`  [TEST LOG] LocalStorage keys when data loaded: ${JSON.stringify(keys)}`);
-            const val = await page.evaluate(() => localStorage.getItem('shipfree_restaurants'));
-            console.log(`  [TEST LOG] shipfree_restaurants length in storage: ${val ? JSON.parse(val).length : 'null'}`);
+            const val = await page.evaluate(() => localStorage.getItem('shipfee_restaurants'));
+            console.log(`  [TEST LOG] shipfee_restaurants length in storage: ${val ? JSON.parse(val).length : 'null'}`);
           } catch (e) {}
         }
       }
@@ -146,7 +146,7 @@ async function runTest() {
     // Wait until index.html finishes loading restaurants and populating localStorage
     info('Đang chờ index.html tải danh sách quán ăn vào localStorage...');
     await page.waitForFunction(() => {
-      const rests = localStorage.getItem('shipfree_restaurants');
+      const rests = localStorage.getItem('shipfee_restaurants');
       return rests && JSON.parse(rests).length > 0;
     }, { timeout: 15000 }).catch(err => {
       console.log('  [WARN] Chờ localStorage timeout, có thể sử dụng dữ liệu tĩnh fallback');
@@ -199,9 +199,9 @@ async function runTest() {
     pass('Đã inject trạng thái đặt hàng cho người thân vào localStorage');
 
     const localRests = await page.evaluate(() => {
-      return localStorage.getItem('shipfree_restaurants');
+      return localStorage.getItem('shipfee_restaurants');
     });
-    info(`LocalStorage shipfree_restaurants length: ${localRests ? JSON.parse(localRests).length : 'null/empty'}`);
+    info(`LocalStorage shipfee_restaurants length: ${localRests ? JSON.parse(localRests).length : 'null/empty'}`);
     if (localRests) {
       const parsed = JSON.parse(localRests);
       const found = parsed.find(r => r.id === restaurantId);
@@ -454,6 +454,21 @@ async function runTest() {
     // ── STEP 7: Run Shipper Simulation ────────────────────────────────────────
     section('BƯỚC 7: Mô phỏng Shipper di chuyển');
 
+    // Mở panel mô phỏng
+    const toggleBtn = await page.$('#dev-tools-toggle');
+    if (toggleBtn) {
+      try {
+        await toggleBtn.click();
+        info('Đã click toggleBtn (#dev-tools-toggle)');
+        await sleep(1000);
+      } catch (err) {
+        fail(`Không thể click toggleBtn (#dev-tools-toggle): ${err.message}`);
+        throw err;
+      }
+    } else {
+      warn('Không tìm thấy #dev-tools-toggle');
+    }
+
     const simSteps = ['ACCEPTED', 'PURCHASED', 'DELIVERED'];
     for (const status of simSteps) {
       const btnId = `demo-btn-${status}`;
@@ -469,8 +484,17 @@ async function runTest() {
           return null;
         });
 
-        await btn.click();
-        info(`Đã click nút mô phỏng → ${status}`);
+        try {
+          await page.evaluate(id => {
+            const el = document.getElementById(id);
+            if (el) el.click();
+            else throw new Error('Element not found in DOM');
+          }, btnId);
+          info(`Đã click nút mô phỏng → ${status} (#${btnId})`);
+        } catch (err) {
+          fail(`Không thể click #${btnId}: ${err.message}`);
+          throw err;
+        }
         await sleep(1800);
 
         // Get shipper position AFTER click

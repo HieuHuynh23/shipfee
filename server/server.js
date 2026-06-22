@@ -1,5 +1,5 @@
 /**
- * ShipFree — Proxy Server
+ * ShipFee — Proxy Server
  * Tự động lấy data quán ăn từ ShopeeFood Cần Thơ
  * Cache 10 phút, fallback về data local nếu API fail
  */
@@ -13,6 +13,25 @@ const path        = require('path');
 const { exec }    = require('child_process');
 const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
+
+// ── PRICING CONFIG (Admin-adjustable) ────────────────────────────────────────
+const PRICING_CONFIG = {
+  MARKUP_RATE: 0.28,           // 28% markup trên giá gốc
+  FREE_DISTANCE_KM: 1.5,      // Miễn phụ thu dưới 1.5km
+  SURCHARGE_COEFFICIENT: 7000, // Hệ số đường cong sqrt
+  MIN_SHIPPER_EARNING: 15000,  // Sàn thu nhập shipper/đơn (đ)
+  MULTI_ITEM_DISCOUNT: 0.15,   // 15% giảm surcharge cho món 2+
+};
+
+// Helper: Làm tròn đến 100đ
+function round100(value) {
+  return Math.round(value / 100) * 100;
+}
+
+// Helper: Tính giá app từ giá gốc (markup 28%)
+function calcAppPrice(inStorePrice) {
+  return round100(inStorePrice * (1 + PRICING_CONFIG.MARKUP_RATE));
+}
 
 // ── CONCURRENCY LIMITER & REQUEST COLLAPSING ────────────────────────────────
 class ConcurrencyLimiter {
@@ -381,7 +400,7 @@ function getShortBrand(name) {
   let brand = (name || '').split(/[-|,|(|]/)[0].trim();
   // Loại bỏ các tiền tố chung chung để lấy thương hiệu ngắn gọn
   brand = brand.replace(/^(hệ thống|quán cơm|quán bún|quán phở|quán|tiệm cơm|tiệm bánh|tiệm|bánh mì|bánh mỳ|cơm tấm|cơm gà|bún bò huế|bún bò|hủ tiếu mực|hủ tiếu|phở bò|phở|bún riêu|bánh canh|gà rán|sushi|ốc|lẩu nướng|lẩu|nướng|trà sữa|cà phê|càphê|cafe|coffee|ăn vặt)\s+/i, '');
-  return brand.trim() || 'ShipFree';
+  return brand.trim() || 'ShipFee';
 }
 
 function selectMenuTemplate(name) {
@@ -452,13 +471,12 @@ function selectMenuTemplate(name) {
 
 function generateMenuForRestaurant(name, resId) {
   if (String(resId).includes('bun_xao_khang')) {
-    return [
+    const items = [
       {
         id: `${resId}-item-0`,
         name: 'Bún Thịt Xào Chả Giò',
         desc: 'Hộp bao gồm: Bún tươi, rau thơm, xà lách, dưa leo, dưa chua, thịt xào sả, nem nướng, chả giò rế nhà làm, đậu phộng.',
         inStorePrice: 33000,
-        appPrice: 43000,
         img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80',
         category: 'MENU ĐỒ ĂN'
       },
@@ -467,7 +485,6 @@ function generateMenuForRestaurant(name, resId) {
         name: 'Bún Thịt Xào Nem Nướng',
         desc: 'Hộp bao gồm: Bún tươi, rau thơm, xà lách, dưa leo, dưa chua, thịt xào sả, nem nướng, đậu phộng.',
         inStorePrice: 29000,
-        appPrice: 38000,
         img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80',
         category: 'MENU ĐỒ ĂN'
       },
@@ -476,7 +493,6 @@ function generateMenuForRestaurant(name, resId) {
         name: 'Bánh Ướt Chả Lụa',
         desc: 'Hộp bao gồm: Bánh ướt, rau thơm, xà lách, giá trụng, chả lụa, chả chiên, nem nướng, nem chua, đậu phộng, hành phi.',
         inStorePrice: 29000,
-        appPrice: 38000,
         img: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&q=80',
         category: 'MENU ĐỒ ĂN'
       },
@@ -485,7 +501,6 @@ function generateMenuForRestaurant(name, resId) {
         name: 'Bún Chả Giò',
         desc: 'Hộp bao gồm: Bún tươi, rau thơm, xà lách, dưa leo, dưa chua, chả giò rế nhà làm, đậu phộng.',
         inStorePrice: 27000,
-        appPrice: 36000,
         img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80',
         category: 'MENU ĐỒ ĂN'
       },
@@ -494,7 +509,6 @@ function generateMenuForRestaurant(name, resId) {
         name: 'Bún Nem Nướng',
         desc: 'Hộp bao gồm: Bún tươi, rau thơm, xà lách, dưa leo, dưa chua, nem nướng, đậu phộng.',
         inStorePrice: 29000,
-        appPrice: 38000,
         img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&q=80',
         category: 'MENU ĐỒ ĂN'
       },
@@ -503,19 +517,21 @@ function generateMenuForRestaurant(name, resId) {
         name: 'Chả Giò Rế 4 Cuốn',
         desc: 'Chả giò rế chiên vàng giòn rụm, vỏ rế xốp giòn nhân tôm thịt thơm ngon chấm nước mắm chua ngọt.',
         inStorePrice: 17000,
-        appPrice: 22000,
         img: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&q=80',
         category: 'Món Ăn Kèm'
       }
     ];
+    return items.map(item => ({
+      ...item,
+      appPrice: calcAppPrice(item.inStorePrice)
+    }));
   }
   const template = selectMenuTemplate(name);
   const brand = getShortBrand(name);
   
   return template.map((item, i) => {
-    // Thêm khoảng chênh lệch cho shipper tự do hưởng trọn vẹn
-    const markup     = Math.round(item.inStorePrice * (0.25 + Math.random() * 0.10));
-    const appPrice   = Math.round((item.inStorePrice + markup) / 1000) * 1000;
+    // Tính giá app cố định 28% markup (làm tròn 100đ)
+    const appPrice = calcAppPrice(item.inStorePrice);
 
     // Cá nhân hóa tên món ăn theo thương hiệu quán
     let itemName = item.name;
@@ -630,6 +646,62 @@ function geocodeAddress(address, name) {
   const jitterLat = (Math.random() - 0.5) * 0.005;
   const jitterLon = (Math.random() - 0.5) * 0.005;
   return { lat: 10.0345 + jitterLat, lon: 105.7876 + jitterLon };
+}
+
+function applyDistanceMarkupToMenu(restaurant, lat, lon) {
+  if (!restaurant) return restaurant;
+  const userLat = parseFloat(lat);
+  const userLon = parseFloat(lon);
+  
+  if (isNaN(userLat) || isNaN(userLon)) {
+    // Không có tọa độ → chỉ áp dụng markup 28% cơ sở, không có surcharge
+    const cloned = {
+      ...restaurant,
+      distanceSurchargePerItem: 0,
+      menu: (restaurant.menu || []).map(item => ({
+        ...item,
+        appPrice: calcAppPrice(item.inStorePrice)
+      }))
+    };
+    return cloned;
+  }
+
+  const userCoords = { lat: userLat, lon: userLon };
+  const restCoords = geocodeAddress(restaurant.address || '', restaurant.name || '');
+  const distKm = getHaversineDistance(userCoords, restCoords);
+
+  // Compute progressive distance surcharge per item using square root function
+  let extraMarkupPerItem = 0;
+  if (distKm > PRICING_CONFIG.FREE_DISTANCE_KM) {
+    extraMarkupPerItem = PRICING_CONFIG.SURCHARGE_COEFFICIENT * Math.sqrt(distKm - PRICING_CONFIG.FREE_DISTANCE_KM);
+  }
+
+  // Round surcharge to the nearest 100đ
+  extraMarkupPerItem = round100(extraMarkupPerItem);
+
+  // Clone the restaurant object to avoid mutating memory cache/database
+  const clonedRestaurant = {
+    ...restaurant,
+    latitude: restCoords.lat,
+    longitude: restCoords.lon,
+    distanceValue: distKm,
+    distance: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`,
+    time: `${12 + Math.round(distKm * 5)}-${20 + Math.round(distKm * 5)} phút`,
+    distanceSurchargePerItem: extraMarkupPerItem,
+    menu: (restaurant.menu || []).map(item => {
+      // Giá app = markup 28% cơ sở + distance surcharge
+      const baseAppPrice = calcAppPrice(item.inStorePrice);
+      return {
+        ...item,
+        appPrice: baseAppPrice + extraMarkupPerItem
+      };
+    })
+  };
+
+  if (extraMarkupPerItem > 0) {
+    console.log(`[Dynamic Pricing] "${restaurant.name}" cách ${distKm.toFixed(2)} km. Markup 28%: +${PRICING_CONFIG.MARKUP_RATE * 100}% | Surcharge: +${extraMarkupPerItem.toLocaleString('vi-VN')}đ/món`);
+  }
+  return clonedRestaurant;
 }
 
 function processRestaurantsWithLocation(localData, lat, lon) {
@@ -1130,9 +1202,8 @@ function writeCache(restaurants) {
 function transformRestaurant(r, index) {
   const menu = (r.menu_items || r.dishes || []).map((item, i) => {
     const storePrice = item.price || item.display_price || 50000;
-    // Thêm ~25-35% phần chênh lệch cho shipper
-    const markup     = Math.round(storePrice * (0.25 + Math.random() * 0.10));
-    const appPrice   = storePrice + markup;
+    // Thêm 28% markup cố định (làm tròn 100đ)
+    const appPrice   = calcAppPrice(storePrice);
 
     return {
       id:           `${r.id || index}-item-${i}`,
@@ -1147,12 +1218,13 @@ function transformRestaurant(r, index) {
 
   // Nếu không có menu từ API, tạo menu mẫu từ category
   if (menu.length === 0) {
+    const defaultStorePrice = r.min_price || 45000;
     menu.push({
       id:           `${r.id || index}-item-0`,
       name:         `${r.display_type || 'Món'} Đặc Biệt`,
       desc:         `Món đặc trưng của ${r.name}`,
-      inStorePrice: r.min_price || 45000,
-      appPrice:     Math.round((r.min_price || 45000) * 1.30),
+      inStorePrice: defaultStorePrice,
+      appPrice:     calcAppPrice(defaultStorePrice),
       img:          r.photos?.[0]?.value || r.cover_photo || getRestaurantPlaceholder(r.name),
       category:     'Món chính'
     });
@@ -1337,14 +1409,8 @@ app.get('/api/restaurants', async (req, res) => {
       }
     }
 
-    // 2. Tìm kiếm trực tuyến từ Foody
+    // 2. Tìm kiếm trực tuyến từ Foody (ĐÃ VÔ HIỆU HÓA để tránh quá tải/IP block, đảm bảo chịu tải 1000+ user cùng lúc)
     let onlineResults = [];
-    try {
-      onlineResults = await fetchAndParseFromFoody(query);
-      console.log(`[Search] 🌐 Tìm thấy ${onlineResults.length} kết quả từ Foody cho "${query}"`);
-    } catch (err) {
-      console.error(`[Search] ❌ Thất bại khi cào tìm kiếm trực tuyến:`, err.message);
-    }
 
     // 3. Gộp kết quả (Ưu tiên bản ghi local có menu thực/giả lập chất lượng hơn, tránh trùng lặp)
     let mergedResults = [...localMatches];
@@ -1478,35 +1544,7 @@ app.get('/api/restaurants', async (req, res) => {
                 SEARCHED_RESTAURANTS_CACHE.set(String(r.id), localRest);
               }
 
-              // ── CHƯƠNG TRÌNH KÍCH HOẠT CÀO MENU NGẦM TỰ ĐỘNG (BACKGROUND REFRESH) ──
-              // Nếu quán ăn có menu thực tế (hasRealMenu === true)
-              // Hoặc chưa có menu thực tế, và chưa cào trong vòng 15 phút gần nhất
-              const now = Date.now();
-              let shouldRefreshMenu = false;
-              
-              if (localRest.hasRealMenu) {
-                const lastUpdated = localRest.menuUpdatedAt ? new Date(localRest.menuUpdatedAt).getTime() : 0;
-                const diffMins = (now - lastUpdated) / (60 * 1000);
-                if (diffMins > 15) {
-                  console.log(`[Background Refresh] ⏳ Menu của "${localRest.name}" đã cũ (${Math.round(diffMins)} phút > 15 phút). Kích hoạt cào ngầm làm mới...`);
-                  shouldRefreshMenu = true;
-                }
-              } else if (!localRest.menu || localRest.menu.length === 0 || localRest.menuTemplateFallback || !localRest.hasRealMenu) {
-                // Nếu chưa có menu thực tế hoặc đang dùng template
-                const lastUpdated = localRest.menuUpdatedAt ? new Date(localRest.menuUpdatedAt).getTime() : 0;
-                const diffMins = (now - lastUpdated) / (60 * 1000);
-                if (diffMins > 15) {
-                  console.log(`[Background Refresh] ⏳ Quán "${localRest.name}" chưa có menu chuẩn/thực tế hoặc đang dùng template. Kích hoạt cào ngầm...`);
-                  shouldRefreshMenu = true;
-                }
-              }
-
-              if (shouldRefreshMenu) {
-                // Rate-limit/chặn Concurrent duplicate scrapes bằng cách set menuUpdatedAt tạm thời lên thời điểm hiện tại trước khi cào ngầm
-                localRest.menuUpdatedAt = new Date().toISOString();
-                hasNew = true;
-                triggerBackgroundMenuScrape(localRest);
-              }
+              // (Background refresh disabled to ensure ShopeeFood independence)
             }
           });
           return hasNew;
@@ -1879,173 +1917,27 @@ app.get('/api/restaurants/:id', async (req, res) => {
       SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
     }
 
-    // Chỉ cào đồng bộ nếu chưa có menu thực tế VÀ chưa bị đóng cửa
-    if (!found.hasRealMenu && !found.isClosed) {
-      console.log(`[Details] ⚡ Quán chưa có menu thực tế. Đang phân giải và cào đồng bộ cho khách...`);
-      let slug = found.shopeefoodSlug || found.id.replace('r_ct_', '').split('?')[0].replace(/_/g, '-');
+    // Nếu chưa có menu trong database, tạo menu mẫu để phục vụ lập tức (Độc lập ShopeeFood)
+    if (!found.menu || found.menu.length === 0) {
+      console.log(`[Details] ℹ️ Quán "${found.name}" chưa có thực đơn. Tạo menu mẫu thay thế...`);
+      const templateMenu = generateMenuForRestaurant(found.name, found.id);
+      found.menu = templateMenu;
+      found.menuTemplateFallback = true;
+      found.hasRealMenu = false;
       
-      let scrapePromise = ACTIVE_SCRAPE_PROMISES.get(id);
-      if (!scrapePromise) {
-        scrapePromise = (async () => {
-          return scraperLimiter.run(async () => {
-            try {
-              if (!found.shopeefoodSlug) {
-                slug = await getShopeeFoodSlugFromFoody(slug);
-              }
-              if (SLUG_REWRITER_MAP[slug]) {
-                console.log(`[Details] 🔄 Chuyển hướng slug chi nhánh thực tế: "${slug}" → "${SLUG_REWRITER_MAP[slug]}"`);
-                slug = SLUG_REWRITER_MAP[slug];
-              }
-              return await menuScraper.scrapeMenu(slug);
-            } catch (err) {
-              console.error(`[Details Scraper Session] Lỗi cào cho "${found.name}":`, err.message);
-              return null;
-            }
-          });
-        })();
-        
-        ACTIVE_SCRAPE_PROMISES.set(id, scrapePromise);
-        scrapePromise.finally(() => {
-          ACTIVE_SCRAPE_PROMISES.delete(id);
-        });
-      }
-
-      try {
-        const realMenu = await scrapePromise;
-
-        let isClosed = false;
-        let closedReason = '';
-        let menu = null;
-
-        if (realMenu && realMenu.closed === true) {
-          isClosed = true;
-          closedReason = realMenu.reason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.';
-          if (Array.isArray(realMenu.menu) && realMenu.menu.length > 0) {
-            menu = realMenu.menu;
-          }
-        } else if (Array.isArray(realMenu) && realMenu.length > 0) {
-          isClosed = false;
-          menu = realMenu;
+      await updateLocalDatabase((localData) => {
+        const idx = localData.findIndex(r => String(r.id) === String(found.id));
+        if (idx !== -1) {
+          localData[idx].menu = templateMenu;
+          localData[idx].menuTemplateFallback = true;
+          localData[idx].hasRealMenu = false;
+          return true;
         }
-
-        if (isClosed) {
-          if (!hasReopenTime(closedReason)) {
-            console.log(`[Details] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi cache & DB: "${found.name}"`);
-            SEARCHED_RESTAURANTS_CACHE.delete(found.id);
-            await updateLocalDatabase((localData) => {
-              const idx = localData.findIndex(r => String(r.id) === String(found.id));
-              if (idx !== -1) {
-                localData.splice(idx, 1);
-                return true;
-              }
-              return false;
-            });
-            return res.status(404).json({ error: 'Quán ăn này đã đóng cửa hoàn toàn hoặc không còn hoạt động.' });
-          }
-
-          const tomorrow = new Date();
-          tomorrow.setDate(tomorrow.getDate() + 1);
-          tomorrow.setHours(7, 0, 0, 0);
-
-          console.log(`[Details] 🔴 Quán "${found.name}" ĐÓNG CỬA TẠM THỜI — Thông báo cho khách hàng.`);
-          found.isClosed = true;
-          found.closedAt = new Date().toISOString();
-          found.closedReason = closedReason;
-          found.crawlNextAttempt = tomorrow.toISOString();
-
-          if (menu) {
-            found.menu = menu;
-            found.hasRealMenu = true;
-            found.menuUpdatedAt = new Date().toISOString();
-            delete found.menuTemplateFallback;
-            console.log(`[Details] ⚡ Cào đồng bộ thành công menu thực tế cho quán ĐÓNG CỬA TẠM THỜI: "${found.name}" (${menu.length} món)`);
-          }
-
-          SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
-
-          await updateLocalDatabase((localData) => {
-            const idx = localData.findIndex(r => String(r.id) === String(found.id));
-            if (idx !== -1) {
-              localData[idx].isClosed = true;
-              localData[idx].closedAt = found.closedAt;
-              localData[idx].closedReason = found.closedReason;
-              localData[idx].crawlNextAttempt = found.crawlNextAttempt;
-              if (menu) {
-                localData[idx].menu = menu;
-                localData[idx].hasRealMenu = true;
-                localData[idx].menuUpdatedAt = found.menuUpdatedAt;
-                delete localData[idx].menuTemplateFallback;
-              }
-              return true;
-            }
-            return false;
-          });
-          console.log(`[Details] 💾 Đã lưu trạng thái đóng cửa tạm thời cho "${found.name}" với lý do chi tiết.`);
-
-        } else if (menu) {
-          found.menu = menu;
-          found.hasRealMenu = true;
-          found.isClosed = false;
-          found.menuUpdatedAt = new Date().toISOString();
-          delete found.menuTemplateFallback;
-          console.log(`[Details] ⚡ Cào đồng bộ thành công cho "${found.name}" (${menu.length} món)`);
-
-          await updateLocalDatabase((localData) => {
-            const idx = localData.findIndex(r => String(r.id) === String(found.id));
-            if (idx !== -1) {
-              localData[idx].menu = menu;
-              localData[idx].hasRealMenu = true;
-              localData[idx].isClosed = false;
-              localData[idx].menuUpdatedAt = found.menuUpdatedAt;
-              delete localData[idx].menuTemplateFallback;
-              return true;
-            }
-            return false;
-          });
-          console.log(`[Details] 💾 Đã lưu menu thực tế mới cào vào restaurants-local.json!`);
-          SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
-
-        } else {
-          console.warn(`[Details] ⚠️ Lỗi kỹ thuật khi cào "${found.name}". Dùng menu template thay thế.`);
-          const templateMenu = generateMenuForRestaurant(found.name, found.id);
-          if (!found.menu || found.menu.length === 0 || found.menu.length < templateMenu.length) {
-            found.menu = templateMenu;
-            found.menuTemplateFallback = true;
-            console.log(`[Details] 🔄 Gán menu template (${templateMenu.length} món) cho "${found.name}"`);
-            await updateLocalDatabase((localData) => {
-              const idx = localData.findIndex(r => String(r.id) === String(found.id));
-              if (idx !== -1) {
-                localData[idx].menu = templateMenu;
-                localData[idx].menuTemplateFallback = true;
-                return true;
-              }
-              return false;
-            });
-          }
-          SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
-        }
-
-      } catch (scrapeErr) {
-        console.error(`[Details] ❌ Lỗi ngoại lệ khi cào "${found.name}":`, scrapeErr.message);
-        if (!found.menu || found.menu.length === 0) {
-          found.menu = generateMenuForRestaurant(found.name, found.id);
-          console.log(`[Details] 🔄 Exception fallback: Template (${found.menu.length} món)`);
-        }
-      }
-    } else {
-      // Nếu quán đã có menu thực tế hoặc đang đóng cửa, kiểm tra xem dữ liệu có quá hạn làm mới không (15 phút) để cào ngầm
-      const now = Date.now();
-      const lastUpdated = found.menuUpdatedAt ? new Date(found.menuUpdatedAt).getTime() : 0;
-      const closedTime = found.closedAt ? new Date(found.closedAt).getTime() : 0;
-      const lastCheck = Math.max(lastUpdated, closedTime);
-      const diffMins = (now - lastCheck) / (60 * 1000);
-
-      if (diffMins > 15) {
-        console.log(`[Details Background] ⏳ Dữ liệu của "${found.name}" đã cũ (${Math.round(diffMins)} phút > 15 phút). Kích hoạt cào ngầm làm mới...`);
-        triggerBackgroundMenuScrape(found);
-      }
+        return false;
+      });
+      SEARCHED_RESTAURANTS_CACHE.set(found.id, found);
     }
-    return res.json({ source, data: found });
+    return res.json({ source, data: applyDistanceMarkupToMenu(found, req.query.lat, req.query.lon) });
   }
 
   console.log(`[Details] ❌ Không tìm thấy quán ăn với ID: "${id}"`);
@@ -2063,6 +1955,572 @@ app.post('/api/cache/clear', (req, res) => {
     res.json({ success: true, message: 'Cache đã được xóa. Lần sau load sẽ fetch từ ShopeeFood.' });
   } catch(e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── ORDER DATABASE & API ENDPOINTS ──────────────────────────────────────────
+let ordersQueuePromise = Promise.resolve();
+const ORDERS_FILE_PATH = path.join(__dirname, 'orders-local.json');
+
+function readOrdersDatabase() {
+  try {
+    if (!fs.existsSync(ORDERS_FILE_PATH)) {
+      return [];
+    }
+    const raw = fs.readFileSync(ORDERS_FILE_PATH, 'utf8');
+    return JSON.parse(raw) || [];
+  } catch (e) {
+    console.error('[Orders DB] Lỗi đọc database:', e.message);
+    return [];
+  }
+}
+
+function updateOrdersDatabase(updaterFn) {
+  return new Promise((resolve, reject) => {
+    ordersQueuePromise = ordersQueuePromise.then(() => {
+      try {
+        if (!fs.existsSync(ORDERS_FILE_PATH)) {
+          fs.writeFileSync(ORDERS_FILE_PATH, '[]', 'utf8');
+        }
+        const raw = fs.readFileSync(ORDERS_FILE_PATH, 'utf8');
+        let data = [];
+        try {
+          data = JSON.parse(raw);
+        } catch (e) {
+          console.error('[Orders DB Queue] Lỗi parse JSON:', e.message);
+          data = [];
+        }
+        if (Array.isArray(data)) {
+          const result = updaterFn(data);
+          if (result !== false) {
+            fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+          }
+        }
+        resolve();
+      } catch (err) {
+        console.error('[Orders DB Queue] Lỗi thực thi hàng đợi DB:', err.message);
+        reject(err);
+      }
+    });
+  });
+}
+
+/**
+ * POST /api/orders
+ * Khách hàng gửi đơn hàng lên server (lưu vào orders-local.json)
+ */
+app.post('/api/orders', async (req, res) => {
+  try {
+    const orderData = req.body;
+    if (!orderData || typeof orderData !== 'object') {
+      return res.status(400).json({ error: 'Đơn hàng không hợp lệ' });
+    }
+
+    const orderId = orderData.id || 'SPF-' + Math.floor(100000 + Math.random() * 900000);
+    const newOrder = {
+      id: orderId,
+      restaurantId: orderData.restaurantId || null,
+      restaurantName: orderData.restaurantName || '',
+      restaurantAddress: orderData.restaurantAddress || '',
+      restaurantLat: typeof orderData.restaurantLat === 'number' ? orderData.restaurantLat : null,
+      restaurantLon: typeof orderData.restaurantLon === 'number' ? orderData.restaurantLon : null,
+      items: Array.isArray(orderData.items) ? orderData.items : [],
+      storeTotal: typeof orderData.storeTotal === 'number' ? orderData.storeTotal : 0,
+      appTotal: typeof orderData.appTotal === 'number' ? orderData.appTotal : 0,
+      shipperEarning: typeof orderData.shipperEarning === 'number' ? orderData.shipperEarning : 0,
+      discountValue: typeof orderData.discountValue === 'number' ? orderData.discountValue : 0,
+      minServiceFee: typeof orderData.minServiceFee === 'number' ? orderData.minServiceFee : 0,
+      status: 'PENDING',
+      shipperId: null,
+      shipperName: null,
+      shipperPhone: null,
+      shipperLat: null,
+      shipperLon: null,
+      deliveryAddress: orderData.deliveryAddress || '',
+      deliveryName: orderData.deliveryName || '',
+      deliveryPhone: orderData.deliveryPhone || '',
+      ordererPhone: orderData.ordererPhone || '',
+      pinnedLat: typeof orderData.pinnedLat === 'number' ? orderData.pinnedLat : null,
+      pinnedLon: typeof orderData.pinnedLon === 'number' ? orderData.pinnedLon : null,
+      isRelative: orderData.isRelative === true,
+      note: orderData.note || '',
+      createdAt: orderData.createdAt || Date.now(),
+      acceptedAt: null,
+      purchasedAt: null,
+      deliveredAt: null,
+      rating: null,
+      comment: null
+    };
+
+    await updateOrdersDatabase((orders) => {
+      orders.push(newOrder);
+    });
+
+    console.log(`[Order Server] 📝 Đã lưu đơn hàng mới: ${newOrder.id}`);
+    res.json({ success: true, data: newOrder });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * GET /api/orders
+ * Shipper/Khách hàng lấy danh sách đơn hàng (hỗ trợ filter trạng thái ?status=PENDING)
+ */
+app.get('/api/orders', (req, res) => {
+  try {
+    const { status } = req.query;
+    const orders = readOrdersDatabase();
+    if (status) {
+      const filtered = orders.filter(o => o.status === status);
+      return res.json({ success: true, data: filtered });
+    }
+    res.json({ success: true, data: orders });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * GET /api/orders/:id
+ * Lấy thông tin chi tiết một đơn hàng kèm tọa độ shipper hiện tại
+ */
+app.get('/api/orders/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const orders = readOrdersDatabase();
+    const order = orders.find(o => o.id === id);
+    if (!order) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+    res.json({ success: true, data: order });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/accept
+ * Shipper nhận đơn hàng (chuyển sang ACCEPTED, cập nhật thông tin tài xế và acceptedAt)
+ */
+app.post('/api/orders/:id/accept', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { shipperId, shipperName, shipperPhone } = req.body;
+
+    let updatedOrder = null;
+    let found = false;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        found = true;
+        orders[idx].status = 'ACCEPTED';
+        orders[idx].acceptedAt = Date.now();
+        orders[idx].shipperId = shipperId || 'shipper-default';
+        orders[idx].shipperName = shipperName || 'Nguyễn Văn Tài';
+        orders[idx].shipperPhone = shipperPhone || '0901 234 567';
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    console.log(`[Order Server] 🛵 Shipper đã nhận đơn: ${id}`);
+    res.json({ success: true, data: updatedOrder });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/status
+ * Shipper cập nhật trạng thái đơn (PURCHASED hoặc DELIVERED, ghi nhận thời gian tương ứng)
+ */
+app.post('/api/orders/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!['ACCEPTED', 'PURCHASED', 'DELIVERED', 'PENDING'].includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    }
+
+    let updatedOrder = null;
+    let found = false;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        found = true;
+        orders[idx].status = status;
+        if (status === 'PURCHASED') {
+          orders[idx].purchasedAt = Date.now();
+        } else if (status === 'DELIVERED') {
+          orders[idx].deliveredAt = Date.now();
+        }
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    console.log(`[Order Server] 🔄 Cập nhật trạng thái đơn ${id} thành: ${status}`);
+    res.json({ success: true, data: updatedOrder });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/location
+ * Shipper cập nhật tọa độ GPS thời gian thực (shipperLat, shipperLon) lên server
+ */
+app.post('/api/orders/:id/location', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lat, lon } = req.body;
+
+    if (typeof lat !== 'number' || typeof lon !== 'number') {
+      return res.status(400).json({ error: 'Tọa độ không hợp lệ' });
+    }
+
+    let found = false;
+    let updatedOrder = null;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        found = true;
+        orders[idx].shipperLat = lat;
+        orders[idx].shipperLon = lon;
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    res.json({ success: true, data: updatedOrder });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/rate
+ * Khách hàng gửi đánh giá chất lượng shipper (rating và comment)
+ */
+app.post('/api/orders/:id/rate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+
+    if (typeof rating !== 'number') {
+      return res.status(400).json({ error: 'Đánh giá rating không hợp lệ' });
+    }
+
+    let found = false;
+    let updatedOrder = null;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        found = true;
+        orders[idx].rating = rating;
+        orders[idx].comment = comment || '';
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    console.log(`[Order Server] ⭐ Khách hàng đánh giá đơn ${id}: ${rating} sao`);
+    res.json({ success: true, data: updatedOrder });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/messages
+ * Gửi tin nhắn mới cho đơn hàng (được lưu trong mảng messages của đơn hàng)
+ */
+app.post('/api/orders/:id/messages', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sender, text } = req.body;
+
+    if (!sender || !text) {
+      return res.status(400).json({ error: 'Thiếu người gửi (sender) hoặc nội dung tin nhắn (text)' });
+    }
+
+    let updatedOrder = null;
+    let found = false;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        found = true;
+        if (!orders[idx].messages) {
+          orders[idx].messages = [];
+        }
+        orders[idx].messages.push({
+          sender,
+          text,
+          timestamp: Date.now()
+        });
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
+    console.log(`[Order Server] 💬 [Đơn ${id}] ${sender}: ${text}`);
+    res.json({ success: true, messages: updatedOrder.messages });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── WebRTC VoIP CALL SIGNALING REGISTRY ───────────────────────────────────
+const activeCalls = {};
+
+/**
+ * POST /api/orders/:id/call/initiate
+ * Bắt đầu một cuộc gọi từ customer hoặc shipper
+ */
+app.post('/api/orders/:id/call/initiate', (req, res) => {
+  const { id } = req.params;
+  const { caller, offer } = req.body;
+  
+  if (!caller) {
+    return res.status(400).json({ error: 'Thiếu người gọi (caller)' });
+  }
+
+  activeCalls[id] = {
+    status: 'ringing',
+    caller,
+    offer: offer || null,
+    answer: null,
+    callerCandidates: [],
+    calleeCandidates: [],
+    timestamp: Date.now(),
+    lastPollCustomer: Date.now(),
+    lastPollShipper: Date.now()
+  };
+
+  console.log(`[Call Server] 📞 Khởi tạo cuộc gọi cho đơn ${id} bởi ${caller}`);
+  res.json({ success: true, call: activeCalls[id] });
+});
+
+/**
+ * POST /api/orders/:id/call/respond
+ * Trả lời hoặc xử lý cuộc gọi (accept/decline/end)
+ */
+app.post('/api/orders/:id/call/respond', (req, res) => {
+  const { id } = req.params;
+  const { action, answer } = req.body; // action: 'accept' | 'decline' | 'end'
+  
+  const call = activeCalls[id];
+  if (!call) {
+    return res.status(404).json({ error: 'Không có cuộc gọi hoạt động cho đơn hàng này' });
+  }
+
+  if (action === 'accept') {
+    call.status = 'connected';
+    if (answer) call.answer = answer;
+    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} đã được chấp nhận`);
+  } else if (action === 'decline') {
+    call.status = 'ended';
+    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} bị từ chối`);
+  } else if (action === 'end') {
+    call.status = 'ended';
+    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} kết thúc`);
+  }
+
+  res.json({ success: true, call });
+});
+
+/**
+ * POST /api/orders/:id/call/candidate
+ * Gửi ứng viên ICE candidate
+ */
+app.post('/api/orders/:id/call/candidate', (req, res) => {
+  const { id } = req.params;
+  const { sender, candidate } = req.body; // sender: 'customer' | 'shipper'
+  
+  const call = activeCalls[id];
+  if (!call) {
+    return res.status(404).json({ error: 'Không có cuộc gọi hoạt động' });
+  }
+
+  if (sender === call.caller) {
+    call.callerCandidates.push(candidate);
+  } else {
+    call.calleeCandidates.push(candidate);
+  }
+
+  res.json({ success: true });
+});
+
+/**
+ * GET /api/orders/:id/call/poll
+ * Thăm dò trạng thái cuộc gọi
+ */
+app.get('/api/orders/:id/call/poll', (req, res) => {
+  const { id } = req.params;
+  const { role } = req.query; // 'customer' | 'shipper'
+  const call = activeCalls[id] || null;
+  
+  if (call) {
+    const now = Date.now();
+    if (role === 'customer') {
+      call.lastPollCustomer = now;
+    } else if (role === 'shipper') {
+      call.lastPollShipper = now;
+    }
+    
+    // Auto-timeout detection
+    if (call.status === 'ringing' || call.status === 'connected') {
+      const customerTimeout = call.lastPollCustomer && (now - call.lastPollCustomer > 6000);
+      const shipperTimeout = call.lastPollShipper && (now - call.lastPollShipper > 6000);
+      const ringTimeout = call.status === 'ringing' && (now - call.timestamp > 30000);
+      
+      if (customerTimeout || shipperTimeout || ringTimeout) {
+        console.log(`[Call Server] 📞 Auto-ending call for order ${id} due to connection timeout or inactive polling`);
+        call.status = 'ended';
+      }
+    }
+  }
+  
+  res.json({ success: true, call });
+});
+
+// ── SHIPPER AUTHENTICATION & SHIFT LOGS ────────────────────────────────────
+const SHIPPERS_FILE_PATH = path.join(__dirname, 'shippers-local.json');
+
+function readShippersDatabase() {
+  try {
+    if (!fs.existsSync(SHIPPERS_FILE_PATH)) {
+      return [];
+    }
+    const raw = fs.readFileSync(SHIPPERS_FILE_PATH, 'utf8');
+    return JSON.parse(raw) || [];
+  } catch (e) {
+    console.error('[Shippers DB] Lỗi đọc database:', e.message);
+    return [];
+  }
+}
+
+function writeShippersDatabase(data) {
+  try {
+    fs.writeFileSync(SHIPPERS_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    console.error('[Shippers DB] Lỗi ghi database:', e.message);
+    return false;
+  }
+}
+
+/**
+ * POST /api/shippers/login
+ * Xác thực trùng khớp cả SĐT và Họ tên tài xế (không phân biệt chữ hoa/thường, loại bỏ khoảng trắng thừa)
+ */
+app.post('/api/shippers/login', (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu thông tin Họ tên hoặc Số điện thoại!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedInputPhone = phone.trim().replace(/\s+/g, '');
+    const cleanedInputName = name.trim().toLowerCase().replace(/\s+/g, ' ');
+
+    // Tìm shipper trùng số điện thoại
+    const matchedPhoneShipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedInputPhone);
+
+    if (!matchedPhoneShipper) {
+      return res.status(404).json({ success: false, error: 'Số điện thoại tài xế không tồn tại trên hệ thống!' });
+    }
+
+    // So sánh tiếp họ tên (không phân biệt hoa thường, dọn khoảng trắng thừa)
+    const dbCleanedName = matchedPhoneShipper.name.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (dbCleanedName !== cleanedInputName) {
+      return res.status(400).json({ success: false, error: 'Họ tên tài xế không trùng khớp với số điện thoại đăng ký!' });
+    }
+
+    res.json({ success: true, shipper: { name: matchedPhoneShipper.name, phone: matchedPhoneShipper.phone } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/shift
+ * Cập nhật trạng thái ca làm việc (Vào ca/Ra ca - Check-in/Check-out)
+ */
+app.post('/api/shippers/shift', (req, res) => {
+  try {
+    const { phone, status } = req.body;
+    if (!phone || !['ONLINE', 'OFFLINE'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Số điện thoại tài xế không tồn tại!' });
+    }
+
+    shippers[idx].status = status;
+    if (status === 'ONLINE') {
+      shippers[idx].lastCheckIn = new Date().toISOString();
+    } else {
+      shippers[idx].lastCheckOut = new Date().toISOString();
+    }
+
+    writeShippersDatabase(shippers);
+    console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${phone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'}`);
+    
+    res.json({ success: true, shipper: shippers[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/shippers
+ * Lấy danh sách tài xế cùng lịch sử check-in/out phục vụ CRM
+ */
+app.get('/api/shippers', (req, res) => {
+  try {
+    const shippers = readShippersDatabase();
+    res.json({ success: true, data: shippers });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
@@ -2140,8 +2598,17 @@ function runSweepIteration() {
       });
     }
 
-    // Tìm các quán ăn chưa có menu chuẩn thực tế và chưa bị đóng cửa
-    const candidates = localData.filter(r => r && r.id && r.hasRealMenu !== true && r.isClosed !== true && !r._isScraping);
+    // Chọn quán chưa có menu thực tế HOẶC quán đã có menu nhưng chưa được cập nhật trong vòng 24 giờ qua (Độc lập ShopeeFood)
+    const candidates = localData.filter(r => {
+      if (!r || !r.id || r._isScraping) return false;
+      if (r.isClosed) return false; // Không quét quán đang đóng cửa hoàn toàn
+      if (!r.hasRealMenu) return true; // Chưa có menu thực tế -> cần quét gấp
+      
+      // Đã có menu: kiểm tra xem lần cập nhật cuối cùng có quá 24 giờ không
+      const lastCheck = r.menuUpdatedAt ? new Date(r.menuUpdatedAt).getTime() : 0;
+      const diffMs = Date.now() - lastCheck;
+      return diffMs > 24 * 60 * 60 * 1000; // 24 giờ
+    });
     
     // Sắp xếp: ưu tiên r.menuUpdatedAt chưa có (null), sau đó đến r.menuUpdatedAt cũ nhất
     candidates.sort((a, b) => {
@@ -2151,7 +2618,7 @@ function runSweepIteration() {
     });
 
     if (candidates.length === 0) {
-      console.log('[Sweep Worker] ✨ Tuyệt vời! Tất cả các quán ăn trong database đã có thực đơn chuẩn thực tế.');
+      console.log('[Sweep Worker] ✨ Tuyệt vời! Tất cả các quán ăn trong database đã được đối chiếu thực đơn trong vòng 24 giờ.');
       setTimeout(runSweepIteration, 30 * 60 * 1000); // Quét lại sau 30 phút
       return;
     }
@@ -2163,14 +2630,14 @@ function runSweepIteration() {
       const lastCheck = new Date(target.menuUpdatedAt).getTime();
       const diffMs = Date.now() - lastCheck;
       if (diffMs < 2 * 60 * 60 * 1000) { // 2 giờ
-        console.log(`[Sweep Worker] ℹ️ Quán cần quét cũ nhất "${target.name}" mới được kiểm tra cách đây ${Math.round(diffMs / 60000)} phút. Tạm dừng quét 10 phút...`);
+        console.log(`[Sweep Worker] ℹ️ Quán cần đối chiếu cũ nhất "${target.name}" mới được kiểm tra cách đây ${Math.round(diffMs / 60000)} phút. Tạm dừng đối chiếu 10 phút...`);
         setTimeout(runSweepIteration, 10 * 60 * 1000);
         return;
       }
     }
 
-    console.log(`[Sweep Worker] 🔍 Tìm thấy ${candidates.length} quán ăn đang dùng menu mẫu. Tiến hành cào ngầm tuần tự...`);
-    console.log(`[Sweep Worker] ⚡ Đang tiến hành làm mới thực đơn chuẩn cho: "${target.name}" (ID: ${target.id})...`);
+    console.log(`[Sweep Worker] 🔍 Tìm thấy ${candidates.length} quán ăn cần đối chiếu giá. Tiến hành cào ngầm tuần tự...`);
+    console.log(`[Sweep Worker] ⚡ Đang tiến hành đối chiếu giá cho: "${target.name}" (ID: ${target.id})...`);
     
     target._isScraping = true;
     
@@ -2205,41 +2672,18 @@ function runSweepIteration() {
       }
 
       if (isClosed) {
-        if (!hasReopenTime(closedReason)) {
-          // Đóng cửa hoàn toàn: xóa khỏi database!
-          console.log(`[Sweep Worker] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi cache & DB: "${target.name}"`);
-          SEARCHED_RESTAURANTS_CACHE.delete(target.id);
-          updateLocalDatabase((dbData) => {
-            const idx = dbData.findIndex(r => String(r.id) === String(target.id));
-            if (idx !== -1) {
-              dbData.splice(idx, 1);
-              return true;
-            }
-            return false;
-          }).then(() => {
-            console.log(`[Sweep Worker] 🗑️ Đã xóa "${target.name}" khỏi database.`);
-          });
-          
-          setTimeout(runSweepIteration, 30 * 1000);
-          return;
-        }
-
-        // Đóng cửa tạm thời
+        // Thay vì xóa khỏi database, chúng ta giữ lại quán và chỉ cập nhật trạng thái đóng cửa (Độc lập ShopeeFood)
+        console.log(`[Sweep Worker] 🔒 Đánh dấu quán đóng cửa trong DB (không xóa): "${target.name}"`);
+        target.isClosed = true;
+        target.closedAt = new Date().toISOString();
+        target.closedReason = closedReason || 'Cửa hàng tạm ngưng phục vụ.';
+        
+        // Đặt lịch cào lại vào ngày mai để đối chiếu tiếp
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         tomorrow.setHours(7, 0, 0, 0);
-
-        target.isClosed = true;
-        target.closedAt = new Date().toISOString();
-        target.closedReason = closedReason;
         target.crawlNextAttempt = tomorrow.toISOString();
-
-        if (menu) {
-          target.menu = menu;
-          target.hasRealMenu = true;
-          target.menuUpdatedAt = new Date().toISOString();
-          delete target.menuTemplateFallback;
-        }
+        target.menuUpdatedAt = new Date().toISOString();
 
         updateLocalDatabase((dbData) => {
           const idx = dbData.findIndex(r => String(r.id) === String(target.id));
@@ -2248,22 +2692,45 @@ function runSweepIteration() {
             dbData[idx].closedAt = target.closedAt;
             dbData[idx].closedReason = target.closedReason;
             dbData[idx].crawlNextAttempt = target.crawlNextAttempt;
-            if (menu) {
-              dbData[idx].menu = menu;
-              dbData[idx].hasRealMenu = true;
-              dbData[idx].menuUpdatedAt = target.menuUpdatedAt;
-              delete dbData[idx].menuTemplateFallback;
-            }
+            dbData[idx].menuUpdatedAt = target.menuUpdatedAt;
             return true;
           }
           return false;
         }).then(() => {
-          console.log(`[Sweep Worker] 🔴 Xác nhận quán đã ĐÓNG CỬA TẠM THỜI trên ShopeeFood (menu saved: ${!!menu}): "${target.name}"`);
+          console.log(`[Sweep Worker] 💾 Đã lưu trạng thái đóng cửa của "${target.name}" vào database local.`);
         });
+        
+        setTimeout(runSweepIteration, 30 * 1000);
+        return;
 
       } else if (menu) {
-        target.menu = menu;
-        target.hasRealMenu = true;
+        // Tiến hành so khớp món ăn và đối chiếu cập nhật giá (ShopeeFood Price Sync)
+        let priceUpdatedCount = 0;
+        const localMenu = target.menu || [];
+        
+        if (localMenu.length === 0) {
+          // Nếu menu local trống, gán toàn bộ menu cào được
+          target.menu = menu;
+          target.hasRealMenu = true;
+          console.log(`[Sweep Worker] 🆕 Gán thực đơn mới cào (${menu.length} món) cho quán: "${target.name}"`);
+        } else {
+          // Đối chiếu và cập nhật giá món ăn cũ
+          localMenu.forEach(localItem => {
+            const scrapedItem = menu.find(m => m.name && localItem.name && m.name.trim().toLowerCase() === localItem.name.trim().toLowerCase());
+            if (scrapedItem) {
+              const oldInStore = localItem.inStorePrice;
+              const newInStore = scrapedItem.inStorePrice;
+              if (oldInStore !== newInStore) {
+                localItem.inStorePrice = newInStore;
+                localItem.appPrice = round100(newInStore * (1 + PRICING_CONFIG.MARKUP_RATE));
+                priceUpdatedCount++;
+              }
+            }
+          });
+          target.menu = localMenu;
+          target.hasRealMenu = true;
+        }
+
         target.menuUpdatedAt = new Date().toISOString();
         delete target.menuTemplateFallback;
         if (target.isClosed) {
@@ -2275,7 +2742,7 @@ function runSweepIteration() {
         updateLocalDatabase((dbData) => {
           const idx = dbData.findIndex(r => String(r.id) === String(target.id));
           if (idx !== -1) {
-            dbData[idx].menu = menu;
+            dbData[idx].menu = target.menu;
             dbData[idx].hasRealMenu = true;
             dbData[idx].menuUpdatedAt = target.menuUpdatedAt;
             delete dbData[idx].menuTemplateFallback;
@@ -2288,7 +2755,7 @@ function runSweepIteration() {
           }
           return false;
         }).then(() => {
-          console.log(`[Sweep Worker] ✅ Cập nhật menu chuẩn thực tế thành công cho: "${target.name}" (${menu.length} món)`);
+          console.log(`[Sweep Worker] ✅ Đối chiếu hoàn tất cho "${target.name}": Đã cập nhật giá ${priceUpdatedCount} món.`);
         });
       } else {
         target.menuUpdatedAt = new Date().toISOString();
@@ -2334,7 +2801,7 @@ function runSweepIteration() {
 app.listen(PORT, () => {
   console.log('');
   console.log('╔══════════════════════════════════════════════════════╗');
-  console.log('║     🛵  ShipFree Proxy Server — Cần Thơ             ║');
+  console.log('║     🛵  ShipFee Proxy Server — Cần Thơ             ║');
   console.log('╠══════════════════════════════════════════════════════╣');
   console.log(`║  API:    http://localhost:${PORT}/api/restaurants       ║`);
   console.log(`║  App:    http://localhost:${PORT}/app/index.html        ║`);

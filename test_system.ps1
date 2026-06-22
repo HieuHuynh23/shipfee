@@ -1,5 +1,5 @@
-# test_system.ps1
-# Bo kiem tra toan bo he thong ShipFree
+﻿# test_system.ps1
+# Bo kiem tra toan bo he thong ShipFee
 # Chay: powershell.exe -ExecutionPolicy Bypass -File test_system.ps1
 # (Yeu cau server dang chay: node server/server.js & frontend server)
 
@@ -79,7 +79,7 @@ function Parse-Json {
 # ─── Header ──────────────────────────────────────────────────────────────────
 Write-Host ""
 Write-Host "  ============================================================" -ForegroundColor Cyan
-Write-Host "      ShipFree -- Kiem Tra Toan Bo He Thong" -ForegroundColor Cyan
+Write-Host "      ShipFee -- Kiem Tra Toan Bo He Thong" -ForegroundColor Cyan
 Write-Host "  ============================================================" -ForegroundColor Cyan
 Write-Host "   API      : $API" -ForegroundColor Yellow
 Write-Host "   Frontend : $FRONTEND" -ForegroundColor Yellow
@@ -108,7 +108,7 @@ if ($statusResp) {
 
 # 1b. Frontend
 Invoke-Test -Name "Frontend GET / -> index.html" `
-    -Url "$FRONTEND/customer-app/index.html" -ExpectBodyContains "ShipFree" | Out-Null
+    -Url "$FRONTEND/customer-app/index.html" -ExpectBodyContains "ShipFee" | Out-Null
 
 Invoke-Test -Name "Frontend GET /customer-app/style.css" `
     -Url "$FRONTEND/customer-app/style.css" -ExpectBodyContains "{" | Out-Null
@@ -224,8 +224,8 @@ if ($statusAfter) {
 Write-Sep "6. FRONTEND PAGES"
 
 $pages = @(
-    @{ path = "/customer-app/index.html";      expect = "ShipFree" },
-    @{ path = "/customer-app/restaurant.html"; expect = "ShipFree" },
+    @{ path = "/customer-app/index.html";      expect = "ShipFee" },
+    @{ path = "/customer-app/restaurant.html"; expect = "ShipFee" },
     @{ path = "/customer-app/checkout.html";   expect = "checkout" },
     @{ path = "/customer-app/tracking.html";   expect = "tracking" }
 )

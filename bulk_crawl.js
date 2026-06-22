@@ -1,4 +1,4 @@
-/**
+﻿/**
  * bulk_crawl.js — Triggers ShopeeFood menu crawling for all restaurants
  * without real menu data by calling the internal API in controlled batches.
  *
@@ -81,7 +81,7 @@ async function runWithConcurrency(tasks, concurrency) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function main() {
   console.log(`\n${C.bold}${C.cyan}╔══════════════════════════════════════════════════════╗`);
-  console.log(`║  ShipFree — Bulk ShopeeFood Menu Crawler             ║`);
+  console.log(`║  ShipFee — Bulk ShopeeFood Menu Crawler             ║`);
   console.log(`╚══════════════════════════════════════════════════════╝${C.reset}\n`);
 
   // Load restaurants

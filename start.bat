@@ -1,9 +1,9 @@
-@echo off
-title ShipFree - Proxy Server
+﻿@echo off
+title ShipFee - Proxy Server
 
 echo.
 echo  ==========================================
-echo       ShipFree - Start Server
+echo       ShipFee - Start Server
 echo  ==========================================
 echo.
 

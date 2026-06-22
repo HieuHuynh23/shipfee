@@ -1,4 +1,4 @@
-# start_server.ps1
+﻿# start_server.ps1
 # Full-stack launcher: Node.js API (port 3001) + http-server frontend (port 8000)
 # Nang cap: dung http-server thay PowerShell HttpListener de ho tro 1000+ user dong thoi
 # Usage: powershell.exe -ExecutionPolicy Bypass -File start_server.ps1
@@ -10,7 +10,7 @@ $serverDir    = Join-Path $scriptDir "server"
 
 Write-Host ""
 Write-Host "  ============================================================" -ForegroundColor Cyan
-Write-Host "      ShipFree -- Full Stack Server Launcher v2.0" -ForegroundColor Cyan
+Write-Host "      ShipFee -- Full Stack Server Launcher v2.0" -ForegroundColor Cyan
 Write-Host "  ============================================================" -ForegroundColor Cyan
 Write-Host "   Frontend  : http://localhost:$FrontendPort/customer-app/index.html" -ForegroundColor Yellow
 Write-Host "   API       : http://localhost:$ApiPort/api/restaurants" -ForegroundColor Yellow

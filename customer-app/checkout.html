@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Xác Nhận Đơn Hàng — ShipFree</title>
+  <title>Xác Nhận Đơn Hàng — ShipFee</title>
   <meta name="description" content="Xem lại đơn hàng và xác nhận đặt hàng nhanh chóng với thanh toán tiền mặt (COD).">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -39,6 +39,29 @@
       font-size: 14px; font-weight: 700;
       color: var(--clr-primary);
       flex-shrink: 0;
+    }
+    .order-item-row__delete-btn {
+      background: none;
+      border: none;
+      color: var(--clr-text-muted);
+      cursor: pointer;
+      padding: 6px;
+      font-size: 15px;
+      transition: all var(--transition-base);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+    }
+    .order-item-row__delete-btn:hover {
+      color: var(--clr-primary);
+      background: var(--clr-primary-light);
+      transform: scale(1.08);
+    }
+    .order-item-row__delete-btn:active {
+      transform: scale(0.95);
     }
 
     .section-card {
@@ -234,13 +257,17 @@
             <span>Tổng tiền món ăn</span>
             <span id="bd-app-price" style="font-weight:600;color:var(--clr-text-primary);">—</span>
           </div>
+          <div class="price-breakdown__row" id="bd-discount-row" style="display:none;">
+            <span>Ưu đãi đặt nhiều món</span>
+            <span id="bd-discount-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
+          </div>
           <div class="price-breakdown__row">
             <span>Phí giao hàng</span>
             <span style="font-weight:600;color:var(--clr-success);">Miễn phí</span>
           </div>
-          <div class="price-breakdown__row">
+          <div class="price-breakdown__row" id="bd-platform-fee-row">
             <span>Phí nền tảng</span>
-            <span style="font-weight:600;color:var(--clr-success);">0đ</span>
+            <span id="bd-platform-fee-price" style="font-weight:600;color:var(--clr-success);">0đ</span>
           </div>
           <div class="price-breakdown__row total">
             <span>Tổng thanh toán (COD)</span>
@@ -248,12 +275,17 @@
           </div>
         </div>
 
+        <!-- Nudge banner for small order fee -->
+        <div id="checkout-min-fee-nudge" style="display:none; margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: var(--radius-md); font-size: 12px; color: #b91c1c; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-circle-exclamation" style="font-size: 14px; flex-shrink: 0;"></i>
+          <span style="flex:1; line-height: 1.4;">Đơn hàng nhỏ chưa đạt giá trị tối thiểu. <a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm 1 món nữa</a> để được <strong>MIỄN PHÍ</strong> phí nền tảng!</span>
+        </div>
       </div>
 
       <!-- TERMS NOTE -->
       <div class="info-box info-box--info animate-fade-in" style="margin-bottom:var(--space-md);">
         <i class="fa-solid fa-circle-info" style="color:var(--clr-info);margin-top:2px;flex-shrink:0;"></i>
-        <div>Bằng cách đặt đơn, bạn đồng ý với điều khoản dịch vụ ShipFree.
+        <div>Bằng cách đặt đơn, bạn đồng ý với điều khoản dịch vụ ShipFee.
           Đơn hàng sẽ được xử lý ngay sau khi xác nhận.</div>
       </div>
 
@@ -359,7 +391,12 @@
             <div class="order-item-row__name">${item.name}</div>
             <div class="order-item-row__qty">x${qty}</div>
           </div>
-          <div class="order-item-row__price">${SF.formatCurrency(item.appPrice * qty)}</div>`;
+          <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
+            <div class="order-item-row__price">${SF.formatCurrency(item.appPrice * qty)}</div>
+            <button class="order-item-row__delete-btn" onclick="deleteItem('${itemId}')" title="Xóa món">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </div>`;
         listEl.appendChild(row);
       });
     }
@@ -412,41 +449,101 @@
     }
 
     function renderPriceBreakdown(totals) {
-      document.getElementById('bd-app-price').textContent = SF.formatCurrency(totals.appTotal);
+      const subtotal = (totals.appTotal || 0) + (totals.discountValue || 0) - (totals.minServiceFee || 0);
+      document.getElementById('bd-app-price').textContent = SF.formatCurrency(subtotal);
+      
+      const discountRow = document.getElementById('bd-discount-row');
+      const discountVal = document.getElementById('bd-discount-price');
+      if (totals.discountValue > 0) {
+        discountRow.style.display = 'flex';
+        discountVal.textContent = '-' + SF.formatCurrency(totals.discountValue);
+      } else {
+        discountRow.style.display = 'none';
+      }
+      
+      const platformFeeVal = document.getElementById('bd-platform-fee-price');
+      const minFeeNudge = document.getElementById('checkout-min-fee-nudge');
+      const backLink = document.getElementById('nudge-back-link');
+
+      if (totals.minServiceFee > 0) {
+        if (platformFeeVal) {
+          platformFeeVal.textContent = SF.formatCurrency(totals.minServiceFee);
+          platformFeeVal.style.color = 'var(--clr-text-primary)';
+        }
+        minFeeNudge.style.display = 'flex';
+        if (backLink) {
+          const cart = SF.getCart();
+          backLink.onclick = () => SF.navigate('restaurant.html', { id: cart.restaurantId });
+        }
+      } else {
+        if (platformFeeVal) {
+          platformFeeVal.textContent = '0đ';
+          platformFeeVal.style.color = 'var(--clr-success)';
+        }
+        minFeeNudge.style.display = 'none';
+      }
+      
       document.getElementById('bd-total').textContent     = SF.formatCurrency(totals.appTotal);
       document.getElementById('sticky-total').textContent = SF.formatCurrency(totals.appTotal);
     }
 
-    function placeOrder() {
+    async function placeOrder() {
       const state = SF.getState();
       const btn = document.getElementById('place-order-btn');
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...';
 
-      setTimeout(() => {
-        const order = SF.placeOrder(
+      const noteEl = document.getElementById('order-note');
+      const noteVal = noteEl ? noteEl.value.trim() : '';
+
+      try {
+        const order = await SF.placeOrder(
           state.deliveryAddress,
           state.deliveryName,
           state.deliveryPhone,
           state.ordererPhone,
           state.userLat,
           state.userLon,
-          state.isRelative
+          state.isRelative,
+          noteVal
         );
 
         // Show success modal
         document.getElementById('modal-order-id').textContent = order.id;
         document.getElementById('modal-total').textContent    = SF.formatCurrency(order.appTotal);
         document.getElementById('success-overlay').classList.add('active');
-      }, 1200);
+      } catch (err) {
+        console.error(err);
+        SF.showToast('Lỗi đặt hàng', 'Có lỗi xảy ra khi gửi đơn hàng. Vui lòng thử lại.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-check-circle"></i> Xác Nhận Đặt Hàng';
+      }
     }
 
     function goToTracking() {
       SF.navigate('tracking.html');
     }
 
+    function deleteItem(itemId) {
+      SF.removeItemFromCart(itemId);
+      const cart = SF.getCart();
+      cartTotals = SF.getCartTotal();
+
+      if (cartTotals.itemCount === 0) {
+        SF.showToast('Giỏ hàng trống', 'Bạn đã xóa hết món ăn. Đang quay lại trang chủ...', 'warning');
+        setTimeout(() => SF.navigate('index.html'), 1500);
+        return;
+      }
+
+      const state = SF.getState();
+      renderOrderItems(cart, state);
+      renderPriceBreakdown(cartTotals);
+      SF.showToast('Đã xóa món', 'Món ăn đã được xóa khỏi giỏ hàng.', 'info');
+    }
+
     window.placeOrder = placeOrder;
     window.goToTracking = goToTracking;
+    window.deleteItem = deleteItem;
   </script>
 </body>
 </html>

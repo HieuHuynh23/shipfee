@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menu Quán — ShipFree</title>
+  <title>Menu Quán — ShipFee</title>
   <meta name="description" content="Xem thực đơn và đặt món trực tuyến từ quán ăn yêu thích tại Cần Thơ. Giao hàng nhanh chóng.">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -322,6 +322,11 @@
   <!-- ── FLOATING CART BAR ── -->
   <div class="cart-bar" id="cart-bar">
     <div class="cart-bar__content">
+      <!-- Nudge message -->
+      <div id="cart-bar-nudge" style="display: none; background: #FFFBEB; border-bottom: 1px solid #FDE68A; color: #92400E; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; align-items: center; gap: 6px; justify-content: center; box-shadow: 0 -2px 5px rgba(0,0,0,0.02);">
+        <i class="fa-solid fa-lightbulb" style="color: #F59E0B;"></i>
+        <span>Thêm 1 món nữa để tự động giảm ngay 15% từ món thứ 2!</span>
+      </div>
       <div class="cart-bar__inner" onclick="goToCheckout()">
         <div class="cart-bar__left">
           <div class="cart-bar__count-bubble" id="cart-bar-count">0</div>
@@ -340,7 +345,7 @@
   <script src="app.js"></script>
   <script>
     let RESTAURANT = null;
-    const API_BASE  = 'http://localhost:3001';
+    const API_BASE  = SF.API_BASE;
 
     // ── PAGE INIT ──
     document.addEventListener('DOMContentLoaded', async () => {
@@ -352,15 +357,27 @@
       RESTAURANT = SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
       
       if (RESTAURANT) {
-        // Tìm thấy -> Render ngay lập tức
-        initializePage();
-        // Nếu chưa có thực đơn thực tế, vẫn gọi API lấy chi tiết của máy chủ trong background để cập nhật menu thực tế
-        if (!RESTAURANT.hasRealMenu) {
-          console.log(`[Details] Thực đơn hiện tại là giả lập. Đang tải tự động menu thực tế...`);
+        // Render ngay lập tức (nếu đã có menu trong cache)
+        if (RESTAURANT.menu && RESTAURANT.menu.length > 0) {
+          initializePage();
+        } else {
+          showLoadingState();
+        }
+
+        // Nếu chưa có menu thực tế trong cache, hoặc đang dùng menu giả lập
+        if (!RESTAURANT.menu || RESTAURANT.menu.length === 0 || !RESTAURANT.hasRealMenu) {
+          console.log(`[Details] Chưa có menu hoặc thực đơn là giả lập. Đang tải tự động menu thực tế...`);
           fetchRestaurantDetails(restaurantId).then(success => {
             if (success) {
               initializePage();
-              SF.showToast('✨ Thực đơn chuẩn', 'Đã cập nhật thực đơn chính thức từ hệ thống!', 'success');
+              if (RESTAURANT.hasRealMenu && !RESTAURANT.menuTemplateFallback) {
+                // Chỉ hiển thị toast nếu vừa được nâng cấp lên thực đơn thật
+                SF.showToast('✨ Thực đơn chuẩn', 'Đã cập nhật thực đơn chính thức từ hệ thống!', 'success');
+              }
+            } else {
+              if (!RESTAURANT.menu || RESTAURANT.menu.length === 0) {
+                SF.showToast('Lỗi kết nối', 'Không thể tải thực đơn. Vui lòng tải lại trang.', 'error');
+              }
             }
           });
         }
@@ -376,6 +393,40 @@
         }
       }
     });
+
+    function hasReopenTime(reason) {
+      if (!reason) return false;
+      const lower = reason.toLowerCase();
+      
+      const permanentKeywords = [
+        'ngưng hoạt động',
+        'không tồn tại',
+        'địa điểm này chưa có',
+        'bài viết không tồn tại',
+        'chưa có dịch vụ',
+        'tạm ngưng dịch vụ trực tuyến',
+        'tạm ngưng hoạt động'
+      ];
+      if (permanentKeywords.some(kw => lower.includes(kw))) {
+        return false;
+      }
+
+      const tempKeywords = [
+        'ngày mai',
+        'hôm sau',
+        'giờ làm việc',
+        'trở lại sau',
+        'quay lại',
+        'hẹn đơn',
+        'mở cửa',
+        'ngoài giờ',
+        'khung giờ'
+      ];
+      
+      const timePattern = /\d{1,2}[:h]\d{2}/;
+      
+      return tempKeywords.some(kw => lower.includes(kw)) || timePattern.test(lower);
+    }
 
     function initializePage() {
       renderHeader();
@@ -418,68 +469,91 @@
       if (cartBar) cartBar.style.display = 'none';
       // Ẩn menu content
       document.getElementById('menu-content').style.display = 'none';
-      // Cập nhật tên quán trong banner
-      document.getElementById('closed-restaurant-name').textContent = RESTAURANT.name + ' đang tạm đóng cửa';
       
-      // Xây dựng thông tin thời gian mở lại
+      const titleEl = document.getElementById('closed-restaurant-name');
+      const subtitleEl = document.querySelector('.closed-banner__subtitle');
       const timeEl = document.getElementById('closed-banner-time');
-      if (timeEl) {
-        let timeContent = 'Hãy thử lại vào ngày mai hoặc kiểm tra giờ mở cửa';
-        
-        // Ưu tiên trích xuất thời gian mở lại cụ thể từ closedReason (ví dụ: "sau 08:30 Ngày mai", "sau 11:00 Hôm nay")
-        let extractedTime = null;
-        if (RESTAURANT.closedReason) {
-          const reasonCleaned = RESTAURANT.closedReason.replace(/ShopeeFood/gi, 'ShipFree');
-          const matchTime = reasonCleaned.match(/(?:sau|vào|lúc)\s+(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay|thứ\s+\d)?)/i)
-            || reasonCleaned.match(/(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay))/i)
-            || reasonCleaned.match(/(\d{1,2}:\d{2})/i);
-          
-          if (matchTime) {
-            extractedTime = matchTime[0].trim();
-            // Viết hoa chữ cái đầu
-            extractedTime = extractedTime.charAt(0).toUpperCase() + extractedTime.slice(1);
-          }
+      
+      const isPermanent = RESTAURANT.closedReason && !hasReopenTime(RESTAURANT.closedReason);
+      
+      if (isPermanent) {
+        titleEl.textContent = RESTAURANT.name + ' đã ngưng hoạt động';
+        if (subtitleEl) {
+          subtitleEl.innerHTML = `Cửa hàng này hiện đã ngừng hợp tác hoặc tạm ngưng hoạt động trực tuyến hoàn toàn.<br>Quý khách vui lòng chọn quán ăn khác.`;
         }
+        if (timeEl) timeEl.style.display = 'none';
+      } else {
+        titleEl.textContent = RESTAURANT.name + ' đang tạm đóng cửa';
+        if (subtitleEl) {
+          subtitleEl.innerHTML = `Quán hiện không nhận đơn giao hàng lúc này.<br>Vui lòng quay lại vào giờ làm việc hoặc chọn quán khác.`;
+        }
+        if (timeEl) {
+          timeEl.style.display = '';
+          
+          let timeContent = 'Hãy thử lại vào ngày mai hoặc kiểm tra giờ mở cửa';
+          
+          // Ưu tiên trích xuất thời gian mở lại cụ thể từ closedReason (ví dụ: "sau 08:30 Ngày mai", "sau 11:00 Hôm nay")
+          let extractedTime = null;
+          if (RESTAURANT.closedReason) {
+            const reasonCleaned = RESTAURANT.closedReason.replace(/ShopeeFood/gi, 'ShipFee');
+            const matchTime = reasonCleaned.match(/(?:sau|vào|lúc)\s+(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay|thứ\s+\d)?)/i)
+              || reasonCleaned.match(/(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay))/i)
+              || reasonCleaned.match(/(\d{1,2}:\d{2})/i);
+            
+            if (matchTime) {
+              extractedTime = matchTime[0].trim();
+              extractedTime = extractedTime.charAt(0).toUpperCase() + extractedTime.slice(1);
+            }
+          }
 
-        if (extractedTime) {
-          timeContent = `Dự kiến nhận đơn lại: ${extractedTime}`;
-        } else if (RESTAURANT.closedAt) {
-          const closedTime = new Date(RESTAURANT.closedAt);
-          const reopenTime = new Date(closedTime.getTime() + 8 * 60 * 60 * 1000);
-          const now = new Date();
-          const diffMs = reopenTime - now;
-          
-          if (diffMs > 0) {
-            const diffH = Math.floor(diffMs / 3600000);
-            const diffM = Math.floor((diffMs % 3600000) / 60000);
-            if (diffH > 0) timeContent = `Dự kiến mở lại sau ~${diffH} giờ${diffM > 0 ? ' ' + diffM + ' phút' : ''}`;
-            else timeContent = `Dự kiến mở lại sau ~${diffM} phút`;
-          } else {
-            timeContent = 'Quán có thể đã mở cửa — hãy thử lại';
+          if (extractedTime) {
+            timeContent = `Dự kiến nhận đơn lại: ${extractedTime}`;
+          } else if (RESTAURANT.closedAt) {
+            const closedTime = new Date(RESTAURANT.closedAt);
+            const reopenTime = new Date(closedTime.getTime() + 8 * 60 * 60 * 1000);
+            const now = new Date();
+            const diffMs = reopenTime - now;
+            
+            if (diffMs > 0) {
+              const diffH = Math.floor(diffMs / 3600000);
+              const diffM = Math.floor((diffMs % 3600000) / 60000);
+              if (diffH > 0) timeContent = `Dự kiến mở lại sau ~${diffH} giờ${diffM > 0 ? ' ' + diffM + ' phút' : ''}`;
+              else timeContent = `Dự kiến mở lại sau ~${diffM} phút`;
+            } else {
+              timeContent = 'Quán có thể đã mở cửa — hãy thử lại';
+            }
           }
+          
+          timeEl.innerHTML = `<i class="fa-regular fa-clock"></i><span>${timeContent}</span>`;
         }
-        
-        timeEl.innerHTML = `<i class="fa-regular fa-clock"></i><span>${timeContent}</span>`;
       }
       
-      // Hiển thị lý do đóng cửa chi tiết từ cửa hàng nếu có
-      if (RESTAURANT.closedReason) {
-        const subtitleEl = document.querySelector('.closed-banner__subtitle');
+      // Hiển thị lý do đóng cửa chi tiết từ cửa hàng nếu có (ở phía dưới banner)
+      if (RESTAURANT.closedReason && !isPermanent) {
         if (subtitleEl) {
-          // Làm sạch lý do đóng cửa, thay đổi ShopeeFood thành ShipFree hoặc cửa hàng
-          const cleanReason = RESTAURANT.closedReason
-            .replace(/ShopeeFood/gi, 'ShipFree')
-            .replace(/Ngoài giờ phục vụ của quán\.?\s*/i, '');
-
-          subtitleEl.innerHTML = `<span style="display:inline-block; font-weight:700; color:#fca5a5; margin-bottom:8px; font-size:13px;"><i class="fa-solid fa-circle-exclamation"></i> THÔNG BÁO TỪ CỬA HÀNG:</span><br>`
-            + `<span style="font-size:14px; color:#cbd5e1; font-weight:600; line-height:1.6; background:rgba(255,255,255,0.06); padding:12px 18px; border-radius:12px; display:inline-block; border:1px solid rgba(255,255,255,0.08); text-align:left; max-width:90%;">${cleanReason.replace(/\n/g, '<br>')}</span>`;
+          // Làm sạch closed reason: loại bỏ các ký tự thừa như "x", "ShopeeFood Thông báo", "Ok", v.v.
+          const rawLines = RESTAURANT.closedReason.split('\n').map(l => l.trim());
+          const cleanLines = rawLines.filter(line => {
+            const l = line.toLowerCase();
+            if (l === 'x' || l === '✕' || l === 'close') return false;
+            if (l.includes('thông báo') || l.includes('thong bao')) return false;
+            if (l === 'ok' || l === 'đồng ý' || l === 'dong y' || l === 'xác nhận' || l === 'xac nhan') return false;
+            if (l.includes('ngoài giờ phục vụ') || l.includes('ngoai gio phuc vu')) return false;
+            return line.length > 0;
+          });
+          const cleanReason = cleanLines.join('\n');
+          
+          if (cleanReason.trim()) {
+            subtitleEl.innerHTML += `<br><br><span style="display:inline-block; font-weight:700; color:#fca5a5; margin-bottom:8px; font-size:13px;"><i class="fa-solid fa-circle-exclamation"></i> THÔNG BÁO CHI TIẾT:</span><br>`
+              + `<span style="font-size:14px; color:#cbd5e1; font-weight:600; line-height:1.6; background:rgba(255,255,255,0.06); padding:12px 18px; border-radius:12px; display:inline-block; border:1px solid rgba(255,255,255,0.08); text-align:left; max-width:90%;">${cleanReason.replace(/\n/g, '<br>')}</span>`;
+          }
         }
       }
 
       // Hiển thị banner
       document.getElementById('closed-banner').classList.add('visible');
       // Cập nhật title
-      document.title = `${RESTAURANT.name} (Đóng cửa) — ShipFree`;
+      document.title = `${RESTAURANT.name} (Đóng cửa) — ShipFee`;
       // Thêm badge đóng cửa vào header
       const tagsEl = document.getElementById('restaurant-tags');
       if (tagsEl) {
@@ -489,7 +563,7 @@
     }
 
     function showLoadingState() {
-      document.title = 'Đang tải thông tin quán... — ShipFree';
+      document.title = 'Đang tải thông tin quán... — ShipFee';
       document.getElementById('restaurant-name').textContent = 'Đang tải dữ liệu quán...';
       
       const container = document.getElementById('menu-content');
@@ -511,8 +585,11 @@
 
     async function fetchRestaurantDetails(id) {
       try {
-        console.log(`[Details] Đang fetch quán từ API server: ${API_BASE}/api/restaurants/${id}`);
-        const res = await fetch(`${API_BASE}/api/restaurants/${id}`);
+        const state = SF.getState();
+        const lat = state.userLat || 10.0345;
+        const lon = state.userLon || 105.7876;
+        console.log(`[Details] Đang fetch quán từ API server: ${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
+        const res = await fetch(`${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         
@@ -545,7 +622,7 @@
 
     // ── RENDER HEADER ──
     function renderHeader() {
-      document.title = RESTAURANT.name + ' — ShipFree';
+      document.title = RESTAURANT.name + ' — ShipFee';
       document.getElementById('restaurant-img').src      = RESTAURANT.img;
       document.getElementById('restaurant-img').alt      = RESTAURANT.name;
       document.getElementById('restaurant-name').textContent   = RESTAURANT.name;
@@ -577,6 +654,33 @@
       const container = document.getElementById('menu-content');
       container.innerHTML = '';
 
+      // Chèn promo banner nudge ở đầu menu
+      const promoBanner = document.createElement('div');
+      promoBanner.className = 'transparency-banner mb-md animate-fade-in';
+      promoBanner.style.cssText = `
+        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+        border: 1px solid #FDE68A;
+        color: #92400E;
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 16px;
+        font-weight: 600;
+        font-size: 13px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      `;
+      promoBanner.innerHTML = `
+        <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px;">
+          <i class="fa-solid fa-gift"></i>
+        </div>
+        <div style="flex: 1;">
+          <strong>🔥 Ưu đãi ShipFee:</strong> Đặt từ 2 món trở lên để được tự động <strong>giảm ngay 15%</strong> cho mỗi món ăn thêm (tính từ món thứ 2)!
+        </div>
+      `;
+      container.appendChild(promoBanner);
+
       // Hiển thị thông báo nếu quán sử dụng thực đơn tạm thời (fallback) do đang trong quá trình đồng bộ dữ liệu
       if (!RESTAURANT.hasRealMenu || RESTAURANT.menuTemplateFallback) {
         const warningBanner = document.createElement('div');
@@ -599,7 +703,7 @@
           </div>
           <div style="font-size: 13px; line-height: 1.6; flex: 1;">
             <strong style="font-size: 14px; color: #78350F; display: block; margin-bottom: 2px;">⚠️ Thực Đơn Tạm Thời</strong>
-            Thực đơn này đang được cập nhật tự động từ hệ thống cửa hàng. Bạn vẫn có thể tiếp tục đặt món (Shipper tự do của ShipFree sẽ hỗ trợ mua trực tiếp tại quán và giao hàng tận nơi cho bạn!).
+            Thực đơn này đang được cập nhật tự động từ hệ thống cửa hàng. Bạn vẫn có thể tiếp tục đặt món (Shipper tự do của ShipFee sẽ hỗ trợ mua trực tiếp tại quán và giao hàng tận nơi cho bạn!).
           </div>
         `;
         container.appendChild(warningBanner);
