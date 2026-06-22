@@ -458,7 +458,11 @@ async function runTest() {
     const toggleBtn = await page.$('#dev-tools-toggle');
     if (toggleBtn) {
       try {
-        await toggleBtn.click();
+        await page.evaluate(() => {
+          const el = document.getElementById('dev-tools-toggle');
+          if (el) el.click();
+          else throw new Error('toggleBtn not found');
+        });
         info('Đã click toggleBtn (#dev-tools-toggle)');
         await sleep(1000);
       } catch (err) {

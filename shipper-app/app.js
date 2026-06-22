@@ -1427,9 +1427,16 @@ async function acceptCall() {
       }
       let audioEl = document.getElementById('remote-audio-el');
       if (!audioEl) {
-        audioEl = document.createElement('audio');
+        audioEl = document.createElement('video');
         audioEl.id = 'remote-audio-el';
-        audioEl.autoplay = true;
+        audioEl.setAttribute('autoplay', 'true');
+        audioEl.setAttribute('playsinline', 'true');
+        audioEl.setAttribute('webkit-playsinline', 'true');
+        audioEl.style.position = 'absolute';
+        audioEl.style.width = '1px';
+        audioEl.style.height = '1px';
+        audioEl.style.opacity = '0';
+        audioEl.style.pointerEvents = 'none';
         document.body.appendChild(audioEl);
       }
       audioEl.srcObject = remoteStream;
@@ -1602,9 +1609,16 @@ async function initiateCall() {
       }
       let audioEl = document.getElementById('remote-audio-el');
       if (!audioEl) {
-        audioEl = document.createElement('audio');
+        audioEl = document.createElement('video');
         audioEl.id = 'remote-audio-el';
-        audioEl.autoplay = true;
+        audioEl.setAttribute('autoplay', 'true');
+        audioEl.setAttribute('playsinline', 'true');
+        audioEl.setAttribute('webkit-playsinline', 'true');
+        audioEl.style.position = 'absolute';
+        audioEl.style.width = '1px';
+        audioEl.style.height = '1px';
+        audioEl.style.opacity = '0';
+        audioEl.style.pointerEvents = 'none';
         document.body.appendChild(audioEl);
       }
       audioEl.srcObject = remoteStream;
