@@ -1567,8 +1567,61 @@
     }
 
     // 3. WebRTC / Call Logic
+    const iceServersConfig = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:openrelay.metered.ca:80' },
+        {
+          urls: 'turn:openrelay.metered.ca:80',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        },
+        {
+          urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+          username: 'openrelayproject',
+          credential: 'openrelayproject'
+        }
+      ]
+    };
+
+    function getOrCreateRemoteAudioEl(unlock = false) {
+      let audioEl = document.getElementById('remote-audio-el');
+      if (!audioEl) {
+        audioEl = document.createElement('video');
+        audioEl.id = 'remote-audio-el';
+        audioEl.setAttribute('autoplay', 'true');
+        audioEl.setAttribute('playsinline', 'true');
+        audioEl.setAttribute('webkit-playsinline', 'true');
+        audioEl.style.position = 'absolute';
+        audioEl.style.width = '10px';
+        audioEl.style.height = '10px';
+        audioEl.style.top = '0px';
+        audioEl.style.left = '0px';
+        audioEl.style.opacity = '0.01';
+        audioEl.style.zIndex = '-1';
+        audioEl.style.pointerEvents = 'none';
+        document.body.appendChild(audioEl);
+      } else {
+        audioEl.style.width = '10px';
+        audioEl.style.height = '10px';
+        audioEl.style.opacity = '0.01';
+        audioEl.style.zIndex = '-1';
+      }
+      if (unlock) {
+        audioEl.muted = false;
+        audioEl.play().catch(e => console.log('[WebRTC] Silent pre-play caught (expected):', e));
+      }
+      return audioEl;
+    }
+
     async function initiateCall() {
       getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
+      getOrCreateRemoteAudioEl(true); // Unlock video element synchronously under user gesture context
       if (!order || !order.id) {
         SF.showToast('Lỗi', 'Không có thông tin đơn hàng.', 'error');
         return;
@@ -1606,9 +1659,7 @@
         startOutgoingRingback();
         statusLabel.innerHTML = '<i class="fa-solid fa-phone-volume animate-pulse"></i> Đang đổ chuông...';
 
-        peerConnection = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
+        peerConnection = new RTCPeerConnection(iceServersConfig);
         peerConnection.oniceconnectionstatechange = () => {
           console.log('[WebRTC] Caller ICE Connection State Changed:', peerConnection.iceConnectionState);
           if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
@@ -1639,20 +1690,7 @@
             remoteStream = new MediaStream();
             remoteStream.addTrack(event.track);
           }
-          let audioEl = document.getElementById('remote-audio-el');
-          if (!audioEl) {
-            audioEl = document.createElement('video');
-            audioEl.id = 'remote-audio-el';
-            audioEl.setAttribute('autoplay', 'true');
-            audioEl.setAttribute('playsinline', 'true');
-            audioEl.setAttribute('webkit-playsinline', 'true');
-            audioEl.style.position = 'absolute';
-            audioEl.style.width = '1px';
-            audioEl.style.height = '1px';
-            audioEl.style.opacity = '0';
-            audioEl.style.pointerEvents = 'none';
-            document.body.appendChild(audioEl);
-          }
+          let audioEl = getOrCreateRemoteAudioEl();
           audioEl.srcObject = remoteStream;
           audioEl.play().then(() => {
             console.log('[WebRTC] Caller Remote audio playback started successfully');
@@ -1799,6 +1837,7 @@
 
     async function acceptCall() {
       getSharedAudioCtx(); // Initialize AudioContext synchronously under user gesture context
+      getOrCreateRemoteAudioEl(true); // Unlock video element synchronously under user gesture context
       stopIncomingRingtone();
       const statusLabel = document.getElementById('call-status-label');
       if (statusLabel) statusLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...';
@@ -1840,9 +1879,7 @@
           throw new Error('Simulated call offer');
         }
 
-        peerConnection = new RTCPeerConnection({
-          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-        });
+        peerConnection = new RTCPeerConnection(iceServersConfig);
         peerConnection.oniceconnectionstatechange = () => {
           console.log('[WebRTC] Callee ICE Connection State Changed:', peerConnection.iceConnectionState);
           if (peerConnection.iceConnectionState === 'failed' || peerConnection.iceConnectionState === 'disconnected') {
@@ -1873,20 +1910,7 @@
             remoteStream = new MediaStream();
             remoteStream.addTrack(event.track);
           }
-          let audioEl = document.getElementById('remote-audio-el');
-          if (!audioEl) {
-            audioEl = document.createElement('video');
-            audioEl.id = 'remote-audio-el';
-            audioEl.setAttribute('autoplay', 'true');
-            audioEl.setAttribute('playsinline', 'true');
-            audioEl.setAttribute('webkit-playsinline', 'true');
-            audioEl.style.position = 'absolute';
-            audioEl.style.width = '1px';
-            audioEl.style.height = '1px';
-            audioEl.style.opacity = '0';
-            audioEl.style.pointerEvents = 'none';
-            document.body.appendChild(audioEl);
-          }
+          let audioEl = getOrCreateRemoteAudioEl();
           audioEl.srcObject = remoteStream;
           audioEl.play().then(() => {
             console.log('[WebRTC] Callee Remote audio playback started successfully');
