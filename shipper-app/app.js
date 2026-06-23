@@ -131,6 +131,7 @@ async function loginDriver() {
       // Đăng nhập thành công
       currentDriver = { name: result.shipper.name, phone: result.shipper.phone };
       localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      loadStats();
       
       document.getElementById('login-overlay').classList.remove('active');
       updateDriverHeader();
@@ -306,6 +307,14 @@ async function syncActiveOrderOnly() {
   if (!activeOrder) return;
   try {
     const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}`);
+    if (res.status === 404) {
+      showToast('Đơn hàng không tồn tại', 'Đơn hàng hiện tại không còn trên hệ thống.', 'warning');
+      activeOrder = null;
+      stopGpsTracking();
+      renderActiveTrip();
+      startPolling();
+      return;
+    }
     if (!res.ok) return;
     const result = await res.json();
     if (result.success && result.data) {
@@ -1070,7 +1079,12 @@ function playMessageChimeSound() {
 // ── DRIVER STATS PERSISTENCE ────────────────────────────────────────────────
 function loadStats() {
   try {
-    const raw = localStorage.getItem('shipfee_shipper_stats');
+    if (!currentDriver) {
+      stats = { accepted: 0, declined: 0, completed: 0 };
+      return;
+    }
+    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
+    const raw = localStorage.getItem(key);
     if (raw) {
       stats = JSON.parse(raw);
     } else {
@@ -1083,7 +1097,9 @@ function loadStats() {
 
 function saveStats() {
   try {
-    localStorage.setItem('shipfee_shipper_stats', JSON.stringify(stats));
+    if (!currentDriver) return;
+    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
+    localStorage.setItem(key, JSON.stringify(stats));
   } catch (e) {}
 }
 
@@ -1947,6 +1963,47 @@ function configureApiUrl() {
   }
 }
 window.configureApiUrl = configureApiUrl;
+
+async function logoutDriver() {
+  if (confirm('Bạn có chắc chắn muốn đăng xuất tài khoản tài xế?')) {
+    if (isOnline && currentDriver) {
+      try {
+        await fetch('http://localhost:3001/api/shippers/shift', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: currentDriver.phone, status: 'OFFLINE' })
+        });
+      } catch (e) {
+        console.warn('Lỗi tự động check-out khi đăng xuất:', e);
+      }
+    }
+    
+    localStorage.removeItem('shipfee_driver');
+    
+    currentDriver = null;
+    activeOrder = null;
+    pendingOrders = [];
+    historyOrders = [];
+    isOnline = false;
+    stopPolling();
+    stopGpsTracking();
+    
+    document.getElementById('login-overlay').classList.add('active');
+    document.getElementById('driver-name').value = '';
+    document.getElementById('driver-phone').value = '';
+    
+    const checkbox = document.getElementById('online-switch');
+    const statusText = document.getElementById('status-text');
+    if (checkbox && statusText) {
+      checkbox.checked = false;
+      statusText.textContent = 'Đã tắt ca (Check-out)';
+      statusText.className = 'status-indicator offline';
+    }
+    
+    showToast('Đã đăng xuất', 'Thông tin tài xế đã được xóa khỏi thiết bị.', 'info');
+  }
+}
+window.logoutDriver = logoutDriver;
 
 window.addEventListener('pagehide', () => {
   if (callActive && activeOrder && activeOrder.id) {

@@ -503,6 +503,20 @@
     // ── PAGE INIT ──
     document.addEventListener('DOMContentLoaded', async () => {
       SF.initNavScroll();
+
+      // Auto-redirect if there is an active order in progress
+      const state = SF.getState();
+      if (state.activeOrder && state.activeOrder.status !== 'DELIVERED') {
+        SF.navigate('tracking.html');
+        return;
+      }
+      
+      // Clear completed activeOrder from state so it does not persist as active forever
+      if (state.activeOrder && state.activeOrder.status === 'DELIVERED') {
+        state.activeOrder = null;
+        SF.saveState(state);
+      }
+
       loadSavedAddress();
       updateNavCartBadge();
 
@@ -510,7 +524,6 @@
       showLoadingSkeleton();
 
       // Thử fetch từ proxy server (ShopeeFood real-time)
-      const state = SF.getState();
       const loaded = await loadRestaurantsFromServer(state.userLat, state.userLon);
       if (!loaded) {
         // Fallback về data local

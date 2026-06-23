@@ -743,9 +743,19 @@
 
     function startOrderPolling() {
       if (pollInterval) clearInterval(pollInterval);
-      pollInterval = setInterval(async () => {
+      
+      const checkStatus = async () => {
         try {
           const response = await fetch(`http://localhost:3001/api/orders/${order.id}`);
+          if (response.status === 404) {
+            stopOrderPolling();
+            SF.showToast('Đơn hàng không tồn tại', 'Đơn hàng không tìm thấy hoặc đã bị hủy.', 'error');
+            const state = SF.getState();
+            state.activeOrder = null;
+            SF.saveState(state);
+            setTimeout(() => SF.navigate('index.html'), 2000);
+            return;
+          }
           if (!response.ok) return;
           const result = await response.json();
           if (result.success && result.data) {
@@ -789,7 +799,10 @@
         } catch (err) {
           console.error('[Tracking Poll] Error polling order details:', err);
         }
-      }, 3000);
+      };
+
+      checkStatus();
+      pollInterval = setInterval(checkStatus, 3000);
     }
 
     function stopOrderPolling() {
