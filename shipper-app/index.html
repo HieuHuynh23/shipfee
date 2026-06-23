@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ShipFee Tài Xế — Hệ thống Shipper thời gian thực</title>
   <meta name="description" content="Ứng dụng quản lý đơn hàng và định vị GPS thời gian thực dành cho shipper ShipFee.">
   <link rel="stylesheet" href="style.css">
@@ -11,7 +11,7 @@
   <!-- Leaflet Map library -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body class="dark-mode">
 
@@ -21,8 +21,11 @@
   <div class="overlay active" id="login-overlay">
     <div class="modal">
       <div class="modal__brand">
-        <span class="brand-icon">🛵</span>
-        <h2>Đăng nhập Tài xế ShipFee</h2>
+        <div class="nav__logo" style="justify-content: center; margin-bottom: 12px;">
+          <div class="nav__logo-icon"><i class="fa-solid fa-motorcycle"></i></div>
+          <span class="nav__logo-text" style="font-size: 24px;">ShipFee</span>
+        </div>
+        <h2>Đăng nhập Tài xế</h2>
         <p>Hệ thống xác thực tài khoản & quản trị ca làm việc</p>
       </div>
       <div class="form-group">
@@ -414,6 +417,24 @@
         <!-- Hangup Button -->
         <button onclick="endCall()" style="width: 52px; height: 52px; border-radius: 50%; background: #EF4444; color: white; display: flex; align-items: center; justify-content: center; font-size: 20px; border: none; cursor: pointer; transition: all var(--transition-fast); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">
           <i class="fa-solid fa-phone-slash"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CALL SELECT OVERLAY ── -->
+  <div class="overlay" id="call-select-overlay">
+    <div class="bottom-sheet" style="display: flex; flex-direction: column;">
+      <div class="bottom-sheet__header">
+        <h4>Chọn người muốn gọi</h4>
+        <button class="close-btn" onclick="closeCallSelect()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 15px; padding: 10px;">
+        <button class="btn btn--primary btn--full btn--lg" onclick="callPerson('relative')" id="btn-call-relative">
+          <i class="fa-solid fa-user"></i> Gọi Người Thân (Nhận)
+        </button>
+        <button class="btn btn--secondary btn--full btn--lg" style="border: 1px solid var(--clr-border);" onclick="callPerson('orderer')" id="btn-call-orderer">
+          <i class="fa-solid fa-user-group"></i> Gọi Người Đặt Hộ
         </button>
       </div>
     </div>

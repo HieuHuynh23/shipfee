@@ -609,6 +609,15 @@ function initTripMap() {
   
   try {
     if (!tripMap) {
+      // Prevent "Map container is already initialized" error defensively on reload
+      const mapContainer = document.getElementById('shipper-map');
+      if (mapContainer && mapContainer._leaflet_id) {
+        const parent = mapContainer.parentNode;
+        const newContainer = mapContainer.cloneNode(false);
+        newContainer.removeAttribute('_leaflet_id');
+        parent.replaceChild(newContainer, mapContainer);
+      }
+      
       tripMap = L.map('shipper-map', { zoomControl: false }).setView([(restLat + custLat) / 2, (restLon + custLon) / 2], 14);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -659,6 +668,12 @@ function initTripMap() {
       destMarker.setLatLng([custLat, custLon]);
       shipperMarker.setLatLng([shipLat, shipLon]);
     }
+    
+    setTimeout(() => {
+      if (tripMap) {
+        tripMap.invalidateSize();
+      }
+    }, 150);
   } catch (err) {
     console.error('Lỗi vẽ bản đồ:', err);
   }
@@ -1874,13 +1889,49 @@ window.declineCall = declineCall;
 window.endCall = endCall;
 
 function makeDirectCall() {
-  if (!activeOrder || !activeOrder.deliveryPhone) {
-    showToast('Lỗi', 'Không tìm thấy số điện thoại khách hàng.', 'error');
+  if (!activeOrder) {
+    showToast('Lỗi', 'Không tìm thấy thông tin đơn hàng.', 'error');
     return;
   }
-  window.location.href = `tel:${activeOrder.deliveryPhone}`;
+  
+  if (activeOrder.isRelative && activeOrder.ordererPhone) {
+    const overlay = document.getElementById('call-select-overlay');
+    if (overlay) {
+      const btnRel = document.getElementById('btn-call-relative');
+      const btnOrd = document.getElementById('btn-call-orderer');
+      if (btnRel) btnRel.innerHTML = `<i class="fa-solid fa-user"></i> Gọi Người Thân (Nhận): ${activeOrder.deliveryName || ''} (${activeOrder.deliveryPhone})`;
+      if (btnOrd) btnOrd.innerHTML = `<i class="fa-solid fa-user-group"></i> Gọi Người Đặt Hộ: (${activeOrder.ordererPhone})`;
+      overlay.classList.add('active');
+    }
+  } else {
+    if (!activeOrder.deliveryPhone) {
+      showToast('Lỗi', 'Không tìm thấy số điện thoại khách hàng.', 'error');
+      return;
+    }
+    window.location.href = `tel:${activeOrder.deliveryPhone}`;
+  }
 }
 window.makeDirectCall = makeDirectCall;
+
+function callPerson(type) {
+  const overlay = document.getElementById('call-select-overlay');
+  if (overlay) overlay.classList.remove('active');
+  
+  if (!activeOrder) return;
+  
+  if (type === 'relative') {
+    window.location.href = `tel:${activeOrder.deliveryPhone}`;
+  } else if (type === 'orderer') {
+    window.location.href = `tel:${activeOrder.ordererPhone}`;
+  }
+}
+window.callPerson = callPerson;
+
+function closeCallSelect() {
+  const overlay = document.getElementById('call-select-overlay');
+  if (overlay) overlay.classList.remove('active');
+}
+window.closeCallSelect = closeCallSelect;
 
 function configureApiUrl() {
   const currentUrl = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
@@ -1910,3 +1961,19 @@ window.addEventListener('pagehide', () => {
 
 // Fetch ICE servers dynamically on page load
 fetchIceServers();
+
+// Mobile Zoom Prevention
+document.addEventListener('touchstart', function (event) {
+  if (event.touches.length > 1) {
+    event.preventDefault();
+  }
+}, { passive: false });
+
+let lastTouchEnd = 0;
+document.addEventListener('touchend', function (event) {
+  const now = (new Date()).getTime();
+  if (now - lastTouchEnd <= 300) {
+    event.preventDefault();
+  }
+  lastTouchEnd = now;
+}, { passive: false });

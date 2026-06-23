@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Theo Dõi Đơn Hàng — ShipFee</title>
   <meta name="description" content="Theo dõi trạng thái đơn hàng của bạn theo thời gian thực.">
   <link rel="stylesheet" href="style.css">
@@ -701,6 +701,46 @@
 
     let pollInterval = null;
 
+    function playMessageChimeSound() {
+      try {
+        const ctx = getSharedAudioCtx();
+        if (!ctx) return;
+        
+        const playBeep = (freq, startTime, duration) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, startTime);
+          gain.gain.setValueAtTime(0.15, startTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(startTime);
+          osc.stop(startTime + duration);
+        };
+        
+        playBeep(659.25, ctx.currentTime, 0.1); // E5 at t=0
+        playBeep(880.00, ctx.currentTime + 0.12, 0.15); // A5 at t=0.12s
+      } catch(e) {
+        console.warn('Audio play failed:', e);
+      }
+    }
+
+    function checkNewMessages(oldOrder, newOrder) {
+      if (!oldOrder || !newOrder || !newOrder.messages) return;
+      const oldMsgs = oldOrder.messages || [];
+      const newMsgs = newOrder.messages;
+      
+      if (newMsgs.length > oldMsgs.length) {
+        const newShipperMsgs = newMsgs.slice(oldMsgs.length).filter(m => m.sender === 'shipper');
+        if (newShipperMsgs.length > 0) {
+          playMessageChimeSound();
+          const lastMsg = newShipperMsgs[newShipperMsgs.length - 1];
+          SF.showToast('Tài xế nhắn tin 💬', lastMsg.text, 'info');
+        }
+      }
+    }
+
     function startOrderPolling() {
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
@@ -735,6 +775,9 @@
               state.activeOrder.statusHistory.push({ status: updated.status, time: Date.now() });
             }
             SF.saveState(state);
+
+            // Kiểm tra tin nhắn mới từ tài xế
+            checkNewMessages(order, updated);
 
             order = state.activeOrder;
             renderUI(order.status);

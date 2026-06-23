@@ -37,3 +37,6 @@ server/chrome_user_data/
 *.tmp
 *.bak
 test_screenshots/
+_backup/
+.agents/
+
