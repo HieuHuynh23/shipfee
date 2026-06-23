@@ -2918,6 +2918,39 @@ app.listen(PORT, () => {
   console.log('   (hoặc nhấn Ctrl+Click vào link trên)');
   console.log('');
 
+  // Làm sạch cơ sở dữ liệu đơn hàng (orders-local.json) khi khởi chạy server để bắt đầu phiên mới
+  if (fs.existsSync(ORDERS_FILE_PATH)) {
+    try {
+      fs.writeFileSync(ORDERS_FILE_PATH, '[]', 'utf8');
+      console.log('[Sanitization] 🧹 Đã làm sạch cơ sở dữ liệu đơn hàng (orders-local.json) khi khởi chạy server.');
+    } catch (e) {
+      console.error('[Sanitization] Lỗi dọn dẹp orders-local.json:', e.message);
+    }
+  }
+
+  // Đặt lại trạng thái tất cả tài xế thành OFFLINE khi khởi chạy server
+  if (fs.existsSync(SHIPPERS_FILE_PATH)) {
+    try {
+      const raw = fs.readFileSync(SHIPPERS_FILE_PATH, 'utf8');
+      const shippers = JSON.parse(raw);
+      if (Array.isArray(shippers)) {
+        let changed = false;
+        shippers.forEach(s => {
+          if (s.status !== 'OFFLINE') {
+            s.status = 'OFFLINE';
+            changed = true;
+          }
+        });
+        if (changed) {
+          fs.writeFileSync(SHIPPERS_FILE_PATH, JSON.stringify(shippers, null, 2), 'utf8');
+          console.log('[Sanitization] 🧹 Đã đặt lại trạng thái tất cả tài xế thành OFFLINE khi khởi chạy server.');
+        }
+      }
+    } catch (e) {
+      console.error('[Sanitization] Lỗi dọn dẹp shippers-local.json:', e.message);
+    }
+  }
+
   // Tự động quét và làm sạch dữ liệu trong file local JSON tránh menu sai lệch do lỗi cũ
   sanitizeLocalJsonData();
 
