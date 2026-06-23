@@ -52,10 +52,11 @@ body {
     radial-gradient(circle at 50% -10%, rgba(239, 68, 68, 0.06), transparent 30%),
     var(--clr-bg);
   color: var(--clr-text-primary);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* Mobile Wrapper max-width */
@@ -63,14 +64,16 @@ body {
   width: 100%;
   max-width: 480px;
   background: var(--clr-surface);
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
   box-shadow: 0 0 40px rgba(15, 23, 42, 0.08);
   border-left: 1px solid var(--clr-border);
   border-right: 1px solid var(--clr-border);
-  padding-bottom: 70px; /* space for bottom tab bar */
+  padding-bottom: 64px; /* space for bottom tab bar */
+  overflow: hidden;
 }
 
 .nav__logo {
