@@ -1022,8 +1022,8 @@ input:checked + .slider:before {
 }
 
 #trip-swipe-container .swipe-handle {
-  background: linear-gradient(135deg, var(--clr-accent), #1d4ed8);
-  box-shadow: 0 4px 10px var(--clr-accent-glow);
+  background: linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dark));
+  box-shadow: 0 4px 10px var(--clr-primary-glow);
 }
 
 /* ── OVERLAY & MODALS & BOTTOM SHEET ───────────────────────────────────── */

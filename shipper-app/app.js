@@ -284,6 +284,7 @@ async function syncAllData() {
         }
         if (isFirstLoad) {
           switchTab('trip');
+          startGpsTracking();
         }
         if (document.getElementById('chat-overlay').classList.contains('active')) {
           renderShipperChatMessages();
@@ -627,7 +628,7 @@ function initTripMap() {
         parent.replaceChild(newContainer, mapContainer);
       }
       
-      tripMap = L.map('shipper-map', { zoomControl: false }).setView([(restLat + custLat) / 2, (restLon + custLon) / 2], 14);
+      tripMap = L.map('shipper-map', { zoomControl: false }).setView([shipLat, shipLon], 16);
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -660,7 +661,8 @@ function initTripMap() {
       }).addTo(tripMap);
       
       const group = new L.featureGroup([restMarker, destMarker, shipperMarker]);
-      tripMap.fitBounds(group.getBounds().pad(0.15));
+      // Center on driver instead of fitBounds (zoom out)
+      tripMap.setView([shipLat, shipLon], 16);
       
       fetch(`https://router.project-osrm.org/route/v1/driving/${restLon},${restLat};${custLon},${custLat}?overview=full&geometries=geojson`)
         .then(res => res.json())
@@ -749,6 +751,9 @@ function startGpsTracking() {
       
       if (shipperMarker) {
         shipperMarker.setLatLng([lat, lon]);
+      }
+      if (tripMap) {
+        tripMap.setView([lat, lon], 16);
       }
       
       const now = Date.now();
@@ -1014,41 +1019,63 @@ function getSharedAudioCtx() {
   return sharedAudioCtx;
 }
 
-// Auto-initialize/resume on first interaction
-document.addEventListener('click', () => { getSharedAudioCtx(); }, { once: true });
-document.addEventListener('touchstart', () => { getSharedAudioCtx(); }, { once: true });
+function unlockAudio() {
+  const ctx = getSharedAudioCtx();
+  if (!ctx) return;
+  // Play a short silent buffer to unlock the AudioContext on iOS/mobile
+  const buffer = ctx.createBuffer(1, 1, 22050);
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(ctx.destination);
+  source.start(0);
+  document.removeEventListener('click', unlockAudio);
+  document.removeEventListener('touchstart', unlockAudio);
+}
+
+// Auto-initialize/resume and unlock on first interaction
+document.addEventListener('click', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
 
 function playChimeSound() {
   try {
     const ctx = getSharedAudioCtx();
     if (!ctx) return;
     
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
-    
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(293.66, ctx.currentTime); // D4
-    osc2.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // A4
-    
-    gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-    
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    osc1.start();
-    osc2.start();
-    osc1.stop(ctx.currentTime + 0.4);
-    osc2.stop(ctx.currentTime + 0.4);
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => triggerChime(ctx)).catch(e => console.warn('Audio resume failed:', e));
+    } else {
+      triggerChime(ctx);
+    }
   } catch(e) {
     console.warn('Audio play failed:', e);
   }
+}
+
+function triggerChime(ctx) {
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+  
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+  osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+  
+  osc2.type = 'triangle';
+  osc2.frequency.setValueAtTime(293.66, ctx.currentTime); // D4
+  osc2.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // A4
+  
+  gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+  
+  osc1.connect(gainNode);
+  osc2.connect(gainNode);
+  gainNode.connect(ctx.destination);
+  
+  osc1.start();
+  osc2.start();
+  osc1.stop(ctx.currentTime + 0.4);
+  osc2.stop(ctx.currentTime + 0.4);
+}
 }
 
 function playMessageChimeSound() {
