@@ -32,6 +32,7 @@ build/
 # Large binary/data files — keep restaurants-local.json but ignore Chrome user-data
 server/.chrome_user_data/
 server/chrome_user_data/
+server/menus/
 
 # Temporary test/scratch files
 *.tmp
@@ -39,4 +40,5 @@ server/chrome_user_data/
 test_screenshots/
 _backup/
 .agents/
+server/test_*.js
 

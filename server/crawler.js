@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ShipFee — Automated Foody Cần Thơ Scraper
  * Tự động cào danh sách quán ăn mở cửa tại Cần Thơ từ Foody.vn.
  * Siêu nhẹ, siêu nhanh (0.5s), 100% ổn định, không bị CORS hay Cloudflare chặn.
@@ -10,7 +10,58 @@ const path    = require('path');
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const LOCAL_JSON_FILE = path.join(__dirname, 'restaurants-local.json');
+const MENUS_DIR       = path.join(__dirname, 'menus');
 const TARGET_URL      = 'https://www.foody.vn/can-tho/dia-diem';
+
+// Tạo thư mục menus nếu chưa tồn tại
+if (!fs.existsSync(MENUS_DIR)) {
+  fs.mkdirSync(MENUS_DIR, { recursive: true });
+}
+
+// ── MENU FILE HELPERS ────────────────────────────────────────────────────────
+function getMenuFilePath(restaurantId) {
+  const safeId = String(restaurantId).replace(/[^a-zA-Z0-9_-]/g, '_');
+  return path.join(MENUS_DIR, `${safeId}.json`);
+}
+
+function readRestaurantMenu(restaurantId) {
+  const filePath = getMenuFilePath(restaurantId);
+  try {
+    if (fs.existsSync(filePath)) {
+      const raw = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(raw) || [];
+    }
+  } catch (err) {
+    console.error(`[Crawler Menu] Lỗi đọc menu cho ${restaurantId}:`, err.message);
+  }
+  return null;
+}
+
+function writeRestaurantMenu(restaurantId, menu) {
+  const filePath = getMenuFilePath(restaurantId);
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(menu || [], null, 2), 'utf8');
+    return true;
+  } catch (err) {
+    console.error(`[Crawler Menu] Lỗi ghi menu cho ${restaurantId}:`, err.message);
+  }
+  return false;
+}
+
+// ── DANH SÁCH 9 QUẬN/HUYỆN CẦN THƠ ─────────────────────────────────────────
+const DISTRICTS = [
+  { name: 'Ninh Kiều',   path: 'khu-vuc-quan-ninh-kieu' },
+  { name: 'Cái Răng',    path: 'khu-vuc-quan-cai-rang' },
+  { name: 'Bình Thủy',   path: 'khu-vuc-quan-binh-thuy' },
+  { name: 'Ô Môn',       path: 'khu-vuc-quan-o-mon' },
+  { name: 'Thốt Nốt',    path: 'khu-vuc-quan-thot-not' },
+  { name: 'Phong Điền',  path: 'khu-vuc-huyen-phong-dien1' },
+  { name: 'Cờ Đỏ',       path: 'khu-vuc-huyen-co-do1' },
+  { name: 'Vĩnh Thạnh',  path: 'khu-vuc-huyen-vinh-thanh1' },
+  { name: 'Thới Lai',    path: 'khu-vuc-huyen-thoi-lai' },
+];
+
+const MAX_PAGES_PER_DISTRICT = 5;
 
 // ── DYNAMIC MENU GENERATORS ──────────────────────────────────────────────────
 const MENU_TEMPLATES = {
@@ -383,12 +434,206 @@ async function resolveBrandBranches(brandSlug) {
   }
 }
 
-// ── CRAWLER CORE ─────────────────────────────────────────────────────────────
-async function run() {
-  console.log(`\n[${new Date().toLocaleTimeString('vi-VN')}] [Crawler] Đang tự động quét danh sách quán ăn Cần Thơ từ Foody.vn...`);
+// ── PARSE HELPERS ────────────────────────────────────────────────────────────
 
+/**
+ * Parse items from .row-item structure (main dia-diem page)
+ */
+function parseRowItems($, rawItems, brandResolutions, transformedList) {
+  rawItems.each((index, el) => {
+    const name = $(el).find('h2 a, .row-item-title a, a[class*="title"]').text().trim();
+    const href = $(el).find('h2 a, .row-item-title a, a[class*="title"]').attr('href') || '';
+    
+    let img = $(el).find('.ri-avatar img, img').attr('src') || '';
+    if (!img || img.includes('ratin-rank') || img.includes('arrow-top')) {
+      img = 'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=800&q=80';
+    }
+
+    let ratingText = $(el).find('.point, .highlight-text').text().trim();
+    let rating = parseFloat(ratingText);
+    if (isNaN(rating) || rating <= 0) rating = 4.6;
+
+    let address = $(el).find('.address, .row-item-address').text().trim();
+    address = address.replace(/\s+/g, ' ').replace(/ ,/g, ',').trim();
+
+    const commentsText = $(el).find('.stats a span').first().text().trim();
+    let reviews = parseInt(commentsText);
+    if (isNaN(reviews) || reviews <= 0) reviews = 100 + Math.floor(Math.random() * 500);
+
+    if (href.includes('/thuong-hieu/')) {
+      const brandSlug = href.split('?')[0].split('/').pop();
+      brandResolutions.push(
+        resolveBrandBranches(brandSlug).then(branches => {
+          branches.forEach(branch => {
+            addBranchToList(transformedList, branch, rating, reviews);
+          });
+        })
+      );
+    } else {
+      let resId = 'r_ct_';
+      if (href) {
+        resId += href.split('?')[0].split('/').pop().replace(/-/g, '_');
+      } else {
+        resId += 'main_' + index;
+      }
+
+      addRestaurantToList(transformedList, {
+        id: resId, name, address, img, rating, reviews
+      });
+    }
+  });
+}
+
+/**
+ * Parse items from .ldc-item structure (district pages)
+ */
+function parseLdcItems($, ldcItems, brandResolutions, transformedList) {
+  ldcItems.each((index, el) => {
+    const name = $(el).find('.ldc-item-h-name h2 a').text().trim();
+    const foodyHref = $(el).find('.ldc-item-h-name h2 a').attr('href') || '';
+    const address = $(el).find('.ldc-item-h-address span').text().trim();
+
+    let img = $(el).find('.ldc-item-img img').attr('src') || '';
+    if (!img || img.includes('ratin-rank') || img.includes('arrow-top')) {
+      img = 'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=800&q=80';
+    }
+
+    let ratingText = $(el).find('.point, .highlight-text, .ldc-item-rating .point').text().trim();
+    let rating = parseFloat(ratingText);
+    if (isNaN(rating) || rating <= 0) rating = 4.6;
+
+    const commentsText = $(el).find('.stats a span, .ldc-item-meta span').first().text().trim();
+    let reviews = parseInt(commentsText);
+    if (isNaN(reviews) || reviews <= 0) reviews = 100 + Math.floor(Math.random() * 500);
+
+    if (!name) return;
+
+    if (foodyHref.includes('/thuong-hieu/')) {
+      const brandSlug = foodyHref.split('?')[0].split('/').pop();
+      brandResolutions.push(
+        resolveBrandBranches(brandSlug).then(branches => {
+          branches.forEach(branch => {
+            addBranchToList(transformedList, branch, rating, reviews);
+          });
+        })
+      );
+    } else {
+      // Try to extract ShopeeFood slug from element links
+      let shopeefoodSlug = '';
+      $(el).find('a').each((j, aEl) => {
+        const href = $(aEl).attr('href') || '';
+        if (href.includes('shopeefood.vn/can-tho/') && !href.includes('/can-tho/fresh') && !href.includes('/can-tho/food')) {
+          const parts = href.split('?')[0].split('/');
+          shopeefoodSlug = parts.pop() || parts.pop() || '';
+        }
+      });
+
+      let resId = 'r_ct_';
+      if (shopeefoodSlug) {
+        resId += shopeefoodSlug.replace(/-/g, '_');
+      } else if (foodyHref) {
+        resId += foodyHref.split('?')[0].split('/').pop().replace(/-/g, '_');
+      } else {
+        resId += 'ldc_' + index;
+      }
+
+      addRestaurantToList(transformedList, {
+        id: resId, name, address, img, rating, reviews, shopeefoodSlug
+      });
+    }
+  });
+}
+
+/**
+ * Add a single restaurant entry to transformedList (with menu file logic)
+ */
+function addRestaurantToList(transformedList, info) {
+  const { id, name, address, img, rating, reviews, shopeefoodSlug } = info;
+
+  // Skip duplicates within this crawl batch
+  if (transformedList.some(r => String(r.id) === String(id))) return;
+
+  let category = categorize(name);
+
+  const distanceVal = (Math.random() * 2 + 0.3);
+  const distance = distanceVal.toFixed(1) + ' km';
+  const timeVal = Math.round(distanceVal * 6 + 10);
+  const time = `${timeVal}-${timeVal + 8} phút`;
+
+  // Check existing menu file first, then fall back to template
+  let hasRealMenu = false;
+  let dishNames = [];
+  const existingMenu = readRestaurantMenu(id);
+  if (existingMenu && existingMenu.length > 0) {
+    hasRealMenu = true;
+    dishNames = existingMenu.map(m => m.name).filter(Boolean);
+  } else {
+    // Generate template menu and save to file
+    const templateMenu = generateMenuForRestaurant(name, id);
+    writeRestaurantMenu(id, templateMenu);
+    dishNames = templateMenu.map(m => m.name).filter(Boolean);
+  }
+
+  transformedList.push({
+    id,
+    name,
+    category,
+    rating,
+    reviews,
+    distance,
+    time,
+    address: address || '',
+    phone: '0292 3' + Math.floor(100000 + Math.random() * 900000),
+    img,
+    tags: [rating > 7.5 ? 'Nổi bật' : 'Đang mở', reviews > 400 ? 'Yêu thích' : 'Mới mở'].slice(0, 2),
+    minOrder: 30000,
+    hasRealMenu,
+    dishNames,
+    shopeefoodSlug: shopeefoodSlug || undefined,
+    menuTemplateFallback: !hasRealMenu
+  });
+}
+
+/**
+ * Add a brand branch entry to transformedList (with menu file logic)
+ */
+function addBranchToList(transformedList, branch, rating, reviews) {
+  addRestaurantToList(transformedList, {
+    id: branch.id,
+    name: branch.name,
+    address: branch.address,
+    img: branch.img,
+    rating,
+    reviews,
+    shopeefoodSlug: branch.shopeefoodSlug
+  });
+}
+
+/**
+ * Auto-categorize a restaurant by name
+ */
+function categorize(name) {
+  const n = (name || '').toLowerCase();
+  if (n.includes('coffee') || n.includes('café') || n.includes('cà phê')) return 'Cà phê';
+  if (n.includes('trà sữa') || n.includes('milk tea')) return 'Trà sữa';
+  if (n.includes('bún bò')) return 'Bún Bò';
+  if (n.includes('hủ tiếu')) return 'Hủ Tiếu';
+  if (n.includes('bánh mì')) return 'Bánh Mì';
+  if (n.includes('lẩu')) return 'Lẩu';
+  if (n.includes('pizza') || n.includes('burger')) return 'Fast Food';
+  if (n.includes('cơm')) return 'Cơm tấm';
+  return 'Đồ ăn';
+}
+
+// ── CRAWLER CORE ─────────────────────────────────────────────────────────────
+
+/**
+ * Fetch and parse a single page URL
+ * @returns {number} Number of items found
+ */
+async function fetchAndParsePage(url, transformedList, brandResolutions) {
   try {
-    const res = await fetch(TARGET_URL, {
+    const res = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -397,194 +642,164 @@ async function run() {
     });
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status} ${res.statusText}`);
+      console.warn(`[Crawler] ⚠️ HTTP ${res.status} cho URL: ${url}`);
+      return 0;
     }
 
     const html = await res.text();
     const $ = cheerio.load(html);
 
-    const rawItems = $('.row-item');
-    console.log(`[Crawler] 🔎 Tìm thấy ${rawItems.length} quán ăn thô trên trang.`);
+    // Try both page structures
+    const rowItems = $('.row-item');
+    const ldcItems = $('.ldc-item');
 
-    if (rawItems.length === 0) {
-      throw new Error('Không phân tích được danh sách quán ăn từ HTML của Foody.');
+    let found = 0;
+    const beforeCount = transformedList.length;
+
+    if (rowItems.length > 0) {
+      parseRowItems($, rowItems, brandResolutions, transformedList);
+      found += rowItems.length;
     }
 
-    const transformedList = [];
-    const brandResolutions = [];
+    if (ldcItems.length > 0) {
+      parseLdcItems($, ldcItems, brandResolutions, transformedList);
+      found += ldcItems.length;
+    }
 
-    rawItems.each((index, el) => {
-      const name = $(el).find('h2 a, .row-item-title a, a[class*="title"]').text().trim();
-      const href = $(el).find('h2 a, .row-item-title a, a[class*="title"]').attr('href') || '';
-      
-      // Lấy ảnh gốc chất lượng cao từ CDN ShopeeFood/Foody
-      let img = $(el).find('.ri-avatar img, img').attr('src') || '';
-      if (!img || img.includes('ratin-rank') || img.includes('arrow-top')) {
-        img = 'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=800&q=80';
-      }
+    const newItems = transformedList.length - beforeCount;
+    if (found > 0) {
+      console.log(`[Crawler] ✅ ${url} → Tìm ${found} phần tử HTML, thêm ${newItems} quán mới (tổng: ${transformedList.length})`);
+    }
 
-      // Xử lý lấy Rating và làm sạch
-      let ratingText = $(el).find('.point, .highlight-text').text().trim();
-      let rating = parseFloat(ratingText);
-      if (isNaN(rating) || rating <= 0) rating = 4.6;
+    return found;
+  } catch (err) {
+    console.warn(`[Crawler] ⚠️ Lỗi khi cào ${url}:`, err.message);
+    return 0;
+  }
+}
 
-      // Xử lý làm sạch địa chỉ
-      let address = $(el).find('.address, .row-item-address').text().trim();
-      address = address.replace(/\s+/g, ' ').replace(/ ,/g, ',').trim();
+async function run() {
+  console.log(`\n[${new Date().toLocaleTimeString('vi-VN')}] [Crawler] 🚀 Bắt đầu cào toàn bộ quán ăn Cần Thơ từ Foody.vn...`);
+  console.log(`[Crawler] 📋 Quét ${DISTRICTS.length} quận/huyện × ${MAX_PAGES_PER_DISTRICT} trang + trang chính = ${DISTRICTS.length * MAX_PAGES_PER_DISTRICT + 1} requests`);
 
-      // Số lượng reviews ngẫu nhiên nhưng thực tế dựa trên điểm hoặc ngẫu nhiên
-      const commentsText = $(el).find('.stats a span').first().text().trim();
-      let reviews = parseInt(commentsText);
-      if (isNaN(reviews) || reviews <= 0) reviews = 100 + Math.floor(Math.random() * 500);
+  const transformedList = [];
+  const brandResolutions = [];
 
-      if (href.includes('/thuong-hieu/')) {
-        const brandSlug = href.split('?')[0].split('/').pop();
-        brandResolutions.push(
-          resolveBrandBranches(brandSlug).then(branches => {
-            branches.forEach(branch => {
-              let category = 'Đồ ăn';
-              const bn = branch.name.toLowerCase();
-              if (bn.includes('coffee') || bn.includes('café') || bn.includes('cà phê')) category = 'Cà phê';
-              else if (bn.includes('trà sữa') || bn.includes('milk tea')) category = 'Trà sữa';
-              else if (bn.includes('bún bò')) category = 'Bún Bò';
-              else if (bn.includes('hủ tiếu')) category = 'Hủ Tiếu';
-              else if (bn.includes('bánh mì')) category = 'Bánh Mì';
-              else if (bn.includes('lẩu')) category = 'Lẩu';
-              else if (bn.includes('pizza') || bn.includes('burger')) category = 'Fast Food';
-              else if (bn.includes('cơm')) category = 'Cơm tấm';
+  try {
+    // ── PHASE 1: Cào trang chính (dia-diem) ──
+    console.log(`\n[Crawler] ── PHASE 1: Trang chính ──`);
+    await fetchAndParsePage(TARGET_URL, transformedList, brandResolutions);
 
-              // Đọc file cũ để bảo tồn thực đơn thực tế nếu có
-              let existingMenu = null;
-              let hasRealMenu = false;
-              try {
-                if (fs.existsSync(LOCAL_JSON_FILE)) {
-                  const oldData = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8'));
-                  const oldEntry = oldData.find(r => String(r.id) === String(branch.id));
-                  if (oldEntry && oldEntry.hasRealMenu) {
-                    existingMenu = oldEntry.menu;
-                    hasRealMenu = true;
-                  }
-                }
-              } catch (e) {}
+    // Chờ 1.5 giây giữa các requests để tránh bị rate limit
+    await new Promise(r => setTimeout(r, 1500));
 
-              const menu = existingMenu || generateMenuForRestaurant(branch.name, branch.id);
+    // ── PHASE 2: Cào từng quận/huyện × phân trang ──
+    console.log(`\n[Crawler] ── PHASE 2: Quét ${DISTRICTS.length} quận/huyện ──`);
+    for (const district of DISTRICTS) {
+      console.log(`\n[Crawler] 📍 Đang quét quận/huyện: ${district.name}`);
 
-              transformedList.push({
-                id:       branch.id,
-                name:     branch.name,
-                category,
-                rating,
-                reviews,
-                distance: (Math.random() * 2 + 0.3).toFixed(1) + ' km',
-                time:     `${15 + Math.floor(Math.random() * 20)}-${25 + Math.floor(Math.random() * 20)} phút`,
-                address:  branch.address,
-                phone:    '0292 3' + Math.floor(100000 + Math.random() * 900000),
-                img:      branch.img,
-                tags:     [rating > 7.5 ? 'Nổi bật' : 'Đang mở', reviews > 400 ? 'Yêu thích' : 'Mới mở'].slice(0, 2),
-                minOrder: 30000,
-                menu,
-                hasRealMenu: hasRealMenu,
-                shopeefoodSlug: branch.shopeefoodSlug
-              });
-            });
-          })
-        );
-      } else {
-        // Tạo ID quán duy nhất dựa trên href hoặc index
-        let resId = 'r_ct_';
-        if (href) {
-          resId += href.split('?')[0].split('/').pop().replace(/-/g, '_');
-        } else {
-          resId += index;
+      for (let page = 1; page <= MAX_PAGES_PER_DISTRICT; page++) {
+        const url = `https://www.foody.vn/can-tho/${district.path}?page=${page}`;
+        const found = await fetchAndParsePage(url, transformedList, brandResolutions);
+
+        // Nếu trang trả về 0 kết quả, dừng phân trang cho quận này
+        if (found === 0) {
+          console.log(`[Crawler] ℹ️ Trang ${page} của ${district.name} không có kết quả, chuyển sang quận tiếp theo.`);
+          break;
         }
 
-        // Khoảng cách ngẫu nhiên thực tế (bán kính Ninh Kiều)
-        const distanceVal = (Math.random() * 2 + 0.3);
-        const distance = distanceVal.toFixed(1) + ' km';
-        const timeVal = Math.round(distanceVal * 6 + 10);
-        const time = `${timeVal}-${timeVal + 8} phút`;
-
-        // Phân loại danh mục tự động
-        let category = 'Đồ ăn';
-        const n = name.toLowerCase();
-        if (n.includes('coffee') || n.includes('café') || n.includes('cà phê')) category = 'Cà phê';
-        else if (n.includes('trà sữa') || n.includes('milk tea')) category = 'Trà sữa';
-        else if (n.includes('bún bò')) category = 'Bún Bò';
-        else if (n.includes('hủ tiếu')) category = 'Hủ Tiếu';
-        else if (n.includes('bánh mì')) category = 'Bánh Mì';
-        else if (n.includes('lẩu')) category = 'Lẩu';
-        else if (n.includes('pizza') || n.includes('burger')) category = 'Fast Food';
-        else if (n.includes('cơm')) category = 'Cơm tấm';
-
-        // Đọc file cũ để bảo tồn thực đơn thực tế nếu có
-        let existingMenu = null;
-        let hasRealMenu = false;
-        try {
-          if (fs.existsSync(LOCAL_JSON_FILE)) {
-            const oldData = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8'));
-            const oldEntry = oldData.find(r => String(r.id) === String(resId));
-            if (oldEntry && oldEntry.hasRealMenu) {
-              existingMenu = oldEntry.menu;
-              hasRealMenu = true;
-            }
-          }
-        } catch (e) {}
-
-        // Tạo menu động chất lượng cao hoặc dùng menu thực đã có
-        const menu = existingMenu || generateMenuForRestaurant(name, resId);
-
-        transformedList.push({
-          id:       resId,
-          name,
-          category,
-          rating,
-          reviews,
-          distance,
-          time,
-          address,
-          phone:    '0292 3' + Math.floor(100000 + Math.random() * 900000),
-          img,
-          tags:     [rating > 7.5 ? 'Nổi bật' : 'Đang mở', reviews > 400 ? 'Yêu thích' : 'Mới mở'].slice(0, 2),
-          minOrder: 30000,
-          menu,
-          hasRealMenu: hasRealMenu
-        });
+        // Chờ 1-2 giây ngẫu nhiên giữa các trang để tránh bị chặn
+        const delay = 1000 + Math.floor(Math.random() * 1000);
+        await new Promise(r => setTimeout(r, delay));
       }
-    });
+    }
 
-    await Promise.all(brandResolutions);
+    // ── PHASE 3: Chờ phân giải tất cả thương hiệu ──
+    if (brandResolutions.length > 0) {
+      console.log(`\n[Crawler] ── PHASE 3: Phân giải ${brandResolutions.length} thương hiệu ──`);
+      await Promise.allSettled(brandResolutions);
+    }
 
+    console.log(`\n[Crawler] 📊 Tổng cộng cào được: ${transformedList.length} quán ăn (trước khi merge)`);
+
+    // ── PHASE 4: Merge vào database hiện tại ──
     let finalMergedList = [];
     try {
       if (fs.existsSync(LOCAL_JSON_FILE)) {
-        finalMergedList = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8'));
+        const raw = fs.readFileSync(LOCAL_JSON_FILE, 'utf8');
+        finalMergedList = JSON.parse(raw);
+        if (!Array.isArray(finalMergedList)) finalMergedList = [];
       }
     } catch (e) {
+      console.warn('[Crawler] ⚠️ Không đọc được file database cũ, tạo mới.');
       finalMergedList = [];
     }
+
+    const existingCount = finalMergedList.length;
+    let newCount = 0;
+    let updatedCount = 0;
 
     transformedList.forEach(newRes => {
       const idx = finalMergedList.findIndex(r => String(r.id) === String(newRes.id));
       if (idx !== -1) {
-        // Nếu đã có trong danh sách cũ, cập nhật thông tin nhưng ưu tiên giữ menu thật
-        if (newRes.hasRealMenu) {
-          finalMergedList[idx] = newRes;
-        } else {
-          // Bảo tồn menu thật từ bản ghi cũ
-          if (finalMergedList[idx].hasRealMenu) {
-            newRes.menu = finalMergedList[idx].menu;
-            newRes.hasRealMenu = true;
-          }
-          finalMergedList[idx] = newRes;
+        // Đã tồn tại: cập nhật thông tin cơ bản, bảo tồn trạng thái menu và closed
+        const old = finalMergedList[idx];
+
+        // Bảo tồn hasRealMenu, menuUpdatedAt, dishNames nếu đã có menu thật
+        if (old.hasRealMenu) {
+          newRes.hasRealMenu = true;
+          newRes.dishNames = old.dishNames || newRes.dishNames;
+          delete newRes.menuTemplateFallback;
         }
+        // Bảo tồn trạng thái đóng cửa
+        if (old.isClosed) {
+          newRes.isClosed = old.isClosed;
+          newRes.closedAt = old.closedAt;
+          newRes.closedReason = old.closedReason;
+          newRes.crawlNextAttempt = old.crawlNextAttempt;
+        }
+        // Bảo tồn menuUpdatedAt
+        if (old.menuUpdatedAt) {
+          newRes.menuUpdatedAt = old.menuUpdatedAt;
+        }
+        // Bảo tồn shopeefoodSlug
+        if (!newRes.shopeefoodSlug && old.shopeefoodSlug) {
+          newRes.shopeefoodSlug = old.shopeefoodSlug;
+        }
+
+        // Xóa thuộc tính menu cũ nếu lỡ còn
+        delete newRes.menu;
+        delete old.menu;
+
+        finalMergedList[idx] = newRes;
+        updatedCount++;
       } else {
+        // Mới hoàn toàn
+        delete newRes.menu;
         finalMergedList.push(newRes);
+        newCount++;
+      }
+    });
+
+    // Đảm bảo không có thuộc tính menu nào lọt vào file chính
+    finalMergedList.forEach(r => {
+      if (r && r.menu) {
+        // Di trú menu ra file riêng
+        writeRestaurantMenu(r.id, r.menu);
+        r.dishNames = r.menu.map(m => m.name).filter(Boolean);
+        delete r.menu;
       }
     });
 
     if (finalMergedList.length > 0) {
       fs.writeFileSync(LOCAL_JSON_FILE, JSON.stringify(finalMergedList, null, 2), 'utf8');
-      console.log(`[Crawler] 💾 Đã cập nhật và đồng bộ thành công ${finalMergedList.length} quán ăn vào ${LOCAL_JSON_FILE}!`);
+      console.log(`\n[Crawler] ══════════════════════════════════════════════════`);
+      console.log(`[Crawler] 💾 KẾT QUẢ CUỐI CÙNG:`);
+      console.log(`[Crawler]    📦 Tổng quán trong database: ${finalMergedList.length}`);
+      console.log(`[Crawler]    🆕 Quán mới thêm:           ${newCount}`);
+      console.log(`[Crawler]    🔄 Quán cập nhật:           ${updatedCount}`);
+      console.log(`[Crawler]    📂 Bảo tồn từ trước:        ${existingCount}`);
+      console.log(`[Crawler] ══════════════════════════════════════════════════`);
       process.exit(0);
     } else {
       throw new Error('Danh sách kết quả rỗng.');
@@ -597,3 +812,4 @@ async function run() {
 }
 
 run();
+
