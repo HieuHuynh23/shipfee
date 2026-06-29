@@ -1089,7 +1089,6 @@ function triggerChime(ctx) {
   osc1.stop(ctx.currentTime + 0.4);
   osc2.stop(ctx.currentTime + 0.4);
 }
-}
 
 function playMessageChimeSound() {
   try {

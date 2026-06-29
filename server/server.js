@@ -79,6 +79,8 @@ app.use(compression({
 const whitelist = [
   'http://localhost:8000',
   'http://127.0.0.1:8000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
   'https://shipfee.vercel.app'
 ];
 app.use(cors({
@@ -92,7 +94,7 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   optionsSuccessStatus: 200
 }));
 
@@ -1251,10 +1253,7 @@ const SHOPEEFOOD_HEADERS = {
 };
 
 // ── CORS — cho phép web app local gọi vào ──────────────────────────────────
-app.use(cors({
-  origin: ['http://localhost:3001', 'http://127.0.0.1:3001', 'null', '*'],
-  methods: ['GET']
-}));
+// Đã xử lý tập trung ở cấu hình CORS phía trên đầu file
 app.use(express.json());
 
 // Phục vụ thư mục customer-app tĩnh (để không cần mở file:// trực tiếp)
