@@ -137,15 +137,24 @@ async function loginDriver() {
       updateDriverHeader();
       showToast('Đăng nhập thành công', `Chào mừng ${currentDriver.name} đã vào hệ thống!`, 'success');
       
-      // Mặc định ban đầu sau khi đăng nhập là OFFLINE (Chưa vào ca)
-      isOnline = false;
+      // Tự động vào ca (ONLINE / Check-in) sau khi đăng nhập thành công
+      isOnline = true;
       const checkbox = document.getElementById('online-switch');
       const statusText = document.getElementById('status-text');
       if (checkbox && statusText) {
-        checkbox.checked = false;
-        statusText.textContent = 'Đã tắt ca (Check-out)';
-        statusText.className = 'status-indicator offline';
+        checkbox.checked = true;
+        statusText.textContent = 'Đang trong ca (Check-in)';
+        statusText.className = 'status-indicator online';
       }
+      
+      // Đồng bộ trạng thái ONLINE lên server
+      fetch('http://localhost:3001/api/shippers/shift', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ phone: currentDriver.phone, status: 'ONLINE' })
+      }).catch(err => console.warn('Lỗi tự động vào ca:', err));
       
       startPolling();
     } else {
