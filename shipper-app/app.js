@@ -4,7 +4,11 @@
 
 'use strict';
 
-let API_BASE = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:3001'
+  : 'https://shipfee-eo5s.onrender.com';
+
+let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
 if (API_BASE.endsWith('/')) {
   API_BASE = API_BASE.slice(0, -1);
 }
@@ -1986,7 +1990,10 @@ function closeCallSelect() {
 window.closeCallSelect = closeCallSelect;
 
 function configureApiUrl() {
-  const currentUrl = localStorage.getItem('shipfee_api_url') || 'http://localhost:3001';
+  const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+    ? 'http://localhost:3001'
+    : 'https://shipfee-eo5s.onrender.com';
+  const currentUrl = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
   const newUrl = prompt('Cấu hình URL Backend API (Ví dụ: https://shipfee-backend.onrender.com):', currentUrl);
   if (newUrl !== null) {
     const cleanedUrl = newUrl.trim().replace(/\/+$/, '');
