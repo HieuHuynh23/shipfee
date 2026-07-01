@@ -580,6 +580,90 @@ const DB_FILE_PATH = path.join(__dirname, 'restaurants-local.json');
 const MENUS_DIR = path.join(__dirname, 'menus');
 let dbQueuePromise = Promise.resolve();
 
+// ══════════════════════════════════════════════════════════════════════════════
+// IN-MEMORY CACHE + PRE-BUILT SEARCH INDEX (Phần 3: Tối ưu tốc độ tìm kiếm)
+// Thay vì đọc file 7MB mỗi request, load 1 lần vào RAM + auto-reload khi thay đổi
+// ══════════════════════════════════════════════════════════════════════════════
+let cachedRestaurants = [];      // Dữ liệu restaurant đầy đủ trong RAM
+let searchIndex = [];            // Pre-normalized search index
+let cacheLoadedAt = 0;           // Timestamp lần load gần nhất
+
+function buildSearchIndex(restaurants) {
+  return restaurants.map((r, idx) => ({
+    idx,
+    id: r.id,
+    normName: normalizeText(r.name),
+    normCategory: normalizeText(r.category),
+    normDishNames: (r.dishNames || []).map(d => normalizeText(d)),
+    normAddress: normalizeText(r.address),
+    isClosed: !!r.isClosed,
+  }));
+}
+
+function loadRestaurantsIntoMemory() {
+  const startMs = Date.now();
+  try {
+    if (!fs.existsSync(DB_FILE_PATH)) {
+      cachedRestaurants = [];
+      searchIndex = [];
+      console.log('[Cache] ⚠️ DB file not found, cache empty');
+      return;
+    }
+    const raw = fs.readFileSync(DB_FILE_PATH, 'utf8');
+    const data = JSON.parse(raw);
+    if (Array.isArray(data)) {
+      cachedRestaurants = data;
+      searchIndex = buildSearchIndex(data);
+      cacheLoadedAt = Date.now();
+      const elapsed = Date.now() - startMs;
+      console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory (${elapsed}ms, index: ${searchIndex.length} entries)`);
+    }
+  } catch (err) {
+    console.error('[Cache] ❌ Error loading DB:', err.message);
+  }
+}
+
+// Load on startup
+loadRestaurantsIntoMemory();
+
+// Auto-reload when file changes (debounced)
+let reloadTimer = null;
+fs.watchFile(DB_FILE_PATH, { interval: 5000 }, () => {
+  if (reloadTimer) clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(() => {
+    console.log('[Cache] 🔄 DB file changed, reloading...');
+    loadRestaurantsIntoMemory();
+  }, 1000);
+});
+
+/**
+ * Fast search using pre-built index - O(n) with pre-normalized strings
+ * @param {string} query - Raw search query
+ * @returns {Array} Matching restaurants
+ */
+function fastSearch(query) {
+  const startMs = Date.now();
+  const normQuery = normalizeText(query);
+  const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
+  if (tokens.length === 0) return [];
+
+  const results = [];
+  for (const entry of searchIndex) {
+    const matches = tokens.every(token =>
+      entry.normName.includes(token) ||
+      entry.normCategory.includes(token) ||
+      entry.normAddress.includes(token) ||
+      entry.normDishNames.some(d => d.includes(token))
+    );
+    if (matches) {
+      results.push(cachedRestaurants[entry.idx]);
+    }
+  }
+  const elapsed = Date.now() - startMs;
+  console.log(`[FastSearch] "${query}" → ${results.length} results in ${elapsed}ms`);
+  return results;
+}
+
 // Tạo thư mục menus nếu chưa tồn tại
 if (!fs.existsSync(MENUS_DIR)) {
   fs.mkdirSync(MENUS_DIR, { recursive: true });
@@ -668,7 +752,15 @@ function getHaversineDistance(coords1, coords2) {
   return R * c;
 }
 
-function geocodeAddress(address, name) {
+// Geocode cache - địa chỉ không thay đổi, cache kết quả
+const geocodeCache = new Map();
+
+function geocodeAddress(address, name, restaurantId) {
+  // Check cache first
+  if (restaurantId && geocodeCache.has(restaurantId)) {
+    return geocodeCache.get(restaurantId);
+  }
+
   const text = ((address || '') + ' ' + (name || '')).toLowerCase();
   
   // Basic Vietnamese tone removal to improve matching
@@ -693,19 +785,31 @@ function geocodeAddress(address, name) {
     { keys: ['binh thuy'], lat: 10.0763, lon: 105.7289 }
   ];
 
+  let result;
+  let matched = false;
   for (const mapping of mappings) {
     if (mapping.keys.some(key => cleanText.includes(key))) {
       // Add a small jitter (up to ~200m) to differentiate restaurants on the same street
       const jitterLat = (Math.random() - 0.5) * 0.003;
       const jitterLon = (Math.random() - 0.5) * 0.003;
-      return { lat: mapping.lat + jitterLat, lon: mapping.lon + jitterLon };
+      result = { lat: mapping.lat + jitterLat, lon: mapping.lon + jitterLon };
+      matched = true;
+      break;
     }
   }
 
-  // Default Ninh Kieu Center + jitter
-  const jitterLat = (Math.random() - 0.5) * 0.005;
-  const jitterLon = (Math.random() - 0.5) * 0.005;
-  return { lat: 10.0345 + jitterLat, lon: 105.7876 + jitterLon };
+  if (!matched) {
+    // Default Ninh Kieu Center + jitter
+    const jitterLat = (Math.random() - 0.5) * 0.005;
+    const jitterLon = (Math.random() - 0.5) * 0.005;
+    result = { lat: 10.0345 + jitterLat, lon: 105.7876 + jitterLon };
+  }
+
+  // Cache the result
+  if (restaurantId) {
+    geocodeCache.set(restaurantId, result);
+  }
+  return result;
 }
 
 function applyDistanceMarkupToMenu(restaurant, lat, lon) {
@@ -727,7 +831,7 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
   }
 
   const userCoords = { lat: userLat, lon: userLon };
-  const restCoords = geocodeAddress(restaurant.address || '', restaurant.name || '');
+  const restCoords = geocodeAddress(restaurant.address || '', restaurant.name || '', restaurant.id);
   const distKm = getHaversineDistance(userCoords, restCoords);
 
   // Compute progressive distance surcharge per item using square root function
@@ -778,7 +882,7 @@ function processRestaurantsWithLocation(localData, lat, lon) {
     const item = { ...r };
     
     // Geocode restaurant address to get lat/lon
-    const coords = geocodeAddress(item.address || '', item.name || '');
+    const coords = geocodeAddress(item.address || '', item.name || '', item.id);
     item.latitude = coords.lat;
     item.longitude = coords.lon;
     
@@ -1471,31 +1575,9 @@ app.get('/api/restaurants', async (req, res) => {
   if (query) {
     console.log(`[Search] Đang thực hiện tìm kiếm gộp cho từ khóa: "${query}"...`);
     
-    // 1. Tìm kiếm trong cơ sở dữ liệu local file restaurants-local.json
-    const localJsonPath = path.join(__dirname, 'restaurants-local.json');
-    let localMatches = [];
-    if (fs.existsSync(localJsonPath)) {
-      try {
-        const localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-        if (Array.isArray(localData)) {
-          const normQuery = normalizeText(query);
-          const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
-          
-          localMatches = localData.filter(r => {
-            const normName = normalizeText(r.name);
-            const normCat = normalizeText(r.category);
-            return tokens.every(token => 
-              normName.includes(token) || 
-              normCat.includes(token) ||
-              (r.dishNames && r.dishNames.some(name => normalizeText(name).includes(token)))
-            );
-          });
-          console.log(`[Search] 💾 Tìm thấy ${localMatches.length} quán trùng khớp trong local database.`);
-        }
-      } catch (e) {
-        console.error('[Search] Lỗi đọc local JSON:', e.message);
-      }
-    }
+    // 1. Tìm kiếm bằng FastSearch (in-memory pre-built index)
+    let localMatches = fastSearch(query);
+    console.log(`[Search] 💾 Tìm thấy ${localMatches.length} quán trùng khớp trong local database.`);
 
     // 2. Tìm kiếm trực tuyến từ Foody (ĐÃ VÔ HIỆU HÓA để tránh quá tải/IP block, đảm bảo chịu tải 1000+ user cùng lúc)
     let onlineResults = [];
@@ -1527,24 +1609,18 @@ app.get('/api/restaurants', async (req, res) => {
 
     if (chainsFound.size > 0) {
       console.log(`[Search Expansion] 🔄 Phát hiện từ khóa chuỗi lớn: [${Array.from(chainsFound).join(', ')}]. Tự động nạp toàn bộ chi nhánh...`);
-      if (fs.existsSync(localJsonPath)) {
-        try {
-          const localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-          if (Array.isArray(localData)) {
-            localData.forEach(r => {
-              const normName = normalizeText(r.name);
-              let matchChain = false;
-              chainsFound.forEach(kw => {
-                if (normName.includes(kw)) matchChain = true;
-              });
-              if (matchChain) {
-                if (!mergedResults.some(m => String(m.id) === String(r.id))) {
-                  mergedResults.push(r);
-                }
-              }
-            });
+      // Sử dụng cachedRestaurants + searchIndex thay vì đọc file
+      for (const entry of searchIndex) {
+        let matchChain = false;
+        chainsFound.forEach(kw => {
+          if (entry.normName.includes(kw)) matchChain = true;
+        });
+        if (matchChain) {
+          const r = cachedRestaurants[entry.idx];
+          if (!mergedResults.some(m => String(m.id) === String(r.id))) {
+            mergedResults.push(r);
           }
-        } catch (e) {}
+        }
       }
 
       // Lọc bỏ nút "Hệ thống" cha chung chung để khách đặt hàng trực tiếp tại chi nhánh cụ thể
@@ -1674,33 +1750,20 @@ app.get('/api/restaurants', async (req, res) => {
     triggerCrawler();
   }
 
-  // 2. Trả ngay dữ liệu đang có (Stale-While-Revalidate) để phản hồi siêu tốc dưới 10ms
-  try {
-    if (fs.existsSync(localJsonPath)) {
-      const localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-      if (Array.isArray(localData) && localData.length > 0) {
-        let responseData = [];
-        if (query) {
-          // Fallback lọc dữ liệu local nếu cào search thất bại
-          const qLower = query.toLowerCase();
-          const matches = localData.filter(r =>
-            r.name.toLowerCase().includes(qLower) ||
-            (r.category && r.category.toLowerCase().includes(qLower)) ||
-            (r.dishNames && r.dishNames.some(name => name && name.toLowerCase().includes(qLower)))
-          );
-          responseData = processRestaurantsWithLocation(matches, req.query.lat, req.query.lon);
-          console.log(`[Response Fallback] Lọc từ local JSON: ${responseData.length} kết quả cho "${query}"`);
-        } else {
-          responseData = processRestaurantsWithLocation(localData, req.query.lat, req.query.lon);
-          console.log(`[Response] ✅ Trả ngay ${responseData.length} quán từ restaurants-local.json sau khi lọc khoảng cách (mở: ${responseData.filter(r=>!r.isClosed).length}, đóng: ${responseData.filter(r=>r.isClosed).length})`);
-        }
-        // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
-        if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-        return res.json({ source: query ? 'local_search_fallback' : 'local', data: stripMenus(responseData), total: responseData.length });
-      }
+  // 2. Trả ngay dữ liệu từ in-memory cache (Stale-While-Revalidate) — phản hồi siêu tốc <5ms
+  if (cachedRestaurants.length > 0) {
+    let responseData = [];
+    if (query) {
+      // Fallback search bằng fastSearch
+      responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon);
+      console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
+    } else {
+      responseData = processRestaurantsWithLocation(cachedRestaurants, req.query.lat, req.query.lon);
+      console.log(`[Response] ✅ Trả ngay ${responseData.length} quán từ memory cache (mở: ${responseData.filter(r=>!r.isClosed).length}, đóng: ${responseData.filter(r=>r.isClosed).length})`);
     }
-  } catch (jsonErr) {
-    console.error('[Fallback] Lỗi đọc restaurants-local.json:', jsonErr.message);
+    // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
+    if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    return res.json({ source: query ? 'local_search_cached' : 'local_cached', data: stripMenus(responseData), total: responseData.length });
   }
 
   // 3. Fallback: nếu chưa có local JSON, đọc từ restaurants-data.js bằng eval
@@ -1953,23 +2016,13 @@ app.get('/api/restaurants/:id', async (req, res) => {
     source = 'search_cache';
   }
 
-  // 2. Kiểm tra trong file restaurants-local.json
+  // 2. Kiểm tra trong in-memory cache (thay vì đọc file 7MB)
   if (!found) {
-    const localJsonPath = path.join(__dirname, 'restaurants-local.json');
-    try {
-      if (fs.existsSync(localJsonPath)) {
-        const localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-        if (Array.isArray(localData)) {
-          const matched = localData.find(r => String(r.id) === id);
-          if (matched) {
-            console.log(`[Details] ✅ Tìm thấy quán trong restaurants-local.json: ${id}`);
-            found = matched;
-            source = 'local_file';
-          }
-        }
-      }
-    } catch (err) {
-      console.error('[Details] Lỗi khi đọc restaurants-local.json:', err.message);
+    const matched = cachedRestaurants.find(r => String(r.id) === id);
+    if (matched) {
+      console.log(`[Details] ✅ Tìm thấy quán trong memory cache: ${id}`);
+      found = matched;
+      source = 'memory_cache';
     }
   }
 
