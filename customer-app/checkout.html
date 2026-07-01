@@ -201,7 +201,7 @@
             <div class="address-display__name" id="addr-name">—</div>
             <div class="address-display__addr" id="addr-address">—</div>
             <div class="address-display__addr" id="addr-phone"></div>
-            <span class="address-display__change" onclick="SF.navigate('index.html')">
+            <span class="address-display__change" onclick="SF.navigate('./')">
               <i class="fa-solid fa-pen fa-xs"></i> Thay đổi
             </span>
           </div>
@@ -354,14 +354,14 @@
 
       // Validate cart
       if (cartTotals.itemCount === 0) {
-        SF.navigate('index.html');
+        SF.navigate('./');
         return;
       }
 
       // Validate address
       if (!state.deliveryAddress) {
         SF.showToast('Cần địa chỉ', 'Vui lòng nhập địa chỉ giao hàng.', 'warning');
-        setTimeout(() => SF.navigate('index.html'), 1200);
+        setTimeout(() => SF.navigate('./'), 1200);
         return;
       }
 
@@ -531,7 +531,7 @@
 
       if (cartTotals.itemCount === 0) {
         SF.showToast('Giỏ hàng trống', 'Bạn đã xóa hết món ăn. Đang quay lại trang chủ...', 'warning');
-        setTimeout(() => SF.navigate('index.html'), 1500);
+        setTimeout(() => SF.navigate('./'), 1500);
         return;
       }
 

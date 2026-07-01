@@ -334,7 +334,7 @@
   <!-- ── NAVIGATION ── -->
   <nav class="nav" id="main-nav">
     <div class="nav__inner">
-      <a href="index.html" class="nav__back-btn">
+      <a href="./" class="nav__back-btn">
         <i class="fa-solid fa-house"></i> Trang chủ
       </a>
       <span style="font-size:15px;font-weight:700;color:var(--clr-text-primary);">Theo dõi đơn</span>
@@ -342,7 +342,7 @@
         <button onclick="configureApiUrl()" title="Cấu hình API" style="background:none; border:none; color:var(--clr-primary); font-size:14px; cursor:pointer; padding:8px;" id="nav-settings-btn">
           <i class="fa-solid fa-gear"></i>
         </button>
-        <button onclick="SF.navigate('index.html')" style="font-size:12px;font-weight:600;color:var(--clr-primary);padding:8px;">
+        <button onclick="SF.navigate('./')" style="font-size:12px;font-weight:600;color:var(--clr-primary);padding:8px;">
           Đặt thêm
         </button>
       </div>
@@ -761,7 +761,7 @@
             const state = SF.getState();
             state.activeOrder = null;
             SF.saveState(state);
-            setTimeout(() => SF.navigate('index.html'), 2000);
+            setTimeout(() => SF.navigate('./'), 2000);
             return;
           }
           if (!response.ok) return;
@@ -834,7 +834,7 @@
 
       if (!order) {
         SF.showToast('Không có đơn hàng', 'Hãy đặt đơn trước.', 'warning');
-        setTimeout(() => SF.navigate('index.html'), 1500);
+        setTimeout(() => SF.navigate('./'), 1500);
         return;
       }
 
@@ -1306,7 +1306,7 @@
     }
 
     function orderAgain() {
-      SF.navigate('index.html');
+      SF.navigate('./');
     }
 
     let isChatOpen = false;

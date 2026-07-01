@@ -232,7 +232,7 @@
   <!-- ── NAVIGATION ── -->
   <nav class="nav" id="main-nav">
     <div class="nav__inner">
-      <a href="index.html" class="nav__back-btn">
+      <a href="./" class="nav__back-btn">
         <i class="fa-solid fa-arrow-left"></i> Trang chủ
       </a>
       <div class="nav__actions">
@@ -300,7 +300,7 @@
           <span>Hãy thử lại vào ngày mai hoặc kiểm tra giờ mở cửa</span>
         </div>
         <div class="closed-banner__actions">
-          <a href="index.html" class="closed-banner__btn-primary">
+          <a href="./" class="closed-banner__btn-primary">
             <i class="fa-solid fa-magnifying-glass"></i>
             Tìm quán khác đang mở
           </a>
@@ -351,7 +351,7 @@
     document.addEventListener('DOMContentLoaded', async () => {
       SF.initNavScroll();
       const restaurantId = SF.getParam('id');
-      if (!restaurantId) { SF.navigate('index.html'); return; }
+      if (!restaurantId) { SF.navigate('./'); return; }
 
       // 1. Thử tìm trong localStorage trước
       RESTAURANT = SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
@@ -389,7 +389,7 @@
           initializePage();
         } else {
           SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
-          setTimeout(() => SF.navigate('index.html'), 2000);
+          setTimeout(() => SF.navigate('./'), 2000);
         }
       }
     });
@@ -820,7 +820,7 @@
       const state = SF.getState();
       if (!state.deliveryAddress) {
         SF.showToast('Cần địa chỉ giao hàng', 'Vui lòng nhập địa chỉ trước khi đặt hàng.', 'warning');
-        setTimeout(() => SF.navigate('index.html'), 1200);
+        setTimeout(() => SF.navigate('./'), 1200);
         return;
       }
       SF.navigate('checkout.html');
