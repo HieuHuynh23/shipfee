@@ -1,4 +1,4 @@
-﻿/**
+/**
  * bulk_crawl.js — Triggers ShopeeFood menu crawling for all restaurants
  * without real menu data by calling the internal API in controlled batches.
  *
@@ -14,6 +14,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const dbHelper = require('./server/dbHelper');
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 const API_BASE = 'http://localhost:3001';
@@ -51,13 +52,13 @@ function get(url) {
 
 // ── Load local restaurant list ─────────────────────────────────────────────────
 function loadRestaurants() {
-  const localPath = path.join(__dirname, 'server', 'restaurants-local.json');
-  if (!fs.existsSync(localPath)) {
-    console.error(`❌ Không tìm thấy file: ${localPath}`);
+  try {
+    const raw = dbHelper.read();
+    return Array.isArray(raw) ? raw : [];
+  } catch (e) {
+    console.error(`❌ Lỗi khi đọc dữ liệu quán ăn:`, e.message);
     process.exit(1);
   }
-  const raw = JSON.parse(fs.readFileSync(localPath, 'utf8'));
-  return Array.isArray(raw) ? raw : (raw.restaurants || []);
 }
 
 // ── Concurrency pool ──────────────────────────────────────────────────────────
@@ -152,8 +153,7 @@ async function main() {
 
   // Re-count from file after all done
   try {
-    const finalData = JSON.parse(fs.readFileSync(path.join(__dirname, 'server', 'restaurants-local.json'), 'utf8'));
-    const finalRests = Array.isArray(finalData) ? finalData : finalData.restaurants;
+    const finalRests = dbHelper.read();
     const realCount = finalRests.filter(r => r.hasRealMenu).length;
     const closedCount = finalRests.filter(r => r.isClosed).length;
     const pending = finalRests.filter(r => !r.hasRealMenu && !r.isClosed).length;

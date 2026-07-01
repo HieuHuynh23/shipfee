@@ -6,7 +6,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-const LOCAL_JSON_FILE = path.join(__dirname, 'restaurants-local.json');
+const dbHelper = require('./dbHelper');
 const MENUS_DIR = path.join(__dirname, 'menus');
 const HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
@@ -94,7 +94,7 @@ async function run() {
 
   // Load existing and merge
   let existing = [];
-  try { existing = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8')); } catch { existing = []; }
+  try { existing = dbHelper.read(); } catch { existing = []; }
   const existingIds = new Set(existing.map(r => r.id));
   let newCount = 0;
 
@@ -124,7 +124,7 @@ async function run() {
   }
 
   existing.forEach(r => { delete r.menu; });
-  fs.writeFileSync(LOCAL_JSON_FILE, JSON.stringify(existing, null, 2), 'utf8');
+  dbHelper.write(existing);
 
   console.log(`[Extra Crawler] ══════════════════════════════════════`);
   console.log(`[Extra Crawler] 📦 Total: ${existing.length} | 🆕 New: ${newCount}`);

@@ -13,7 +13,7 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 
-const LOCAL_JSON_FILE = path.join(__dirname, 'restaurants-local.json');
+const dbHelper = require('./dbHelper');
 const MENUS_DIR = path.join(__dirname, 'menus');
 
 const HEADERS = {
@@ -298,10 +298,7 @@ async function run() {
   console.log('[Crawler] Merging with existing database...');
   let existing = [];
   try {
-    if (fs.existsSync(LOCAL_JSON_FILE)) {
-      existing = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8'));
-      if (!Array.isArray(existing)) existing = [];
-    }
+    existing = dbHelper.read();
   } catch (e) { existing = []; }
 
   const existingCount = existing.length;
@@ -324,9 +321,9 @@ async function run() {
   }
 
   existing.forEach(r => { delete r.menu; });
-  fs.writeFileSync(LOCAL_JSON_FILE, JSON.stringify(existing, null, 2), 'utf8');
+  dbHelper.write(existing);
 
-  const finalSize = (fs.statSync(LOCAL_JSON_FILE).size / 1024).toFixed(1);
+  const finalSize = (fs.statSync(dbHelper.getChunkPath(0)).size / 1024).toFixed(1);
   const menuFiles = fs.readdirSync(MENUS_DIR).filter(f => f.endsWith('.json')).length;
   const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
 

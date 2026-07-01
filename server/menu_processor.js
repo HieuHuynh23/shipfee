@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const LOCAL_JSON_FILE = path.join(__dirname, 'restaurants-local.json');
+const dbHelper = require('./dbHelper');
 const MENUS_DIR = path.join(__dirname, 'menus');
 const MARKUP = 0.28;
 
@@ -257,7 +257,7 @@ async function run() {
   console.log(`[Menu Processor] 🚀 Starting menu processing...\n`);
   
   // Load DB
-  let restaurants = JSON.parse(fs.readFileSync(LOCAL_JSON_FILE, 'utf8'));
+  let restaurants = dbHelper.read();
   if (!Array.isArray(restaurants)) { console.error('Invalid DB'); process.exit(1); }
   
   const templateQuans = restaurants.filter(r => r.menuTemplateFallback === true || (!r.hasRealMenu && !r.menuTemplateFallback));
@@ -300,10 +300,11 @@ async function run() {
 
   // Save updated DB
   restaurants.forEach(r => { delete r.menu; });
-  fs.writeFileSync(LOCAL_JSON_FILE, JSON.stringify(restaurants, null, 2), 'utf8');
+  dbHelper.write(restaurants);
 
   const menuFiles = fs.readdirSync(MENUS_DIR).filter(f => f.endsWith('.json')).length;
-  const dbSize = (fs.statSync(LOCAL_JSON_FILE).size / 1024).toFixed(1);
+  // dbSize calculation fallback checking the first chunk file
+  const dbSize = (fs.statSync(dbHelper.getChunkPath(0)).size / 1024).toFixed(1);
 
   console.log(`\n[Menu Processor] ══════════════════════════════════════════`);
   console.log(`[Menu Processor] 💾 KẾT QUẢ:`);

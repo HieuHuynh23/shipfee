@@ -13,6 +13,7 @@ const path        = require('path');
 const { exec }    = require('child_process');
 const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
+const dbHelper    = require('./dbHelper');
 
 // ── PRICING CONFIG (Admin-adjustable) ────────────────────────────────────────
 const PRICING_CONFIG = {
@@ -576,7 +577,6 @@ function generateMenuForRestaurant(name, resId) {
   });
 }
 
-const DB_FILE_PATH = path.join(__dirname, 'restaurants-local.json');
 const MENUS_DIR = path.join(__dirname, 'menus');
 let dbQueuePromise = Promise.resolve();
 
@@ -603,14 +603,7 @@ function buildSearchIndex(restaurants) {
 function loadRestaurantsIntoMemory() {
   const startMs = Date.now();
   try {
-    if (!fs.existsSync(DB_FILE_PATH)) {
-      cachedRestaurants = [];
-      searchIndex = [];
-      console.log('[Cache] ⚠️ DB file not found, cache empty');
-      return;
-    }
-    const raw = fs.readFileSync(DB_FILE_PATH, 'utf8');
-    const data = JSON.parse(raw);
+    const data = dbHelper.read();
     if (Array.isArray(data)) {
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
@@ -626,15 +619,18 @@ function loadRestaurantsIntoMemory() {
 // Load on startup
 loadRestaurantsIntoMemory();
 
-// Auto-reload when file changes (debounced)
+// Auto-reload when chunk files change (debounced)
 let reloadTimer = null;
-fs.watchFile(DB_FILE_PATH, { interval: 5000 }, () => {
-  if (reloadTimer) clearTimeout(reloadTimer);
-  reloadTimer = setTimeout(() => {
-    console.log('[Cache] 🔄 DB file changed, reloading...');
-    loadRestaurantsIntoMemory();
-  }, 1000);
-});
+const CHUNKS_DIR = path.join(__dirname, 'restaurants-chunks');
+if (fs.existsSync(CHUNKS_DIR)) {
+  fs.watch(CHUNKS_DIR, () => {
+    if (reloadTimer) clearTimeout(reloadTimer);
+    reloadTimer = setTimeout(() => {
+      console.log('[Cache] 🔄 Chunk database files changed, reloading...');
+      loadRestaurantsIntoMemory();
+    }, 1000);
+  });
+}
 
 /**
  * Fast search using pre-built index - O(n) with pre-normalized strings
@@ -706,30 +702,11 @@ function updateLocalDatabase(updaterFn) {
   return new Promise((resolve, reject) => {
     dbQueuePromise = dbQueuePromise.then(() => {
       try {
-        if (!fs.existsSync(DB_FILE_PATH)) {
-          fs.writeFileSync(DB_FILE_PATH, '[]', 'utf8');
-        }
-        const raw = fs.readFileSync(DB_FILE_PATH, 'utf8');
-        let data = [];
-        try {
-          data = JSON.parse(raw);
-        } catch (e) {
-          console.error('[DB Queue] Lỗi parse JSON:', e.message);
-          data = [];
-        }
+        const data = dbHelper.read();
         if (Array.isArray(data)) {
           const shouldSave = updaterFn(data);
           if (shouldSave !== false) {
-            // INTERCEPTOR: Tách menu ra file riêng trước khi lưu
-            data.forEach(r => {
-              if (r && r.menu) {
-                const menu = r.menu;
-                writeRestaurantMenu(r.id, menu);
-                r.dishNames = menu.map(m => m.name).filter(Boolean);
-                delete r.menu;
-              }
-            });
-            fs.writeFileSync(DB_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+            dbHelper.write(data);
           }
         }
         resolve();
@@ -918,89 +895,85 @@ function processRestaurantsWithLocation(localData, lat, lon) {
 }
 
 function sanitizeLocalJsonData() {
-  const localJsonPath = path.join(__dirname, 'restaurants-local.json');
-  console.log('[Sanitization] 🔍 Đang quét và làm sạch dữ liệu trong restaurants-local.json...');
+  console.log('[Sanitization] 🔍 Đang quét và làm sạch dữ liệu trong cơ sở dữ liệu phân mảnh...');
   try {
-    if (fs.existsSync(localJsonPath)) {
-      const raw = fs.readFileSync(localJsonPath, 'utf8');
-      const localData = JSON.parse(raw);
-      if (Array.isArray(localData)) {
-        let changed = false;
-        let migrationCount = 0;
+    const localData = dbHelper.read();
+    if (Array.isArray(localData)) {
+      let changed = false;
+      let migrationCount = 0;
 
-        // Lọc bỏ các quán đã đóng cửa hoàn toàn
-        const cleanData = localData.filter(restaurant => {
-          if (restaurant.isClosed) {
-            if (!hasReopenTime(restaurant.closedReason)) {
-              console.log(`[Sanitization] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi database: "${restaurant.name}" (${restaurant.closedReason || 'Không rõ lý do'})`);
-              changed = true;
-              return false; // Remove
-            }
-          }
-          return true; // Keep
-        });
-
-        cleanData.forEach(restaurant => {
-          // Reset trạng thái đóng cửa nếu đã đến giờ hẹn
-          if (resetClosedIfNextAttemptReached(restaurant)) {
+      // Lọc bỏ các quán đã đóng cửa hoàn toàn
+      const cleanData = localData.filter(restaurant => {
+        if (restaurant.isClosed) {
+          if (!hasReopenTime(restaurant.closedReason)) {
+            console.log(`[Sanitization] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi database: "${restaurant.name}" (${restaurant.closedReason || 'Không rõ lý do'})`);
             changed = true;
+            return false; // Remove
           }
+        }
+        return true; // Keep
+      });
 
-          // ── MIGRATION LOGIC ──
-          // Nếu quán vẫn có thuộc tính menu, di trú ra file riêng
-          if (restaurant.menu) {
-            const menu = restaurant.menu;
-            writeRestaurantMenu(restaurant.id, menu);
+      cleanData.forEach(restaurant => {
+        // Reset trạng thái đóng cửa nếu đã đến giờ hẹn
+        if (resetClosedIfNextAttemptReached(restaurant)) {
+          changed = true;
+        }
+
+        // ── MIGRATION LOGIC ──
+        // Nếu quán vẫn có thuộc tính menu, di trú ra file riêng
+        if (restaurant.menu) {
+          const menu = restaurant.menu;
+          writeRestaurantMenu(restaurant.id, menu);
+          restaurant.dishNames = menu.map(m => m.name).filter(Boolean);
+          delete restaurant.menu;
+          changed = true;
+          migrationCount++;
+        }
+
+        // Nếu chưa có dishNames nhưng có file menu riêng, tự cập nhật dishNames
+        if (!restaurant.dishNames) {
+          const menu = readRestaurantMenu(restaurant.id);
+          if (menu) {
             restaurant.dishNames = menu.map(m => m.name).filter(Boolean);
-            delete restaurant.menu;
             changed = true;
-            migrationCount++;
           }
+        }
 
-          // Nếu chưa có dishNames nhưng có file menu riêng, tự cập nhật dishNames
-          if (!restaurant.dishNames) {
-            const menu = readRestaurantMenu(restaurant.id);
-            if (menu) {
-              restaurant.dishNames = menu.map(m => m.name).filter(Boolean);
-              changed = true;
-            }
-          }
+        // Bỏ qua quán đang đóng cửa - không gán template menu
+        if (restaurant.isClosed) return;
 
-          // Bỏ qua quán đang đóng cửa - không gán template menu
-          if (restaurant.isClosed) return;
-
-          // Đọc thực đơn từ tệp riêng
-          let currentMenu = readRestaurantMenu(restaurant.id);
-          if (!currentMenu || currentMenu.length === 0) {
-            // Chưa có thực đơn, tạo thực đơn mẫu
-            const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
+        // Đọc thực đơn từ tệp riêng
+        let currentMenu = readRestaurantMenu(restaurant.id);
+        if (!currentMenu || currentMenu.length === 0) {
+          // Chưa có thực đơn, tạo thực đơn mẫu
+          const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
+          writeRestaurantMenu(restaurant.id, templateMenu);
+          restaurant.dishNames = templateMenu.map(m => m.name).filter(Boolean);
+          restaurant.hasRealMenu = false;
+          restaurant.menuTemplateFallback = true;
+          changed = true;
+        } else if (!restaurant.hasRealMenu && restaurant.menuTemplateFallback) {
+          // Có thực đơn mẫu, cập nhật nếu có sai khác cấu trúc template
+          const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
+          if (currentMenu.length !== templateMenu.length || currentMenu[0]?.name !== templateMenu[0]?.name) {
             writeRestaurantMenu(restaurant.id, templateMenu);
             restaurant.dishNames = templateMenu.map(m => m.name).filter(Boolean);
-            restaurant.hasRealMenu = false;
-            restaurant.menuTemplateFallback = true;
             changed = true;
-          } else if (!restaurant.hasRealMenu && restaurant.menuTemplateFallback) {
-            // Có thực đơn mẫu, cập nhật nếu có sai khác cấu trúc template
-            const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-            if (currentMenu.length !== templateMenu.length || currentMenu[0]?.name !== templateMenu[0]?.name) {
-              writeRestaurantMenu(restaurant.id, templateMenu);
-              restaurant.dishNames = templateMenu.map(m => m.name).filter(Boolean);
-              changed = true;
-              console.log(`[Sanitization] 🔄 Đã cập nhật menu giả lập chính xác cho: "${restaurant.name}"`);
-            }
+            console.log(`[Sanitization] 🔄 Đã cập nhật menu giả lập chính xác cho: "${restaurant.name}"`);
           }
-        });
-
-        if (changed) {
-          fs.writeFileSync(localJsonPath, JSON.stringify(cleanData, null, 2), 'utf8');
-          console.log(`[Sanitization] 💾 Đã lưu thay đổi làm sạch vào restaurants-local.json (Di trú thành công: ${migrationCount} quán)`);
-        } else {
-          console.log('[Sanitization] ✨ Không phát hiện sai sót menu hay quán đóng cửa cần xử lý!');
         }
+      });
+
+      if (changed) {
+        dbHelper.write(cleanData);
+        console.log(`[Sanitization] 💾 Đã lưu thay đổi làm sạch vào database phân mảnh (Di trú thành công: ${migrationCount} quán)`);
+      } else {
+        console.log('[Sanitization] ✨ Không phát hiện sai sót menu hay quán đóng cửa cần xử lý!');
       }
     }
   } catch (err) {
-    console.error('[Sanitization] ❌ Lỗi làm sạch dữ liệu local JSON:', err.message);
+    console.error('[Sanitization] ❌ Lỗi làm sạch dữ liệu phân mảnh:', err.message);
   }
 }
 
@@ -1147,12 +1120,9 @@ async function fetchAndParseFromFoody(q = '') {
   const brandResolutions = [];
 
   // Đọc dữ liệu local trước để bảo tồn thực đơn thực tế và trạng thái nếu đã có
-  const localJsonPath = path.join(__dirname, 'restaurants-local.json');
   let localData = [];
   try {
-    if (fs.existsSync(localJsonPath)) {
-      localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-    }
+    localData = dbHelper.read();
   } catch (e) {}
   
   rawItems.each((index, el) => {
@@ -1725,13 +1695,13 @@ app.get('/api/restaurants', async (req, res) => {
     return res.json({ source: 'merged_search', data: stripMenus(processedResults), total: processedResults.length });
   }
 
-  const localJsonPath = path.join(__dirname, 'restaurants-local.json');
+  const firstChunkPath = dbHelper.getChunkPath(0);
   let shouldTrigger = false;
 
   // 1. Kiểm tra xem file local có tồn tại và còn mới không (10 phút)
   try {
-    if (fs.existsSync(localJsonPath)) {
-      const stats = fs.statSync(localJsonPath);
+    if (fs.existsSync(firstChunkPath)) {
+      const stats = fs.statSync(firstChunkPath);
       const ageMs = Date.now() - stats.mtimeMs;
       if (ageMs > 10 * 60 * 1000) { // 10 phút
         console.log(`[Cache] Dữ liệu local đã cũ (${Math.round(ageMs / 60000)} phút)`);
@@ -2833,15 +2803,9 @@ function startBackgroundDatabaseSweepWorker() {
 }
 
 function runSweepIteration() {
-  const localJsonPath = path.join(__dirname, 'restaurants-local.json');
-  if (!fs.existsSync(localJsonPath)) {
-    setTimeout(runSweepIteration, 5 * 60 * 1000);
-    return;
-  }
-
   try {
-    const localData = JSON.parse(fs.readFileSync(localJsonPath, 'utf8'));
-    if (!Array.isArray(localData)) {
+    const localData = dbHelper.read();
+    if (!Array.isArray(localData) || localData.length === 0) {
       setTimeout(runSweepIteration, 5 * 60 * 1000);
       return;
     }

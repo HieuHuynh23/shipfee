@@ -9,7 +9,7 @@ const fs      = require('fs');
 const path    = require('path');
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
-const LOCAL_JSON_FILE = path.join(__dirname, 'restaurants-local.json');
+const dbHelper = require('./dbHelper');
 const MENUS_DIR       = path.join(__dirname, 'menus');
 const TARGET_URL      = 'https://www.foody.vn/can-tho/dia-diem';
 
@@ -725,10 +725,9 @@ async function run() {
     // ── PHASE 4: Merge vào database hiện tại ──
     let finalMergedList = [];
     try {
-      if (fs.existsSync(LOCAL_JSON_FILE)) {
-        const raw = fs.readFileSync(LOCAL_JSON_FILE, 'utf8');
-        finalMergedList = JSON.parse(raw);
-        if (!Array.isArray(finalMergedList)) finalMergedList = [];
+      const parsed = dbHelper.read();
+      if (Array.isArray(parsed)) {
+        finalMergedList = parsed;
       }
     } catch (e) {
       console.warn('[Crawler] ⚠️ Không đọc được file database cũ, tạo mới.');
@@ -792,7 +791,7 @@ async function run() {
     });
 
     if (finalMergedList.length > 0) {
-      fs.writeFileSync(LOCAL_JSON_FILE, JSON.stringify(finalMergedList, null, 2), 'utf8');
+      dbHelper.write(finalMergedList);
       console.log(`\n[Crawler] ══════════════════════════════════════════════════`);
       console.log(`[Crawler] 💾 KẾT QUẢ CUỐI CÙNG:`);
       console.log(`[Crawler]    📦 Tổng quán trong database: ${finalMergedList.length}`);
