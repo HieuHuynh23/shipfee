@@ -96,7 +96,14 @@ function writeAll(restaurants) {
   for (let i = 0; i < NUM_CHUNKS; i++) {
     const chunkPath = getChunkPath(i);
     try {
-      fs.writeFileSync(chunkPath, JSON.stringify(chunks[i], null, 2), 'utf8');
+      const newContent = JSON.stringify(chunks[i], null, 2);
+      let currentContent = '';
+      if (fs.existsSync(chunkPath)) {
+        currentContent = fs.readFileSync(chunkPath, 'utf8');
+      }
+      if (currentContent !== newContent) {
+        fs.writeFileSync(chunkPath, newContent, 'utf8');
+      }
     } catch (err) {
       console.error(`[dbHelper] Lỗi ghi chunk ${i}:`, err.message);
     }
