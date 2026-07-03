@@ -48,15 +48,25 @@ function readAll() {
   for (let i = 0; i < NUM_CHUNKS; i++) {
     const chunkPath = getChunkPath(i);
     if (fs.existsSync(chunkPath)) {
-      try {
-        const raw = fs.readFileSync(chunkPath, 'utf8');
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          all.push(...parsed);
-          foundChunks++;
+      let parsed = null;
+      let retries = 5;
+      while (retries > 0) {
+        try {
+          const raw = fs.readFileSync(chunkPath, 'utf8');
+          parsed = JSON.parse(raw);
+          break;
+        } catch (err) {
+          retries--;
+          if (retries === 0) {
+            throw new Error(`[dbHelper] Không thể đọc hoặc parse chunk ${i} sau nhiều lần thử: ${err.message}`);
+          }
+          const start = Date.now();
+          while (Date.now() - start < 100) {} // sleep 100ms
         }
-      } catch (err) {
-        console.error(`[dbHelper] Lỗi đọc chunk ${i}:`, err.message);
+      }
+      if (Array.isArray(parsed)) {
+        all.push(...parsed);
+        foundChunks++;
       }
     }
   }
@@ -74,6 +84,54 @@ function readAll() {
     }
   }
   return all;
+}
+
+function updateRestaurant(updated) {
+  if (!updated || !updated.id) return false;
+  const idx = getChunkIndex(updated.id);
+  const chunkPath = getChunkPath(idx);
+  try {
+    let chunk = [];
+    if (fs.existsSync(chunkPath)) {
+      let retries = 5;
+      while (retries > 0) {
+        try {
+          const raw = fs.readFileSync(chunkPath, 'utf8');
+          chunk = JSON.parse(raw);
+          break;
+        } catch (err) {
+          retries--;
+          if (retries === 0) {
+            throw err;
+          }
+          const start = Date.now();
+          while (Date.now() - start < 100) {} // sleep 100ms
+        }
+      }
+    }
+    if (!Array.isArray(chunk)) chunk = [];
+    
+    // Tách menu ra file riêng nếu có
+    if (updated.menu) {
+      writeRestaurantMenu(updated.id, updated.menu);
+      updated.dishNames = updated.menu.map(m => m.name).filter(Boolean);
+      delete updated.menu;
+    }
+    
+    const itemIdx = chunk.findIndex(r => String(r.id) === String(updated.id));
+    if (itemIdx !== -1) {
+      chunk[itemIdx] = updated;
+    } else {
+      chunk.push(updated);
+    }
+    
+    const newContent = JSON.stringify(chunk, null, 2);
+    fs.writeFileSync(chunkPath, newContent, 'utf8');
+    return true;
+  } catch (err) {
+    console.error(`[dbHelper] Lỗi cập nhật quán ${updated.id} vào chunk ${idx}:`, err.message);
+  }
+  return false;
 }
 
 function writeAll(restaurants) {
@@ -114,6 +172,7 @@ function writeAll(restaurants) {
 module.exports = {
   read: readAll,
   write: writeAll,
+  updateRestaurant,
   getChunkIndex,
   getChunkPath,
   NUM_CHUNKS

@@ -141,44 +141,39 @@ async function run() {
         menu = realMenu;
       }
 
-      // Đọc toàn bộ danh sách để cập nhật an toàn
-      const currentDB = dbHelper.read();
-      const dbIdx = currentDB.findIndex(r => String(r.id) === String(target.id));
-
-      if (dbIdx !== -1) {
-        if (isClosed && !menu) {
-          // Quán đóng cửa và không có menu
-          console.log(`   🔴 Quán đóng cửa: "${target.name}"`);
-          currentDB[dbIdx].isClosed = true;
-          currentDB[dbIdx].closedAt = new Date().toISOString();
-          currentDB[dbIdx].closedReason = closedReason;
+      if (isClosed && !menu) {
+        // Quán đóng cửa và không có menu
+        console.log(`   🔴 Quán đóng cửa: "${target.name}"`);
+        target.isClosed = true;
+        target.closedAt = new Date().toISOString();
+        target.closedReason = closedReason;
+        closedCount++;
+      } else {
+        // Có thực đơn thực tế
+        console.log(`   ✅ Cào thành công thực đơn: ${menu.length} món`);
+        target.hasRealMenu = true;
+        target.menuUpdatedAt = new Date().toISOString();
+        target.dishNames = menu.map(m => m.name).filter(Boolean);
+        target.menuTemplateFallback = false;
+        target.menu = menu;
+        
+        if (isClosed) {
+          target.isClosed = true;
+          target.closedAt = new Date().toISOString();
+          target.closedReason = closedReason;
           closedCount++;
         } else {
-          // Có thực đơn thực tế
-          console.log(`   ✅ Cào thành công thực đơn: ${menu.length} món`);
-          currentDB[dbIdx].hasRealMenu = true;
-          currentDB[dbIdx].menuUpdatedAt = new Date().toISOString();
-          currentDB[dbIdx].dishNames = menu.map(m => m.name).filter(Boolean);
-          currentDB[dbIdx].menuTemplateFallback = false;
-          
-          if (isClosed) {
-            currentDB[dbIdx].isClosed = true;
-            currentDB[dbIdx].closedAt = new Date().toISOString();
-            currentDB[dbIdx].closedReason = closedReason;
-            closedCount++;
-          } else {
-            currentDB[dbIdx].isClosed = false;
-            delete currentDB[dbIdx].closedAt;
-            delete currentDB[dbIdx].closedReason;
-          }
-
-          successCount++;
+          target.isClosed = false;
+          delete target.closedAt;
+          delete target.closedReason;
         }
 
-        // Lưu lại vào tệp phân mảnh qua dbHelper
-        dbHelper.write(currentDB);
-        console.log(`   💾 Đã cập nhật vào cơ sở dữ liệu phân mảnh.`);
+        successCount++;
       }
+
+      // Lưu lại vào tệp phân mảnh qua dbHelper
+      dbHelper.updateRestaurant(target);
+      console.log(`   💾 Đã cập nhật quán "${target.name}" vào cơ sở dữ liệu phân mảnh.`);
 
     } catch (err) {
       console.error(`   ❌ Lỗi khi cào quán "${target.name}":`, err.message);
