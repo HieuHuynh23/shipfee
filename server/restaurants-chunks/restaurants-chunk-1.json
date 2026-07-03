@@ -1975,7 +1975,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:45:20.046Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-04T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-03T14:45:20.046Z"
   },
   {
     "id": "r_ct_bros_cafe_3_thang_2",
@@ -2000,7 +2005,12 @@
       "Cà Phê Đen Đá",
       "Bạc Xỉu",
       "Trà Đào Cam Sả"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:46:01.488Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 07:00 07/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-04T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-03T14:46:01.488Z"
   },
   {
     "id": "r_ct_nha_hang_du_thuyen_ninh_kieu",
@@ -2025,7 +2035,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:47:06.012Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-04T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-03T14:47:06.012Z"
   },
   {
     "id": "r_ct_tiem_xoi_ne_hem_51",
@@ -2043,8 +2058,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
-    "menuTemplateFallback": false,
+    "hasRealMenu": true,
     "foodyHref": "/can-tho/tiem-xoi-ne-hem-51",
     "dishNames": [
       "Chả Giò",
@@ -2056,7 +2070,8 @@
       "Bún Bò Huế",
       "Mì Xào Bò"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:48.717Z"
+    "menuProcessedAt": "2026-06-30T16:55:48.717Z",
+    "menuUpdatedAt": "2026-07-03T14:47:48.557Z"
   },
   {
     "id": "r_ct_thi_no_juice_mac_thien_tich",
@@ -2074,8 +2089,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
-    "menuTemplateFallback": false,
+    "hasRealMenu": true,
     "foodyHref": "/can-tho/thi-no-juice-mac-thien-tich",
     "dishNames": [
       "Chả Giò",
@@ -2088,7 +2102,8 @@
       "Cà Phê Sữa Đá",
       "Cháo Lòng"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:48.717Z"
+    "menuProcessedAt": "2026-06-30T16:55:48.717Z",
+    "menuUpdatedAt": "2026-07-03T14:48:30.804Z"
   },
   {
     "id": "r_ct_vit_nau_chao_huynh_gia_le_van_thuan",
@@ -2106,8 +2121,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
-    "menuTemplateFallback": false,
+    "hasRealMenu": true,
     "foodyHref": "/can-tho/vit-nau-chao-huynh-gia-le-van-thuan",
     "dishNames": [
       "Hủ Tiếu Nam Vang",
@@ -2119,7 +2133,8 @@
       "Bún Bò Huế",
       "Gỏi Cuốn"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:48.718Z"
+    "menuProcessedAt": "2026-06-30T16:55:48.718Z",
+    "menuUpdatedAt": "2026-07-03T14:49:12.479Z"
   },
   {
     "id": "r_ct_dau_hu_nam_phong_duong_a2",
@@ -2152,7 +2167,12 @@
       "Chả Giò",
       "Mì Xào Bò"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:48.720Z"
+    "menuProcessedAt": "2026-06-30T16:55:48.720Z",
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:49:53.579Z",
+    "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
+    "crawlNextAttempt": "2026-07-04T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-03T14:49:53.579Z"
   },
   {
     "id": "r_ct_banh_trang_tron_a_toan",
@@ -2170,8 +2190,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
-    "menuTemplateFallback": false,
+    "hasRealMenu": true,
     "foodyHref": "/can-tho/banh-trang-tron-a-toan",
     "dishNames": [
       "Bánh Cuốn",
@@ -2185,7 +2204,8 @@
       "Bánh Canh",
       "Bánh Tráng Trộn"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:48.720Z"
+    "menuProcessedAt": "2026-06-30T16:55:48.720Z",
+    "menuUpdatedAt": "2026-07-03T14:50:34.921Z"
   },
   {
     "id": "r_ct_pho_danh_3",
@@ -2210,7 +2230,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:51:16.184Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:30 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-04T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-03T14:51:16.184Z"
   },
   {
     "id": "r_ct_bun_nuoc_tuong_an_vat_nha_2_my",

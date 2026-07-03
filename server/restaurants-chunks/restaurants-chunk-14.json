@@ -8509,7 +8509,10 @@
       "Phở Bò",
       "Bún Bò Huế"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:49.004Z"
+    "menuProcessedAt": "2026-06-30T16:55:49.004Z",
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:49:27.404Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
     "id": "r_ct_so_oc_77_nhau_binh_dan",
@@ -12274,21 +12277,29 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hien-vinh-kem-que",
     "dishNames": [
-      "Chè Thái",
-      "Kem Bơ",
-      "Sữa Chua Trân Châu",
-      "Bánh Flan",
-      "Sương Sáo",
-      "Kem Dừa",
-      "Chè Đậu Đỏ",
-      "Chè Bưởi",
-      "Tàu Hũ Nước Đường"
+      "Kem socola phủ đậu phộng ",
+      "Kem trà sữa trân châu",
+      "Kem đậu đỏ ",
+      "Kem cacao ",
+      "Kem Dưa Lưới",
+      "Kem bạc hà ",
+      "Kem sữa dừa ",
+      "Kem đậu xanh ",
+      "Kem dưa hấu",
+      "Kem môn ",
+      "Kem Sầu Riêng",
+      "Combo 10 kem que",
+      "Combo 20 kem que "
     ],
-    "menuProcessedAt": "2026-06-30T16:55:49.157Z"
+    "menuProcessedAt": "2026-06-30T16:55:49.157Z",
+    "menuUpdatedAt": "2026-07-03T14:49:43.619Z",
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:49:43.619Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
   },
   {
     "id": "r_ct_kem_kunkon",
@@ -13441,7 +13452,10 @@
       "Cơm Tấm Bì Chả",
       "Cơm Gà Xối Mỡ"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:49.200Z"
+    "menuProcessedAt": "2026-06-30T16:55:49.200Z",
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:50:22.698Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
     "id": "r_ct_goi_du_du_thai_panda",
@@ -20200,7 +20214,10 @@
       "Socola Đá Xay",
       "Sinh Tố Bơ"
     ],
-    "menuProcessedAt": "2026-06-30T16:55:49.617Z"
+    "menuProcessedAt": "2026-06-30T16:55:49.617Z",
+    "isClosed": true,
+    "closedAt": "2026-07-03T14:51:01.956Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
     "id": "r_ct_thien_nga_cafe_cach_mang_thang_8",
