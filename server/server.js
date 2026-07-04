@@ -628,6 +628,8 @@ if (fs.existsSync(CHUNKS_DIR)) {
     reloadTimer = setTimeout(() => {
       console.log('[Cache] 🔄 Chunk database files changed, reloading...');
       loadRestaurantsIntoMemory();
+      SEARCHED_RESTAURANTS_CACHE.clear();
+      console.log('[Cache] 🧹 SEARCHED_RESTAURANTS_CACHE cleared to prevent stale fallback menus.');
     }, 1000);
   });
 }
