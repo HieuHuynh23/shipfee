@@ -291,6 +291,12 @@ async function syncAllData() {
       if (isOnline && !activeOrder) {
         renderPendingOrders(poolOrders);
       }
+
+      // Nếu tài xế đang xem chi tiết một đơn hàng thủ công mà đơn đó không còn PENDING nữa
+      if (activeJobId && !pendingOrders.some(o => o.id === activeJobId)) {
+        closeJobDetail();
+        showToast('Đơn hàng đã hết hạn ⏰', 'Đơn hàng này đã được tài xế khác nhận hoặc đã bị hủy.', 'info');
+      }
       
       historyOrders = allOrders.filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && o.status === 'DELIVERED');
       renderHistoryAndStats();
@@ -845,6 +851,7 @@ function handleTargetedOffer(offer) {
       clearOfferTimer();
       document.getElementById('job-offer-overlay').classList.remove('active');
       targetedOffer = null;
+      showToast('Đơn đề xuất đã hết hạn ⏰', 'Đơn đề xuất đã được nhận bởi tài xế khác hoặc hết thời gian.', 'info');
     }
     return;
   }

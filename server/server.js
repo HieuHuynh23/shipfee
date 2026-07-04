@@ -2345,15 +2345,17 @@ app.get('/api/orders', async (req, res) => {
       resultData = resultData.filter(o => o.status === status);
     }
 
-    // If shipperPhone is provided, filter PENDING orders for targeted dispatch
+    // If shipperPhone is provided, filter PENDING orders and assign driver ownership for ACCEPTED/DELIVERED
     if (shipperPhone) {
       const cleanInputPhone = shipperPhone.trim().replace(/\s+/g, '');
       resultData = resultData.filter(o => {
-        if (o.status !== 'PENDING') return true;
-        if (!o.assignedShipperPhone) return true; // Public pool
-        
-        // Match phone and not expired
-        return o.assignedShipperPhone.trim().replace(/\s+/g, '') === cleanInputPhone && now <= o.offerExpiresAt;
+        if (o.status === 'PENDING') {
+          if (!o.assignedShipperPhone) return true; // Public pool
+          return o.assignedShipperPhone.trim().replace(/\s+/g, '') === cleanInputPhone && now <= o.offerExpiresAt;
+        } else {
+          // For ACCEPTED, PURCHASED, DELIVERED: must belong to this shipper
+          return o.shipperPhone && o.shipperPhone.trim().replace(/\s+/g, '') === cleanInputPhone;
+        }
       });
     }
 
@@ -2381,10 +2383,6 @@ app.get('/api/orders/:id', (req, res) => {
   }
 });
 
-/**
- * POST /api/orders/:id/accept
- * Shipper nhận đơn hàng (chuyển sang ACCEPTED, cập nhật thông tin tài xế và acceptedAt)
- */
 app.post('/api/orders/:id/accept', async (req, res) => {
   try {
     const { id } = req.params;
@@ -2392,11 +2390,16 @@ app.post('/api/orders/:id/accept', async (req, res) => {
 
     let updatedOrder = null;
     let found = false;
+    let alreadyAccepted = false;
 
     await updateOrdersDatabase((orders) => {
       const idx = orders.findIndex(o => o.id === id);
       if (idx !== -1) {
         found = true;
+        if (orders[idx].status !== 'PENDING') {
+          alreadyAccepted = true;
+          return false; // Do not write/update DB
+        }
         orders[idx].status = 'ACCEPTED';
         orders[idx].acceptedAt = Date.now();
         orders[idx].shipperId = shipperId || 'shipper-default';
@@ -2412,6 +2415,9 @@ app.post('/api/orders/:id/accept', async (req, res) => {
 
     if (!found) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+    if (alreadyAccepted) {
+      return res.status(400).json({ success: false, error: 'Đơn hàng đã được nhận bởi tài xế khác!' });
     }
 
     console.log(`[Order Server] 🛵 Shipper đã nhận đơn: ${id}`);
