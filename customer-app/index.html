@@ -960,7 +960,14 @@
       });
 
       titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-      renderRestaurants(results);
+      
+      // Giới hạn hiển thị tối đa 50 kết quả để tránh nghẽn thread vẽ giao diện (DOM paint) của trình duyệt
+      const limitedResults = results.slice(0, 50);
+      if (results.length > 50) {
+        titleEl.textContent += ` (Hiển thị 50 trên tổng số ${results.length} quán)`;
+      }
+      
+      renderRestaurants(limitedResults);
     }
 
     // ── ADDRESS MODAL ──
