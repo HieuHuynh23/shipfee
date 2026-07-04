@@ -582,24 +582,41 @@
       const state = SF.getState();
       const queryLat = lat !== undefined ? lat : (state.userLat || 10.0345);
       const queryLon = lon !== undefined ? lon : (state.userLon || 105.7876);
-      try {
-        const res = await fetch(`${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}`, { signal: AbortSignal.timeout(6000) });
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        if (json.data && json.data.length > 0) {
-          ALL_DATA = json.data;
-          // Cập nhật RESTAURANTS global để các trang khác dùng được
-          SF.RESTAURANTS = ALL_DATA;
-          const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
-                           json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
-          document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
-          console.log(`[Data] ${srcLabel} — ${json.total} quán`);
-          // SF.showToast(srcLabel, `${json.total} quán ăn tại Cần Thơ`, 'success');
-          return true;
+      
+      let retries = 3;
+      let delay = 3000;
+      let currentTimeout = 6000;
+
+      while (retries >= 0) {
+        try {
+          const res = await fetch(`${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}`, { 
+            signal: AbortSignal.timeout(currentTimeout) 
+          });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const json = await res.json();
+          if (json.data && json.data.length > 0) {
+            ALL_DATA = json.data;
+            // Cập nhật RESTAURANTS global để các trang khác dùng được
+            SF.RESTAURANTS = ALL_DATA;
+            const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
+                             json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
+            document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
+            console.log(`[Data] ${srcLabel} — ${json.total} quán`);
+            return true;
+          }
+        } catch (err) {
+          console.warn(`[Server] Lần thử kết nối thất bại (${3 - retries}/3):`, err.message);
+          if (retries === 0) {
+            SF.showToast('Ngoại tuyến', 'Không thể kết nối đến máy chủ API sau nhiều lần thử. Đang sử dụng dữ liệu offline.', 'warning');
+            break;
+          }
+          if (retries === 3 && API_BASE.includes('render.com')) {
+            SF.showToast('Khởi động Máy chủ', 'Máy chủ Render đang thức giấc (Cold Start). Vui lòng đợi trong giây lát...', 'info');
+          }
+          retries--;
+          currentTimeout = 15000; // Tăng timeout cho các lần thử tiếp theo để chờ Render khởi động
+          await new Promise(r => setTimeout(r, delay));
         }
-      } catch (err) {
-        console.warn('[Server] Không kết nối được:', err.message);
-        SF.showToast('Ngoại tuyến', 'Không kết nối được server API. Đang sử dụng dữ liệu offline.', 'warning');
       }
       return false;
     }
