@@ -12,12 +12,9 @@ Write-Host " Giới hạn: $limit quán | Độ trễ: $delay ms"
 Write-Host " Đường dẫn log: $serverDir\crawler_fallbacks.log"
 Write-Host "------------------------------------------------------"
 
-# Khởi động node chạy ngầm và chuyển hướng log đầu ra
-Start-Process node -ArgumentList "crawl_open_fallbacks.js --limit=$limit --delay=$delay" `
+# Khởi động node chạy ngầm và chuyển hướng log đầu ra thông qua cmd wrapper
+Start-Process cmd -ArgumentList "/c node crawl_open_fallbacks.js --limit=$limit --delay=$delay > crawler_fallbacks.log 2>&1" `
     -WorkingDirectory $serverDir `
-    -RedirectStandardOutput "$serverDir\crawler_fallbacks.log" `
-    -RedirectStandardError "$serverDir\crawler_fallbacks.log" `
-    -NoNewWindow `
     -WindowStyle Hidden
 
 Write-Host "🚀 Đã kích hoạt chạy ngầm thành công!" -ForegroundColor Cyan
