@@ -896,7 +896,17 @@
     }
 
     // ── SEARCH ──
-    const onSearch = SF.debounce ? SF.debounce(_doSearch, 400) : _doSearch;
+    function normalizeText(text) {
+      if (!text) return '';
+      return text.toString().toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[đĐ]/g, 'd')
+        .replace(/[^a-z0-9\s]/g, '')
+        .trim();
+    }
+
+    const onSearch = SF.debounce ? SF.debounce(_doSearch, 200) : _doSearch; // Giảm debounce xuống 200ms vì tìm kiếm local phản hồi ngay lập tức
     async function _doSearch(q) {
       const query = q.trim();
       const titleEl = document.getElementById('restaurant-section-title');
@@ -925,50 +935,32 @@
       if (featuredWrap) featuredWrap.style.display = 'none';
       if (nearWrap) nearWrap.style.display = 'none';
 
-      titleEl.textContent = `🔎 Đang tìm kiếm: "${query}"...`;
-      showLoadingSkeleton();
+      const normQuery = normalizeText(query);
+      const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
 
-      const state = SF.getState();
-      const queryLat = state.userLat || 10.0345;
-      const queryLon = state.userLon || 105.7876;
-
-      try {
-        const res = await fetch(`${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        
-        if (json.data && json.data.length > 0) {
-          titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-          
-          // Trộn các kết quả tìm kiếm mới vào đầu danh sách RESTAURANTS hiện tại (đồng bộ localStorage)
-          // để khi click vào chi tiết, trang restaurant.html có thể tìm thấy quán đó.
-          const mergedList = [...SF.RESTAURANTS];
-          json.data.forEach(newRes => {
-            if (!mergedList.some(r => r.id === newRes.id)) {
-              mergedList.push(newRes);
-            }
-          });
-          SF.RESTAURANTS = mergedList;
-          
-          renderRestaurants(json.data);
-        } else {
-          titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-          renderRestaurants([]);
-        }
-      } catch (err) {
-        console.warn('[Search] Lỗi kết nối tìm kiếm:', err.message);
-        // Fallback: lọc dữ liệu hiện tại đang hiển thị
-        const qLower = query.toLowerCase();
-        const results = (ALL_DATA || []).filter(r =>
-          r && (
-            (r.name && r.name.toLowerCase().includes(qLower)) ||
-            (r.category && r.category.toLowerCase().includes(qLower)) ||
-            (r.menu && (r.menu || []).some(m => m.name && m.name.toLowerCase().includes(qLower)))
-          )
-        );
-        titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}" (Ngoại tuyến)`;
-        renderRestaurants(results);
+      if (tokens.length === 0) {
+        titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
+        renderRestaurants([]);
+        return;
       }
+
+      // Thực hiện tìm kiếm nhanh trong RAM trình duyệt (<1ms)
+      const results = (ALL_DATA || []).filter(r => {
+        if (!r) return false;
+        const normName = normalizeText(r.name);
+        const normCategory = normalizeText(r.category);
+        const normAddress = normalizeText(r.address);
+        
+        return tokens.every(token => 
+          normName.includes(token) || 
+          normCategory.includes(token) || 
+          normAddress.includes(token) ||
+          (Array.isArray(r.dishNames) && r.dishNames.some(d => normalizeText(d).includes(token)))
+        );
+      });
+
+      titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
+      renderRestaurants(results);
     }
 
     // ── ADDRESS MODAL ──
