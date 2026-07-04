@@ -35,6 +35,8 @@ let historyOrders = [];   // completed orders by this driver
 let isOnline = true;      // receiving orders
 let pollInterval = null;
 let watchPositionId = null;
+let targetedOffer = null; // current active job offer
+let offerTimerInterval = null;
 
 // Performance stats (Acceptance Rate, Completion Rate)
 let stats = {
@@ -228,6 +230,9 @@ async function toggleOnlineStatus() {
 // ── POLLING DATA ────────────────────────────────────────────────────────────
 function startPolling() {
   stopPolling();
+  if (isOnline) {
+    startGpsTracking();
+  }
   syncAllData();
   pollInterval = setInterval(syncAllData, 3000);
 }
@@ -236,6 +241,9 @@ function stopPolling() {
   if (pollInterval) {
     clearInterval(pollInterval);
     pollInterval = null;
+  }
+  if (!activeOrder) {
+    stopGpsTracking();
   }
 }
 
@@ -256,7 +264,8 @@ async function syncAllData() {
   if (!currentDriver) return;
   
   try {
-    const res = await fetch('http://localhost:3001/api/orders');
+    const url = `http://localhost:3001/api/orders?shipperPhone=${encodeURIComponent(currentDriver.phone)}`;
+    const res = await fetch(url);
     if (!res.ok) throw new Error('API server error');
     const result = await res.json();
     
@@ -265,15 +274,22 @@ async function syncAllData() {
       
       pendingOrders = allOrders.filter(o => o.status === 'PENDING');
       
-      // Play Synthesizer Chime if new orders appear
-      if (isOnline && pendingOrders.length > lastPendingLength) {
+      // Detect targeted job offer specifically for this driver
+      const myOffer = pendingOrders.find(o => o.assignedShipperPhone && cleanPhone(o.assignedShipperPhone) === cleanPhone(currentDriver.phone));
+      handleTargetedOffer(myOffer);
+      
+      // Filter out the targeted offer from the background "Tìm Đơn" list to avoid redundancy
+      const poolOrders = pendingOrders.filter(o => !o.assignedShipperPhone || cleanPhone(o.assignedShipperPhone) !== cleanPhone(currentDriver.phone));
+      
+      // Play Synthesizer Chime if new orders appear in the public pool
+      if (isOnline && poolOrders.length > lastPendingLength) {
         playChimeSound();
         showToast('Có Đơn Mới! 🛵', 'Tài xế có đơn hàng mới lân cận cần xử lý.', 'success');
       }
-      lastPendingLength = pendingOrders.length;
+      lastPendingLength = poolOrders.length;
 
       if (isOnline && !activeOrder) {
-        renderPendingOrders(pendingOrders);
+        renderPendingOrders(poolOrders);
       }
       
       historyOrders = allOrders.filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && o.status === 'DELIVERED');
@@ -795,19 +811,147 @@ function stopGpsTracking() {
 }
 
 async function sendLocationToServer(lat, lon) {
-  if (!activeOrder) return;
   try {
-    await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/location`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ lat, lon })
-    });
+    if (activeOrder) {
+      await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/location`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ lat, lon })
+      });
+    } else if (isOnline && currentDriver) {
+      await fetch(`http://localhost:3001/api/shippers/location`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          phone: currentDriver.phone,
+          lat,
+          lon
+        })
+      });
+    }
   } catch (e) {
     console.warn('Không thể gửi GPS lên server:', e.message);
   }
 }
+
+// ── TARGETED JOB OFFER LOGIC ────────────────────────────────────────────────
+function handleTargetedOffer(offer) {
+  if (!offer) {
+    if (targetedOffer) {
+      clearOfferTimer();
+      document.getElementById('job-offer-overlay').classList.remove('active');
+      targetedOffer = null;
+    }
+    return;
+  }
+
+  if (!targetedOffer || targetedOffer.id !== offer.id) {
+    targetedOffer = offer;
+    
+    document.getElementById('offer-restaurant-name').textContent = offer.restaurantName;
+    document.getElementById('offer-restaurant-address').textContent = offer.restaurantAddress;
+    document.getElementById('offer-customer-address').textContent = offer.deliveryAddress;
+    document.getElementById('offer-earning').textContent = formatCurrency(offer.shipperEarning);
+    document.getElementById('offer-app-total').textContent = formatCurrency(offer.appTotal);
+    document.getElementById('offer-store-total').textContent = formatCurrency(offer.storeTotal);
+
+    const noteBox = document.getElementById('offer-note-box');
+    const noteText = document.getElementById('offer-note-text');
+    if (noteBox && noteText) {
+      if (offer.note && offer.note.trim()) {
+        noteText.textContent = offer.note;
+        noteBox.style.display = 'block';
+      } else {
+        noteText.textContent = '—';
+        noteBox.style.display = 'none';
+      }
+    }
+
+    document.getElementById('job-offer-overlay').classList.add('active');
+
+    initSwipeButton('offer-swipe-container', 'offer-swipe-handle', 'offer-swipe-text', () => {
+      document.getElementById('job-offer-overlay').classList.remove('active');
+      clearOfferTimer();
+      targetedOffer = null;
+      acceptOrder(offer.id);
+    });
+
+    startOfferTimer(offer.offerExpiresAt);
+    
+    playChimeSound();
+    showToast('Đơn Đề Xuất Mới! 🎯', 'Có đơn hàng dành riêng cho bạn! Hãy nhận ngay.', 'warning');
+  }
+}
+
+function startOfferTimer(expiresAt) {
+  clearOfferTimer();
+  
+  const progressBar = document.getElementById('offer-progress-bar');
+  const timerSeconds = document.getElementById('offer-timer-seconds');
+  const totalDuration = 30000;
+
+  function updateTimer() {
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 0) {
+      clearOfferTimer();
+      declineTargetedOffer(true);
+      return;
+    }
+    
+    const pct = Math.max(0, (remaining / totalDuration) * 100);
+    if (progressBar) progressBar.style.width = `${pct}%`;
+    if (timerSeconds) timerSeconds.textContent = `${Math.ceil(remaining / 1000)}s`;
+  }
+
+  updateTimer();
+  offerTimerInterval = setInterval(updateTimer, 200);
+}
+
+function clearOfferTimer() {
+  if (offerTimerInterval) {
+    clearInterval(offerTimerInterval);
+    offerTimerInterval = null;
+  }
+}
+
+async function declineTargetedOffer(isAuto = false) {
+  if (!targetedOffer) return;
+  const offerId = targetedOffer.id;
+  
+  clearOfferTimer();
+  document.getElementById('job-offer-overlay').classList.remove('active');
+  targetedOffer = null;
+
+  try {
+    const res = await fetch(`http://localhost:3001/api/orders/${offerId}/decline`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ phone: currentDriver.phone })
+    });
+    
+    if (res.ok) {
+      stats.declined++;
+      saveStats();
+      if (isAuto) {
+        showToast('Trôi đơn hàng ⏰', 'Yêu cầu đề xuất đã tự động trôi qua do hết thời gian.', 'info');
+      } else {
+        showToast('Đã từ chối đơn', `Bạn đã bỏ qua đơn đề xuất ${offerId}.`, 'info');
+      }
+    }
+  } catch (e) {
+    console.warn('Lỗi khi từ chối đơn hàng:', e.message);
+  } finally {
+    syncAllData();
+  }
+}
+
+window.declineTargetedOffer = declineTargetedOffer;
 
 // ── QUICK CHAT MESSAGES ─────────────────────────────────────────────────────
 function openQuickChat() {

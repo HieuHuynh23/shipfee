@@ -117,6 +117,79 @@
     </div>
   </div>
 
+  <!-- ── TARGETED JOB OFFER OVERLAY ── -->
+  <div class="overlay" id="job-offer-overlay" onclick="event.stopPropagation()">
+    <div class="modal job-modal offer-modal animate-glow">
+      <div class="job-modal__header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent); display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <h4 style="color: var(--clr-danger); font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-bell fa-shake"></i> ĐƠN ĐỀ XUẤT CHO BẠN!
+        </h4>
+        <span class="offer-timer-badge" id="offer-timer-seconds" style="background: var(--clr-danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">30s</span>
+      </div>
+      <div class="job-modal__body" style="padding-top: 15px;">
+        <!-- Progress bar countdown -->
+        <div class="offer-progress-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 15px;">
+          <div class="offer-progress-bar" id="offer-progress-bar" style="width: 100%; height: 100%; background: var(--clr-danger); transition: width 0.1s linear;"></div>
+        </div>
+        
+        <div class="trip-route-info">
+          <div class="route-point">
+            <span class="point-marker from">🏪</span>
+            <div>
+              <div class="point-label">Cửa hàng (Quán ăn)</div>
+              <div class="point-name" id="offer-restaurant-name">—</div>
+              <div class="point-address" id="offer-restaurant-address">—</div>
+            </div>
+          </div>
+          <div class="route-line-dashed"></div>
+          <div class="route-point">
+            <span class="point-marker to">🏠</span>
+            <div>
+              <div class="point-label">Điểm giao hàng (Khách hàng)</div>
+              <div class="point-address" id="offer-customer-address">—</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="job-note-container" id="offer-note-box" style="margin-top: 15px; padding: 10px; background: rgba(245, 158, 11, 0.08); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: var(--radius-md); font-size: 12px; display: none;">
+          <span style="font-weight: 700; color: #f59e0b;"><i class="fa-solid fa-note-sticky"></i> Ghi chú của khách:</span>
+          <span id="offer-note-text" style="color: var(--clr-text-secondary); margin-left: 5px;">—</span>
+        </div>
+
+        <div class="trip-financial" style="margin-top: 15px;">
+          <div class="fin-row">
+            <span>Thu nhập tài xế (Earning):</span>
+            <strong id="offer-earning" style="font-size: 20px; color: var(--clr-primary);">0đ</strong>
+          </div>
+          <div class="fin-row">
+            <span>Tổng thu hộ COD (App Total):</span>
+            <span id="offer-app-total" style="font-weight: 700; color: var(--clr-text-primary);">0đ</span>
+          </div>
+          <div class="fin-row">
+            <span>Ứng trả quán (Store Total):</span>
+            <span id="offer-store-total">0đ</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="job-modal__actions" style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Swipe button for accept -->
+        <div class="swipe-container" id="offer-swipe-container">
+          <div class="swipe-track">
+            <span class="swipe-text" id="offer-swipe-text">👉 Vuốt sang phải để nhận đơn</span>
+          </div>
+          <div class="swipe-handle" id="offer-swipe-handle">
+            <i class="fa-solid fa-angles-right"></i>
+          </div>
+        </div>
+        
+        <button class="btn btn--secondary btn--full" id="offer-decline-btn" style="margin-top: 5px; border-color: rgba(239,68,68,0.4); color: #ef4444;" onclick="declineTargetedOffer()">
+          Từ chối đơn đề xuất này
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── QUICK MESSAGE BOTTOM SHEET ── -->
   <div class="overlay" id="chat-overlay">
     <div class="bottom-sheet" style="display: flex; flex-direction: column; max-height: 80vh;">

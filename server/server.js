@@ -34,6 +34,68 @@ function calcAppPrice(inStorePrice) {
   return round100(inStorePrice * (1 + PRICING_CONFIG.MARKUP_RATE));
 }
 
+// ── ONLINE SHIPPERS REAL-TIME COORDINATES & DISPATCH LOGIC ──────────────────
+const onlineShipperLocations = new Map(); // phone -> { lat, lon, lastSeen }
+
+function calcDistance(lat1, lon1, lat2, lon2) {
+  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return Infinity;
+  const R = 6371; // Earth radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShippers = []) {
+  try {
+    const shippers = readShippersDatabase();
+    const orders = readOrdersDatabase();
+
+    const onlineShippers = shippers.filter(s => s.status === 'ONLINE');
+    if (onlineShippers.length === 0) return null;
+
+    const busyShipperPhones = new Set(
+      orders
+        .filter(o => o.status !== 'DELIVERED' && o.shipperPhone)
+        .map(o => o.shipperPhone.trim().replace(/\s+/g, ''))
+    );
+
+    let nearestShipper = null;
+    let minDistance = Infinity;
+    const now = Date.now();
+
+    for (const s of onlineShippers) {
+      const cleanedPhone = s.phone.trim().replace(/\s+/g, '');
+      if (busyShipperPhones.has(cleanedPhone)) continue;
+      
+      const cleanDeclined = (declinedShippers || []).map(p => p.trim().replace(/\s+/g, ''));
+      if (cleanDeclined.includes(cleanedPhone)) continue;
+
+      const loc = onlineShipperLocations.get(cleanedPhone);
+      if (!loc || now - loc.lastSeen > 120000) continue;
+
+      const dist = calcDistance(restaurantLat, restaurantLon, loc.lat, loc.lon);
+      if (dist < minDistance) {
+        minDistance = dist;
+        nearestShipper = {
+          phone: s.phone,
+          name: s.name,
+          distance: dist
+        };
+      }
+    }
+
+    return nearestShipper;
+  } catch (e) {
+    console.error('[Dispatch Error] findNearestAvailableShipper:', e.message);
+    return null;
+  }
+}
+
 // ── CONCURRENCY LIMITER & REQUEST COLLAPSING ────────────────────────────────
 class ConcurrencyLimiter {
   constructor(maxConcurrent) {
@@ -2200,8 +2262,21 @@ app.post('/api/orders', async (req, res) => {
       purchasedAt: null,
       deliveredAt: null,
       rating: null,
-      comment: null
+      comment: null,
+      assignedShipperPhone: null,
+      offerExpiresAt: null,
+      declinedShippers: []
     };
+
+    // Find nearest available shipper for targeted dispatch
+    const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, []);
+    if (nearest) {
+      newOrder.assignedShipperPhone = nearest.phone.trim().replace(/\s+/g, '');
+      newOrder.offerExpiresAt = Date.now() + 30000; // 30 seconds
+      console.log(`[Dispatch] 🎯 Đơn ${newOrder.id} được gửi đề xuất riêng cho tài xế ${nearest.name} (${nearest.phone}), cách ${nearest.distance.toFixed(2)} km`);
+    } else {
+      console.log(`[Dispatch] ⚠️ Không có tài xế trực tuyến rảnh rỗi. Đơn ${newOrder.id} chuyển vào bể chung (Public Pool)`);
+    }
 
     await updateOrdersDatabase((orders) => {
       orders.push(newOrder);
@@ -2218,15 +2293,71 @@ app.post('/api/orders', async (req, res) => {
  * GET /api/orders
  * Shipper/Khách hàng lấy danh sách đơn hàng (hỗ trợ filter trạng thái ?status=PENDING)
  */
-app.get('/api/orders', (req, res) => {
+app.get('/api/orders', async (req, res) => {
   try {
-    const { status } = req.query;
-    const orders = readOrdersDatabase();
-    if (status) {
-      const filtered = orders.filter(o => o.status === status);
-      return res.json({ success: true, data: filtered });
+    const { status, shipperPhone } = req.query;
+    let orders = readOrdersDatabase();
+    
+    // Check for expired offers and release them to public pool (or next driver)
+    const now = Date.now();
+    let databaseChanged = false;
+
+    // Check if we need to update database for expired offers
+    const expiredOrders = orders.filter(o => o.status === 'PENDING' && o.assignedShipperPhone && o.offerExpiresAt && now > o.offerExpiresAt);
+    
+    if (expiredOrders.length > 0) {
+      await updateOrdersDatabase((dbOrders) => {
+        for (const exp of expiredOrders) {
+          const idx = dbOrders.findIndex(o => o.id === exp.id);
+          if (idx !== -1 && dbOrders[idx].status === 'PENDING' && dbOrders[idx].assignedShipperPhone) {
+            console.log(`[Dispatch] ⏰ Đề xuất đơn ${dbOrders[idx].id} cho tài xế ${dbOrders[idx].assignedShipperPhone} đã hết hạn.`);
+            
+            // Add current assigned driver to declined list so we don't offer it again
+            dbOrders[idx].declinedShippers = dbOrders[idx].declinedShippers || [];
+            const oldPhone = dbOrders[idx].assignedShipperPhone.trim().replace(/\s+/g, '');
+            if (!dbOrders[idx].declinedShippers.includes(oldPhone)) {
+              dbOrders[idx].declinedShippers.push(oldPhone);
+            }
+            
+            // Try to find the next nearest driver
+            const nextNearest = findNearestAvailableShipper(dbOrders[idx].restaurantLat, dbOrders[idx].restaurantLon, dbOrders[idx].declinedShippers);
+            if (nextNearest) {
+              dbOrders[idx].assignedShipperPhone = nextNearest.phone.trim().replace(/\s+/g, '');
+              dbOrders[idx].offerExpiresAt = Date.now() + 30000;
+              console.log(`[Dispatch] 🎯 Đơn ${dbOrders[idx].id} được chuyển tiếp đề xuất cho tài xế ${nextNearest.name} (${nextNearest.phone})`);
+            } else {
+              dbOrders[idx].assignedShipperPhone = null;
+              dbOrders[idx].offerExpiresAt = null;
+              console.log(`[Dispatch] 🔓 Đơn ${dbOrders[idx].id} không còn tài xế phù hợp, chuyển vào bể đơn chung (Public Pool)`);
+            }
+            databaseChanged = true;
+          }
+        }
+      });
+      if (databaseChanged) {
+        orders = readOrdersDatabase();
+      }
     }
-    res.json({ success: true, data: orders });
+
+    // Now filter orders
+    let resultData = orders;
+    if (status) {
+      resultData = resultData.filter(o => o.status === status);
+    }
+
+    // If shipperPhone is provided, filter PENDING orders for targeted dispatch
+    if (shipperPhone) {
+      const cleanInputPhone = shipperPhone.trim().replace(/\s+/g, '');
+      resultData = resultData.filter(o => {
+        if (o.status !== 'PENDING') return true;
+        if (!o.assignedShipperPhone) return true; // Public pool
+        
+        // Match phone and not expired
+        return o.assignedShipperPhone.trim().replace(/\s+/g, '') === cleanInputPhone && now <= o.offerExpiresAt;
+      });
+    }
+
+    res.json({ success: true, data: resultData });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -2271,6 +2402,8 @@ app.post('/api/orders/:id/accept', async (req, res) => {
         orders[idx].shipperId = shipperId || 'shipper-default';
         orders[idx].shipperName = shipperName || 'Nguyễn Văn Tài';
         orders[idx].shipperPhone = shipperPhone || '0901 234 567';
+        orders[idx].assignedShipperPhone = null;
+        orders[idx].offerExpiresAt = null;
         updatedOrder = orders[idx];
       } else {
         return false;
@@ -2651,12 +2784,95 @@ app.post('/api/shippers/shift', (req, res) => {
       shippers[idx].lastCheckIn = new Date().toISOString();
     } else {
       shippers[idx].lastCheckOut = new Date().toISOString();
+      onlineShipperLocations.delete(cleanedPhone);
     }
 
     writeShippersDatabase(shippers);
     console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${phone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'}`);
     
     res.json({ success: true, shipper: shippers[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/location
+ * Cập nhật vị trí GPS của tài xế khi rảnh rỗi (isOnline = true nhưng chưa có đơn)
+ */
+app.post('/api/shippers/location', (req, res) => {
+  try {
+    const { phone, lat, lon } = req.body;
+    if (!phone || typeof lat !== 'number' || typeof lon !== 'number') {
+      return res.status(400).json({ success: false, error: 'Dữ liệu vị trí không hợp lệ!' });
+    }
+
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    onlineShipperLocations.set(cleanedPhone, {
+      lat,
+      lon,
+      lastSeen: Date.now()
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/decline
+ * Tài xế chủ động từ chối đơn hàng đề xuất (Job Offer)
+ */
+app.post('/api/orders/:id/decline', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại tài xế!' });
+    }
+
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    let found = false;
+    let updatedOrder = null;
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx !== -1 && orders[idx].status === 'PENDING') {
+        found = true;
+        
+        // Add to declined list
+        orders[idx].declinedShippers = orders[idx].declinedShippers || [];
+        if (!orders[idx].declinedShippers.includes(cleanedPhone)) {
+          orders[idx].declinedShippers.push(cleanedPhone);
+        }
+
+        console.log(`[Dispatch] ❌ Tài xế ${cleanedPhone} đã từ chối đơn hàng ${id}`);
+
+        // Try to find the next nearest driver
+        const nextNearest = findNearestAvailableShipper(orders[idx].restaurantLat, orders[idx].restaurantLon, orders[idx].declinedShippers);
+        if (nextNearest) {
+          orders[idx].assignedShipperPhone = nextNearest.phone.trim().replace(/\s+/g, '');
+          orders[idx].offerExpiresAt = Date.now() + 30000;
+          console.log(`[Dispatch] 🎯 Đơn ${orders[idx].id} được chuyển tiếp đề xuất cho tài xế ${nextNearest.name} (${nextNearest.phone})`);
+        } else {
+          orders[idx].assignedShipperPhone = null;
+          orders[idx].offerExpiresAt = null;
+          console.log(`[Dispatch] 🔓 Đơn ${orders[idx].id} chuyển vào bể đơn chung (Public Pool)`);
+        }
+
+        updatedOrder = orders[idx];
+      } else {
+        return false;
+      }
+    });
+
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng hoặc đơn không ở trạng thái chờ nhận!' });
+    }
+
+    res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
