@@ -906,6 +906,16 @@
         .trim();
     }
 
+    function matchToken(token, cleanStr) {
+      if (!cleanStr.includes(token)) return false;
+      const words = cleanStr.split(/\s+/);
+      if (token.length <= 2) {
+        // Đối với từ khoá ngắn (<= 2 ký tự như mi, bo, ga, ca), yêu cầu phải khớp chính xác nguyên từ
+        return words.some(w => w === token);
+      }
+      return words.some(w => w === token || w.startsWith(token));
+    }
+
     const onSearch = SF.debounce ? SF.debounce(_doSearch, 200) : _doSearch; // Giảm debounce xuống 200ms vì tìm kiếm local phản hồi ngay lập tức
     async function _doSearch(q) {
       const query = q.trim();
@@ -951,12 +961,28 @@
         const normCategory = normalizeText(r.category);
         const normAddress = normalizeText(r.address);
         
-        return tokens.every(token => 
-          normName.includes(token) || 
-          normCategory.includes(token) || 
-          normAddress.includes(token) ||
-          (Array.isArray(r.dishNames) && r.dishNames.some(d => normalizeText(d).includes(token)))
-        );
+        // 1. Tất cả từ khoá phải khớp chung trong Tên quán
+        const matchName = tokens.every(token => matchToken(token, normName));
+        if (matchName) return true;
+
+        // 2. Tất cả từ khoá phải khớp chung trong Danh mục
+        const matchCategory = tokens.every(token => matchToken(token, normCategory));
+        if (matchCategory) return true;
+
+        // 3. Tất cả từ khoá phải khớp chung trong Địa chỉ
+        const matchAddress = tokens.every(token => matchToken(token, normAddress));
+        if (matchAddress) return true;
+
+        // 4. Hoặc có ít nhất MỘT món ăn khớp với tất cả từ khoá
+        if (Array.isArray(r.dishNames)) {
+          const matchDish = r.dishNames.some(dish => {
+            const normDish = normalizeText(dish);
+            return tokens.every(token => matchToken(token, normDish));
+          });
+          if (matchDish) return true;
+        }
+
+        return false;
       });
 
       titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
