@@ -32,7 +32,7 @@
       "Bánh xèo da  ( món chay)",
       "Bánh khọt chay ( đậu xanh, nước cốt dừa )"
     ],
-    "menuUpdatedAt": "2026-06-16T14:27:04.641Z"
+    "menuUpdatedAt": "2026-07-04T02:29:00.730Z"
   },
   {
     "id": "r_ct_cantin_online_duong_30_thang_4",
@@ -81,7 +81,7 @@
       "Nước Ép Trái Cây Hữu Cơ Hàn Quốc Dâu/Táo/Nho/Lê",
       "Thạch Uống Innerset Hàn Quốc 150gram"
     ],
-    "menuUpdatedAt": "2026-06-04T16:44:22.335Z"
+    "menuUpdatedAt": "2026-07-04T02:09:26.899Z"
   },
   {
     "id": "r_ct_bep_me_diem_com_van_phong_nguyen_trai",
@@ -192,7 +192,7 @@
       "Cơm khô cá dứa chiên giấm đường",
       "Cơm cá lưỡi châu muối chiên"
     ],
-    "menuUpdatedAt": "2026-06-04T16:44:22.711Z"
+    "menuUpdatedAt": "2026-07-04T02:12:13.805Z"
   },
   {
     "id": "r_ct_com_ga_nguyen_hung",
@@ -253,7 +253,11 @@
       "Cơm thêm",
       "Cơm gà cà ri"
     ],
-    "menuUpdatedAt": "2026-06-04T16:44:22.478Z"
+    "menuUpdatedAt": "2026-07-04T02:10:49.636Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T02:10:49.636Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_lau_bo_dum_com_ga_xoi_mo_hung_loi_vo_nguyen_giap",
@@ -303,7 +307,11 @@
       "Mì xào thập Cẩm lớn ",
       "Mì xào bò nhỏ"
     ],
-    "menuUpdatedAt": "2026-06-04T16:44:23.138Z"
+    "menuUpdatedAt": "2026-07-04T02:14:18.279Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T02:14:18.279Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:00 07/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_com_ga_xoi_mo_lam_ky_4_tran_vinh_kiet",
@@ -580,7 +588,11 @@
       "Đác Rim",
       "Dâu tằm đác rim"
     ],
-    "menuUpdatedAt": "2026-06-17T14:33:04.176Z"
+    "menuUpdatedAt": "2026-07-04T02:49:14.200Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T02:49:14.200Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:30 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_tra_sua_ace_mac_thien_tich",
@@ -939,7 +951,11 @@
       "Trà sữa Yến mạch Oolong Combo NN size L NB",
       "Trân châu hoàng kim mini"
     ],
-    "menuUpdatedAt": "2026-06-17T14:29:36.555Z"
+    "menuUpdatedAt": "2026-07-04T02:36:38.152Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T02:36:38.152Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_tra_sua_santhai_ba_thang_hai",
@@ -1088,7 +1104,11 @@
       "Trà Đào Cam Sả Hạt Chia",
       "Bánh Croissant Bơ Tỏi Nướng Giòn"
     ],
-    "menuUpdatedAt": "2026-06-16T14:29:09.849Z"
+    "menuUpdatedAt": "2026-07-04T02:31:05.518Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T02:31:05.518Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 07/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_banh_xeo_7_toi",
@@ -1113,7 +1133,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:33:02.611Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:33:02.611Z"
   },
   {
     "id": "r_ct_tra_sua_o2",
@@ -1137,7 +1162,12 @@
       "Trà Sữa Truyền Thống",
       "Trà Sữa Matcha",
       "Trà Sữa Socola"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:34:07.489Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:34:07.489Z"
   },
   {
     "id": "r_ct_com_ga_chu_te",
@@ -1162,7 +1192,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:34:49.792Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:34:49.792Z"
   },
   {
     "id": "r_ct_bun_rieu_oanh_nguyen_thai_hoc",
@@ -1187,7 +1222,8 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "menuUpdatedAt": "2026-07-04T01:35:32.573Z"
   },
   {
     "id": "r_ct_test_bot_content_07",
@@ -1224,7 +1260,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.722Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:33:29.613Z",
+    "closedAt": "2026-07-04T12:29:15.384Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -1250,7 +1286,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:36:14.448Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:36:14.448Z"
   },
   {
     "id": "r_ct_yen_coffee",
@@ -1289,7 +1330,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.728Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:34:08.971Z",
+    "closedAt": "2026-07-04T12:29:54.691Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -1326,7 +1367,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.729Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:34:48.343Z",
+    "closedAt": "2026-07-04T12:30:33.496Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -1352,7 +1393,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:37:19.326Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:37:19.326Z"
   },
   {
     "id": "r_ct_aka_house_quan_nuong_nhat_ban_sense_city",
@@ -1377,7 +1423,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:38:01.044Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:38:01.044Z"
   },
   {
     "id": "r_ct_nha_hang_sao_mai",
@@ -1402,7 +1453,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:39:05.601Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:39:05.601Z"
   },
   {
     "id": "r_ct_am_thuc_viet_hoa_pho_bo_nuong_ban_ui",
@@ -1427,7 +1483,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:40:10.082Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:40:10.082Z"
   },
   {
     "id": "r_ct_nha_hang_dang_khoa",
@@ -1452,7 +1513,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:41:14.870Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:41:14.870Z"
   },
   {
     "id": "r_ct_buffet_ngon_99k",
@@ -1477,7 +1543,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:42:19.155Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:42:19.155Z"
   },
   {
     "id": "r_ct_king_castella_banh_bong_lan_dai_loan_mau_than",
@@ -1502,7 +1573,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:43:23.527Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:43:23.527Z"
   },
   {
     "id": "r_ct_dieu_my_huy_bakery",
@@ -1527,7 +1603,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:44:28.164Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:44:28.164Z"
   },
   {
     "id": "r_ct_phu_cuong_banh_pateso_banh_bo_hoanh_thanh_chien",
@@ -1552,7 +1633,12 @@
       "Cơm Tấm Sườn Bì Chả",
       "Bún Bò Huế",
       "Nước Ngọt"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:45:32.832Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:45:32.832Z"
   },
   {
     "id": "r_ct_com_tam_cay_sung_cu_com_ga_ta_phan_dinh_phung.p70zdc",
@@ -2282,7 +2368,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.753Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:38:17.107Z",
+    "closedAt": "2026-07-04T12:31:13.252Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -2531,7 +2617,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.773Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:39:47.217Z",
+    "closedAt": "2026-07-04T12:31:53.876Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -2687,7 +2773,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.788Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:41:18.587Z",
+    "closedAt": "2026-07-04T12:32:32.904Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -2753,7 +2839,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.790Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:42:13.984Z",
+    "closedAt": "2026-07-04T12:33:12.236Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -2791,7 +2877,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.792Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:42:53.460Z",
+    "closedAt": "2026-07-04T12:33:51.283Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -2905,7 +2991,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.796Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:44:11.060Z",
+    "closedAt": "2026-07-04T12:34:30.413Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -3559,7 +3645,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.813Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:48:01.321Z",
+    "closedAt": "2026-07-04T12:35:09.640Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -3594,7 +3680,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.814Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:48:40.835Z",
+    "closedAt": "2026-07-04T12:35:48.824Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -4045,7 +4131,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.827Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:51:52.857Z",
+    "closedAt": "2026-07-04T12:36:27.817Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -4337,7 +4423,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.840Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:53:55.803Z",
+    "closedAt": "2026-07-04T12:37:07.011Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -4372,7 +4458,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.843Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:54:35.923Z",
+    "closedAt": "2026-07-04T12:37:46.092Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5007,7 +5093,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.863Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T07:58:01.509Z",
+    "closedAt": "2026-07-04T12:38:25.059Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5040,8 +5126,11 @@
       "Chanh dây"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.864Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-01T07:33:25.402Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-04T03:40:00.449Z",
+    "closedAt": "2026-07-04T03:40:00.449Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_bun_xao_de_tham_bun_xao_bo_goi_cuon_sam_de_tham",
@@ -5447,7 +5536,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.885Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:01:12.623Z",
+    "closedAt": "2026-07-04T12:39:04.609Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5485,7 +5574,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.888Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:01:51.930Z",
+    "closedAt": "2026-07-04T12:39:43.646Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5520,7 +5609,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.892Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:02:31.933Z",
+    "closedAt": "2026-07-04T12:40:22.936Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5555,7 +5644,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.897Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:03:11.354Z",
+    "closedAt": "2026-07-04T12:41:02.325Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5592,7 +5681,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.897Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:03:50.699Z",
+    "closedAt": "2026-07-04T12:41:41.485Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5723,7 +5812,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.912Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:05:03.490Z",
+    "closedAt": "2026-07-04T12:42:20.674Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -5757,7 +5846,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.916Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:05:43.114Z",
+    "closedAt": "2026-07-04T12:43:00.131Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7162,7 +7251,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.962Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:11:22.524Z",
+    "closedAt": "2026-07-04T12:43:39.252Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7230,7 +7319,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.967Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:12:20.022Z",
+    "closedAt": "2026-07-04T12:44:18.429Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7267,7 +7356,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.967Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:12:59.832Z",
+    "closedAt": "2026-07-04T12:44:58.003Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7357,7 +7446,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.971Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:13:56.475Z",
+    "closedAt": "2026-07-04T12:45:37.026Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7457,7 +7546,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.975Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:15:09.894Z",
+    "closedAt": "2026-07-04T12:46:16.063Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7680,7 +7769,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.981Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:17:15.029Z",
+    "closedAt": "2026-07-04T12:46:55.179Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7820,7 +7909,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.988Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:18:30.595Z",
+    "closedAt": "2026-07-04T12:47:34.823Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7888,7 +7977,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.991Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:19:28.742Z",
+    "closedAt": "2026-07-04T12:48:14.329Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -7970,7 +8059,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.995Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:20:24.826Z",
+    "closedAt": "2026-07-04T12:48:53.539Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8199,7 +8288,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.016Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:22:03.879Z",
+    "closedAt": "2026-07-04T12:49:10.157Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -8234,7 +8323,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.017Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:22:43.632Z",
+    "closedAt": "2026-07-04T12:49:49.288Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8476,7 +8565,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.039Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:24:29.987Z",
+    "closedAt": "2026-07-04T12:50:28.371Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8513,7 +8602,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.041Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:25:09.496Z",
+    "closedAt": "2026-07-04T12:51:07.494Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8586,7 +8675,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.049Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:26:04.850Z",
+    "closedAt": "2026-07-04T12:51:46.653Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8717,7 +8806,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.058Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:27:17.763Z",
+    "closedAt": "2026-07-04T12:52:25.897Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8783,7 +8872,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.062Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:27:50.521Z",
+    "closedAt": "2026-07-04T12:52:41.976Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -8881,7 +8970,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.067Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:28:45.684Z",
+    "closedAt": "2026-07-04T12:53:20.969Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8922,7 +9011,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.080Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:29:26.342Z",
+    "closedAt": "2026-07-04T12:54:00.142Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8956,7 +9045,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.081Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:30:05.868Z",
+    "closedAt": "2026-07-04T12:54:39.579Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -8991,7 +9080,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.083Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:30:45.043Z",
+    "closedAt": "2026-07-04T12:55:18.683Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10319,7 +10408,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.111Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:35:33.945Z",
+    "closedAt": "2026-07-04T12:55:57.801Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10359,7 +10448,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.111Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:36:13.285Z",
+    "closedAt": "2026-07-04T12:56:37.085Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10395,7 +10484,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.111Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:36:52.529Z",
+    "closedAt": "2026-07-04T12:57:16.280Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10603,7 +10692,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.126Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:38:39.190Z",
+    "closedAt": "2026-07-04T12:57:55.332Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10637,7 +10726,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.127Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:38:55.929Z",
+    "closedAt": "2026-07-04T12:58:11.338Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -10672,7 +10761,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.132Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:39:35.361Z",
+    "closedAt": "2026-07-04T12:58:50.540Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10709,7 +10798,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.133Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:40:14.541Z",
+    "closedAt": "2026-07-04T12:59:30.011Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -10747,7 +10836,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.139Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:40:53.949Z",
+    "closedAt": "2026-07-04T13:00:09.214Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -11113,7 +11202,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.159Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:43:27.453Z",
+    "closedAt": "2026-07-04T13:00:48.343Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -11149,7 +11238,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.161Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:44:06.757Z",
+    "closedAt": "2026-07-04T13:01:27.605Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -11360,7 +11449,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.164Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:45:53.590Z",
+    "closedAt": "2026-07-04T13:02:07.061Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -11591,7 +11680,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.170Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:47:39.304Z",
+    "closedAt": "2026-07-04T13:02:46.345Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12034,7 +12123,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.191Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:50:13.004Z",
+    "closedAt": "2026-07-04T13:03:25.438Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12646,7 +12735,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.209Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:54:03.271Z",
+    "closedAt": "2026-07-04T13:04:44.132Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12681,7 +12770,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.209Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:54:44.462Z",
+    "closedAt": "2026-07-04T13:05:23.523Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12715,7 +12804,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.212Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:55:23.928Z",
+    "closedAt": "2026-07-04T13:06:03.080Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12751,7 +12840,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.214Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:56:03.236Z",
+    "closedAt": "2026-07-04T13:06:42.311Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12785,7 +12874,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.218Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:56:42.693Z",
+    "closedAt": "2026-07-04T13:07:21.567Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12820,7 +12909,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.223Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:56:59.369Z",
+    "closedAt": "2026-07-04T13:07:38.832Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -12854,7 +12943,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.224Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:57:38.609Z",
+    "closedAt": "2026-07-04T13:08:18.027Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12921,7 +13010,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.226Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:58:34.777Z",
+    "closedAt": "2026-07-04T13:08:57.155Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12957,7 +13046,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.226Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:59:14.301Z",
+    "closedAt": "2026-07-04T13:09:36.296Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -12993,7 +13082,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.227Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T08:59:53.486Z",
+    "closedAt": "2026-07-04T13:10:15.334Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13027,7 +13116,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.227Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:00:33.344Z",
+    "closedAt": "2026-07-04T13:10:54.664Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13062,7 +13151,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.229Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:01:12.955Z",
+    "closedAt": "2026-07-04T13:11:33.846Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13100,7 +13189,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.231Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:01:52.320Z",
+    "closedAt": "2026-07-04T13:12:13.001Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13138,7 +13227,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.231Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:02:32.604Z",
+    "closedAt": "2026-07-04T13:12:52.058Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13173,7 +13262,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.242Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:03:11.805Z",
+    "closedAt": "2026-07-04T13:13:31.150Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13209,7 +13298,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.244Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:03:51.011Z",
+    "closedAt": "2026-07-04T13:14:10.532Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13243,7 +13332,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.245Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:04:30.177Z",
+    "closedAt": "2026-07-04T13:14:49.749Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13279,7 +13368,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.245Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:05:09.482Z",
+    "closedAt": "2026-07-04T13:15:28.924Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13344,7 +13433,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.251Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:06:05.811Z",
+    "closedAt": "2026-07-04T13:16:08.008Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13408,7 +13497,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.253Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:07:05.568Z",
+    "closedAt": "2026-07-04T13:16:47.148Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13444,7 +13533,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.254Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:07:44.940Z",
+    "closedAt": "2026-07-04T13:17:26.406Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13480,7 +13569,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.254Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:08:24.145Z",
+    "closedAt": "2026-07-04T13:18:05.700Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13517,7 +13606,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.258Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:09:03.443Z",
+    "closedAt": "2026-07-04T13:18:44.703Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13553,7 +13642,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.259Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:09:42.746Z",
+    "closedAt": "2026-07-04T13:19:23.784Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13591,7 +13680,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.260Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:10:21.960Z",
+    "closedAt": "2026-07-04T13:20:03.330Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13627,7 +13716,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.261Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:11:01.281Z",
+    "closedAt": "2026-07-04T13:20:42.374Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13663,7 +13752,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.264Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:11:40.532Z",
+    "closedAt": "2026-07-04T13:21:22.129Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13699,7 +13788,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.268Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:12:19.993Z",
+    "closedAt": "2026-07-04T13:22:01.537Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13733,7 +13822,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.269Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:12:59.659Z",
+    "closedAt": "2026-07-04T13:22:40.710Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13768,7 +13857,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.270Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:13:39.150Z",
+    "closedAt": "2026-07-04T13:23:19.743Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13805,7 +13894,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.271Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:14:18.593Z",
+    "closedAt": "2026-07-04T13:23:59.655Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -13905,7 +13994,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.277Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:15:13.549Z",
+    "closedAt": "2026-07-04T13:24:39.011Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14367,7 +14456,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.293Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:17:50.792Z",
+    "closedAt": "2026-07-04T13:25:18.259Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14402,7 +14491,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.294Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:18:29.905Z",
+    "closedAt": "2026-07-04T13:25:57.412Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14440,7 +14529,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.296Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:19:09.565Z",
+    "closedAt": "2026-07-04T13:26:36.776Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14476,7 +14565,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.297Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:19:49.908Z",
+    "closedAt": "2026-07-04T13:27:16.050Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14512,7 +14601,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.297Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:20:29.183Z",
+    "closedAt": "2026-07-04T13:27:55.218Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14547,7 +14636,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.298Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:21:08.341Z",
+    "closedAt": "2026-07-04T13:28:34.521Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14620,7 +14709,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.300Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:22:03.898Z",
+    "closedAt": "2026-07-04T13:29:13.745Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14719,7 +14808,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.314Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:23:00.842Z",
+    "closedAt": "2026-07-04T13:29:52.768Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14757,7 +14846,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.323Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:23:40.847Z",
+    "closedAt": "2026-07-04T13:30:32.348Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14791,7 +14880,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.323Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:24:20.096Z",
+    "closedAt": "2026-07-04T13:31:11.896Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14825,7 +14914,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.336Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:24:59.699Z",
+    "closedAt": "2026-07-04T13:31:50.934Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14862,7 +14951,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.336Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:25:39.846Z",
+    "closedAt": "2026-07-04T13:32:30.420Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14899,7 +14988,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.336Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:26:19.187Z",
+    "closedAt": "2026-07-04T13:33:09.569Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -14975,7 +15064,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.337Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:27:15.803Z",
+    "closedAt": "2026-07-04T13:33:48.721Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15009,7 +15098,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.338Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:27:55.165Z",
+    "closedAt": "2026-07-04T13:34:28.042Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15046,7 +15135,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.343Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:28:34.321Z",
+    "closedAt": "2026-07-04T13:35:07.343Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15314,7 +15403,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.367Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:30:35.737Z",
+    "closedAt": "2026-07-04T13:35:46.463Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15415,7 +15504,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.399Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:31:47.734Z",
+    "closedAt": "2026-07-04T13:36:25.747Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15449,7 +15538,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.407Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:32:26.850Z",
+    "closedAt": "2026-07-04T13:37:04.895Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15487,7 +15576,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.408Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:33:06.189Z",
+    "closedAt": "2026-07-04T13:37:44.856Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15523,7 +15612,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.409Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:33:45.536Z",
+    "closedAt": "2026-07-04T13:38:24.043Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15562,7 +15651,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.412Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:34:24.972Z",
+    "closedAt": "2026-07-04T13:39:03.492Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15603,7 +15692,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.417Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:35:06.469Z",
+    "closedAt": "2026-07-04T13:39:42.661Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15641,7 +15730,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.419Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:35:45.979Z",
+    "closedAt": "2026-07-04T13:40:22.009Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15782,7 +15871,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.441Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:37:38.197Z",
+    "closedAt": "2026-07-04T13:41:40.480Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15816,7 +15905,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.443Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:38:17.365Z",
+    "closedAt": "2026-07-04T13:42:19.540Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15882,7 +15971,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.452Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:39:14.072Z",
+    "closedAt": "2026-07-04T13:42:58.954Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15916,7 +16005,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.455Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:39:53.276Z",
+    "closedAt": "2026-07-04T13:43:38.112Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -15954,7 +16043,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.456Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:40:32.510Z",
+    "closedAt": "2026-07-04T13:44:17.295Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16061,7 +16150,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.465Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:41:46.254Z",
+    "closedAt": "2026-07-04T13:44:56.581Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16298,7 +16387,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.472Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:42:58.362Z",
+    "closedAt": "2026-07-04T13:45:35.924Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16417,7 +16506,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.477Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:44:11.802Z",
+    "closedAt": "2026-07-04T13:46:15.153Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16455,7 +16544,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.477Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:44:51.390Z",
+    "closedAt": "2026-07-04T13:46:54.371Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16489,7 +16578,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.478Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:45:31.034Z",
+    "closedAt": "2026-07-04T13:47:33.651Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16528,7 +16617,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.482Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:46:10.556Z",
+    "closedAt": "2026-07-04T13:48:13.063Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16610,7 +16699,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.491Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:47:06.771Z",
+    "closedAt": "2026-07-04T13:48:52.905Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16650,7 +16739,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.494Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:47:46.000Z",
+    "closedAt": "2026-07-04T13:49:32.098Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16770,7 +16859,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.501Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:48:57.407Z",
+    "closedAt": "2026-07-04T13:50:11.447Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16805,7 +16894,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.503Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:49:36.529Z",
+    "closedAt": "2026-07-04T13:50:51.053Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16887,7 +16976,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.505Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:50:33.608Z",
+    "closedAt": "2026-07-04T13:51:30.055Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16921,7 +17010,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.506Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:51:12.791Z",
+    "closedAt": "2026-07-04T13:52:09.140Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -16994,7 +17083,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.512Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:52:08.499Z",
+    "closedAt": "2026-07-04T13:52:48.202Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17028,7 +17117,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.512Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:52:48.046Z",
+    "closedAt": "2026-07-04T13:53:29.813Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17110,7 +17199,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.518Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:53:44.035Z",
+    "closedAt": "2026-07-04T13:54:08.996Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17146,7 +17235,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.520Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:54:23.819Z",
+    "closedAt": "2026-07-04T13:54:48.377Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17180,7 +17269,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.521Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:55:03.509Z",
+    "closedAt": "2026-07-04T13:55:27.910Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17216,7 +17305,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.521Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:55:43.842Z",
+    "closedAt": "2026-07-04T13:56:07.127Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17251,7 +17340,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.524Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:56:23.442Z",
+    "closedAt": "2026-07-04T13:56:46.544Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17287,7 +17376,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.524Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:57:02.298Z",
+    "closedAt": "2026-07-04T13:57:25.729Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17324,7 +17413,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.526Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:57:41.530Z",
+    "closedAt": "2026-07-04T13:58:04.978Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17361,7 +17450,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.527Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:58:21.498Z",
+    "closedAt": "2026-07-04T13:58:49.761Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17551,7 +17640,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.533Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:59:11.598Z",
+    "closedAt": "2026-07-04T13:59:05.782Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -17589,7 +17678,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.536Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T09:59:51.045Z",
+    "closedAt": "2026-07-04T13:59:45.015Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17624,7 +17713,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.544Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:00:30.388Z",
+    "closedAt": "2026-07-04T14:00:24.629Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17662,7 +17751,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.544Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:01:09.762Z",
+    "closedAt": "2026-07-04T14:01:04.043Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17699,7 +17788,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.545Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:01:49.419Z",
+    "closedAt": "2026-07-04T14:01:43.392Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -17901,7 +17990,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.548Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:03:01.409Z",
+    "closedAt": "2026-07-04T14:02:22.544Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18031,7 +18120,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.552Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:04:14.733Z",
+    "closedAt": "2026-07-04T14:03:01.715Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18065,7 +18154,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.552Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:04:54.167Z",
+    "closedAt": "2026-07-04T14:03:40.980Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18102,7 +18191,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.556Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:05:34.319Z",
+    "closedAt": "2026-07-04T14:04:20.105Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18140,7 +18229,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.556Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:06:13.641Z",
+    "closedAt": "2026-07-04T14:05:00.180Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18174,7 +18263,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.560Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:06:51.304Z",
+    "closedAt": "2026-07-04T14:05:39.217Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18182,15 +18271,15 @@
     "name": "Mai Viên Resort",
     "category": "Đồ ăn",
     "rating": 4.6,
-    "reviews": 388,
-    "distance": "1.8 km",
-    "time": "21-29 phút",
+    "reviews": 458,
+    "distance": "0.8 km",
+    "time": "15-23 phút",
     "address": "Hoàng Quốc Việt, P. An Bình, Quận Ninh Kiều, Cần Thơ",
-    "phone": "0292 3529924",
+    "phone": "0292 3296637",
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwg0x12syuhl25@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -18199,18 +18288,23 @@
       "Gỏi Cuốn Tôm Thịt Heo (3 cái)",
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:46:37.838Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:46:37.838Z"
   },
   {
     "id": "r_ct_big_c_can_tho",
     "name": "Big C - Cần Thơ",
     "category": "Đồ ăn",
     "rating": 4.6,
-    "reviews": 105,
-    "distance": "0.7 km",
-    "time": "14-22 phút",
+    "reviews": 239,
+    "distance": "1.5 km",
+    "time": "19-27 phút",
     "address": "Lô số 1, Khu Dân Cư Hưng Phú 1, Phường Hưng Phú, Quận Cái Răng, Cần Thơ",
-    "phone": "0292 3932684",
+    "phone": "0292 3642389",
     "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstsihsftlehc3@resize_ss640x400",
     "tags": [
       "Đang mở",
@@ -18223,7 +18317,12 @@
       "Gỏi Cuốn Tôm Thịt Heo (3 cái) Big C",
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:47:42.189Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:47:42.190Z"
   },
   {
     "id": "r_ct_banh_trang_nuong_an_vat_bin_gaming_tran_hoang_na",
@@ -18320,7 +18419,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.570Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:07:47.322Z",
+    "closedAt": "2026-07-04T14:06:18.409Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18446,7 +18545,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.574Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:09:00.248Z",
+    "closedAt": "2026-07-04T14:06:57.785Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18483,7 +18582,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.576Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:09:40.031Z",
+    "closedAt": "2026-07-04T14:07:37.098Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18518,7 +18617,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.577Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:10:19.438Z",
+    "closedAt": "2026-07-04T14:08:16.237Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18680,7 +18779,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.579Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:11:15.935Z",
+    "closedAt": "2026-07-04T14:08:55.314Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18810,7 +18909,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.587Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:12:45.101Z",
+    "closedAt": "2026-07-04T14:09:34.433Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18845,7 +18944,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.588Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:13:24.711Z",
+    "closedAt": "2026-07-04T14:10:13.641Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18880,7 +18979,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.596Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:14:03.843Z",
+    "closedAt": "2026-07-04T14:10:53.009Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18916,7 +19015,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.597Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:14:42.970Z",
+    "closedAt": "2026-07-04T14:11:32.138Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18951,7 +19050,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.605Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:15:22.377Z",
+    "closedAt": "2026-07-04T14:12:11.179Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -18984,7 +19083,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.606Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:16:02.538Z",
+    "closedAt": "2026-07-04T14:12:50.465Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19017,7 +19116,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.618Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:16:41.672Z",
+    "closedAt": "2026-07-04T14:13:29.625Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19050,7 +19149,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.621Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:17:20.853Z",
+    "closedAt": "2026-07-04T14:14:08.681Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19087,7 +19186,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.622Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:18:00.065Z",
+    "closedAt": "2026-07-04T14:14:47.863Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19121,7 +19220,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.623Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:18:39.511Z",
+    "closedAt": "2026-07-04T14:15:27.139Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19156,7 +19255,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.634Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:19:18.913Z",
+    "closedAt": "2026-07-04T14:16:06.637Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19193,7 +19292,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.635Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:19:58.332Z",
+    "closedAt": "2026-07-04T14:16:45.981Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19231,7 +19330,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.648Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:20:37.588Z",
+    "closedAt": "2026-07-04T14:17:25.290Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19336,7 +19435,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.649Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:21:11.010Z",
+    "closedAt": "2026-07-04T14:17:42.090Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
@@ -19453,7 +19552,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.650Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:22:07.094Z",
+    "closedAt": "2026-07-04T14:18:21.316Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19487,7 +19586,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.653Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:22:46.402Z",
+    "closedAt": "2026-07-04T14:19:01.252Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19523,7 +19622,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.653Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:23:25.568Z",
+    "closedAt": "2026-07-04T14:19:40.780Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19557,7 +19656,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.654Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:24:04.660Z",
+    "closedAt": "2026-07-04T14:20:20.078Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19593,7 +19692,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.657Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:24:44.063Z",
+    "closedAt": "2026-07-04T14:20:59.538Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19628,7 +19727,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.657Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:25:23.516Z",
+    "closedAt": "2026-07-04T14:21:39.088Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19662,7 +19761,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.658Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:26:03.757Z",
+    "closedAt": "2026-07-04T14:22:18.680Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19701,7 +19800,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.666Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:26:42.937Z",
+    "closedAt": "2026-07-04T14:22:57.818Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19738,7 +19837,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.672Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:27:22.106Z",
+    "closedAt": "2026-07-04T14:23:36.903Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19771,7 +19870,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.676Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:28:01.490Z",
+    "closedAt": "2026-07-04T14:24:15.984Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19805,7 +19904,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.680Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:28:41.395Z",
+    "closedAt": "2026-07-04T14:24:55.175Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19891,7 +19990,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.682Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:29:36.817Z",
+    "closedAt": "2026-07-04T14:25:34.740Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -19930,7 +20029,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.683Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:30:16.424Z",
+    "closedAt": "2026-07-04T14:26:13.946Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20069,7 +20168,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.696Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:31:27.731Z",
+    "closedAt": "2026-07-04T14:26:53.451Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20108,7 +20207,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.696Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:32:07.073Z",
+    "closedAt": "2026-07-04T14:27:32.825Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20142,7 +20241,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.700Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:32:46.262Z",
+    "closedAt": "2026-07-04T14:28:12.687Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20179,7 +20278,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.701Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:33:25.846Z",
+    "closedAt": "2026-07-04T14:28:52.467Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20299,7 +20398,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.709Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:34:39.077Z",
+    "closedAt": "2026-07-04T14:29:31.871Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20376,7 +20475,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.717Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:35:34.468Z",
+    "closedAt": "2026-07-04T14:30:11.586Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20414,7 +20513,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.718Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:36:14.137Z",
+    "closedAt": "2026-07-04T14:30:50.599Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20655,7 +20754,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.733Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:37:59.718Z",
+    "closedAt": "2026-07-04T14:31:35.891Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20794,7 +20893,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.736Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:39:12.756Z",
+    "closedAt": "2026-07-04T14:32:15.477Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20832,7 +20931,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.741Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:39:52.176Z",
+    "closedAt": "2026-07-04T14:32:54.723Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20868,7 +20967,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.741Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:40:31.694Z",
+    "closedAt": "2026-07-04T14:33:34.082Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20904,7 +21003,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.742Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:41:11.361Z",
+    "closedAt": "2026-07-04T14:34:13.446Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20943,7 +21042,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.744Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:41:50.875Z",
+    "closedAt": "2026-07-04T14:34:52.870Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -20982,7 +21081,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.744Z",
     "isClosed": true,
-    "closedAt": "2026-07-03T10:42:30.436Z",
+    "closedAt": "2026-07-04T14:35:32.079Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
@@ -21618,15 +21717,15 @@
     "name": "Quán Cơm Cây Gòn",
     "category": "Cơm tấm",
     "rating": 4.6,
-    "reviews": 192,
-    "distance": "1.0 km",
+    "reviews": 574,
+    "distance": "0.9 km",
     "time": "16-24 phút",
     "address": "Châu Văn Liêm, Quận Ô Môn, Cần Thơ",
-    "phone": "0292 3254470",
+    "phone": "0292 3930086",
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwi355kd0na15f@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -21636,6 +21735,11 @@
       "Cơm Thịt Kho Tàu Trứng Cút",
       "Cơm Bò Xào Bông Cải Xanh",
       "Canh Chua Cá Lóc Nam Bộ"
-    ]
+    ],
+    "isClosed": true,
+    "closedAt": "2026-07-04T01:48:47.501Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z",
+    "menuUpdatedAt": "2026-07-04T01:48:47.501Z"
   }
 ]
