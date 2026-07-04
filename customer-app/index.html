@@ -294,8 +294,11 @@
           <input type="text" id="search-input" class="search-bar__input"
             placeholder="Tìm món ăn, quán ăn..."
             oninput="onSearch(this.value)"
+            onkeydown="if(event.key === 'Enter') onSearchExpand(this.value)"
             autocomplete="off">
-          <i class="fa-solid fa-magnifying-glass search-bar__icon"></i>
+          <i class="fa-solid fa-magnifying-glass search-bar__icon" 
+            onclick="onSearchExpand(document.getElementById('search-input').value)" 
+            style="cursor:pointer;" title="Tìm kiếm toàn thành phố"></i>
         </div>
       </div>
 
@@ -990,54 +993,77 @@
         return false;
       });
 
+      // Để tránh giật lag khi gõ và IME bị đứt, chỉ tự động tìm kiếm local khi nhập từ 2 ký tự trở lên
+      if (query.length < 2) {
+        titleEl.textContent = `🔎 Nhập ít nhất 2 ký tự để tìm kiếm...`;
+        renderRestaurants([]);
+        return;
+      }
+
       titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
       
       if (results.length > 0) {
-        // Giới hạn hiển thị tối đa 50 kết quả để tránh nghẽn thread vẽ giao diện (DOM paint) của trình duyệt
-        const limitedResults = results.slice(0, 50);
-        if (results.length > 50) {
-          titleEl.textContent += ` (Hiển thị 50 trên tổng số ${results.length} quán)`;
-        }
-        renderRestaurants(limitedResults);
+        // Hiển thị tất cả kết quả theo yêu cầu của user (không giới hạn 50 quán)
+        renderRestaurants(results);
       } else {
-        // 2. Nếu không tìm thấy kết quả cục bộ (có thể quán ở xa ngoài bán kính 3km chưa được nạp lúc đầu),
-        // tiến hành gọi server để tìm kiếm mở rộng trên toàn thành phố.
-        titleEl.textContent = `🔎 Đang tìm kiếm trên toàn thành phố: "${query}"...`;
-        showLoadingSkeleton();
-        
-        try {
-          const state = SF.getState();
-          const queryLat = state.userLat || 10.0345;
-          const queryLon = state.userLon || 105.7876;
-          
-          const res = await fetch(`${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}`);
-          if (!res.ok) throw new Error('HTTP ' + res.status);
-          const json = await res.json();
-          
-          if (json.data && json.data.length > 0) {
-            titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}"`;
-            
-            // Trộn các kết quả mới vào đầu danh sách RESTAURANTS hiện tại (đồng bộ localStorage)
-            const mergedList = [...SF.RESTAURANTS];
-            json.data.forEach(newRes => {
-              if (!mergedList.some(r => r.id === newRes.id)) {
-                mergedList.push(newRes);
-              }
-            });
-            SF.RESTAURANTS = mergedList;
-            
-            renderRestaurants(json.data.slice(0, 50));
-          } else {
-            titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-            renderRestaurants([]);
-          }
-        } catch (err) {
-          console.warn('[Search Fallback] Lỗi kết nối tìm kiếm mở rộng:', err.message);
-          titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-          renderRestaurants([]);
-        }
+        // Gợi ý nhấn Enter để tìm kiếm mở rộng (tránh việc tự động gọi API làm nghẽn IME tiếng Việt)
+        titleEl.innerHTML = `🔎 Không có cửa hàng ở gần phù hợp. <span style="color:var(--clr-primary);font-weight:600;cursor:pointer;" onclick="onSearchExpand('${query.replace(/'/g, "\\'")}')">Nhấn vào đây</span> hoặc <b>gõ Enter</b> để tìm trên toàn thành phố.`;
+        renderRestaurants([]);
       }
     }
+
+    // Tìm kiếm mở rộng trên toàn thành phố (gọi trực tiếp lên server để tìm các quán ngoài 3km)
+    // Chỉ kích hoạt khi gõ Enter hoặc click nút tìm kiếm/gợi ý.
+    async function onSearchExpand(q) {
+      const query = q.trim();
+      if (!query) return;
+
+      const titleEl = document.getElementById('restaurant-section-title');
+      const featuredWrap = document.getElementById('featured-section-wrap');
+      const nearWrap = document.getElementById('near-section-wrap');
+
+      if (featuredWrap) featuredWrap.style.display = 'none';
+      if (nearWrap) nearWrap.style.display = 'none';
+
+      titleEl.textContent = `🔎 Đang tìm kiếm trên toàn thành phố: "${query}"...`;
+      showLoadingSkeleton();
+
+      try {
+        const state = SF.getState();
+        const queryLat = state.userLat || 10.0345;
+        const queryLon = state.userLon || 105.7876;
+        
+        const res = await fetch(`${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}`);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        
+        if (json.data && json.data.length > 0) {
+          titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (${json.data.length} quán)`;
+          
+          // Trộn các kết quả mới vào đầu danh sách RESTAURANTS hiện tại (đồng bộ localStorage)
+          const mergedList = [...SF.RESTAURANTS];
+          json.data.forEach(newRes => {
+            if (!mergedList.some(r => r.id === newRes.id)) {
+              mergedList.push(newRes);
+            }
+          });
+          SF.RESTAURANTS = mergedList;
+          
+          // Hiển thị tất cả kết quả theo yêu cầu của user (không giới hạn 50 quán)
+          renderRestaurants(json.data);
+        } else {
+          titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Không tìm thấy)`;
+          renderRestaurants([]);
+        }
+      } catch (err) {
+        console.warn('[Search Expand] Lỗi kết nối tìm kiếm mở rộng:', err.message);
+        titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Lỗi kết nối)`;
+        renderRestaurants([]);
+      }
+    }
+    
+    // Expose cho sự kiện onclick hoặc onkeydown ngoài phạm vi module
+    window.onSearchExpand = onSearchExpand;
 
     // ── ADDRESS MODAL ──
     let tempGpsCoords = null;
