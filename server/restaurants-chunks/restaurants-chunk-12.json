@@ -4,15 +4,15 @@
     "name": "Cabin Coffee",
     "category": "Cà phê",
     "rating": 7.7,
-    "reviews": 140,
-    "distance": "0.7 km",
-    "time": "14-22 phút",
+    "reviews": 447,
+    "distance": "0.9 km",
+    "time": "15-23 phút",
     "address": "Hẻm 116, Đường 3 Tháng 2, P. Xuân Khánh, Quận Ninh Kiều, Cần Thơ",
-    "phone": "0292 3850263",
+    "phone": "0292 3950722",
     "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstrzbhc06ft60@resize_ss640x400",
     "tags": [
       "Nổi bật",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -324,11 +324,11 @@
     "name": "Highlands Coffee - Trà, Cà Phê & Bánh - Trần Văn Khéo Cần Thơ",
     "category": "Cà phê",
     "rating": 7.8,
-    "reviews": 384,
+    "reviews": 162,
     "distance": "1.4 km",
     "time": "18-26 phút",
     "address": "66-68 Trần Văn Khéo, KV 1, P. Cái Khế, Quận Ninh Kiều, Cần Thơ",
-    "phone": "0292 3234172",
+    "phone": "0292 3779123",
     "img": "https://down-vn.img.susercontent.com/vn-11134513-81ztc-moj0yd7owi6j12@resize_ss640x400",
     "tags": [
       "Nổi bật",
@@ -1139,15 +1139,15 @@
     "name": "Quán COFFEE & MILK TEA 1993",
     "category": "Cà phê",
     "rating": 4.6,
-    "reviews": 127,
-    "distance": "0.5 km",
-    "time": "13-21 phút",
+    "reviews": 498,
+    "distance": "0.8 km",
+    "time": "15-23 phút",
     "address": "Cổng Chào Định Môn, Vàm Nhon, Huyện Thới Lai, Cần Thơ",
-    "phone": "0292 3377717",
+    "phone": "0292 3389311",
     "img": "https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=800&q=80",
     "tags": [
       "Đang mở",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -9935,8 +9935,11 @@
       "Kem cheese"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.112Z",
-    "menuUpdatedAt": "2026-07-03T05:09:58.499Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T16:59:25.536Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T16:59:25.536Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:30 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-05T00:00:00.000Z"
   },
   {
     "id": "r_ct_cai_tiem_nha_bo_matcha_lot_plan_lot_beo_plan_kem_beo",
@@ -9982,8 +9985,11 @@
       "Ca Cao Gấu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.117Z",
-    "menuUpdatedAt": "2026-07-03T05:10:14.537Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:01:13.356Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:01:13.356Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_sua_chua_chip",
@@ -10512,8 +10518,11 @@
       "Chè Tàu Hủ Đậu Đỏ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.162Z",
-    "menuUpdatedAt": "2026-07-03T05:15:33.750Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:07:01.037Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:07:01.037Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 13:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_camay_coffee",
@@ -10717,8 +10726,11 @@
       "Sương Sáo"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.174Z",
-    "menuUpdatedAt": "2026-07-03T05:16:25.939Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:16:04.582Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:16:04.582Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_ruby_milktea",
@@ -11181,8 +11193,11 @@
       "Trà Tắc"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.197Z",
-    "menuUpdatedAt": "2026-07-03T05:21:53.578Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:22:51.838Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:22:51.838Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_ki_ot_an_vat_so_1_mau_than",
@@ -11344,43 +11359,21 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dimsum-hongkong-quan",
     "dishNames": [
-      "1 Viên Xíu mại tôm",
-      "1 Viên  Xíu  Mại trứng muối",
-      "1 Viên Cảo Tôm Lựu",
-      "1 Viên hoành tôm thịt",
-      "1 Viên Cảo  hẹ tôm",
-      "1 hoành Ôm Tôm ( To)",
-      "1 Viên  Xíu mại Cua",
-      "1 Viên Rong biển  Cua",
-      "1 Rong biển Ôm Tôm (To)",
-      "1 Viên  Xíu mại Bắc Thảo",
-      "1 Viên Rong biển Tôm",
-      "1 Bánh Xếp Thịt",
-      "1 Viên Cảo Cua",
-      "Phần 2 Cái bánh cuốn Tôm sò Thượng Hạng",
-      "Phần 2 Cái bánh Cuốn Xá Xíu Thượng hạng",
-      "1 cái Bánh Bao Kim sa",
-      "1 bánh bao gà kéo sợi trứng muối",
-      "1 bánh giò kèm sốt HongKong",
-      "Trà bí đao Hạt Chia táo đỏ",
-      "Trà tắc mật ong",
-      "Combo Mix 8 vị HONGKONG",
-      "Combo Mix 12 vị  HONGKONG",
-      "Combo 5 bánh Cuốn Tôm HongKong ( Siêu Ngon )",
-      "Combo 5 bánh cuốn xá xíu HongKong(SIÊU NGON)",
-      "Combo Mix 16 vị HONGKONG",
-      "Combo Mix 20 vị",
-      "Combo 5 ManDu Hải Sản Chiên (Siêu Ngon)",
-      "Combo 4 Bánh củ cải chiên HongKong",
-      "Phần 3 Chân gà Sốt tàu xì",
-      "Combo 5 bánh bao Kim Sa Trứng chảy",
-      "Combo Mix 35 vị HONGKONG"
+      "Gỏi Cuốn",
+      "Bánh Mì Thịt",
+      "Hủ Tiếu Nam Vang",
+      "Bún Bò Huế",
+      "Phở Bò",
+      "Trà Đá",
+      "Mì Xào Bò",
+      "Cháo Lòng",
+      "Cà Phê Sữa Đá",
+      "Chả Giò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.202Z",
-    "menuUpdatedAt": "2026-07-03T05:23:22.729Z",
+    "menuUpdatedAt": "2026-07-04T17:24:38.529Z",
     "isClosed": false
   },
   {
@@ -11444,8 +11437,11 @@
       "Ly Sâm 24 vị 700ml"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.202Z",
-    "menuUpdatedAt": "2026-07-03T05:23:40.531Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:27:31.145Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:27:31.145Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_minmin_dimsum_ha_cao_14_vi",
@@ -11920,8 +11916,11 @@
       "Trà Đào"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.218Z",
-    "menuUpdatedAt": "2026-07-03T05:28:14.755Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:34:47.015Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:34:47.015Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_goi_cuon_thao_nguyen",
@@ -11973,8 +11972,11 @@
       "Trà mãng cầu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.218Z",
-    "menuUpdatedAt": "2026-07-03T05:28:30.824Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:35:28.327Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:35:28.327Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_goi_cuon_cua_ma",
@@ -12008,8 +12010,11 @@
       "GỎI CUỐN NEM KHỔNG LỒ 21cm"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.218Z",
-    "menuUpdatedAt": "2026-07-03T05:28:47.908Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T17:37:14.756Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T17:37:14.756Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 09:00 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_goi_cuon_anh_thinh",
@@ -12037,8 +12042,11 @@
       "Gỏi cuốn tai heo"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.219Z",
-    "menuUpdatedAt": "2026-07-03T05:29:04.918Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T23:11:02.192Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T23:11:02.192Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 10:00 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_goi_cuon_hot_vit_lon_19_nguyen_cu_trinh",
@@ -12101,8 +12109,11 @@
       "Tắc xí muội"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.221Z",
-    "menuUpdatedAt": "2026-07-03T05:29:22.744Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T23:11:44.530Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T23:11:44.530Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_bep_nha_moon_le_van_so",
@@ -12138,8 +12149,11 @@
       "Combo 10 cuốn bì"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.221Z",
-    "menuUpdatedAt": "2026-07-03T05:29:39.226Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-04T23:12:26.863Z",
+    "isClosed": true,
+    "closedAt": "2026-07-04T23:12:26.863Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-06T00:00:00.000Z"
   },
   {
     "id": "r_ct_goi_cuon_4k",
@@ -17675,15 +17689,15 @@
     "name": "Gong Cha - Trà & Cà Phê - Vincom Xuân Khánh",
     "category": "Cà phê",
     "rating": 4.6,
-    "reviews": 412,
-    "distance": "0.5 km",
-    "time": "13-21 phút",
+    "reviews": 170,
+    "distance": "1.6 km",
+    "time": "20-28 phút",
     "address": "P1 - 03 Vincom Xuân Khánh, 209 Đường 30 Tháng 4, P. Xuân Khánh, Quận Ninh Kiều, Cần Thơ",
-    "phone": "0292 3947031",
+    "phone": "0292 3782308",
     "img": "https://down-vn.img.susercontent.com/vn-11134513-81ztc-mo91h1qklr0i87@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Yêu thích"
+      "Mới mở"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -17705,15 +17719,15 @@
     "name": "Phở Cuốn Cần Thơ",
     "category": "Đồ ăn",
     "rating": 4.6,
-    "reviews": 155,
-    "distance": "1.6 km",
-    "time": "19-27 phút",
+    "reviews": 449,
+    "distance": "0.9 km",
+    "time": "15-23 phút",
     "address": "103 Đường Nguyễn Truyền Thanh, P. Bình Thuỷ, Quận Bình Thủy, Cần Thơ",
-    "phone": "0292 3610483",
+    "phone": "0292 3109544",
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwa7vqp1gu6zfd@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -17756,15 +17770,15 @@
     "name": "Quán Diễm - Cháo Gà Ta 3 Món",
     "category": "Đồ ăn",
     "rating": 4.6,
-    "reviews": 204,
-    "distance": "0.5 km",
-    "time": "13-21 phút",
+    "reviews": 593,
+    "distance": "0.8 km",
+    "time": "15-23 phút",
     "address": "172 Nguyễn Đệ, Quận Bình Thủy, Cần Thơ",
-    "phone": "0292 3336933",
+    "phone": "0292 3623433",
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwa6b7ilpejda5@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Mới mở"
+      "Yêu thích"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -21630,15 +21644,15 @@
     "name": "Chợ Đêm Ô Môn",
     "category": "Đồ ăn",
     "rating": 4.6,
-    "reviews": 574,
-    "distance": "0.5 km",
+    "reviews": 201,
+    "distance": "0.6 km",
     "time": "13-21 phút",
     "address": "Trần Hưng Đạo, P. Châu Văn Liêm, Quận Ô Môn, Cần Thơ",
-    "phone": "0292 3614672",
+    "phone": "0292 3469186",
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwak6voy6rbvcd@resize_ss640x400",
     "tags": [
       "Đang mở",
-      "Yêu thích"
+      "Mới mở"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
