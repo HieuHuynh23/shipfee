@@ -902,18 +902,32 @@
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/[đĐ]/g, 'd')
+        .replace(/y/g, 'i') // Chuẩn hoá y thành i để đồng nhất mì/mỳ, lý/lí
         .replace(/[^a-z0-9\s]/g, '')
         .trim();
     }
 
-    function matchToken(token, cleanStr) {
-      if (!cleanStr.includes(token)) return false;
-      const words = cleanStr.split(/\s+/);
-      if (token.length <= 2) {
-        // Đối với từ khoá ngắn (<= 2 ký tự như mi, bo, ga, ca), yêu cầu phải khớp chính xác nguyên từ
-        return words.some(w => w === token);
+    function matchSearch(normQuery, cleanStr) {
+      const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
+      if (tokens.length === 0) return false;
+      
+      if (tokens.length === 1) {
+        // Đối với từ khoá đơn (ví dụ: "mi", "bo", "ga"), yêu cầu khớp nguyên từ chính xác
+        const words = cleanStr.split(/\s+/);
+        return words.some(w => w === tokens[0]);
       }
-      return words.some(w => w === token || w.startsWith(token));
+      
+      // Đối với từ khoá ghép từ 2 từ trở lên (ví dụ: "mi cai", "mi cai bo", "bun bo"):
+      // 1. Hai từ đầu tiên phải đi liền kề nhau làm cụm từ cốt lõi (Core Phrase)
+      const corePhrase = tokens[0] + ' ' + tokens[1];
+      if (!cleanStr.includes(corePhrase)) return false;
+      
+      // 2. Tất cả các từ còn lại trong truy vấn phải có mặt trong chuỗi (chấp nhận rời rạc)
+      for (let i = 2; i < tokens.length; i++) {
+        if (!cleanStr.includes(tokens[i])) return false;
+      }
+      
+      return true;
     }
 
     const onSearch = SF.debounce ? SF.debounce(_doSearch, 200) : _doSearch; // Giảm debounce xuống 200ms vì tìm kiếm local phản hồi ngay lập tức
@@ -961,23 +975,20 @@
         const normCategory = normalizeText(r.category);
         const normAddress = normalizeText(r.address);
         
-        // 1. Tất cả từ khoá phải khớp chung trong Tên quán
-        const matchName = tokens.every(token => matchToken(token, normName));
-        if (matchName) return true;
-
-        // 2. Tất cả từ khoá phải khớp chung trong Danh mục
-        const matchCategory = tokens.every(token => matchToken(token, normCategory));
-        if (matchCategory) return true;
-
-        // 3. Tất cả từ khoá phải khớp chung trong Địa chỉ
-        const matchAddress = tokens.every(token => matchToken(token, normAddress));
-        if (matchAddress) return true;
-
-        // 4. Hoặc có ít nhất MỘT món ăn khớp với tất cả từ khoá
+        // 1. Tất cả từ khoá phải khớp theo thuật toán matchSearch trong Tên quán
+        if (matchSearch(normQuery, normName)) return true;
+ 
+        // 2. Tất cả từ khoá phải khớp theo thuật toán matchSearch trong Danh mục
+        if (matchSearch(normQuery, normCategory)) return true;
+ 
+        // 3. Tất cả từ khoá phải khớp theo thuật toán matchSearch trong Địa chỉ
+        if (matchSearch(normQuery, normAddress)) return true;
+ 
+        // 4. Hoặc có ít nhất MỘT món ăn khớp theo thuật toán matchSearch
         if (Array.isArray(r.dishNames)) {
           const matchDish = r.dishNames.some(dish => {
             const normDish = normalizeText(dish);
-            return tokens.every(token => matchToken(token, normDish));
+            return matchSearch(normQuery, normDish);
           });
           if (matchDish) return true;
         }
