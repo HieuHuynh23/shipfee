@@ -44,18 +44,18 @@ async function getShopeeFoodSlugFromFoody(foodySlug) {
         },
         timeout: 6000
       });
-      
+
       if (res.status === 200) {
         const $ = cheerio.load(res.data);
         let shopeefoodUrl = '';
-        
+
         $('a').each((i, el) => {
           const href = $(el).attr('href') || '';
           if (href.includes('shopeefood.vn/can-tho/') && !href.includes('/can-tho/fresh') && !href.includes('/can-tho/food')) {
             shopeefoodUrl = href;
           }
         });
-        
+
         if (shopeefoodUrl) {
           const parts = shopeefoodUrl.split('?')[0].split('/');
           const resolvedSlug = parts.pop() || parts.pop();
@@ -84,7 +84,7 @@ async function run() {
 
   const restaurants = dbHelper.read();
   const candidates = restaurants.filter(r => {
-    if (!r || !r.id || r.hasRealMenu || r.isClosed) return false;
+    if (!r || !r.id || r.hasRealMenu) return false;
     if (chunkRange) {
       const idx = dbHelper.getChunkIndex(r.id);
       return idx >= chunkRange.start && idx <= chunkRange.end;
@@ -110,7 +110,7 @@ async function run() {
     console.log(`\n⏳ ${indexStr} Đang xử lý: "${target.name}" (ID: ${target.id})...`);
 
     let slug = target.shopeefoodSlug || target.id.replace('r_ct_', '').split('?')[0].replace(/_/g, '-');
-    
+
     // Phân giải slug ShopeeFood thực tế
     if (!target.shopeefoodSlug) {
       console.log(`   🔍 Phân giải slug từ Foody cho: ${slug}`);
@@ -156,7 +156,7 @@ async function run() {
         target.dishNames = menu.map(m => m.name).filter(Boolean);
         target.menuTemplateFallback = false;
         target.menu = menu;
-        
+
         if (isClosed) {
           target.isClosed = true;
           target.closedAt = new Date().toISOString();
