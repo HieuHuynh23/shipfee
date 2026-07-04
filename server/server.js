@@ -909,7 +909,7 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
   return clonedRestaurant;
 }
 
-function processRestaurantsWithLocation(localData, lat, lon) {
+function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter = false) {
   if (!Array.isArray(localData)) return [];
   
   const userLat = parseFloat(lat) || 10.0345;
@@ -945,11 +945,14 @@ function processRestaurantsWithLocation(localData, lat, lon) {
     return item;
   }).filter(Boolean);
 
-  // Filter: Only include restaurants within 3.0 km
-  let filteredData = processed.filter(r => r.distanceValue <= 3.0);
-  if (filteredData.length === 0) {
-    // Fallback: if empty, return the closest 10 restaurants
-    filteredData = [...processed].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
+  // Filter: Only include restaurants within 3.0 km unless skipped
+  let filteredData = processed;
+  if (!skipDistanceFilter) {
+    filteredData = processed.filter(r => r.distanceValue <= 3.0);
+    if (filteredData.length === 0) {
+      // Fallback: if empty, return the closest 10 restaurants
+      filteredData = [...processed].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
+    }
   }
 
   // Sort: Open stores first, then sorted by distance value.
@@ -1752,7 +1755,7 @@ app.get('/api/restaurants', async (req, res) => {
       }
     }
 
-    const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon);
+    const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon, !!query);
     console.log(`[Search] ✅ Trả về tổng cộng ${processedResults.length} quán ăn sau khi gộp và lọc khoảng cách.`);
     // Tìm kiếm thời gian thực: không cache vì kết quả thay đổi theo từ khóa
     res.set('Cache-Control', 'no-cache, no-store');
@@ -1789,7 +1792,7 @@ app.get('/api/restaurants', async (req, res) => {
     let responseData = [];
     if (query) {
       // Fallback search bằng fastSearch
-      responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon);
+      responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon, true);
       console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
     } else {
       responseData = processRestaurantsWithLocation(cachedRestaurants, req.query.lat, req.query.lon);
@@ -1815,9 +1818,9 @@ app.get('/api/restaurants', async (req, res) => {
           r.category.toLowerCase().includes(qLower) ||
           r.menu.some(m => m.name.toLowerCase().includes(qLower))
         );
-        responseData = processRestaurantsWithLocation(matches, req.query.lat, req.query.lon);
+        responseData = processRestaurantsWithLocation(matches, req.query.lat, req.query.lon, true);
       } else {
-        responseData = processRestaurantsWithLocation(localData, req.query.lat, req.query.lon);
+        responseData = processRestaurantsWithLocation(localData, req.query.lat, req.query.lon, false);
       }
       console.log(`[Fallback] ✅ ${responseData.length} quán từ restaurants-data.js sau khi lọc khoảng cách`);
       return res.json({ source: 'local', data: stripMenus(responseData), total: responseData.length });
