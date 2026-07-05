@@ -39,7 +39,11 @@ function extractMenuFromApiData(apiData, slug) {
       // Lọc bỏ món đã xóa khỏi thực đơn
       if (dish.is_deleted) return;
 
-      const inStorePrice = dish.price?.value || 35000;
+      // Ưu tiên giá trị giảm giá (sale price) trên ShopeeFood nếu có
+      const inStorePrice = (dish.discount_price && dish.discount_price.value > 0)
+        ? dish.discount_price.value
+        : (dish.price?.value || 35000);
+
       if (inStorePrice <= 100) return; // Bỏ qua các món ghi chú/admin 1đ
       
       // Thêm 28% markup cố định (làm tròn 100đ)
@@ -51,6 +55,18 @@ function extractMenuFromApiData(apiData, slug) {
         img = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80`;
       }
 
+      // Trích xuất tùy chọn topping/options nếu có
+      const options = (dish.options || []).map(opt => ({
+        name: opt.name,
+        mandatory: opt.mandatory === true || opt.mandatory === 1,
+        min_select: opt.option_items?.min_select || 0,
+        max_select: opt.option_items?.max_select || 1,
+        items: (opt.option_items?.items || []).map(item => ({
+          name: item.name,
+          price: item.price?.value || 0
+        }))
+      }));
+
       cleanDishes.push({
         id: `${slug}-item-${itemIndex++}`,
         name: dish.name,
@@ -59,7 +75,8 @@ function extractMenuFromApiData(apiData, slug) {
         appPrice: appPrice,
         img: img,
         category: categoryName,
-        isAvailable: dish.is_available !== false && dish.is_active !== false
+        isAvailable: dish.is_available !== false && dish.is_active !== false,
+        options: options
       });
     });
   });

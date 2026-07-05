@@ -119,11 +119,23 @@ function getCartTotal() {
   if (!restaurant) return { storeTotal: 0, appTotal: 0, shipperEarning: 0, itemCount: 0, discountValue: 0, minServiceFee: 0 };
 
   let storeTotal = 0, appTotalRaw = 0, itemCount = 0;
-  Object.entries(cart.items).forEach(([itemId, qty]) => {
+  Object.entries(cart.items).forEach(([cartKey, qty]) => {
+    const [itemId, optionsStr] = cartKey.split('::');
     const item = restaurant.menu.find(m => m.id === itemId);
     if (item && qty > 0) {
-      storeTotal += item.inStorePrice * qty;
-      appTotalRaw += item.appPrice * qty;
+      let toppingsInStore = 0;
+      let toppingsApp = 0;
+      if (optionsStr) {
+        try {
+          const selected = JSON.parse(optionsStr);
+          selected.forEach(opt => {
+            toppingsInStore += opt.price;
+            toppingsApp += Math.round((opt.price * 1.28) / 100) * 100;
+          });
+        } catch (e) {}
+      }
+      storeTotal += (item.inStorePrice + toppingsInStore) * qty;
+      appTotalRaw += (item.appPrice + toppingsApp) * qty;
       itemCount  += qty;
     }
   });
@@ -132,27 +144,37 @@ function getCartTotal() {
   const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
 
   // Calculate dynamic multi-item discount:
-  // Since we markup app prices by 28%, customers pay duplicate markups when ordering multiple items.
-  // From the 2nd item onwards, we return the 28% markup to the customer, plus 30% of the distance surcharge.
   let discountValue = 0;
   
   const itemsList = [];
-  Object.entries(cart.items).forEach(([itemId, qty]) => {
+  Object.entries(cart.items).forEach(([cartKey, qty]) => {
     if (qty <= 0) return;
+    const [itemId, optionsStr] = cartKey.split('::');
     const item = restaurant.menu.find(m => m.id === itemId);
     if (item) {
+      let toppingsInStore = 0;
+      let toppingsApp = 0;
+      if (optionsStr) {
+        try {
+          const selected = JSON.parse(optionsStr);
+          selected.forEach(opt => {
+            toppingsInStore += opt.price;
+            toppingsApp += Math.round((opt.price * 1.28) / 100) * 100;
+          });
+        } catch (e) {}
+      }
       for (let i = 0; i < qty; i++) {
         itemsList.push({
-          itemId,
-          inStorePrice: item.inStorePrice,
-          appPrice: item.appPrice
+          cartKey,
+          inStorePrice: item.inStorePrice + toppingsInStore,
+          appPrice: item.appPrice + toppingsApp
         });
       }
     }
   });
 
   if (itemsList.length > 1) {
-    // Sort items by appPrice descending so the most expensive item is the primary item (no markup refund)
+    // Sort items by appPrice descending so the most expensive item is the primary item
     itemsList.sort((a, b) => b.appPrice - a.appPrice);
     
     const surchargeDiscount = Math.round((surchargePerItem * 0.30) / 100) * 100;
@@ -170,15 +192,11 @@ function getCartTotal() {
   // Cân đối giảm giá đa món và phí hỗ trợ shipper đơn nhỏ
   if (itemCount > 0) {
     if (shipperEarningBeforeDiscount >= 15000) {
-      // Đơn hàng đủ lớn -> Không thu phí dịch vụ nhỏ
       minServiceFee = 0;
-      // Giới hạn giảm giá đa món để đảm bảo shipper nhận được ít nhất 15.000đ
       discountValue = Math.min(discountValue, shipperEarningBeforeDiscount - 15000);
       appTotal = Math.max(0, appTotalRaw - discountValue);
     } else {
-      // Đơn hàng nhỏ thực sự -> Không áp dụng giảm giá đa món
       discountValue = 0;
-      // Thu thêm phí dịch vụ nhỏ để đạt tối thiểu 15.000đ cho shipper
       minServiceFee = Math.round((15000 - shipperEarningBeforeDiscount) / 100) * 100;
       appTotal = appTotalRaw + minServiceFee;
     }
@@ -189,26 +207,50 @@ function getCartTotal() {
   return { storeTotal, appTotal, shipperEarning, itemCount, discountValue, minServiceFee };
 }
 
-function addToCart(restaurantId, itemId) {
+function addToCart(restaurantId, itemId, selectedOptions) {
   const state = getState();
   if (state.cart.restaurantId && state.cart.restaurantId !== restaurantId) {
     // Different restaurant — clear old cart
     state.cart = { restaurantId, items: {} };
   }
   state.cart.restaurantId = restaurantId;
-  state.cart.items[itemId] = (state.cart.items[itemId] || 0) + 1;
+  
+  const optionsKey = selectedOptions && selectedOptions.length > 0
+    ? `::${JSON.stringify(selectedOptions)}`
+    : '';
+  const cartKey = `${itemId}${optionsKey}`;
+
+  state.cart.items[cartKey] = (state.cart.items[cartKey] || 0) + 1;
   saveState(state);
 }
 
-function removeFromCart(itemId) {
+function removeFromCart(itemId, selectedOptions) {
   const state = getState();
-  if (state.cart.items[itemId] > 1) {
-    state.cart.items[itemId]--;
+  const optionsKey = selectedOptions && selectedOptions.length > 0
+    ? `::${JSON.stringify(selectedOptions)}`
+    : '';
+  const targetKey = `${itemId}${optionsKey}`;
+
+  if (state.cart.items[targetKey]) {
+    if (state.cart.items[targetKey] > 1) {
+      state.cart.items[targetKey]--;
+    } else {
+      delete state.cart.items[targetKey];
+    }
   } else {
-    delete state.cart.items[itemId];
-    const hasItems = Object.keys(state.cart.items).length > 0;
-    if (!hasItems) state.cart.restaurantId = null;
+    const matchingKeys = Object.keys(state.cart.items).filter(k => k === itemId || k.startsWith(itemId + '::'));
+    if (matchingKeys.length > 0) {
+      const lastKey = matchingKeys[matchingKeys.length - 1];
+      if (state.cart.items[lastKey] > 1) {
+        state.cart.items[lastKey]--;
+      } else {
+        delete state.cart.items[lastKey];
+      }
+    }
   }
+
+  const hasItems = Object.keys(state.cart.items).length > 0;
+  if (!hasItems) state.cart.restaurantId = null;
   saveState(state);
 }
 
@@ -221,6 +263,9 @@ function clearCart() {
 function removeItemFromCart(itemId) {
   const state = getState();
   delete state.cart.items[itemId];
+  const keys = Object.keys(state.cart.items).filter(k => k === itemId || k.startsWith(itemId + '::'));
+  keys.forEach(k => delete state.cart.items[k]);
+
   const hasItems = Object.keys(state.cart.items).length > 0;
   if (!hasItems) state.cart.restaurantId = null;
   saveState(state);
@@ -235,9 +280,33 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
   const orderId = 'SPF-' + Math.floor(100000 + Math.random() * 900000);
 
   const items = [];
-  Object.entries(cart.items).forEach(([itemId, qty]) => {
+  Object.entries(cart.items).forEach(([cartKey, qty]) => {
+    const [itemId, optionsStr] = cartKey.split('::');
     const item = restaurant.menu.find(m => m.id === itemId);
-    if (item && qty > 0) items.push({ ...item, qty });
+    if (item && qty > 0) {
+      let toppingsInStore = 0;
+      let toppingsApp = 0;
+      let selectedOptions = [];
+      if (optionsStr) {
+        try {
+          selectedOptions = JSON.parse(optionsStr);
+          selectedOptions.forEach(opt => {
+            toppingsInStore += opt.price;
+            toppingsApp += Math.round((opt.price * 1.28) / 100) * 100;
+          });
+        } catch (e) {}
+      }
+
+      items.push({
+        ...item,
+        id: cartKey, // Sử dụng cartKey để làm ID dòng sản phẩm duy nhất
+        realItemId: itemId,
+        inStorePrice: item.inStorePrice + toppingsInStore,
+        appPrice: item.appPrice + toppingsApp,
+        selectedOptions,
+        qty
+      });
+    }
   });
 
   const orderPayload = {

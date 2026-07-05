@@ -218,12 +218,256 @@
       display: flex; align-items: center; justify-content: center; gap: 8px;
     }
 
-    /* Overlay mờ khi đóng cửa */
-    .restaurant-header.is-closed .restaurant-header__overlay {
-      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.3) 100%);
+    /* ── TOPPING MODAL STYLES ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      transition: opacity 0.3s ease;
     }
-    .restaurant-header.is-closed .restaurant-header__img {
-      filter: grayscale(70%) brightness(0.6);
+    
+    .topping-modal-card {
+      background: var(--clr-surface);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 28px 28px 0 0;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      overflow: hidden;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: none;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .topping-modal-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--clr-border);
+      position: relative;
+    }
+    
+    .topping-modal-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .topping-modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--clr-text);
+      line-height: 1.3;
+    }
+    
+    .topping-modal-close {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      color: var(--clr-text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .topping-modal-close:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    
+    .topping-modal-desc {
+      font-size: 13px;
+      color: var(--clr-text-muted);
+      line-height: 1.5;
+    }
+    
+    .topping-modal-body {
+      padding: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    .topping-group {
+      padding: 20px;
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .topping-group:last-child {
+      border-bottom: none;
+    }
+    
+    .topping-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    
+    .topping-group-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--clr-text);
+    }
+    
+    .topping-group-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .topping-group-badge.required {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .topping-group-badge.optional {
+      background: rgba(100, 116, 139, 0.08);
+      color: var(--clr-text-muted);
+      border: 1px solid rgba(100, 116, 139, 0.15);
+    }
+    
+    .topping-item-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.03);
+    }
+    .topping-item-row:last-child {
+      border-bottom: none;
+    }
+    
+    .topping-item-input {
+      display: none;
+    }
+    
+    .topping-item-control {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #cbd5e1;
+      margin-right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    
+    .topping-item-control.radio {
+      border-radius: 50%;
+    }
+    .topping-item-control.radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+    
+    .topping-item-control.checkbox {
+      border-radius: 6px;
+    }
+    .topping-item-control.checkbox::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      color: white;
+      font-size: 10px;
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+    
+    .topping-item-input:checked + .topping-item-control {
+      background: var(--clr-primary);
+      border-color: var(--clr-primary);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+    .topping-item-input:checked + .topping-item-control::after {
+      transform: scale(1);
+    }
+    
+    .topping-item-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--clr-text);
+      flex: 1;
+    }
+    
+    .topping-item-price {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--clr-text-muted);
+    }
+    .topping-item-input:checked ~ .topping-item-price {
+      color: var(--clr-primary);
+    }
+    
+    .topping-modal-footer {
+      padding: 16px 20px 24px;
+      border-top: 1px solid var(--clr-border);
+      background: var(--clr-surface);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .topping-modal-price-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    
+    .topping-modal-price-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--clr-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .topping-modal-price {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--clr-primary);
+    }
+    
+    .topping-modal-btn {
+      background: var(--clr-primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-primary);
+      transition: all 0.2s;
+    }
+    .topping-modal-btn:active {
+      transform: scale(0.97);
     }
   </style>
 </head>
@@ -727,7 +971,14 @@
 
     function renderFoodItem(item) {
       const cart = SF.getCart();
-      const qty  = (cart.restaurantId === RESTAURANT.id && cart.items[item.id]) || 0;
+      let qty = 0;
+      if (cart.restaurantId === RESTAURANT.id) {
+        Object.entries(cart.items).forEach(([key, q]) => {
+          if (key === item.id || key.startsWith(item.id + '::')) {
+            qty += q;
+          }
+        });
+      }
       const isAvailable = item.isAvailable !== false;
 
       const el = document.createElement('div');
@@ -771,7 +1022,141 @@
     }
 
     // ── CART ACTIONS ──
+    let CURRENT_TOPPING_ITEM = null;
+
+    function openToppingModal(item) {
+      CURRENT_TOPPING_ITEM = item;
+      document.getElementById('topping-title').textContent = item.name;
+      document.getElementById('topping-desc').textContent = item.desc;
+      
+      const container = document.getElementById('topping-groups-container');
+      container.innerHTML = '';
+      
+      (item.options || []).forEach((group, groupIdx) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'topping-group animate-fade-in';
+        
+        const isRequired = group.mandatory === true || group.mandatory === 1;
+        const badgeText = isRequired ? 'Bắt buộc' : 'Tùy chọn';
+        const badgeClass = isRequired ? 'required' : 'optional';
+        
+        groupEl.innerHTML = `
+          <div class="topping-group-header">
+            <h4 class="topping-group-title">${group.name}</h4>
+            <span class="topping-group-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="topping-items-list" id="topping-group-${groupIdx}"></div>
+        `;
+        
+        container.appendChild(groupEl);
+        
+        const listEl = groupEl.querySelector('.topping-items-list');
+        const inputType = (group.max_select === 1 && group.min_select === 1) ? 'radio' : 'checkbox';
+        
+        (group.items || []).forEach((opt, optIdx) => {
+          const rowEl = document.createElement('label');
+          rowEl.className = 'topping-item-row';
+          
+          const optAppPrice = Math.round((opt.price * 1.28) / 100) * 100;
+          const priceText = opt.price > 0 ? `+${SF.formatCurrency(optAppPrice)}` : 'Miễn phí';
+          
+          const inputId = `opt-${groupIdx}-${optIdx}`;
+          const isChecked = (inputType === 'radio' && isRequired && optIdx === 0) ? 'checked' : '';
+          
+          rowEl.innerHTML = `
+            <input type="${inputType}" 
+                   name="group-${groupIdx}" 
+                   id="${inputId}" 
+                   class="topping-item-input" 
+                   value="${optIdx}" 
+                   data-group-idx="${groupIdx}" 
+                   data-name="${opt.name}" 
+                   data-price="${opt.price}"
+                   onchange="updateToppingModalPrice()"
+                   ${isChecked}>
+            <div class="topping-item-control ${inputType}"></div>
+            <span class="topping-item-name">${opt.name}</span>
+            <span class="topping-item-price">${priceText}</span>
+          `;
+          
+          listEl.appendChild(rowEl);
+        });
+      });
+      
+      document.getElementById('topping-modal').style.display = 'flex';
+      updateToppingModalPrice();
+    }
+
+    function closeToppingModal() {
+      document.getElementById('topping-modal').style.display = 'none';
+      CURRENT_TOPPING_ITEM = null;
+    }
+
+    function getSelectedToppings() {
+      const selected = [];
+      if (!CURRENT_TOPPING_ITEM) return selected;
+      
+      const inputs = document.querySelectorAll('.topping-item-input:checked');
+      inputs.forEach(input => {
+        const name = input.dataset.name;
+        const price = parseInt(input.dataset.price);
+        selected.push({ name, price });
+      });
+      return selected;
+    }
+
+    function updateToppingModalPrice() {
+      if (!CURRENT_TOPPING_ITEM) return;
+      
+      let totalPrice = CURRENT_TOPPING_ITEM.appPrice;
+      const selected = getSelectedToppings();
+      
+      selected.forEach(opt => {
+        totalPrice += Math.round((opt.price * 1.28) / 100) * 100;
+      });
+      
+      document.getElementById('topping-total-price').textContent = SF.formatCurrency(totalPrice);
+    }
+
+    function submitToppings() {
+      if (!CURRENT_TOPPING_ITEM) return;
+      
+      let isValid = true;
+      let missingGroupName = '';
+      
+      (CURRENT_TOPPING_ITEM.options || []).forEach((group, groupIdx) => {
+        const isRequired = group.mandatory === true || group.mandatory === 1;
+        if (isRequired) {
+          const checked = document.querySelectorAll(`input[name="group-${groupIdx}"]:checked`);
+          if (checked.length < (group.min_select || 1)) {
+            isValid = false;
+            missingGroupName = group.name;
+          }
+        }
+      });
+      
+      if (!isValid) {
+        SF.showToast('Thiếu lựa chọn', `Vui lòng chọn đầy đủ các tùy chọn bắt buộc: ${missingGroupName}`, 'warning');
+        return;
+      }
+      
+      const selected = getSelectedToppings();
+      SF.addToCart(RESTAURANT.id, CURRENT_TOPPING_ITEM.id, selected);
+      
+      refreshFoodItem(CURRENT_TOPPING_ITEM.id);
+      SF.updateCartBar();
+      updateNavCartBadge();
+      closeToppingModal();
+      
+      SF.showToast('Đã thêm món', 'Món ăn đã được thêm vào giỏ hàng.', 'success');
+    }
+
     function addItem(itemId) {
+      const item = (RESTAURANT.menu || []).find(m => m.id === itemId);
+      if (item && item.options && item.options.length > 0) {
+        openToppingModal(item);
+        return;
+      }
       SF.addToCart(RESTAURANT.id, itemId);
       refreshFoodItem(itemId);
       SF.updateCartBar();
@@ -830,6 +1215,37 @@
     window.removeItem = removeItem;
     window.scrollToCategory = scrollToCategory;
     window.goToCheckout = goToCheckout;
+  </script>
+  <!-- ── TOPPING SELECTION MODAL ── -->
+  <div class="modal-backdrop" id="topping-modal" style="display:none;">
+    <div class="topping-modal-card animate-slide-up">
+      <div class="topping-modal-header">
+        <div class="topping-modal-title-row">
+          <h3 class="topping-modal-title" id="topping-title">Tên món ăn</h3>
+          <button class="topping-modal-close" onclick="closeToppingModal()">&times;</button>
+        </div>
+        <p class="topping-modal-desc" id="topping-desc">Mô tả món ăn</p>
+      </div>
+      
+      <div class="topping-modal-body" id="topping-groups-container">
+        <!-- Các nhóm option sẽ được render động ở đây -->
+      </div>
+      
+      <div class="topping-modal-footer">
+        <div class="topping-modal-price-col">
+          <span class="topping-modal-price-label">Tổng tiền món:</span>
+          <span class="topping-modal-price" id="topping-total-price">0đ</span>
+        </div>
+        <button class="topping-modal-btn" id="topping-submit-btn" onclick="submitToppings()">Thêm vào giỏ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Expose closeToppingModal, updateToppingModalPrice, submitToppings to window scope
+    window.closeToppingModal = closeToppingModal;
+    window.updateToppingModalPrice = updateToppingModalPrice;
+    window.submitToppings = submitToppings;
   </script>
 </body>
 </html>

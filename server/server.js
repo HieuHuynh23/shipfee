@@ -2145,8 +2145,20 @@ app.get('/api/restaurants/:id', async (req, res) => {
       }
     }
 
-    // Kích hoạt cào ngầm chạy ngầm nếu chưa có menu thực tế
-    if (!responseRestaurant.hasRealMenu && !responseRestaurant.isClosed) {
+    // Phát hiện và tự động cập nhật nếu là menu thực tế kiểu cũ (chưa có options)
+    let isLegacyMenu = false;
+    if (responseRestaurant.hasRealMenu && responseRestaurant.menu && responseRestaurant.menu.length > 0) {
+      const hasAnyOptionsField = responseRestaurant.menu.some(m => m.options !== undefined);
+      if (!hasAnyOptionsField) {
+        isLegacyMenu = true;
+      }
+    }
+
+    // Kích hoạt cào ngầm chạy ngầm nếu chưa có menu thực tế HOẶC là menu cũ chưa có options
+    if ((!responseRestaurant.hasRealMenu || isLegacyMenu) && !responseRestaurant.isClosed) {
+      if (isLegacyMenu) {
+        console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Kích hoạt cào lại ngầm...`);
+      }
       found.menu = responseRestaurant.menu;
       found.menuTemplateFallback = responseRestaurant.menuTemplateFallback;
       found.hasRealMenu = responseRestaurant.hasRealMenu;

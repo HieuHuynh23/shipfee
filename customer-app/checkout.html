@@ -379,21 +379,43 @@
       const listEl = document.getElementById('order-items-list');
       listEl.innerHTML = '';
 
-      Object.entries(cart.items).forEach(([itemId, qty]) => {
+      Object.entries(cart.items).forEach(([cartKey, qty]) => {
         if (qty <= 0) return;
+        const [itemId, optionsStr] = cartKey.split('::');
         const item = restaurant.menu.find(m => m.id === itemId);
         if (!item) return;
+
+        let toppingsApp = 0;
+        let selectedOptions = [];
+        if (optionsStr) {
+          try {
+            selectedOptions = JSON.parse(optionsStr);
+            selectedOptions.forEach(opt => {
+              toppingsApp += Math.round((opt.price * 1.28) / 100) * 100;
+            });
+          } catch (e) {}
+        }
+
+        const itemTotalApp = (item.appPrice + toppingsApp) * qty;
+
+        const optionsHtml = selectedOptions.length > 0
+          ? `<div style="font-size: 11px; color: var(--clr-text-muted); margin-top: 2px; font-weight: 500;">
+              Lựa chọn: ${selectedOptions.map(o => `${o.name} (${o.price > 0 ? '+' + SF.formatCurrency(Math.round((o.price * 1.28) / 100) * 100) : 'Miễn phí'})`).join(', ')}
+             </div>`
+          : '';
+
         const row = document.createElement('div');
         row.className = 'order-item-row';
         row.innerHTML = `
           <img src="${item.img}" alt="${item.name}" class="order-item-row__img">
           <div style="flex:1;min-width:0;">
             <div class="order-item-row__name">${item.name}</div>
+            ${optionsHtml}
             <div class="order-item-row__qty">x${qty}</div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
-            <div class="order-item-row__price">${SF.formatCurrency(item.appPrice * qty)}</div>
-            <button class="order-item-row__delete-btn" onclick="deleteItem('${itemId}')" title="Xóa món">
+            <div class="order-item-row__price">${SF.formatCurrency(itemTotalApp)}</div>
+            <button class="order-item-row__delete-btn" onclick="deleteItem('${cartKey}')" title="Xóa món">
               <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>`;

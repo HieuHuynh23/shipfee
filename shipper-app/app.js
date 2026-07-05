@@ -439,8 +439,13 @@ function renderPendingOrders(orders) {
     card.className = 'order-card animate-fade-in';
     card.onclick = () => openJobDetail(order.id);
     
-    let itemsLabel = (order.items || []).map(i => `${i.name} (x${i.qty})`).join(', ');
-    if (itemsLabel.length > 50) itemsLabel = itemsLabel.substring(0, 47) + '...';
+    let itemsLabel = (order.items || []).map(i => {
+      const optsText = (i.selectedOptions && i.selectedOptions.length > 0)
+        ? ` [${i.selectedOptions.map(o => o.name).join(', ')}]`
+        : '';
+      return `${i.name}${optsText} (x${i.qty})`;
+    }).join(', ');
+    if (itemsLabel.length > 80) itemsLabel = itemsLabel.substring(0, 77) + '...';
 
     card.innerHTML = `
       <div class="order-card__header">
