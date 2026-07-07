@@ -514,7 +514,7 @@
         <div class="section-card__title">
           <i class="fa-solid fa-id-card"></i> Thông tin tài xế
         </div>
-        <div class="shipper-card">
+        <div class="shipper-card" onclick="showShipperProfileModal()" style="cursor: pointer;" title="Xem hồ sơ tài xế">
           <div class="shipper-card__avatar-placeholder" id="shipper-avatar">T</div>
           <img class="shipper-card__avatar" id="shipper-avatar-img" style="display:none;" src="" alt="Shipper Avatar">
           <div class="shipper-card__info">
@@ -613,6 +613,45 @@
         <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--clr-border); background: #FFFFFF !important; color: #0F172A !important; font-size: 13px;" onkeyup="if(event.key === 'Enter') sendChatMessage()">
         <button class="btn btn--primary" onclick="sendChatMessage()" style="padding: 10px 16px; border-radius: var(--radius-md);">Gửi</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ── SHIPPER PROFILE OVERLAY ── -->
+  <div class="overlay" id="shipper-profile-overlay" onclick="closeShipperProfileModal()" style="display: none; align-items: center; justify-content: center; z-index: 10000; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);">
+    <div class="modal card-shell" onclick="event.stopPropagation()" style="max-width: 360px; width: 90%; padding: 24px; border-radius: 16px; background: var(--clr-surface); border: 1.5px solid var(--clr-border); color: var(--clr-text); display: flex; flex-direction: column;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--clr-border); padding-bottom: 12px; margin-bottom: 16px;">
+        <h3 style="margin: 0; font-size: 18px; color: var(--clr-primary); font-weight: 800;"><i class="fa-solid fa-id-card"></i> Hồ sơ Tài xế</h3>
+        <button onclick="closeShipperProfileModal()" style="background: none; border: none; color: var(--clr-text-muted); cursor: pointer; font-size: 18px;"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div style="display: flex; justify-content: center; margin-bottom: 16px;">
+        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--clr-primary); background: rgba(39, 39, 42, 0.1); display: flex; align-items: center; justify-content: center; position: relative;">
+          <img id="profile-modal-avatar-img" src="" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+          <i class="fa-solid fa-user-tie" id="profile-modal-avatar-placeholder" style="font-size: 32px; color: var(--clr-text-muted);"></i>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--clr-border); padding-bottom: 8px;">
+          <span style="color: var(--clr-text-muted);">Họ và Tên:</span>
+          <span id="profile-modal-name" style="font-weight: 700;">—</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--clr-border); padding-bottom: 8px;">
+          <span style="color: var(--clr-text-muted);">Số điện thoại:</span>
+          <span id="profile-modal-phone" style="font-weight: 700;">—</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--clr-border); padding-bottom: 8px;">
+          <span style="color: var(--clr-text-muted);">Đánh giá:</span>
+          <span id="profile-modal-rating" style="font-weight: 700; color: #eab308;"><i class="fa-solid fa-star"></i> 5.0</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed var(--clr-border); padding-bottom: 8px;">
+          <span style="color: var(--clr-text-muted);">Tổng đơn giao:</span>
+          <span id="profile-modal-orders" style="font-weight: 700; color: var(--clr-primary);">0 đơn</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-bottom: 8px;">
+          <span style="color: var(--clr-text-muted);">Trạng thái ca:</span>
+          <span id="profile-modal-status" style="font-weight: 700;">—</span>
+        </div>
+      </div>
+      <button onclick="closeShipperProfileModal()" style="width: 100%; margin-top: 20px; padding: 10px; background: var(--clr-surface-hover); border: 1.5px solid var(--clr-border); border-radius: 8px; color: var(--clr-text); cursor: pointer; font-size: 13px; font-weight: 600;">Đóng</button>
     </div>
   </div>
 
@@ -2358,6 +2397,68 @@
         });
       }
     });
+
+    function showShipperProfileModal() {
+      if (!order || !order.shipperPhone) return;
+      
+      const cleanPhone = order.shipperPhone.trim().replace(/\s+/g, '');
+      const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:3001'
+        : 'https://shipfee-eo5s.onrender.com';
+      const apiBase = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
+
+      fetch(`${apiBase}/api/shippers`)
+        .then(r => r.json())
+        .then(json => {
+          if (json.success && Array.isArray(json.data)) {
+            const shipper = json.data.find(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+            if (shipper) {
+              document.getElementById('profile-modal-name').textContent = shipper.name || order.shipperName || '—';
+              document.getElementById('profile-modal-phone').textContent = shipper.phone || order.shipperPhone || '—';
+              document.getElementById('profile-modal-rating').innerHTML = `<i class="fa-solid fa-star"></i> ${shipper.rating || order.shipperRating || '5.0'}`;
+              document.getElementById('profile-modal-orders').textContent = `${shipper.totalOrders || 0} đơn`;
+              
+              const statusLabels = {
+                ONLINE: '<span class="badge badge--online" style="display:inline-flex;"><span class="badge__dot"></span> Trực tuyến</span>',
+                OFFLINE: '<span class="badge badge--offline" style="display:inline-flex;"><span class="badge__dot"></span> Ngoại tuyến</span>',
+                BUSY: '<span class="badge badge--busy" style="display:inline-flex;"><span class="badge__dot"></span> Đang bận</span>'
+              };
+              document.getElementById('profile-modal-status').innerHTML = statusLabels[shipper.status] || shipper.status || '—';
+              
+              const avatarImg = document.getElementById('profile-modal-avatar-img');
+              const avatarPlaceholder = document.getElementById('profile-modal-avatar-placeholder');
+              
+              if (shipper.avatarUrl && avatarImg && avatarPlaceholder) {
+                avatarImg.src = shipper.avatarUrl;
+                avatarImg.style.display = 'block';
+                avatarPlaceholder.style.display = 'none';
+              } else {
+                if (avatarImg) avatarImg.style.display = 'none';
+                if (avatarPlaceholder) avatarPlaceholder.style.display = 'block';
+              }
+              
+              const overlay = document.getElementById('shipper-profile-overlay');
+              if (overlay) {
+                overlay.style.display = 'flex';
+                overlay.classList.add('active');
+              }
+            }
+          }
+        }).catch(err => {
+          console.error('Error fetching shipper details:', err);
+        });
+    }
+
+    function closeShipperProfileModal() {
+      const overlay = document.getElementById('shipper-profile-overlay');
+      if (overlay) {
+        overlay.style.display = 'none';
+        overlay.classList.remove('active');
+      }
+    }
+
+    window.showShipperProfileModal = showShipperProfileModal;
+    window.closeShipperProfileModal = closeShipperProfileModal;
 
     function configureApiUrl() {
       const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')

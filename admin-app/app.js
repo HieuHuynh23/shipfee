@@ -495,7 +495,7 @@ function renderDashboardStats() {
       onlineEl.innerHTML = `<div class="empty-state" style="padding: 32px;"><p class="text-muted text-sm">Không có tài xế trực tuyến</p></div>`;
     } else {
       onlineEl.innerHTML = `<table class="data-table"><tbody>${onlineShippers.map(s => `
-        <tr>
+        <tr onclick="editShipper('${s.phone}')" style="cursor: pointer;" title="Xem/Sửa thông tin tài xế">
           <td style="width: 40px;"><div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px; overflow: hidden; display: flex; align-items: center; justify-content: center;">${s.avatarUrl ? `<img src="${s.avatarUrl}" style="width:100%; height:100%; object-fit:cover;">` : (s.name ? s.name.charAt(0) : '?')}</div></td>
           <td><strong style="font-size: 13px;">${s.name || '—'}</strong><br><span class="text-muted text-xs mono">${s.phone}</span></td>
           <td><span class="badge badge--online"><span class="badge__dot"></span> Online</span></td>
@@ -1500,7 +1500,7 @@ function showOrderDetail(orderId) {
     ${o.shipperName ? `
       <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
         <h4 class="mb-4">Tài xế</h4>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2" onclick="editShipper('${o.shipperPhone}')" style="cursor: pointer;" title="Xem/Sửa thông tin tài xế">
           <div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
             ${o.shipperAvatarUrl ? `<img src="${o.shipperAvatarUrl}" style="width:100%; height:100%; object-fit:cover;">` : (o.shipperName || '?').charAt(0)}
           </div>
