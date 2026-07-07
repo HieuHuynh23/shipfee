@@ -1,4 +1,4 @@
-﻿# start_server.ps1
+# start_server.ps1
 # Full-stack launcher: Node.js API (port 3001) + http-server frontend (port 8000)
 # Nang cap: dung http-server thay PowerShell HttpListener de ho tro 1000+ user dong thoi
 # Usage: powershell.exe -ExecutionPolicy Bypass -File start_server.ps1
@@ -13,6 +13,7 @@ Write-Host "  ============================================================" -For
 Write-Host "      ShipFee -- Full Stack Server Launcher v2.0" -ForegroundColor Cyan
 Write-Host "  ============================================================" -ForegroundColor Cyan
 Write-Host "   Frontend  : http://localhost:$FrontendPort/customer-app/index.html" -ForegroundColor Yellow
+Write-Host "   CRM Admin : http://localhost:$FrontendPort/admin-app/index.html" -ForegroundColor Yellow
 Write-Host "   API       : http://localhost:$ApiPort/api/restaurants" -ForegroundColor Yellow
 Write-Host "   API Status: http://localhost:$ApiPort/api/status" -ForegroundColor Yellow
 Write-Host "  ============================================================" -ForegroundColor Cyan
@@ -140,6 +141,22 @@ if (-not $frontendProcess) {
     Write-Host "[OK] Frontend server dang chay (PID: $($frontendProcess.Id))" -ForegroundColor Green
 }
 
+# --- 6b. Start crawl scheduler daemon ---
+Write-Host ""
+Write-Host "[START] Khoi dong Trinh Hen Gio Cao Du Lieu (crawl_scheduler.js)..." -ForegroundColor Cyan
+$schedulerProcess = Start-Process `
+    -FilePath "node.exe" `
+    -ArgumentList "crawl_scheduler.js" `
+    -WorkingDirectory $scriptDir `
+    -PassThru `
+    -WindowStyle Minimized
+
+if (-not $schedulerProcess) {
+    Write-Host "[WARN] Khong the khoi dong crawl scheduler daemon." -ForegroundColor Yellow
+} else {
+    Write-Host "[OK] Crawl scheduler dang chay (PID: $($schedulerProcess.Id))" -ForegroundColor Green
+}
+
 Start-Sleep -Seconds 2
 
 # --- 7. Open browser ---
@@ -179,6 +196,11 @@ try {
     if ($frontendProcess -and -not $frontendProcess.HasExited) {
         Write-Host "[STOP] Dung Frontend process (PID: $($frontendProcess.Id))..." -ForegroundColor Yellow
         Stop-Process -Id $frontendProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+
+    if ($schedulerProcess -and -not $schedulerProcess.HasExited) {
+        Write-Host "[STOP] Dung Crawl Scheduler process (PID: $($schedulerProcess.Id))..." -ForegroundColor Yellow
+        Stop-Process -Id $schedulerProcess.Id -Force -ErrorAction SilentlyContinue
     }
 
     Write-Host "[DONE] Tat ca server da dung." -ForegroundColor Cyan
