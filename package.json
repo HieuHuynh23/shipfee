@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "Root package to forward install and start commands to the server subdirectory on Render",
   "scripts": {
-    "install-server": "cd server && npm install",
+    "postinstall": "cd server && npm install",
     "build": "cd server && npm install",
     "start": "cd server && npm start"
   }
