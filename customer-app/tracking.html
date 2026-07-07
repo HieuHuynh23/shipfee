@@ -516,6 +516,7 @@
         </div>
         <div class="shipper-card">
           <div class="shipper-card__avatar-placeholder" id="shipper-avatar">T</div>
+          <img class="shipper-card__avatar" id="shipper-avatar-img" style="display:none;" src="" alt="Shipper Avatar">
           <div class="shipper-card__info">
             <div class="shipper-card__name" id="shipper-name">—</div>
             <div class="shipper-card__rating">
@@ -1182,7 +1183,20 @@
         if (shipperSec) shipperSec.style.display = '';
         
         const sAvatar = document.getElementById('shipper-avatar');
-        if (sAvatar) sAvatar.textContent = order.shipperName?.charAt(0) || 'T';
+        const sAvatarImg = document.getElementById('shipper-avatar-img');
+        if (order.shipperAvatarUrl) {
+          if (sAvatar) sAvatar.style.display = 'none';
+          if (sAvatarImg) {
+            sAvatarImg.src = order.shipperAvatarUrl;
+            sAvatarImg.style.display = '';
+          }
+        } else {
+          if (sAvatar) {
+            sAvatar.textContent = order.shipperName?.charAt(0) || 'T';
+            sAvatar.style.display = '';
+          }
+          if (sAvatarImg) sAvatarImg.style.display = 'none';
+        }
         
         const sName = document.getElementById('shipper-name');
         if (sName) sName.textContent   = order.shipperName   || '—';
@@ -1846,7 +1860,16 @@
       if (overlay) overlay.classList.add('active');
 
       document.getElementById('call-contact-name').textContent = order.shipperName || 'Nguyễn Văn Tài';
-      document.getElementById('call-avatar-display').textContent = (order.shipperName || 'T').charAt(0);
+      const callAvatar = document.getElementById('call-avatar-display');
+      if (callAvatar) {
+        if (order.shipperAvatarUrl) {
+          callAvatar.innerHTML = `<img src="${order.shipperAvatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+          callAvatar.style.padding = '0';
+        } else {
+          callAvatar.textContent = (order.shipperName || 'T').charAt(0);
+          callAvatar.style.padding = '';
+        }
+      }
       
       const statusLabel = document.getElementById('call-status-label');
       if (statusLabel) statusLabel.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang kết nối...';
@@ -2026,7 +2049,16 @@
       if (overlay) overlay.classList.add('active');
 
       document.getElementById('call-contact-name').textContent = order.shipperName || 'Nguyễn Văn Tài';
-      document.getElementById('call-avatar-display').textContent = (order.shipperName || 'T').charAt(0);
+      const callAvatar = document.getElementById('call-avatar-display');
+      if (callAvatar) {
+        if (order.shipperAvatarUrl) {
+          callAvatar.innerHTML = `<img src="${order.shipperAvatarUrl}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+          callAvatar.style.padding = '0';
+        } else {
+          callAvatar.textContent = (order.shipperName || 'T').charAt(0);
+          callAvatar.style.padding = '';
+        }
+      }
       document.getElementById('call-status-label').innerHTML = '<i class="fa-solid fa-bell animate-bounce"></i> Cuộc gọi đến...';
 
       document.getElementById('call-actions-incoming').style.display = 'flex';

@@ -15,13 +15,1163 @@ const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 
+// Load environment variables
+require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+const { createClient } = require('@supabase/supabase-js');
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+let supabase = null;
+if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase_url_here') {
+  supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+  console.log('[Supabase] Client initialized successfully via Service Role Key');
+  
+  // Tự động kiểm tra và tạo tài khoản Admin mặc định
+  seedAdminUser();
+} else {
+  console.log('[Supabase] Supabase is NOT configured. Operating in LOCAL/BYPASS mode.');
+}
+
+async function seedAdminUser() {
+  try {
+    const adminEmail = 'admin@shipfee.vn';
+    const adminPassword = 'admin123';
+    
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+    if (listError) {
+      console.warn('[Supabase Admin Seed] Không thể lấy danh sách user:', listError.message);
+      return;
+    }
+
+    const adminExists = users.some(u => u.email === adminEmail);
+    if (!adminExists) {
+      console.log('[Supabase Admin Seed] Đang khởi tạo tài khoản Admin mặc định...');
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: adminEmail,
+        password: adminPassword,
+        email_confirm: true,
+        user_metadata: {
+          role: 'admin',
+          full_name: 'ShipFee Admin'
+        }
+      });
+      if (error) {
+        console.error('[Supabase Admin Seed] Tạo tài khoản Admin thất bại:', error.message);
+      } else {
+        console.log('[Supabase Admin Seed] Đã khởi tạo thành công tài khoản Admin mặc định: admin@shipfee.vn / admin123');
+      }
+    } else {
+      console.log('[Supabase Admin Seed] Tài khoản Admin đã sẵn sàng.');
+    }
+  } catch (err) {
+    console.error('[Supabase Admin Seed] Lỗi khởi tạo:', err.message);
+  }
+}
+
+// Khởi tạo thư mục upload ảnh chân dung tài xế
+const UPLOADS_DIR = path.join(__dirname, 'public/uploads/shippers');
+if (!fs.existsSync(UPLOADS_DIR)) {
+  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+// Cấu hình Telegram Bot phê duyệt shipper từ xa
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+let telegramOffset = 0;
+
+async function sendTelegramNewShipperNotification(shipper) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.log('[Telegram Bot] Bỏ qua gửi thông báo do chưa cấu hình bot token hoặc chat ID.');
+    return;
+  }
+  try {
+    const text = `🔔 *Yêu cầu phê duyệt Tài xế mới*\n\n` +
+      `👤 *Họ và tên:* ${shipper.name}\n` +
+      `📞 *Số điện thoại:* ${shipper.phone}\n` +
+      `✉️ *Email:* ${shipper.email || '—'}\n` +
+      `🖼️ *Ảnh chân dung:* [Xem ảnh](${shipper.avatarUrl || ''})\n\n` +
+      `Nhấp chọn phê duyệt bên dưới hoặc duyệt trên trang quản trị CRM.`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '✅ Phê duyệt', callback_data: `approve_shipper:${shipper.phone}` },
+          { text: '❌ Từ chối', callback_data: `reject_shipper:${shipper.phone}` }
+        ]
+      ]
+    };
+
+    await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: text,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    });
+    console.log(`[Telegram Bot] Đã gửi thông báo yêu cầu phê duyệt cho shipper: ${shipper.name}`);
+  } catch (err) {
+    console.error('[Telegram Bot] Lỗi gửi thông báo Telegram:', err.response?.data || err.message);
+  }
+}
+
+async function sendTelegramNewOrderNotification(order) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    const itemsText = (order.items || []).map(i => {
+      let text = `• ${i.name} x${i.quantity || i.qty}`;
+      if (i.note) text += ` (Ghi chú: *${i.note}*)`;
+      return text;
+    }).join('\n');
+
+    const text = `🛒 *CÓ ĐƠN HÀNG MỚI CHỜ XỬ LÝ!*\n\n` +
+      `🆔 *Mã đơn:* \`${order.id}\`\n` +
+      `🏪 *Cửa hàng:* *${order.restaurantName}*\n` +
+      `📍 *Địa chỉ giao:* ${order.deliveryAddress}\n` +
+      `👤 *Người nhận:* ${order.deliveryName} (${order.deliveryPhone})\n` +
+      `👤 *Người đặt:* ${order.isRelative ? 'Đặt hộ - ' : ''}${order.ordererPhone}\n` +
+      `📝 *Ghi chú đơn:* ${order.note || 'Không có'}\n\n` +
+      `📦 *Danh sách món:* \n${itemsText || 'Trống'}\n\n` +
+      `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
+      `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
+      `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
+      `🔗 *Mở CRM Admin:* http://localhost:8000/admin-app/index.html\n\n` +
+      `Chọn thao tác nhanh dưới đây để điều phối.`;
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🚴 Gán nhanh tự động', callback_data: `assign_auto:${order.id}` },
+          { text: '🎯 Chỉ định tài xế', callback_data: `assign_select:${order.id}` }
+        ],
+        [
+          { text: '❌ Hủy đơn', callback_data: `cancel_order:${order.id}` }
+        ]
+      ]
+    };
+
+    await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: text,
+      parse_mode: 'Markdown',
+      reply_markup: keyboard
+    });
+    console.log(`[Telegram Bot] Đã gửi thông báo đơn hàng mới: ${order.id}`);
+  } catch (err) {
+    console.error('[Telegram Bot] Lỗi gửi thông báo đơn hàng Telegram:', err.response?.data || err.message);
+  }
+}
+
+async function sendTelegramOrderStatusUpdateNotification(order) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    let statusEmoji = 'ℹ️';
+    let statusName = order.status;
+    if (order.status === 'ACCEPTED') {
+      statusEmoji = '🚴';
+      statusName = 'Đã nhận đơn (Shipper đang đến quán)';
+    } else if (order.status === 'PURCHASED') {
+      statusEmoji = '🛍️';
+      statusName = 'Đã mua hàng (Đang giao tới khách)';
+    } else if (order.status === 'DELIVERED') {
+      statusEmoji = '✅';
+      statusName = 'Giao thành công 🎉';
+    } else if (order.status === 'CANCELLED') {
+      statusEmoji = '❌';
+      statusName = 'Đã hủy đơn';
+    }
+
+    const text = `${statusEmoji} *CẬP NHẬT TRẠNG THÁI ĐƠN HÀNG*\n\n` +
+      `🆔 *Mã đơn:* \`${order.id}\`\n` +
+      `🏪 *Cửa hàng:* *${order.restaurantName}*\n` +
+      `📍 *Địa chỉ giao:* ${order.deliveryAddress}\n` +
+      `👤 *Người nhận:* ${order.deliveryName} (${order.deliveryPhone})\n` +
+      `🛵 *Tài xế:* ${order.shipperName ? `${order.shipperName} (${order.shipperPhone})` : 'Chưa có'}\n` +
+      `💰 *Giá trị thanh toán:* ${order.appTotal.toLocaleString('vi-VN')}đ\n\n` +
+      `📈 *Trạng thái mới:* *${statusName}*`;
+
+    await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      chat_id: TELEGRAM_CHAT_ID,
+      text: text,
+      parse_mode: 'Markdown'
+    });
+  } catch (err) {
+    console.error('[Telegram Bot] Lỗi gửi cập trạng thái đơn Telegram:', err.response?.data || err.message);
+  }
+}
+
+function generateCRMReportMessage() {
+  try {
+    const orders = readOrdersDatabase();
+    const shippers = readShippersDatabase();
+    
+    const todayStr = new Date().toDateString();
+    const todayOrders = orders.filter(o => {
+      const d = o.createdAt || o.acceptedAt || Date.now();
+      return new Date(d).toDateString() === todayStr;
+    });
+
+    const pendingCount = todayOrders.filter(o => o.status === 'PENDING').length;
+    const acceptedCount = todayOrders.filter(o => o.status === 'ACCEPTED').length;
+    const purchasedCount = todayOrders.filter(o => o.status === 'PURCHASED').length;
+    const deliveredCount = todayOrders.filter(o => o.status === 'DELIVERED').length;
+    const cancelledCount = todayOrders.filter(o => o.status === 'CANCELLED').length;
+
+    const todayRevenue = todayOrders
+      .filter(o => o.status === 'DELIVERED')
+      .reduce((sum, o) => sum + (o.appTotal || 0), 0);
+
+    const onlineShippers = shippers.filter(s => s.status === 'ONLINE');
+    const activeOrders = orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED' && o.shipperPhone);
+    const busyPhones = new Set(activeOrders.map(o => o.shipperPhone.trim().replace(/\s+/g, '')));
+    
+    const onlineFreeCount = onlineShippers.filter(s => !busyPhones.has(s.phone.trim().replace(/\s+/g, ''))).length;
+    const onlineBusyCount = onlineShippers.filter(s => busyPhones.has(s.phone.trim().replace(/\s+/g, ''))).length;
+
+    const text = `📊 *BÁO CÁO TỔNG QUAN CRM SHIPFEE*\n` +
+      `📅 *Ngày cập nhật:* ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}\n\n` +
+      `💰 *Doanh thu hôm nay (Giao thành công):* *${todayRevenue.toLocaleString('vi-VN')}đ*\n\n` +
+      `📦 *Thống kê Đơn hàng hôm nay:* \n` +
+      `• ⏳ Chờ xử lý (PENDING): *${pendingCount}*\n` +
+      `• 🚴 Shipper đã nhận (ACCEPTED): *${acceptedCount}*\n` +
+      `• 🛍️ Đang giao hàng (PURCHASED): *${purchasedCount}*\n` +
+      `• ✅ Giao thành công (DELIVERED): *${deliveredCount}*\n` +
+      `• ❌ Đơn đã hủy (CANCELLED): *${cancelledCount}*\n\n` +
+      `🛵 *Thống kê ca hoạt động Tài xế:* \n` +
+      `• 🟢 Đang trực rảnh việc: *${onlineFreeCount}*\n` +
+      `• 🟡 Đang bận giao đơn: *${onlineBusyCount}*\n` +
+      `• 🔴 Đã tắt ca (OFFLINE): *${shippers.length - onlineShippers.length}*\n` +
+      `• ⏳ Đang chờ Admin duyệt: *${shippers.filter(s => s.isApproved === false).length}*\n\n` +
+      `Chọn tùy chọn bên dưới để xem báo cáo chi tiết nhanh.`;
+      
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🔄 Làm mới số liệu', callback_data: 'crm_refresh_stats' },
+          { text: '🛵 Xem shipper online', callback_data: 'crm_shippers_report' }
+        ]
+      ]
+    };
+    
+    return { text, keyboard };
+  } catch (e) {
+    console.error('[Telegram Report Error]:', e.message);
+    return { text: '❌ Lỗi hệ thống khi trích xuất dữ liệu báo cáo!', keyboard: { inline_keyboard: [] } };
+  }
+}
+
+function generateShippersReportMessage() {
+  try {
+    const shippers = readShippersDatabase();
+    const orders = readOrdersDatabase();
+    const onlineList = shippers.filter(s => s.status === 'ONLINE');
+
+    const activeOrders = orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED' && o.shipperPhone);
+    const busyPhones = new Set(activeOrders.map(o => o.shipperPhone.trim().replace(/\s+/g, '')));
+
+    let text = `🛵 *DANH SÁCH TÀI XẾ ĐANG HOẠT ĐỘNG (ONLINE)*\n` +
+      `📅 *Cập nhật:* ${new Date().toLocaleTimeString('vi-VN')}\n\n`;
+
+    if (onlineList.length === 0) {
+      text += `⚠️ Hiện tại không có tài xế nào đang online trực ca.`;
+    } else {
+      onlineList.forEach((s, idx) => {
+        const cleanedPhone = s.phone.trim().replace(/\s+/g, '');
+        const isBusy = busyPhones.has(cleanedPhone);
+        text += `${idx + 1}. *${s.name}* (${s.phone})\n   • Trạng thái: ${isBusy ? '🟡 Đang giao đơn' : '🟢 Đang rảnh việc'}\n`;
+      });
+    }
+
+    const keyboard = {
+      inline_keyboard: [
+        [
+          { text: '🔄 Làm mới', callback_data: 'crm_shippers_report' },
+          { text: '⬅️ Quay lại Menu', callback_data: 'crm_main_menu' }
+        ]
+      ]
+    };
+
+    return { text, keyboard };
+  } catch (e) {
+    return { text: '❌ Lỗi hệ thống khi tải danh sách tài xế!', keyboard: { inline_keyboard: [] } };
+  }
+}
+
+function findShipperInDatabase(query) {
+  try {
+    const shippers = readShippersDatabase();
+    const cleanQuery = query.trim().toLowerCase().replace(/\s+/g, '');
+    if (!cleanQuery) return [];
+
+    return shippers.filter(s => {
+      const cleanName = (s.name || '').toLowerCase().replace(/\s+/g, '');
+      const cleanPhone = (s.phone || '').trim().replace(/\s+/g, '');
+      const cleanEmail = (s.email || '').toLowerCase();
+      
+      return cleanName.includes(cleanQuery) || 
+             cleanPhone.includes(cleanQuery) ||
+             cleanEmail.includes(cleanQuery);
+    });
+  } catch (e) {
+    console.error('Error finding shipper:', e.message);
+    return [];
+  }
+}
+
+function generateShipperDetailMessage(shipper) {
+  try {
+    const ar = shipper.acceptanceRate !== undefined ? shipper.acceptanceRate : 100;
+    const cr = shipper.completionRate !== undefined ? shipper.completionRate : 100;
+    const earnings = shipper.totalEarnings || 0;
+    const orders = shipper.totalOrders || 0;
+    
+    const emailText = shipper.email ? `\`${shipper.email}\`` : '`—`';
+    const avatarText = shipper.avatarUrl ? `\`${shipper.avatarUrl}\`` : '`Chưa cập nhật`';
+
+    const text = `👤 *THÔNG TIN CHI TIẾT TÀI XẾ*\n\n` +
+      `• *Họ và tên:* ${shipper.name || '—'}\n` +
+      `• *Số điện thoại:* \`${shipper.phone}\`\n` +
+      `• *Email:* ${emailText}\n` +
+      `• *Trạng thái ca:* ${shipper.status === 'ONLINE' ? '🟢 ONLINE' : '🔴 OFFLINE'}\n` +
+      `• *Trạng thái duyệt:* ${shipper.isApproved !== false ? '✅ Đã duyệt hoạt động' : '🔒 Đang bị KHÓA / Chờ duyệt'}\n\n` +
+      `📈 *Chỉ số hiệu suất:* \n` +
+      `• Tỷ lệ nhận đơn (AR): *${ar}%* · Hoàn thành (CR): *${cr}%*\n` +
+      `• Tổng đơn giao: *${orders} đơn*\n` +
+      `• Doanh thu tích lũy: *${earnings.toLocaleString('vi-VN')}đ*\n\n` +
+      `🖼️ *Ảnh chân dung:* ${avatarText}\n\n` +
+      `Chọn thao tác xử lý cho tài xế dưới đây:`;
+
+    const buttons = [];
+    if (shipper.isApproved === false) {
+      buttons.push([
+        { text: '✅ Phê duyệt hoạt động', callback_data: `shipper_approve:${shipper.phone}` },
+        { text: '❌ Từ chối & Xóa', callback_data: `shipper_reject:${shipper.phone}` }
+      ]);
+    } else {
+      buttons.push([
+        { text: '🔒 Khóa tài khoản', callback_data: `shipper_lock:${shipper.phone}` },
+        { text: '❌ Xóa hoàn toàn', callback_data: `shipper_delete:${shipper.phone}` }
+      ]);
+    }
+    buttons.push([
+      { text: '🔄 Làm mới thông tin', callback_data: `shipper_refresh:${shipper.phone}` },
+      { text: '⬅️ Quay lại Menu', callback_data: 'crm_main_menu' }
+    ]);
+
+    const keyboard = { inline_keyboard: buttons };
+    return { text, keyboard };
+  } catch (e) {
+    return { text: '❌ Lỗi hệ thống khi trích xuất thông tin tài xế!', keyboard: { inline_keyboard: [] } };
+  }
+}
+
+async function lockShipperAccount(phone) {
+  try {
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    if (shipperIndex === -1) return false;
+
+    const shipper = shippers[shipperIndex];
+    shipper.isApproved = false;
+    shippers[shipperIndex] = shipper;
+    writeShippersDatabase(shippers);
+
+    if (supabase && shipper.id) {
+      await supabase.auth.admin.updateUserById(shipper.id, {
+        user_metadata: { is_approved: false }
+      });
+      try {
+        await supabase
+          .from('shipper_profiles')
+          .update({ is_approved: false })
+          .eq('id', shipper.id);
+      } catch (err) {
+        console.warn('[Supabase Error] Lỗi cập nhật khóa trong shipper_profiles:', err.message);
+      }
+    }
+    console.log(`[Lock Shipper] Đã khóa tài xế: ${shipper.name} (${shipper.phone})`);
+    return true;
+  } catch (err) {
+    console.error('[Lock Shipper Error]:', err.message);
+    return false;
+  }
+}
+
+async function approveShipperAccount(phone) {
+  try {
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    if (shipperIndex === -1) return false;
+
+    const shipper = shippers[shipperIndex];
+    if (shipper.isApproved) return true;
+
+    shipper.isApproved = true;
+    shippers[shipperIndex] = shipper;
+    writeShippersDatabase(shippers);
+
+    if (supabase && shipper.id) {
+      await supabase.auth.admin.updateUserById(shipper.id, {
+        user_metadata: { is_approved: true }
+      });
+      try {
+        await supabase
+          .from('shipper_profiles')
+          .update({ is_approved: true })
+          .eq('id', shipper.id);
+      } catch (err) {
+        console.warn('[Supabase Error] Lỗi cập nhật is_approved trong table shipper_profiles:', err.message);
+      }
+    }
+    console.log(`[Approve Shipper] Đã phê duyệt tài xế: ${shipper.name} (${shipper.phone})`);
+    return true;
+  } catch (err) {
+    console.error('[Approve Shipper Error]:', err.message);
+    return false;
+  }
+}
+
+async function rejectShipperAccount(phone) {
+  try {
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    if (shipperIndex === -1) return false;
+
+    const shipper = shippers[shipperIndex];
+    const uuid = shipper.id;
+
+    shippers.splice(shipperIndex, 1);
+    writeShippersDatabase(shippers);
+
+    const avatarPath = path.join(UPLOADS_DIR, `${cleanedPhone}.png`);
+    if (fs.existsSync(avatarPath)) {
+      try { fs.unlinkSync(avatarPath); } catch (e) {}
+    }
+
+    if (supabase && uuid) {
+      await supabase.auth.admin.deleteUser(uuid);
+      try {
+        await supabase.from('shipper_profiles').delete().eq('id', uuid);
+      } catch (err) {}
+    }
+    console.log(`[Reject Shipper] Đã từ chối và xóa tài xế: ${shipper.name} (${shipper.phone})`);
+    return true;
+  } catch (err) {
+    console.error('[Reject Shipper Error]:', err.message);
+    return false;
+  }
+}
+
+function startTelegramPolling() {
+  if (!TELEGRAM_BOT_TOKEN) {
+    console.log('[Telegram Bot] TELEGRAM_BOT_TOKEN chưa cấu hình, bỏ qua chạy polling.');
+    return;
+  }
+  console.log('[Telegram Bot] Đang khởi chạy Telegram Polling Daemon...');
+  setInterval(async () => {
+    try {
+      const response = await axios.get(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getUpdates`, {
+        params: { offset: telegramOffset, timeout: 10 }
+      });
+      const updates = response.data?.result || [];
+      for (const update of updates) {
+        telegramOffset = update.update_id + 1;
+
+        // 1. Xử lý gõ lệnh tay trong nhóm chat Admin hoặc Channel
+        const msg = update.message || update.channel_post;
+        if (msg && msg.text) {
+          const text = msg.text.trim().toLowerCase();
+          const chatId = msg.chat.id;
+
+          if (String(chatId) === String(TELEGRAM_CHAT_ID)) {
+            if (text === '/crm' || text === '/stats' || text === '/start') {
+              const report = generateCRMReportMessage();
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: report.text,
+                parse_mode: 'Markdown',
+                reply_markup: report.keyboard
+              });
+            } else if (text === '/shippers' || text === '/drivers') {
+              const shippersMsg = generateShippersReportMessage();
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: shippersMsg.text,
+                parse_mode: 'Markdown',
+                reply_markup: shippersMsg.keyboard
+              });
+            } else if (text.startsWith('/find ') || text.startsWith('/search ')) {
+              const query = text.replace(/^\/(find|search)\s+/, '').trim();
+              const results = findShipperInDatabase(query);
+              if (results.length === 0) {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: `🔍 *Tìm kiếm tài xế:* "${query}"\n\n⚠️ Không tìm thấy tài xế nào trùng khớp!`,
+                  parse_mode: 'Markdown'
+                });
+              } else if (results.length === 1) {
+                const report = generateShipperDetailMessage(results[0]);
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: report.text,
+                  parse_mode: 'Markdown',
+                  reply_markup: report.keyboard
+                });
+              } else {
+                let listText = `🔍 *Tìm thấy ${results.length} tài xế trùng khớp với:* "${query}"\n\n`;
+                const keyboard = { inline_keyboard: [] };
+                results.forEach((s) => {
+                  keyboard.inline_keyboard.push([{
+                    text: `🔎 ${s.name} (${s.phone})`,
+                    callback_data: `select_shipper:${s.phone}`
+                  }]);
+                });
+                keyboard.inline_keyboard.push([{
+                  text: '⬅️ Quay lại Menu', callback_data: 'crm_main_menu'
+                }]);
+                
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: listText + `Nhấp chọn tài xế cụ thể bên dưới để xử lý:`,
+                  parse_mode: 'Markdown',
+                  reply_markup: keyboard
+                });
+              }
+            } else if (text.startsWith('/assign ')) {
+              const params = text.replace(/^\/assign\s+/, '').trim().split(/\s+/);
+              if (params.length < 2) {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: `⚠️ *Sai cú pháp!*\n\nCú pháp chuẩn: \`/assign <mã_đơn> <sđt_hoặc_tên_tài_xế>\`\n*Ví dụ:* \`/assign SPF-123456 0907296261\``,
+                  parse_mode: 'Markdown'
+                });
+                continue;
+              }
+
+              const orderIdInput = params[0].toUpperCase();
+              const shipperQuery = params.slice(1).join(' ').trim();
+
+              const orders = readOrdersDatabase();
+              const order = orders.find(o => o.id.toUpperCase() === orderIdInput);
+              if (!order) {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: `❌ Không tìm thấy đơn hàng nào có mã: \`${orderIdInput}\`!`,
+                  parse_mode: 'Markdown'
+                });
+                continue;
+              }
+              if (order.status !== 'PENDING') {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: `⚠️ Đơn hàng \`${orderIdInput}\` đang ở trạng thái \`${order.status}\` (không thể gán).`,
+                  parse_mode: 'Markdown'
+                });
+                continue;
+              }
+
+              const matchedShippers = findShipperInDatabase(shipperQuery);
+              if (matchedShippers.length === 0) {
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: `❌ Không tìm thấy tài xế nào khớp với từ khóa: "${shipperQuery}"!`,
+                  parse_mode: 'Markdown'
+                });
+              } else if (matchedShippers.length === 1) {
+                const matchedShipper = matchedShippers[0];
+                let updatedOrder = null;
+                await updateOrdersDatabase((dbOrders) => {
+                  const idx = dbOrders.findIndex(o => o.id.toUpperCase() === orderIdInput);
+                  if (idx !== -1) {
+                    dbOrders[idx].status = 'ACCEPTED';
+                    dbOrders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
+                    dbOrders[idx].shipperName = matchedShipper.name;
+                    dbOrders[idx].shipperPhone = matchedShipper.phone;
+                    dbOrders[idx].assignedShipperPhone = matchedShipper.phone;
+                    dbOrders[idx].offerExpiresAt = null;
+                    dbOrders[idx].acceptedAt = Date.now();
+                    updatedOrder = dbOrders[idx];
+                  }
+                });
+
+                if (updatedOrder) {
+                  if (supabase) {
+                    try {
+                      await supabase.from('orders').update({
+                        status: 'ACCEPTED',
+                        shipper_id: matchedShipper.id,
+                        shipper_name: matchedShipper.name,
+                        shipper_phone: matchedShipper.phone,
+                        accepted_at: new Date().toISOString()
+                      }).eq('id', updatedOrder.id);
+                    } catch (e) {
+                      console.warn('⚠️ Ghi status Supabase cảnh báo:', e.message);
+                    }
+                  }
+
+                  await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    chat_id: chatId,
+                    text: `🎯 *Gán đơn hàng thành công!*\n\n🆔 *Đơn hàng:* \`${updatedOrder.id}\`\n👤 *Tài xế được gán:* ${matchedShipper.name} (${matchedShipper.phone})\n📍 Trạng thái đơn đã chuyển sang *ACCEPTED*.`,
+                    parse_mode: 'Markdown'
+                  });
+                } else {
+                  await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    chat_id: chatId,
+                    text: `❌ Gán đơn thất bại!`,
+                    parse_mode: 'Markdown'
+                  });
+                }
+              } else {
+                let listText = `🤔 *Tìm thấy ${matchedShippers.length} tài xế trùng khớp với từ khóa:* "${shipperQuery}"\n\n`;
+                const keyboard = { inline_keyboard: [] };
+                matchedShippers.forEach((s) => {
+                  keyboard.inline_keyboard.push([{
+                    text: `🚴 ${s.name} (${s.phone})`,
+                    callback_data: `assign_to_shipper:${order.id}:${s.phone}`
+                  }]);
+                });
+                
+                await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text: listText + `Nhấp chọn tài xế cụ thể bên dưới để gán cho đơn hàng \`${order.id}\`:`,
+                  parse_mode: 'Markdown',
+                  reply_markup: keyboard
+                });
+              }
+            }
+          }
+        }
+
+        // 2. Xử lý bấm nút Inline Callback
+        if (update.callback_query) {
+          const cb = update.callback_query;
+          const data = cb.data;
+          const msgId = cb.message?.message_id;
+          const chatId = cb.message?.chat?.id;
+
+          if (data.startsWith('approve_shipper:')) {
+            const phone = data.split(':')[1];
+            const ok = await approveShipperAccount(phone);
+            if (ok) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Phê duyệt tài xế thành công!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `✅ *Đã duyệt tài xế thành công!*\nSố điện thoại: ${phone}`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi phê duyệt!' });
+            }
+          } else if (data.startsWith('reject_shipper:')) {
+            const phone = data.split(':')[1];
+            const ok = await rejectShipperAccount(phone);
+            if (ok) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã từ chối tài xế!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `❌ *Đã từ chối và xóa tài xế khỏi hệ thống!*\nSố điện thoại: ${phone}`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi từ chối!' });
+            }
+          } else if (data.startsWith('assign_auto:')) {
+            const orderId = data.split(':')[1];
+            const orders = readOrdersDatabase();
+            const order = orders.find(o => o.id === orderId);
+            if (!order) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy đơn hàng!' });
+              continue;
+            }
+            if (order.status !== 'PENDING') {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: `Đơn hàng đang ở trạng thái: ${order.status}` });
+              continue;
+            }
+
+            const nearest = findNearestAvailableShipper(order.restaurantLat, order.restaurantLon, order.declinedShippers);
+            if (!nearest) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy shipper online rảnh ở gần!' });
+              continue;
+            }
+
+            const shippers = readShippersDatabase();
+            const matchedShipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === nearest.phone.trim().replace(/\s+/g, ''));
+            if (!matchedShipper) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi đồng bộ thông tin tài xế!' });
+              continue;
+            }
+
+            let updatedOrder = null;
+            await updateOrdersDatabase((dbOrders) => {
+              const idx = dbOrders.findIndex(o => o.id === orderId);
+              if (idx !== -1) {
+                dbOrders[idx].status = 'ACCEPTED';
+                dbOrders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
+                dbOrders[idx].shipperName = matchedShipper.name;
+                dbOrders[idx].shipperPhone = matchedShipper.phone;
+                dbOrders[idx].assignedShipperPhone = matchedShipper.phone;
+                dbOrders[idx].offerExpiresAt = null;
+                dbOrders[idx].acceptedAt = Date.now();
+                updatedOrder = dbOrders[idx];
+              }
+            });
+
+            if (updatedOrder) {
+              if (supabase) {
+                try {
+                  await supabase.from('orders').update({
+                    status: 'ACCEPTED',
+                    shipper_id: matchedShipper.id,
+                    shipper_name: matchedShipper.name,
+                    shipper_phone: matchedShipper.phone,
+                    accepted_at: new Date().toISOString()
+                  }).eq('id', orderId);
+                } catch (e) {
+                  console.warn('⚠️ Ghi status Supabase cảnh báo:', e.message);
+                }
+              }
+
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã gán đơn cho tài xế!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `🚴 *Đã gán đơn hàng tự động thành công!*\n\n🆔 *Đơn hàng:* \`${orderId}\`\n👤 *Tài xế:* ${matchedShipper.name} (${matchedShipper.phone})\n📍 *Khoảng cách:* ${nearest.distance.toFixed(2)} km`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Gán đơn thất bại!' });
+            }
+          } else if (data.startsWith('cancel_order:')) {
+            const orderId = data.split(':')[1];
+            let updatedOrder = null;
+            await updateOrdersDatabase((dbOrders) => {
+              const idx = dbOrders.findIndex(o => o.id === orderId);
+              if (idx !== -1) {
+                dbOrders[idx].status = 'CANCELLED';
+                updatedOrder = dbOrders[idx];
+              }
+            });
+
+            if (updatedOrder) {
+              if (supabase) {
+                try {
+                  await supabase.from('orders').update({
+                    status: 'CANCELLED'
+                  }).eq('id', orderId);
+                } catch (e) {
+                  console.warn('⚠️ Hủy đơn Supabase cảnh báo:', e.message);
+                }
+              }
+
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã hủy đơn hàng thành công!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `❌ *Đơn hàng đã bị hủy!*\n🆔 *Mã đơn:* \`${orderId}\``,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy đơn hàng để hủy!' });
+            }
+          } else if (data.startsWith('assign_select:')) {
+            const orderId = data.split(':')[1];
+            const orders = readOrdersDatabase();
+            const order = orders.find(o => o.id === orderId);
+            if (!order) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy đơn hàng!' });
+              continue;
+            }
+
+            const shippers = readShippersDatabase();
+            const onlineList = shippers.filter(s => s.status === 'ONLINE' && s.isApproved !== false);
+
+            if (onlineList.length === 0) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+                callback_query_id: cb.id,
+                text: '⚠️ Không có tài xế nào đang online trực ca hiện tại!',
+                show_alert: true
+              });
+              continue;
+            }
+
+            // Tính khoảng cách từ tài xế tới quán ăn và sắp xếp
+            const shippersWithDistance = onlineList.map(s => {
+              const cleanedPhone = s.phone.trim().replace(/\s+/g, '');
+              const loc = onlineShipperLocations.get(cleanedPhone);
+              let dist = Infinity;
+              if (loc && typeof order.restaurantLat === 'number' && typeof order.restaurantLon === 'number') {
+                dist = calcDistance(order.restaurantLat, order.restaurantLon, loc.lat, loc.lon);
+              }
+              return { shipper: s, distance: dist };
+            });
+
+            // Sắp xếp tăng dần theo khoảng cách
+            shippersWithDistance.sort((a, b) => a.distance - b.distance);
+
+            // Chỉ lấy Top 10 tài xế gần nhất để tránh tràn giới hạn nút bấm Telegram
+            const topShippers = shippersWithDistance.slice(0, 10);
+
+            let text = `🎯 *CHỌN TÀI XẾ CHỈ ĐỊNH CHO ĐƠN HÀNG*\n\n` +
+              `🆔 *Mã đơn:* \`${orderId}\`\n\n` +
+              `Danh sách hiển thị *Top 10 tài xế online ở gần quán nhất* (trong tổng số ${onlineList.length} tài xế đang trực ca).\n\n` +
+              `💡 *Mẹo*: Nếu muốn chỉ định một shipper khác nằm ngoài danh sách này, bạn chỉ cần gõ: \`/find [tên hoặc SĐT]\` để tìm và gán đơn trực tiếp cho họ.`;
+
+            const keyboard = { inline_keyboard: [] };
+            topShippers.forEach(item => {
+              const s = item.shipper;
+              const distText = item.distance !== Infinity ? ` (~${item.distance.toFixed(1)} km)` : '';
+              keyboard.inline_keyboard.push([{
+                text: `🚴 ${s.name}${distText}`,
+                callback_data: `assign_to_shipper:${orderId}:${s.phone}`
+              }]);
+            });
+            keyboard.inline_keyboard.push([{
+              text: '⬅️ Quay lại thông tin đơn',
+              callback_data: `view_order_details:${orderId}`
+            }]);
+
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đang tải danh sách tài xế...' });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: text,
+              parse_mode: 'Markdown',
+              reply_markup: keyboard
+            });
+          } else if (data.startsWith('assign_to_shipper:')) {
+            const parts = data.split(':');
+            const orderId = parts[1];
+            const phone = parts[2];
+
+            const orders = readOrdersDatabase();
+            const order = orders.find(o => o.id === orderId);
+            if (!order) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy đơn hàng!' });
+              continue;
+            }
+            if (order.status !== 'PENDING') {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: `Đơn hàng đang ở trạng thái: ${order.status}` });
+              continue;
+            }
+
+            const shippers = readShippersDatabase();
+            const matchedShipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
+            if (!matchedShipper) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy thông tin tài xế!' });
+              continue;
+            }
+
+            let updatedOrder = null;
+            await updateOrdersDatabase((dbOrders) => {
+              const idx = dbOrders.findIndex(o => o.id === orderId);
+              if (idx !== -1) {
+                dbOrders[idx].status = 'ACCEPTED';
+                dbOrders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
+                dbOrders[idx].shipperName = matchedShipper.name;
+                dbOrders[idx].shipperPhone = matchedShipper.phone;
+                dbOrders[idx].assignedShipperPhone = matchedShipper.phone;
+                dbOrders[idx].offerExpiresAt = null;
+                dbOrders[idx].acceptedAt = Date.now();
+                updatedOrder = dbOrders[idx];
+              }
+            });
+
+            if (updatedOrder) {
+              if (supabase) {
+                try {
+                  await supabase.from('orders').update({
+                    status: 'ACCEPTED',
+                    shipper_id: matchedShipper.id,
+                    shipper_name: matchedShipper.name,
+                    shipper_phone: matchedShipper.phone,
+                    accepted_at: new Date().toISOString()
+                  }).eq('id', orderId);
+                } catch (e) {
+                  console.warn('⚠️ Ghi status Supabase cảnh báo:', e.message);
+                }
+              }
+
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: '🎯 Đã gán đơn cho tài xế chỉ định!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `🎯 *Đã gán đơn hàng cho tài xế chỉ định thành công!*\n\n🆔 *Đơn hàng:* \`${orderId}\`\n👤 *Tài xế:* ${matchedShipper.name} (${matchedShipper.phone})\n📍 Trạng thái đơn đã chuyển sang *ACCEPTED* (Đang đi nhận hàng).`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Gán đơn thất bại!' });
+            }
+          } else if (data.startsWith('view_order_details:')) {
+            const orderId = data.split(':')[1];
+            const orders = readOrdersDatabase();
+            const order = orders.find(o => o.id === orderId);
+            if (!order) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy đơn hàng!' });
+              continue;
+            }
+
+            const itemsText = (order.items || []).map(i => {
+              let text = `• ${i.name} x${i.quantity || i.qty}`;
+              if (i.note) text += ` (Ghi chú: *${i.note}*)`;
+              return text;
+            }).join('\n');
+
+            const text = `🛒 *CÓ ĐƠN HÀNG MỚI CHỜ XỬ LÝ!*\n\n` +
+              `🆔 *Mã đơn:* \`${order.id}\`\n` +
+              `🏪 *Cửa hàng:* *${order.restaurantName}*\n` +
+              `📍 *Địa chỉ giao:* ${order.deliveryAddress}\n` +
+              `👤 *Người nhận:* ${order.deliveryName} (${order.deliveryPhone})\n` +
+              `👤 *Người đặt:* ${order.isRelative ? 'Đặt hộ - ' : ''}${order.ordererPhone}\n` +
+              `📝 *Ghi chú đơn:* ${order.note || 'Không có'}\n\n` +
+              `📦 *Danh sách món:* \n${itemsText || 'Trống'}\n\n` +
+              `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
+              `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
+              `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
+              `🔗 *Mở CRM Admin:* http://localhost:8000/admin-app/index.html\n\n` +
+              `Chọn thao tác nhanh dưới đây để điều phối.`;
+
+            const keyboard = {
+              inline_keyboard: [
+                [
+                  { text: '🚴 Gán nhanh tự động', callback_data: `assign_auto:${order.id}` },
+                  { text: '🎯 Chỉ định tài xế', callback_data: `assign_select:${order.id}` }
+                ],
+                [
+                  { text: '❌ Hủy đơn', callback_data: `cancel_order:${order.id}` }
+                ]
+              ]
+            };
+
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Quay lại thông tin đơn!' });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: text,
+              parse_mode: 'Markdown',
+              reply_markup: keyboard
+            });
+          } else if (data === 'crm_refresh_stats' || data === 'crm_main_menu') {
+            const report = generateCRMReportMessage();
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã làm mới số liệu!' });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: report.text,
+              parse_mode: 'Markdown',
+              reply_markup: report.keyboard
+            });
+          } else if (data === 'crm_shippers_report') {
+            const shippersMsg = generateShippersReportMessage();
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã tải danh sách tài xế!' });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: shippersMsg.text,
+              parse_mode: 'Markdown',
+              reply_markup: shippersMsg.keyboard
+            });
+          } else if (data.startsWith('select_shipper:')) {
+            const phone = data.split(':')[1];
+            const shippers = readShippersDatabase();
+            const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
+            if (shipper) {
+              const report = generateShipperDetailMessage(shipper);
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã tải chi tiết tài xế!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: report.text,
+                parse_mode: 'Markdown',
+                reply_markup: report.keyboard
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy tài xế!' });
+            }
+          } else if (data.startsWith('shipper_approve:')) {
+            const phone = data.split(':')[1];
+            const ok = await approveShipperAccount(phone);
+            if (ok) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã phê duyệt tài xế thành công!' });
+              const shippers = readShippersDatabase();
+              const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
+              const report = generateShipperDetailMessage(shipper);
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `✅ *Đã phê duyệt tài xế thành công!*\n\n` + report.text,
+                parse_mode: 'Markdown',
+                reply_markup: report.keyboard
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi phê duyệt!' });
+            }
+          } else if (data.startsWith('shipper_reject:') || data.startsWith('shipper_delete:')) {
+            const phone = data.split(':')[1];
+            const ok = await rejectShipperAccount(phone);
+            if (ok) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã xóa tài xế khỏi hệ thống!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `❌ *Đã xóa tài xế thành công khỏi hệ thống!*\nSố điện thoại: ${phone}`,
+                parse_mode: 'Markdown',
+                reply_markup: {
+                  inline_keyboard: [[{ text: '⬅️ Quay lại Menu', callback_data: 'crm_main_menu' }]]
+                }
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi xóa tài xế!' });
+            }
+          } else if (data.startsWith('shipper_lock:')) {
+            const phone = data.split(':')[1];
+            const ok = await lockShipperAccount(phone);
+            if (ok) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã khóa tài khoản tài xế!' });
+              const shippers = readShippersDatabase();
+              const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
+              const report = generateShipperDetailMessage(shipper);
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `🔒 *Đã khóa tài khoản tài xế thành công!*\n\n` + report.text,
+                parse_mode: 'Markdown',
+                reply_markup: report.keyboard
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi khóa tài xế!' });
+            }
+          } else if (data.startsWith('shipper_refresh:')) {
+            const phone = data.split(':')[1];
+            const shippers = readShippersDatabase();
+            const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
+            if (shipper) {
+              const report = generateShipperDetailMessage(shipper);
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã làm mới thông tin!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: report.text,
+                parse_mode: 'Markdown',
+                reply_markup: report.keyboard
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy tài xế!' });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      if (err.code !== 'ECONNRESET' && err.code !== 'ETIMEDOUT') {
+        console.error('[Telegram Polling Error]:', err.message);
+      }
+    }
+  }, 5000);
+}
+
+// Middleware: Authenticate Shipper via Supabase JWT
+async function authenticateShipper(req, res, next) {
+  try {
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: 'Hệ thống đang hoạt động ở chế độ Supabase trực tuyến nhưng chưa cấu hình thông số kết nối hoặc cấu hình bị lỗi!' });
+    }
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Thiếu hoặc sai token xác thực Bearer!' });
+    }
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
+    }
+
+    // Kiểm tra xem shipper đã được duyệt tài khoản chưa
+    const shippers = readShippersDatabase();
+    const userPhone = (user.phone || user.user_metadata?.phone || '').trim().replace(/\s+/g, '');
+    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === userPhone || s.id === user.id);
+    
+    if (shipper && shipper.isApproved === false) {
+      return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
+    }
+
+    req.user = user;
+    next();
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Lỗi xác thực Shipper: ' + e.message });
+  }
+}
+
+// Middleware: Authenticate Admin via Supabase JWT
+async function authenticateAdmin(req, res, next) {
+  try {
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: 'Hệ thống đang hoạt động ở chế độ Supabase trực tuyến nhưng chưa cấu hình thông số kết nối hoặc cấu hình bị lỗi!' });
+    }
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Thiếu hoặc sai token xác thực Bearer!' });
+    }
+    const token = authHeader.split(' ')[1];
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
+    }
+    const isAdmin = user.email === 'admin@shipfee.vn' || (user.user_metadata && user.user_metadata.role === 'admin');
+    if (!isAdmin) {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập quản trị!' });
+    }
+    req.user = user;
+    next();
+  } catch (e) {
+    res.status(500).json({ success: false, error: 'Lỗi xác thực Admin: ' + e.message });
+  }
+}
+
 // ── PRICING CONFIG (Admin-adjustable) ────────────────────────────────────────
+const PRICING_CONFIG_FILE = path.join(__dirname, 'pricing-config.json');
+
+let pricingConfig = {
+  markupRate: 0.28,           // 28% markup trên giá gốc
+  secondOrderDiscountRate: 0.10, // 10% giảm giá cho đơn hàng thứ 2+
+  freeDistanceKm: 1.5,        // Miễn phụ thu dưới 1.5km
+  surchargeCoefficient: 7000, // Hệ số đường cong sqrt
+  minShipperEarning: 15000,   // Sàn thu nhập shipper/đơn (đ)
+  multiItemDiscount: 0.15     // 15% giảm surcharge cho món 2+
+};
+
+function loadPricingConfig() {
+  try {
+    if (fs.existsSync(PRICING_CONFIG_FILE)) {
+      const data = JSON.parse(fs.readFileSync(PRICING_CONFIG_FILE, 'utf8'));
+      pricingConfig = { ...pricingConfig, ...data };
+      console.log('[Pricing Config] Đã tải cấu hình pricing động:', pricingConfig);
+    } else {
+      fs.writeFileSync(PRICING_CONFIG_FILE, JSON.stringify(pricingConfig, null, 2), 'utf8');
+      console.log('[Pricing Config] Đã khởi tạo file cấu hình mặc định.');
+    }
+  } catch (err) {
+    console.error('[Pricing Config] Lỗi đọc cấu hình pricing:', err.message);
+  }
+}
+
+loadPricingConfig();
+
+// Đảm bảo tương thích ngược hoàn toàn với code cũ sử dụng PRICING_CONFIG
 const PRICING_CONFIG = {
-  MARKUP_RATE: 0.28,           // 28% markup trên giá gốc
-  FREE_DISTANCE_KM: 1.5,      // Miễn phụ thu dưới 1.5km
-  SURCHARGE_COEFFICIENT: 7000, // Hệ số đường cong sqrt
-  MIN_SHIPPER_EARNING: 15000,  // Sàn thu nhập shipper/đơn (đ)
-  MULTI_ITEM_DISCOUNT: 0.15,   // 15% giảm surcharge cho món 2+
+  get MARKUP_RATE() { return pricingConfig.markupRate; },
+  get FREE_DISTANCE_KM() { return pricingConfig.freeDistanceKm; },
+  get SURCHARGE_COEFFICIENT() { return pricingConfig.surchargeCoefficient; },
+  get MIN_SHIPPER_EARNING() { return pricingConfig.minShipperEarning; },
+  get MULTI_ITEM_DISCOUNT() { return pricingConfig.multiItemDiscount; }
 };
 
 // Helper: Làm tròn đến 100đ
@@ -161,7 +1311,9 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 function triggerCrawler() {
   console.log('[Server] Kích hoạt Crawler chạy ngầm để cập nhật dữ liệu từ Foody...');
@@ -2252,7 +3404,13 @@ app.post('/api/orders', async (req, res) => {
       restaurantAddress: orderData.restaurantAddress || '',
       restaurantLat: typeof orderData.restaurantLat === 'number' ? orderData.restaurantLat : null,
       restaurantLon: typeof orderData.restaurantLon === 'number' ? orderData.restaurantLon : null,
-      items: Array.isArray(orderData.items) ? orderData.items : [],
+      items: Array.isArray(orderData.items) ? orderData.items.map(item => ({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        note: item.note || ''
+      })) : [],
       storeTotal: typeof orderData.storeTotal === 'number' ? orderData.storeTotal : 0,
       appTotal: typeof orderData.appTotal === 'number' ? orderData.appTotal : 0,
       shipperEarning: typeof orderData.shipperEarning === 'number' ? orderData.shipperEarning : 0,
@@ -2283,6 +3441,25 @@ app.post('/api/orders', async (req, res) => {
       declinedShippers: []
     };
 
+    // Kiểm tra đơn hàng thứ 2+ của cùng một khách hàng để tự động giảm giá
+    const orders = readOrdersDatabase();
+    const cleanedOrdererPhone = newOrder.ordererPhone.trim().replace(/\s+/g, '');
+    if (cleanedOrdererPhone) {
+      const hasPreviousOrders = orders.some(o => 
+        o.ordererPhone.trim().replace(/\s+/g, '') === cleanedOrdererPhone &&
+        o.id !== newOrder.id
+      );
+
+      if (hasPreviousOrders && pricingConfig.secondOrderDiscountRate > 0) {
+        const discountPercent = pricingConfig.secondOrderDiscountRate;
+        const subtotal = newOrder.appTotal;
+        const discountVal = round100(subtotal * discountPercent);
+        newOrder.discountValue = discountVal;
+        newOrder.appTotal = Math.max(0, subtotal - discountVal);
+        console.log(`[Pricing Config] Khách hàng ${cleanedOrdererPhone} được áp dụng giảm giá đơn thứ 2+ (${discountPercent * 100}%): Giảm ${discountVal}đ. Tổng mới: ${newOrder.appTotal}đ`);
+      }
+    }
+
     // Find nearest available shipper for targeted dispatch
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, []);
     if (nearest) {
@@ -2298,11 +3475,34 @@ app.post('/api/orders', async (req, res) => {
     });
 
     console.log(`[Order Server] 📝 Đã lưu đơn hàng mới: ${newOrder.id}`);
+    sendTelegramNewOrderNotification(newOrder).catch(e => console.error('Lỗi gửi Telegram đơn mới:', e.message));
     res.json({ success: true, data: newOrder });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
+// Helper to enrich order objects with current shipper avatar URL dynamically
+function enrichOrdersWithShipperAvatar(ordersOrOrder) {
+  const shippers = readShippersDatabase();
+  const enrichSingle = (o) => {
+    if (!o) return o;
+    const enriched = { ...o };
+    if (enriched.shipperPhone) {
+      const cleanPhone = enriched.shipperPhone.trim().replace(/\s+/g, '');
+      const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+      if (shipper) {
+        enriched.shipperAvatarUrl = shipper.avatarUrl || '';
+      }
+    }
+    return enriched;
+  };
+
+  if (Array.isArray(ordersOrOrder)) {
+    return ordersOrOrder.map(enrichSingle);
+  }
+  return enrichSingle(ordersOrOrder);
+}
 
 /**
  * GET /api/orders
@@ -2374,7 +3574,7 @@ app.get('/api/orders', async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: resultData });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(resultData) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -2392,7 +3592,7 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    res.json({ success: true, data: order });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(order) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -2436,6 +3636,7 @@ app.post('/api/orders/:id/accept', async (req, res) => {
     }
 
     console.log(`[Order Server] 🛵 Shipper đã nhận đơn: ${id}`);
+    sendTelegramOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2479,6 +3680,7 @@ app.post('/api/orders/:id/status', async (req, res) => {
     }
 
     console.log(`[Order Server] 🔄 Cập nhật trạng thái đơn ${id} thành: ${status}`);
+    sendTelegramOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -2751,31 +3953,171 @@ function writeShippersDatabase(data) {
  * POST /api/shippers/login
  * Xác thực trùng khớp cả SĐT và Họ tên tài xế (không phân biệt chữ hoa/thường, loại bỏ khoảng trắng thừa)
  */
-app.post('/api/shippers/login', (req, res) => {
+app.post('/api/shippers/login', async (req, res) => {
   try {
-    const { name, phone } = req.body;
-    if (!name || !phone) {
-      return res.status(400).json({ success: false, error: 'Thiếu thông tin Họ tên hoặc Số điện thoại!' });
+    const { token } = req.body;
+
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: 'Hệ thống đang hoạt động ở chế độ Supabase trực tuyến nhưng chưa cấu hình thông số kết nối hoặc cấu hình bị lỗi!' });
+    }
+    if (!token) {
+      return res.status(400).json({ success: false, error: 'Thiếu token xác thực Supabase!' });
+    }
+
+    // Supabase Auth verification path
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
     }
 
     const shippers = readShippersDatabase();
-    const cleanedInputPhone = phone.trim().replace(/\s+/g, '');
-    const cleanedInputName = name.trim().toLowerCase().replace(/\s+/g, ' ');
+    const userPhone = user.phone ? user.phone.replace('+84', '0') : (user.user_metadata?.phone || '');
+    const userName = user.user_metadata?.full_name || user.email.split('@')[0];
 
-    // Tìm shipper trùng số điện thoại
-    const matchedPhoneShipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedInputPhone);
-
-    if (!matchedPhoneShipper) {
-      return res.status(404).json({ success: false, error: 'Số điện thoại tài xế không tồn tại trên hệ thống!' });
+    // Tìm kiếm trong database nội bộ bằng ID hoặc SĐT
+    let idx = shippers.findIndex(s => s.id === user.id);
+    if (idx === -1 && userPhone) {
+      idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === userPhone.trim().replace(/\s+/g, ''));
     }
 
-    // So sánh tiếp họ tên (không phân biệt hoa thường, dọn khoảng trắng thừa)
-    const dbCleanedName = matchedPhoneShipper.name.trim().toLowerCase().replace(/\s+/g, ' ');
-    if (dbCleanedName !== cleanedInputName) {
-      return res.status(400).json({ success: false, error: 'Họ tên tài xế không trùng khớp với số điện thoại đăng ký!' });
+    let shipper = null;
+    if (idx !== -1) {
+      // Liên kết tài khoản
+      shippers[idx].id = user.id;
+      if (!shippers[idx].phone && userPhone) shippers[idx].phone = userPhone;
+      shipper = shippers[idx];
+    } else {
+      // Tự động tạo bản ghi nội bộ nếu chưa có để đảm bảo chạy thuật toán giao đơn
+      shipper = {
+        id: user.id,
+        phone: userPhone || '0900000000',
+        name: userName,
+        status: 'OFFLINE',
+        lastCheckIn: null,
+        lastCheckOut: null
+      };
+      shippers.push(shipper);
     }
 
-    res.json({ success: true, shipper: { name: matchedPhoneShipper.name, phone: matchedPhoneShipper.phone } });
+    if (shipper && shipper.isApproved === false) {
+      return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
+    }
+
+    writeShippersDatabase(shippers);
+    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: shipper.avatarUrl, isApproved: shipper.isApproved } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/register
+ * Cho phép shipper tự động đăng ký tài khoản
+ */
+app.post('/api/shippers/register', async (req, res) => {
+  try {
+    const { name, phone, email, password, avatar } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu thông tin đăng ký!' });
+    }
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: 'Hệ thống đang hoạt động ở chế độ Supabase trực tuyến nhưng chưa cấu hình thông số kết nối hoặc cấu hình bị lỗi!' });
+    }
+    if (!email || !password) {
+      return res.status(400).json({ success: false, error: 'Chế độ trực tuyến bắt buộc phải có Email và Mật khẩu để đăng ký!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    
+    // Kiểm tra trùng SĐT
+    if (shippers.some(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone)) {
+      return res.status(400).json({ success: false, error: 'Số điện thoại này đã được đăng ký trên hệ thống!' });
+    }
+
+    // Xử lý và lưu ảnh chân dung (Base64 -> PNG)
+    let avatarUrl = '';
+    if (avatar) {
+      try {
+        const base64Data = avatar.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const fileName = `${cleanedPhone}.png`;
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        fs.writeFileSync(filePath, buffer);
+        avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
+      } catch (err) {
+        console.error('[Avatar Save Error] Lỗi lưu ảnh chân dung:', err.message);
+      }
+    }
+
+    // Sử dụng Supabase Anon client signUp để tự động kích hoạt gửi email xác thực thực tế
+    const anonSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    const { data: signUpData, error: signUpError } = await anonSupabase.auth.signUp({
+      email: email.trim(),
+      password: password,
+      options: {
+        data: {
+          full_name: name.trim(),
+          phone: cleanedPhone,
+          role: 'shipper',
+          is_approved: false,
+          avatar_url: avatarUrl
+        }
+      }
+    });
+
+    if (signUpError || !signUpData.user) {
+      return res.status(400).json({ success: false, error: 'Lỗi đăng ký Supabase Auth: ' + (signUpError?.message || 'Không thể đăng ký user') });
+    }
+
+    const user = signUpData.user;
+    const newShipper = {
+      id: user.id,
+      phone: cleanedPhone,
+      name: name.trim(),
+      email: email.trim(),
+      avatarUrl: avatarUrl,
+      isApproved: false, // Mặc định chưa được duyệt
+      status: 'OFFLINE',
+      lastCheckIn: null,
+      lastCheckOut: null,
+      totalOrders: 0,
+      totalEarnings: 0,
+      acceptanceRate: 100,
+      completionRate: 100
+    };
+
+    shippers.push(newShipper);
+    writeShippersDatabase(shippers);
+
+    // Đồng bộ lên bảng shipper_profiles
+    try {
+      await supabase.from('shipper_profiles').insert({
+        id: user.id,
+        phone: cleanedPhone,
+        full_name: name.trim(),
+        avatar_url: avatarUrl,
+        is_approved: false, // Duy trì ở table profiles
+        status: 'OFFLINE',
+        total_orders: 0,
+        total_earnings: 0,
+        acceptance_rate: 100,
+        completion_rate: 100
+      });
+    } catch (err) {
+      console.error('[Supabase Register Error]:', err.message);
+    }
+
+    // Gửi thông báo phê duyệt tới Telegram Bot
+    sendTelegramNewShipperNotification(newShipper).catch(e => console.error('Lỗi gửi Telegram:', e.message));
+
+    return res.json({ success: true, shipper: { name: newShipper.name, phone: newShipper.phone } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -2785,7 +4127,7 @@ app.post('/api/shippers/login', (req, res) => {
  * POST /api/shippers/shift
  * Cập nhật trạng thái ca làm việc (Vào ca/Ra ca - Check-in/Check-out)
  */
-app.post('/api/shippers/shift', (req, res) => {
+app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
   try {
     const { phone, status } = req.body;
     if (!phone || !['ONLINE', 'OFFLINE'].includes(status)) {
@@ -2801,15 +4143,34 @@ app.post('/api/shippers/shift', (req, res) => {
     }
 
     shippers[idx].status = status;
+    let nowStr = new Date().toISOString();
     if (status === 'ONLINE') {
-      shippers[idx].lastCheckIn = new Date().toISOString();
+      shippers[idx].lastCheckIn = nowStr;
     } else {
-      shippers[idx].lastCheckOut = new Date().toISOString();
+      shippers[idx].lastCheckOut = nowStr;
       onlineShipperLocations.delete(cleanedPhone);
     }
 
     writeShippersDatabase(shippers);
     console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${phone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'}`);
+
+    // Sync to Supabase shipper_profiles if active
+    if (supabase && shippers[idx].id) {
+      try {
+        const updatePayload = {
+          status,
+          updated_at: nowStr
+        };
+        if (status === 'ONLINE') {
+          updatePayload.last_check_in = nowStr;
+        } else {
+          updatePayload.last_check_out = nowStr;
+        }
+        await supabase.from('shipper_profiles').update(updatePayload).eq('id', shippers[idx].id);
+      } catch (err) {
+        console.error('[Supabase Sync Error] Lỗi đồng bộ ca làm việc:', err.message);
+      }
+    }
     
     res.json({ success: true, shipper: shippers[idx] });
   } catch (e) {
@@ -2821,7 +4182,7 @@ app.post('/api/shippers/shift', (req, res) => {
  * POST /api/shippers/location
  * Cập nhật vị trí GPS của tài xế khi rảnh rỗi (isOnline = true nhưng chưa có đơn)
  */
-app.post('/api/shippers/location', (req, res) => {
+app.post('/api/shippers/location', authenticateShipper, (req, res) => {
   try {
     const { phone, lat, lon } = req.body;
     if (!phone || typeof lat !== 'number' || typeof lon !== 'number') {
@@ -2836,6 +4197,56 @@ app.post('/api/shippers/location', (req, res) => {
     });
 
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/stats
+ * Cập nhật chỉ số hoạt động (AR, CR, doanh thu, số đơn) của tài xế
+ */
+app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
+  try {
+    const { phone, stats, totalOrders, totalEarnings, acceptanceRate, completionRate } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Tài xế không tồn tại!' });
+    }
+
+    // Cập nhật local database
+    shippers[idx].stats = stats;
+    shippers[idx].totalOrders = totalOrders;
+    shippers[idx].totalEarnings = totalEarnings;
+    shippers[idx].acceptanceRate = acceptanceRate;
+    shippers[idx].completionRate = completionRate;
+
+    writeShippersDatabase(shippers);
+
+    // Đồng bộ lên Supabase nếu có
+    if (supabase && shippers[idx].id) {
+      try {
+        const updatePayload = {
+          total_orders: totalOrders,
+          total_earnings: totalEarnings,
+          acceptance_rate: acceptanceRate,
+          completion_rate: completionRate,
+          updated_at: new Date().toISOString()
+        };
+        await supabase.from('shipper_profiles').update(updatePayload).eq('id', shippers[idx].id);
+      } catch (err) {
+        console.error('[Supabase Sync Error] Lỗi đồng bộ chỉ số:', err.message);
+      }
+    }
+
+    res.json({ success: true, shipper: shippers[idx] });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -2907,6 +4318,630 @@ app.get('/api/shippers', (req, res) => {
   try {
     const shippers = readShippersDatabase();
     res.json({ success: true, data: shippers });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/config
+ * Expose non-secret configuration (Supabase URL + Anon Key) to clients
+ */
+app.get('/api/config', (req, res) => {
+  res.json({
+    supabaseUrl: SUPABASE_URL,
+    supabaseAnonKey: SUPABASE_ANON_KEY
+  });
+});
+
+/**
+ * GET /api/admin/dashboard
+ * Return dashboard KPIs for CRM admin
+ */
+app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
+  try {
+    const shippers = readShippersDatabase();
+    const orders = readOrdersDatabase();
+
+    const onlineShippers = shippers.filter(s => s.status === 'ONLINE').length;
+    const completedOrders = orders.filter(o => o.status === 'DELIVERED');
+    const pendingOrders = orders.filter(o => o.status === 'PENDING').length;
+    
+    const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.appTotal || 0), 0);
+    const totalEarnings = completedOrders.reduce((sum, o) => sum + (o.shipperEarning || 0), 0);
+
+    res.json({
+      success: true,
+      stats: {
+        totalOrders: orders.length,
+        completedOrdersCount: completedOrders.length,
+        pendingOrders,
+        onlineShippers,
+        totalRevenue,
+        totalEarnings
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/shippers
+ * Create a new shipper on local JSON + Supabase Auth
+ */
+app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
+  try {
+    const { name, phone, email, password } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu Tên hoặc SĐT tài xế!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+
+    // Check if phone already exists
+    const exists = shippers.some(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    if (exists) {
+      return res.status(400).json({ success: false, error: 'Số điện thoại này đã được đăng ký!' });
+    }
+
+    let uuid = null;
+    if (supabase && email && password) {
+      // Create user on Supabase auth
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password,
+        phone: cleanedPhone.startsWith('0') ? '+84' + cleanedPhone.slice(1) : cleanedPhone,
+        user_metadata: { full_name: name, role: 'shipper' },
+        email_confirm: true,
+        phone_confirm: true
+      });
+
+      if (authError) {
+        return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message });
+      }
+
+      uuid = authData.user.id;
+
+      // Insert profile into shipper_profiles
+      const { error: profileError } = await supabase.from('shipper_profiles').insert({
+        id: uuid,
+        phone: cleanedPhone,
+        full_name: name,
+        is_approved: true, // Admin tạo thì tự động duyệt
+        status: 'OFFLINE'
+      });
+
+      if (profileError) {
+        console.error('[Supabase Error] Lỗi tạo profile:', profileError.message);
+      }
+    }
+
+    // Add to local database
+    const newShipper = {
+      id: uuid,
+      phone: cleanedPhone,
+      name,
+      email, // Lưu email để hiển thị hoặc sửa
+      isApproved: true, // Mặc định được duyệt đối với tài khoản admin tạo
+      status: 'OFFLINE',
+      lastCheckIn: null,
+      lastCheckOut: null
+    };
+
+    shippers.push(newShipper);
+    writeShippersDatabase(shippers);
+
+    res.json({ success: true, shipper: newShipper });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * PUT /api/admin/shippers/:oldPhone
+ * Update an existing shipper on local JSON + Supabase Auth
+ */
+app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => {
+  try {
+    const { oldPhone } = req.params;
+    const { name, phone, email, password } = req.body;
+    if (!name || !phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu Tên hoặc SĐT tài xế!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanedOldPhone = oldPhone.trim().replace(/\s+/g, '');
+    const cleanedNewPhone = phone.trim().replace(/\s+/g, '');
+
+    // Tìm shipper cần sửa
+    const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedOldPhone);
+    if (shipperIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế cần cập nhật!' });
+    }
+
+    const shipper = shippers[shipperIndex];
+    const uuid = shipper.id;
+
+    // Nếu thay đổi SĐT, kiểm tra xem SĐT mới đã được dùng bởi tài xế khác chưa
+    if (cleanedOldPhone !== cleanedNewPhone) {
+      const exists = shippers.some((s, idx) => idx !== shipperIndex && s.phone.trim().replace(/\s+/g, '') === cleanedNewPhone);
+      if (exists) {
+        return res.status(400).json({ success: false, error: 'Số điện thoại mới đã được sử dụng bởi tài xế khác!' });
+      }
+    }
+
+    // Cập nhật thông tin trên Supabase Auth nếu có uuid và email/password
+    if (supabase && uuid) {
+      const updateData = {
+        user_metadata: { full_name: name, role: 'shipper' }
+      };
+      if (email) updateData.email = email;
+      if (password) updateData.password = password;
+
+      const newFormatPhone = cleanedNewPhone.startsWith('0') ? '+84' + cleanedNewPhone.slice(1) : cleanedNewPhone;
+      updateData.phone = newFormatPhone;
+
+      const { error: authError } = await supabase.auth.admin.updateUserById(uuid, updateData);
+      if (authError) {
+        return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message });
+      }
+
+      // Cập nhật profile trong table shipper_profiles
+      const { error: profileError } = await supabase
+        .from('shipper_profiles')
+        .update({
+          phone: cleanedNewPhone,
+          full_name: name
+        })
+        .eq('id', uuid);
+
+      if (profileError) {
+        console.error('[Supabase Error] Lỗi cập nhật profile:', profileError.message);
+      }
+    }
+
+    // Cập nhật database local JSON
+    shipper.name = name;
+    shipper.phone = cleanedNewPhone;
+    if (email) shipper.email = email;
+
+    shippers[shipperIndex] = shipper;
+    writeShippersDatabase(shippers);
+
+    res.json({ success: true, shipper });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/shippers/:phone
+ * Delete shipper from local JSON + Supabase Auth
+ */
+app.delete('/api/admin/shippers/:phone', authenticateAdmin, async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+
+    const shippers = readShippersDatabase();
+    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
+    }
+
+    const target = shippers[idx];
+    if (supabase && target.id) {
+      // Delete from Auth
+      const { error: authError } = await supabase.auth.admin.deleteUser(target.id);
+      if (authError) {
+        console.error('[Supabase Error] Lỗi xóa Auth user:', authError.message);
+      }
+      // Delete profile table
+      await supabase.from('shipper_profiles').delete().eq('id', target.id);
+    }
+
+    shippers.splice(idx, 1);
+    writeShippersDatabase(shippers);
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/shippers/:phone/approve
+ * Manually approve a shipper by phone from CRM Admin
+ */
+app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, res) => {
+  const { phone } = req.params;
+  const success = await approveShipperAccount(phone);
+  if (success) {
+    res.json({ success: true, message: 'Đã phê duyệt tài xế thành công!' });
+  } else {
+    res.status(400).json({ success: false, error: 'Phê duyệt tài xế thất bại hoặc không tìm thấy tài xế!' });
+  }
+});
+
+/**
+ * GET /api/shippers/profile
+ * Get specific shipper profile details and approval status by phone number
+ */
+app.get('/api/shippers/profile', (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại!' });
+    }
+    const shippers = readShippersDatabase();
+    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    if (!shipper) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
+    }
+    res.json({ success: true, shipper });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * PUT /api/admin/restaurants/:id
+ * Update restaurant basic info
+ */
+app.put('/api/admin/restaurants/:id', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, address, category, isClosed } = req.body;
+    let found = false;
+    let updatedData = null;
+
+    await updateLocalDatabase((restaurants) => {
+      const idx = restaurants.findIndex(r => String(r.id) === String(id));
+      if (idx !== -1) {
+        if (name) restaurants[idx].name = name;
+        if (address) restaurants[idx].address = address;
+        if (category) restaurants[idx].category = category;
+        if (typeof isClosed === 'boolean') {
+          restaurants[idx].isClosed = isClosed;
+          if (isClosed) {
+            restaurants[idx].closedAt = new Date().toISOString();
+            restaurants[idx].closedReason = 'Admin đóng cửa thủ công';
+          } else {
+            delete restaurants[idx].closedAt;
+            delete restaurants[idx].closedReason;
+          }
+        }
+        restaurants[idx].updatedAt = Date.now();
+        updatedData = restaurants[idx];
+        found = true;
+        return true; // Save
+      }
+      return false; // No save if not found
+    });
+
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
+    }
+
+    res.json({ success: true, data: updatedData });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * PUT /api/admin/restaurants/:id/menu
+ * Update restaurant menu / prices
+ */
+app.put('/api/admin/restaurants/:id/menu', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { menu } = req.body;
+
+    if (!Array.isArray(menu)) {
+      return res.status(400).json({ success: false, error: 'Menu phải là một mảng!' });
+    }
+
+    const updatedMenu = menu.map(item => {
+      const inStorePrice = Number(item.inStorePrice) || 0;
+      const appPrice = calcAppPrice(inStorePrice);
+      return {
+        ...item,
+        inStorePrice,
+        appPrice
+      };
+    });
+
+    writeRestaurantMenu(id, updatedMenu);
+
+    await updateLocalDatabase((restaurants) => {
+      const idx = restaurants.findIndex(r => String(r.id) === String(id));
+      if (idx !== -1) {
+        restaurants[idx].hasRealMenu = true;
+        restaurants[idx].menuUpdatedAt = new Date().toISOString();
+        restaurants[idx].dishNames = updatedMenu.map(m => m.name).filter(Boolean);
+        return true;
+      }
+      return false;
+    });
+
+    res.json({ success: true, data: updatedMenu });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/restaurants/:id/sync-price
+ * Trigger manual ShopeeFood scraper for a restaurant
+ */
+app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    let found = null;
+    
+    if (SEARCHED_RESTAURANTS_CACHE.has(id)) {
+      found = SEARCHED_RESTAURANTS_CACHE.get(id);
+    } else {
+      const localData = dbHelper.read();
+      found = localData.find(r => String(r.id) === String(id));
+    }
+    
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
+    }
+    
+    if (found._isScraping) {
+      return res.json({ success: true, message: 'Tiến trình cào/đồng bộ đang chạy ngầm!' });
+    }
+    
+    triggerBackgroundMenuScrape(found);
+    res.json({ success: true, message: 'Đã kích hoạt cào & đồng bộ giá ngầm từ ShopeeFood.' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/customers
+ * Extract customer list from orders
+ */
+app.get('/api/admin/customers', authenticateAdmin, (req, res) => {
+  try {
+    const orders = readOrdersDatabase();
+    const customerMap = new Map();
+    
+    orders.forEach(o => {
+      const phone = o.deliveryPhone || o.ordererPhone;
+      if (!phone) return;
+      if (!customerMap.has(phone)) {
+        customerMap.set(phone, {
+          name: o.deliveryName || '—',
+          phone,
+          address: o.deliveryAddress || '',
+          ordersCount: 0,
+          totalSpent: 0
+        });
+      }
+      const c = customerMap.get(phone);
+      c.ordersCount++;
+      c.totalSpent += (o.appTotal || 0);
+    });
+    
+    res.json({ success: true, data: Array.from(customerMap.values()) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/orders
+ * Get all orders sorted by date
+ */
+app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
+  try {
+    const orders = readOrdersDatabase();
+    orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    res.json({ success: true, data: orders });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/orders/stats
+ * Return orders and revenue statistics grouped by date
+ */
+app.get('/api/admin/orders/stats', authenticateAdmin, (req, res) => {
+  try {
+    const orders = readOrdersDatabase();
+    const completed = orders.filter(o => o.status === 'DELIVERED');
+    
+    const dailyStats = {};
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      dailyStats[dateStr] = { revenue: 0, ordersCount: 0 };
+    }
+    
+    completed.forEach(o => {
+      if (o.createdAt) {
+        const dateStr = new Date(o.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+        if (dailyStats[dateStr]) {
+          dailyStats[dateStr].revenue += (o.appTotal || 0);
+          dailyStats[dateStr].ordersCount++;
+        }
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        totalOrders: orders.length,
+        completedCount: completed.length,
+        daily: Object.entries(dailyStats).map(([date, val]) => ({ date, ...val }))
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/pricing-config
+ * Lấy cấu hình pricing hiện tại (Markup %, giảm giá đơn 2)
+ */
+app.get('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
+  res.json({ success: true, data: pricingConfig });
+});
+
+/**
+ * POST /api/admin/pricing-config
+ * Cập nhật cấu hình pricing
+ */
+app.post('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
+  try {
+    const { markupRate, secondOrderDiscountRate } = req.body;
+    
+    if (typeof markupRate === 'number') {
+      pricingConfig.markupRate = markupRate;
+    }
+    if (typeof secondOrderDiscountRate === 'number') {
+      pricingConfig.secondOrderDiscountRate = secondOrderDiscountRate;
+    }
+    
+    fs.writeFileSync(PRICING_CONFIG_FILE, JSON.stringify(pricingConfig, null, 2), 'utf8');
+    console.log('[Pricing Config] Admin đã cập nhật cấu hình:', pricingConfig);
+    res.json({ success: true, data: pricingConfig });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/orders/:id/assign
+ * Admin chỉ định gán đơn hàng cho một tài xế cụ thể
+ */
+app.post('/api/admin/orders/:id/assign', authenticateAdmin, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { shipperPhone } = req.body;
+    if (!shipperPhone) {
+      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại tài xế!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const matchedShipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === shipperPhone.trim().replace(/\s+/g, ''));
+    if (!matchedShipper) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế với số điện thoại này!' });
+    }
+
+    let updatedOrder = null;
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx !== -1) {
+        orders[idx].status = 'ACCEPTED';
+        orders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
+        orders[idx].shipperName = matchedShipper.name;
+        orders[idx].shipperPhone = matchedShipper.phone;
+        orders[idx].assignedShipperPhone = matchedShipper.phone;
+        orders[idx].offerExpiresAt = null;
+        orders[idx].acceptedAt = Date.now();
+        updatedOrder = orders[idx];
+      }
+    });
+
+    if (!updatedOrder) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
+    }
+
+    // Đồng bộ lên Supabase nếu hoạt động
+    if (supabase) {
+      try {
+        await supabase.from('orders').update({
+          status: 'ACCEPTED',
+          shipper_id: matchedShipper.id,
+          shipper_name: matchedShipper.name,
+          shipper_phone: matchedShipper.phone,
+          accepted_at: new Date().toISOString()
+        }).eq('id', orderId);
+      } catch (err) {
+        console.error('[Supabase Sync Error]:', err.message);
+      }
+    }
+
+    console.log(`[Admin Dispatch] 🎯 Admin đã chỉ định gán đơn ${orderId} cho tài xế ${matchedShipper.name} (${matchedShipper.phone})`);
+    res.json({ success: true, data: updatedOrder });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/restaurants/:id/toggle-status
+ * Bật/Tắt trạng thái hoạt động của quán (OPEN/CLOSED)
+ */
+app.post('/api/admin/restaurants/:id/toggle-status', authenticateAdmin, async (req, res) => {
+  try {
+    const restId = req.params.id;
+    const { status } = req.body;
+    if (!status || !['OPEN', 'CLOSED'].includes(status)) {
+      return res.status(400).json({ success: false, error: 'Trạng thái hoạt động không hợp lệ!' });
+    }
+
+    const restaurants = readRestaurantsDatabase();
+    const idx = restaurants.findIndex(r => r.id === restId);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
+    }
+
+    restaurants[idx].status = status;
+    writeRestaurantsDatabase(restaurants);
+
+    console.log(`[Admin Restaurant] 🏪 Admin đã đổi trạng thái quán "${restaurants[idx].name}" sang ${status}`);
+    res.json({ success: true, status: status });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/restaurants/:id/menu/:itemId/toggle-availability
+ * Bật/Tắt món ăn của quán (available true/false)
+ */
+app.post('/api/admin/restaurants/:id/menu/:itemId/toggle-availability', authenticateAdmin, async (req, res) => {
+  try {
+    const restId = req.params.id;
+    const itemId = req.params.itemId;
+    const { available } = req.body;
+    if (typeof available !== 'boolean') {
+      return res.status(400).json({ success: false, error: 'Trạng thái món ăn phải là boolean!' });
+    }
+
+    const menu = readRestaurantMenu(restId);
+    const idx = menu.findIndex(m => m.id === itemId || m.name === itemId);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy món ăn trong thực đơn!' });
+    }
+
+    menu[idx].available = available;
+    writeRestaurantMenu(restId, menu);
+
+    const restaurants = readRestaurantsDatabase();
+    const rIdx = restaurants.findIndex(r => r.id === restId);
+    if (rIdx !== -1) {
+      restaurants[rIdx].dishNames = menu.map(m => m.name).filter(Boolean);
+      writeRestaurantsDatabase(restaurants);
+    }
+
+    console.log(`[Admin Menu] 🍔 Admin đã đổi trạng thái món "${menu[idx].name}" tại quán "${restId}" sang ${available ? 'Còn món' : 'Hết món'}`);
+    res.json({ success: true, itemId: itemId, available: available });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -3332,4 +5367,7 @@ app.listen(PORT, () => {
 
   // Khởi động luồng quét tự động toàn bộ cơ sở dữ liệu làm mới thực đơn chuẩn
   startBackgroundDatabaseSweepWorker();
+
+  // Khởi động Telegram Polling Daemon
+  startTelegramPolling();
 });

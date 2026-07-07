@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShipFee CRM — Quản Trị Hệ Thống</title>
+  <meta name="description" content="CRM quản lý Shipper, Quán ăn, Menu, Giá, Khách hàng và Đơn hàng realtime cho hệ thống ShipFee Food Delivery.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ═══════════════ LOGIN PAGE ═══════════════ -->
+  <div id="login-page" class="login-page">
+    <div class="login-card card-shell">
+      <div class="card-core">
+        <div class="login-brand">
+          <div class="login-brand__icon">
+            <i class="fa-solid fa-chart-line"></i>
+          </div>
+          <h2>ShipFee CRM</h2>
+          <p>Hệ thống quản trị dành cho Admin</p>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="admin-email">Email quản trị</label>
+          <input type="email" id="admin-email" class="form-input" placeholder="admin@shipfee.vn" value="admin@shipfee.vn">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="admin-password">Mật khẩu</label>
+          <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" value="admin123">
+        </div>
+        <button class="btn btn--primary btn--full btn--lg" onclick="handleAdminLogin()" id="login-btn">
+          <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
+        </button>
+        <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; text-align: center; line-height: 1.5;">
+          Demo: admin@shipfee.vn / admin123
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ APP SHELL ═══════════════ -->
+  <div id="app-shell" class="app-shell hidden">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__brand">
+        <div class="sidebar__brand-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <span class="sidebar__brand-text">ShipFee</span>
+        <span class="sidebar__brand-badge">CRM</span>
+      </div>
+
+      <nav class="sidebar__nav">
+        <div class="sidebar__section-label">Tổng quan</div>
+        <a class="sidebar__link active" data-page="dashboard" onclick="navigateTo('dashboard')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-grid-2"></i></span>
+          Dashboard
+        </a>
+
+        <div class="sidebar__section-label">Quản lý</div>
+        <a class="sidebar__link" data-page="shippers" onclick="navigateTo('shippers')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-motorcycle"></i></span>
+          Tài xế
+          <span class="sidebar__link-badge" id="nav-shipper-count">0</span>
+        </a>
+        <a class="sidebar__link" data-page="restaurants" onclick="navigateTo('restaurants')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-store"></i></span>
+          Quán ăn
+          <span class="sidebar__link-badge" id="nav-restaurant-count">0</span>
+        </a>
+        <a class="sidebar__link" data-page="orders" onclick="navigateTo('orders')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-receipt"></i></span>
+          Đơn hàng
+          <span class="sidebar__link-badge" id="nav-order-count">0</span>
+        </a>
+        <a class="sidebar__link" data-page="customers" onclick="navigateTo('customers')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-users"></i></span>
+          Khách hàng
+        </a>
+
+        <div class="sidebar__section-label">Hệ thống</div>
+        <a class="sidebar__link" data-page="settings" onclick="navigateTo('settings')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-sliders"></i></span>
+          Cấu hình
+        </a>
+      </nav>
+
+      <div class="sidebar__footer">
+        <div class="sidebar__user" onclick="handleAdminLogout()">
+          <div class="sidebar__user-avatar" id="sidebar-avatar">A</div>
+          <div>
+            <div class="sidebar__user-name" id="sidebar-name">Admin</div>
+            <div class="sidebar__user-role">Quản trị viên</div>
+          </div>
+          <i class="fa-solid fa-right-from-bracket" style="margin-left: auto; color: var(--text-muted); font-size: 13px;"></i>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="main-header">
+        <button class="mobile-menu-btn" onclick="toggleSidebar()">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <span class="main-header__title" id="header-title">Dashboard</span>
+        <div class="main-header__breadcrumb">
+          <i class="fa-solid fa-house" style="font-size: 11px;"></i>
+          <span>/</span>
+          <span id="header-breadcrumb">Tổng quan</span>
+        </div>
+        <div class="main-header__actions">
+          <div class="form-search" style="width: 240px;">
+            <span class="form-search__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
+            <input type="text" class="form-input" placeholder="Tìm kiếm..." id="global-search" onkeyup="handleGlobalSearch(this.value)">
+          </div>
+          <button class="btn btn--ghost btn--icon" onclick="refreshCurrentPage()" title="Làm mới">
+            <i class="fa-solid fa-arrows-rotate"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="main-body" id="main-body">
+        <!-- Dynamic content rendered here by app.js -->
+      </div>
+    </main>
+  </div>
+
+  <!-- ═══════════════ MODALS ═══════════════ -->
+
+  <!-- Shipper Modal -->
+  <div class="modal-overlay" id="shipper-modal">
+    <div class="modal">
+      <div class="modal__header">
+        <h3 id="shipper-modal-title">Thêm Tài xế mới</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('shipper-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body">
+        <div class="form-group" id="modal-shipper-avatar-container" style="display: none; align-items: center; gap: 12px; margin-bottom: 16px;">
+          <label class="form-label" style="margin-bottom: 0;">Ảnh chân dung</label>
+          <div style="width: 50px; height: 50px; border-radius: 50%; overflow: hidden; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; background: #27272a;">
+            <img id="modal-shipper-avatar-img" src="" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Họ và tên</label>
+          <input type="text" class="form-input" id="modal-shipper-name" placeholder="Nguyễn Văn A">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Số điện thoại</label>
+          <input type="tel" class="form-input" id="modal-shipper-phone" placeholder="0901234567">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email (đăng nhập Supabase)</label>
+          <input type="email" class="form-input" id="modal-shipper-email" placeholder="taixe@email.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mật khẩu</label>
+          <input type="password" class="form-input" id="modal-shipper-password" placeholder="Tối thiểu 6 ký tự">
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('shipper-modal')">Hủy</button>
+        <button class="btn btn--primary" onclick="saveShipper()" id="save-shipper-btn">
+          <i class="fa-solid fa-check"></i> Lưu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restaurant Menu Modal -->
+  <div class="modal-overlay" id="menu-modal">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal__header">
+        <h3 id="menu-modal-title">Menu quán ăn</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('menu-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body" id="menu-modal-body" style="padding: 0; max-height: 60vh; overflow-y: auto;">
+        <!-- Menu items rendered here -->
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('menu-modal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal" style="max-width: 640px;">
+      <div class="modal__header">
+        <h3 id="order-modal-title">Chi tiết đơn hàng</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('order-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body" id="order-modal-body">
+        <!-- Order detail rendered here -->
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('order-modal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Supabase JS Client library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    if (typeof supabase === 'undefined') {
+      console.warn('jsDelivr CDN failed to load Supabase, falling back to unpkg...');
+      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"><\/script>');
+    }
+  </script>
+  <script src="app.js?v=2.2"></script>
+</body>
+</html>
