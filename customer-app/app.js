@@ -6,10 +6,10 @@
 
 const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
 
-let _API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
-if (_API_BASE.endsWith('/')) {
-  _API_BASE = _API_BASE.slice(0, -1);
+if (localStorage.getItem('shipfee_api_url')) {
+  localStorage.removeItem('shipfee_api_url');
 }
+const _API_BASE = defaultApiUrl;
 
 /* --------------------------------------------------------------------------
    Data: Loaded from restaurants-data.js (included before app.js in HTML)

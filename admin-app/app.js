@@ -8,8 +8,10 @@
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
 
-let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
-if (API_BASE.endsWith('/')) API_BASE = API_BASE.slice(0, -1);
+if (localStorage.getItem('shipfee_api_url')) {
+  localStorage.removeItem('shipfee_api_url');
+}
+const API_BASE = defaultApiUrl;
 
 const originalFetch = window.fetch;
 window.fetch = function(input, init) {
