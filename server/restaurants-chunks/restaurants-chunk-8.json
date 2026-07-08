@@ -1507,7 +1507,7 @@
       "Bánh Cống"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.719Z",
-    "menuUpdatedAt": "2026-07-04T04:35:20.188Z",
+    "menuUpdatedAt": "2026-07-08T06:37:04.792Z",
     "isClosed": false
   },
   {
@@ -1653,7 +1653,7 @@
       "Cơm Tấm Sườn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.721Z",
-    "menuUpdatedAt": "2026-07-04T04:36:03.383Z",
+    "menuUpdatedAt": "2026-07-08T06:37:46.827Z",
     "isClosed": false
   },
   {
@@ -2215,8 +2215,11 @@
       "Trà Bí Đao nhà nấu (size lớn)"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.753Z",
-    "menuUpdatedAt": "2026-07-04T04:38:50.244Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:40:31.258Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:40:31.258Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_mi_tron_tao_bao",
@@ -2320,8 +2323,11 @@
       "Combo Hủ Tiếu Khô ( tô nhỏ ) + Hủ Tiếu Nước ( tô nhỏ ) + 2 Pepsi"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.766Z",
-    "menuUpdatedAt": "2026-07-04T04:39:32.529Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:41:12.546Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:41:12.546Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_hu_tieu_nam_vang_nhi",
@@ -2514,8 +2520,11 @@
       "Pepsi"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.781Z",
-    "menuUpdatedAt": "2026-07-04T04:40:14.832Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:41:55.930Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:41:55.930Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_xoi_ga_ngoc_thanh",
@@ -2627,8 +2636,11 @@
       "Soda chanh dây (700ml)"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.783Z",
-    "menuUpdatedAt": "2026-07-04T04:40:58.601Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:42:36.994Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:42:36.994Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_xoi_chien_3_vi_ong_tho_nguyen_van_cu_noi_dai",
@@ -3616,7 +3628,7 @@
       "Cơm Gà Xối Mỡ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.835Z",
-    "menuUpdatedAt": "2026-07-04T04:44:29.012Z",
+    "menuUpdatedAt": "2026-07-08T06:46:06.211Z",
     "isClosed": false
   },
   {
@@ -3980,52 +3992,20 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mi-food-mi-xao-bo-com-chien-duong-chau-82-pham-the-hien",
     "dishNames": [
-      "Combo Mì Xào Bò + Canh rong biển + nước ngọt",
-      "Combo Cơm Dương Châu + Canh rong biển +  nước ngọt",
-      "Combo Nui Xào  Bò + Canh Rong Biển + Nước ngọt",
-      "Combo Mì Spaghetti + Canh rong biển + Nước Ngọt",
-      "Cơm chiên dương châu + tặng nước ngọt",
-      "Cơm bò xào + tặng nước ngọt",
-      "Cơm Bò Xào Trứng + tặng nước ngọt",
-      "Cơm Heo Xào Hành Tây+ tặng nước ngọt",
-      "Cơm + Trứng Chiên Ốp Lết+ tặng nước ngọt",
-      "Mì Xào Bò Trứng + tặng nước ngọt",
-      "Mì Xào Bò + tặng nước ngọt",
-      "Mì Spaghetti Sốt Bò Bằm + tặng nước ngọt",
-      "Mì Spaghetti Sốt Bò Xúc Xích+ tặng nước ngọt",
-      "Mỳ Xào Heo Trứng+ tặng nước ngọt",
-      "Mì Spaghetti Sốt Heo Bầm+ tặng nước ngọt",
-      "Mỳ Xào Heo+ tặng nước ngọt",
-      "Mỳ Spaghetti Sốt Heo Trứng+ tặng nước ngọt",
-      "Nui xào bò + tặng nước ngọt",
-      "Nui Xào Bò Trứng+ tặng nước ngọt",
-      "Nui Xào Heo Trứng+ tặng nước ngọt",
-      "Nui Xào Heo+ tặng nước ngọt",
-      "Heo hoặc Bò thêm",
-      "Trứng ốp la",
-      "Mì thêm",
-      "Nui  Thêm",
-      "Bò Xào Hành Tây Thêm",
-      "Cơm thêm",
-      "Mì Ý Thêm",
-      "Canh rong biển thịt băm",
-      "Heo Xào Hành Tây Thêm",
-      "Coca lon",
-      "Matcha Latte ( Ly 700ml)",
-      "Trà Xanh Không Độ",
-      "Bạc Xỉu",
-      "Sting dâu",
-      "Cà Phê Sữa",
-      "Redbull Thái( Bò cụng)",
-      "Cà Phê Đá",
-      "Trà Ô Long Tea Plus",
-      "Cacao Latte"
+      "Cơm Tấm Đặc Biệt",
+      "Cơm Chiên Dương Châu",
+      "Nước Ngọt",
+      "Cơm Tấm Bì Chả",
+      "Cơm Tấm Sườn Nướng",
+      "Cơm Tấm Sườn Bì Chả",
+      "Cơm Tấm Sườn Ốp La",
+      "Cơm Gà Xối Mỡ",
+      "Cơm Sườn Ram"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.850Z",
-    "menuUpdatedAt": "2026-07-04T04:47:15.427Z",
+    "menuUpdatedAt": "2026-07-08T06:48:51.644Z",
     "isClosed": false
   },
   {
@@ -6492,7 +6472,7 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.953Z",
-    "menuUpdatedAt": "2026-07-04T04:48:38.534Z",
+    "menuUpdatedAt": "2026-07-08T06:50:14.312Z",
     "isClosed": false
   },
   {
@@ -6565,7 +6545,7 @@
       "Cơm Tấm Sườn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.958Z",
-    "menuUpdatedAt": "2026-07-04T04:49:20.163Z",
+    "menuUpdatedAt": "2026-07-08T06:50:56.438Z",
     "isClosed": false
   },
   {
@@ -6911,36 +6891,19 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ga-nuong-muoi-ot-chu-6",
     "dishNames": [
-      "Combo đồ nướng ( 2 người )",
-      "Combo đồ nướng ( 3 người )",
-      "Combo siêu nhiều món ⚡️",
-      "Chân gà nướng muối ớt",
-      "Cút nướng",
-      "Gà nướng muối ớt (nửa con ) cắt sẵn",
-      "Da gà nướng",
-      "Mề gà nướng",
-      "Cánh gà nướng muối ớt",
-      "Phâu câu gà nướng",
-      "Tim gà nướng",
-      "Thịt nem nướng",
-      "Gà nướng muối ớt nguyên con cắt sẵn",
-      "Ba rọi  nướng muối ớt 100gam",
-      "Phèo non nướng 100gam",
-      "Đầu gà nướng",
-      "Ruột nướng 100gam",
-      "Lỗ tai +  lỗ mũi heo nướng 100gam",
-      "Gan gà nướng",
-      "Dồi sụn 1 cộng",
-      "Đùi gà nướng muối ớt gốc tư",
-      "Tỏi gà nướng muối ớt",
-      "Vịt nướng muối ớt( nửa con)",
-      "Vịt nướng muối ớt nguyên con (  cắt sẵn )"
+      "Gà Chiên Nước Mắm",
+      "Gà Xé Phay",
+      "Gà Kho Gừng",
+      "Gỏi Gà",
+      "Phở Gà",
+      "Gà Nướng Nguyên Con",
+      "Cánh Gà Chiên Mắm",
+      "Cơm Gà Hải Nam"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.970Z",
-    "menuUpdatedAt": "2026-07-04T04:50:43.885Z",
+    "menuUpdatedAt": "2026-07-08T06:52:21.436Z",
     "isClosed": false
   },
   {
@@ -7104,7 +7067,7 @@
       "Cháo Gà"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.978Z",
-    "menuUpdatedAt": "2026-07-04T04:51:26.077Z",
+    "menuUpdatedAt": "2026-07-08T06:53:03.937Z",
     "isClosed": false
   },
   {
@@ -7210,7 +7173,7 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.983Z",
-    "menuUpdatedAt": "2026-07-04T04:52:06.719Z",
+    "menuUpdatedAt": "2026-07-08T06:53:46.435Z",
     "isClosed": false
   },
   {
@@ -7844,8 +7807,11 @@
       "SÒ LỤA NƯỚNG MỠ HÀNH"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.005Z",
-    "menuUpdatedAt": "2026-07-04T04:53:30.860Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:55:10.825Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:55:10.825Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_oc_dao_quan",

@@ -29,25 +29,43 @@ desktop.ini
 dist/
 build/
 
-# Large binary/data files — keep restaurants-local.json but ignore Chrome user-data
+# Large binary/data files
 server/.chrome_user_data/
 server/chrome_user_data/
 server/menus/
 
-# Temporary test/scratch files
+# Temporary / scratch files
 *.tmp
 *.bak
 test_screenshots/
 _backup/
-.agents/
 
-# Tool-generated files
+# Tool-generated directories
+.agents/
 .gitnexus/
 .grapuco/
 .claude/
 skills-lock.json
+
+# Local-only files (not needed on Render/Vercel)
 project_mindmap.html
+start.bat
+start_server.ps1
+start_crawl_background.ps1
+bulk_crawl.js
+test_*.js
+test_*.ps1
+*.pdf
 
-# Server test scripts (matched individually)
+# Unused server crawler scripts
+server/crawler.js
+server/crawler_extra.js
+server/crawler_http.js
+server/crawler_keywords.js
+server/crawler_puppeteer.js
+server/crawl_open_fallbacks.js
+server/safe_crawl.js
+server/discover_foody_api.js
+server/migrate_db.js
+server/verify_optimization.js
 server/test_*.js
-
