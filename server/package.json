@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "shipfee-proxy-server",
   "version": "1.1.0",
   "description": "Proxy server tự động lấy data quán ăn từ ShopeeFood Cần Thơ",
@@ -15,6 +15,8 @@
     "express": "^4.19.2",
     "puppeteer-core": "^25.1.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2"
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5"
   }
 }
