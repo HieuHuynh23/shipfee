@@ -780,7 +780,10 @@ function renderShippersTable() {
             </div>
           </div>
         </td>
-        <td><span class="mono text-sm">${s.phone}</span></td>
+        <td>
+          <span class="mono text-sm" style="display:block;">${s.phone}</span>
+          <span class="text-muted text-xs" style="display:block; margin-top:2px;">CCCD: ${s.cccd || '—'}</span>
+        </td>
         <td><span class="badge ${statusBadgeClass(s.status)}"><span class="badge__dot"></span> ${statusLabel(s.status)}</span></td>
         <td>
           <div class="flex flex-column gap-1 text-xs">
@@ -836,6 +839,7 @@ function openAddShipperModal() {
   document.getElementById('shipper-modal-title').textContent = 'Thêm Tài xế mới';
   document.getElementById('modal-shipper-name').value = '';
   document.getElementById('modal-shipper-phone').value = '';
+  document.getElementById('modal-shipper-cccd').value = '';
   document.getElementById('modal-shipper-email').value = '';
   document.getElementById('modal-shipper-password').value = '';
   const avatarContainer = document.getElementById('modal-shipper-avatar-container');
@@ -850,6 +854,7 @@ function editShipper(phone) {
   document.getElementById('shipper-modal-title').textContent = 'Sửa thông tin Tài xế';
   document.getElementById('modal-shipper-name').value = s.name || '';
   document.getElementById('modal-shipper-phone').value = s.phone || '';
+  document.getElementById('modal-shipper-cccd').value = s.cccd || '';
   document.getElementById('modal-shipper-email').value = s.email || '';
   document.getElementById('modal-shipper-password').value = '';
   
@@ -870,6 +875,7 @@ function editShipper(phone) {
 async function saveShipper() {
   const name = document.getElementById('modal-shipper-name').value.trim();
   const phone = document.getElementById('modal-shipper-phone').value.trim();
+  const cccd = document.getElementById('modal-shipper-cccd').value.trim();
   const email = document.getElementById('modal-shipper-email').value.trim();
   const password = document.getElementById('modal-shipper-password').value.trim();
 
@@ -883,12 +889,12 @@ async function saveShipper() {
     if (editingShipperPhone) {
       res = await apiFetch(`/api/admin/shippers/${editingShipperPhone}`, {
         method: 'PUT',
-        body: JSON.stringify({ name, phone, email, password })
+        body: JSON.stringify({ name, phone, email, password, cccd })
       });
     } else {
       res = await apiFetch('/api/admin/shippers', {
         method: 'POST',
-        body: JSON.stringify({ name, phone, email, password })
+        body: JSON.stringify({ name, phone, email, password, cccd })
       });
     }
 

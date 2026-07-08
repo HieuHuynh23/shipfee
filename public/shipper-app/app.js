@@ -177,6 +177,7 @@ function toggleAuthMode(e) {
     
     document.getElementById('login-group-name').style.display = 'flex';
     document.getElementById('login-group-phone').style.display = 'flex';
+    document.getElementById('login-group-cccd').style.display = 'flex';
     document.getElementById('login-group-email').style.display = 'flex';
     document.getElementById('login-group-password').style.display = 'flex';
     document.getElementById('login-group-avatar').style.display = 'flex';
@@ -189,6 +190,7 @@ function toggleAuthMode(e) {
     
     document.getElementById('login-group-name').style.display = 'none';
     document.getElementById('login-group-phone').style.display = 'none';
+    document.getElementById('login-group-cccd').style.display = 'none';
     document.getElementById('login-group-email').style.display = 'flex';
     document.getElementById('login-group-password').style.display = 'flex';
     document.getElementById('login-group-avatar').style.display = 'none';
@@ -207,16 +209,18 @@ async function handleAuthAction() {
 async function registerDriver() {
   const nameInput = document.getElementById('driver-name');
   const phoneInput = document.getElementById('driver-phone');
+  const cccdInput = document.getElementById('driver-cccd');
   const emailInput = document.getElementById('driver-email');
   const passwordInput = document.getElementById('driver-password');
 
   const name = nameInput.value.trim();
   const phone = phoneInput.value.trim();
+  const cccd = cccdInput ? cccdInput.value.trim() : '';
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
   
-  if (!name || !phone || !email || !password) {
-    showToast('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên, Số điện thoại, Email và Mật khẩu.', 'warning');
+  if (!name || !phone || !cccd || !email || !password) {
+    showToast('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên, Số điện thoại, Số CCCD, Email và Mật khẩu.', 'warning');
     return;
   }
 
@@ -243,7 +247,7 @@ async function registerDriver() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64 })
+      body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64, cccd })
     });
 
     const res = await response.json();
@@ -330,7 +334,8 @@ async function loginDriver() {
         name: result.shipper.name, 
         phone: result.shipper.phone,
         avatarUrl: result.shipper.avatarUrl,
-        isApproved: result.shipper.isApproved
+        isApproved: result.shipper.isApproved,
+        cccd: result.shipper.cccd || ''
       };
       localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       loadStats();
@@ -2529,6 +2534,10 @@ function showDriverProfile() {
   
   document.getElementById('profile-name').textContent = currentDriver.name || '-';
   document.getElementById('profile-phone').textContent = currentDriver.phone || '-';
+  const cccdEl = document.getElementById('profile-cccd');
+  if (cccdEl) {
+    cccdEl.textContent = currentDriver.cccd || 'Chưa cập nhật';
+  }
 
   const avatarImg = document.getElementById('profile-avatar-img');
   const avatarPlaceholder = document.getElementById('profile-avatar-placeholder');

@@ -3992,6 +3992,7 @@ app.post('/api/shippers/login', async (req, res) => {
         id: user.id,
         phone: userPhone || '0900000000',
         name: userName,
+        cccd: user.user_metadata?.cccd || '', // Lấy CCCD từ metadata Supabase Auth
         status: 'OFFLINE',
         lastCheckIn: null,
         lastCheckOut: null
@@ -4004,7 +4005,7 @@ app.post('/api/shippers/login', async (req, res) => {
     }
 
     writeShippersDatabase(shippers);
-    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: shipper.avatarUrl, isApproved: shipper.isApproved } });
+    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: shipper.avatarUrl, isApproved: shipper.isApproved, cccd: shipper.cccd || '' } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -4365,7 +4366,7 @@ app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
  */
 app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
   try {
-    const { name, phone, email, password } = req.body;
+    const { name, phone, email, password, cccd } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Thiếu Tên hoặc SĐT tài xế!' });
     }
@@ -4386,7 +4387,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
         email,
         password,
         phone: cleanedPhone.startsWith('0') ? '+84' + cleanedPhone.slice(1) : cleanedPhone,
-        user_metadata: { full_name: name, role: 'shipper' },
+        user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '' },
         email_confirm: true,
         phone_confirm: true
       });
@@ -4403,7 +4404,8 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
         phone: cleanedPhone,
         full_name: name,
         is_approved: true, // Admin tạo thì tự động duyệt
-        status: 'OFFLINE'
+        status: 'OFFLINE',
+        cccd: cccd || ''
       });
 
       if (profileError) {
@@ -4417,6 +4419,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
       phone: cleanedPhone,
       name,
       email, // Lưu email để hiển thị hoặc sửa
+      cccd: cccd || '', // Lưu CCCD
       isApproved: true, // Mặc định được duyệt đối với tài khoản admin tạo
       status: 'OFFLINE',
       lastCheckIn: null,
@@ -4439,7 +4442,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
 app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => {
   try {
     const { oldPhone } = req.params;
-    const { name, phone, email, password } = req.body;
+    const { name, phone, email, password, cccd } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Thiếu Tên hoặc SĐT tài xế!' });
     }
@@ -4468,7 +4471,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
     // Cập nhật thông tin trên Supabase Auth nếu có uuid và email/password
     if (supabase && uuid) {
       const updateData = {
-        user_metadata: { full_name: name, role: 'shipper' }
+        user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '' }
       };
       if (email) updateData.email = email;
       if (password) updateData.password = password;
@@ -4486,7 +4489,8 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
         .from('shipper_profiles')
         .update({
           phone: cleanedNewPhone,
-          full_name: name
+          full_name: name,
+          cccd: cccd || ''
         })
         .eq('id', uuid);
 
@@ -4499,6 +4503,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
     shipper.name = name;
     shipper.phone = cleanedNewPhone;
     if (email) shipper.email = email;
+    shipper.cccd = cccd || ''; // Cập nhật CCCD
 
     shippers[shipperIndex] = shipper;
     writeShippersDatabase(shippers);
