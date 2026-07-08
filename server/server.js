@@ -848,6 +848,160 @@ function startTelegramPolling() {
             } else {
               await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Lỗi từ chối!' });
             }
+          } else if (data.startsWith('sos_assign_select:')) {
+            const phone = data.split(':')[1];
+            const cleanP = phone.trim().replace(/\s+/g, '');
+            const orders = readOrdersDatabase();
+            // Đơn hàng PENDING và không được gán cho ai hoặc hết hạn offer
+            const pendingOrders = orders.filter(o => o.status === 'PENDING' && (!o.assignedShipperPhone || (o.offerExpiresAt && Date.now() > o.offerExpiresAt)));
+            
+            if (pendingOrders.length === 0) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { 
+                callback_query_id: cb.id, 
+                text: 'Không tìm thấy đơn hàng nào đang chờ ở bể chung!' 
+              });
+              continue;
+            }
+
+            const keyboard = { inline_keyboard: [] };
+            pendingOrders.forEach(o => {
+              keyboard.inline_keyboard.push([{
+                text: `📦 Đơn ${o.id} - ${o.restaurantName}`,
+                callback_data: `sos_assign_confirm:${cleanP}:${o.id}`
+              }]);
+            });
+            keyboard.inline_keyboard.push([{
+              text: '⬅️ Quay lại',
+              callback_data: `sos_back:${cleanP}`
+            }]);
+
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: `🎯 *Chọn đơn hàng để gán ngay cho tài xế:* \`${phone}\`\nDanh sách đơn hàng đang chờ:`,
+              parse_mode: 'Markdown',
+              reply_markup: keyboard
+            });
+          } else if (data.startsWith('sos_assign_confirm:')) {
+            const parts = data.split(':');
+            const phone = parts[1];
+            const orderId = parts[2];
+            const cleanP = phone.trim().replace(/\s+/g, '');
+
+            const shippers = readShippersDatabase();
+            const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanP);
+            if (!shipper) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy tài xế!' });
+              continue;
+            }
+
+            let updatedOrder = null;
+            await updateOrdersDatabase((dbOrders) => {
+              const idx = dbOrders.findIndex(o => o.id === orderId);
+              if (idx !== -1 && dbOrders[idx].status === 'PENDING') {
+                dbOrders[idx].status = 'ACCEPTED';
+                dbOrders[idx].acceptedAt = Date.now();
+                dbOrders[idx].shipperId = shipper.id || 'shipper-default';
+                dbOrders[idx].shipperName = shipper.name;
+                dbOrders[idx].shipperPhone = shipper.phone;
+                dbOrders[idx].assignedShipperPhone = null;
+                dbOrders[idx].offerExpiresAt = null;
+                updatedOrder = dbOrders[idx];
+              }
+            });
+
+            if (updatedOrder) {
+              // Tắt cờ SOS của shipper
+              const shippersDB = readShippersDatabase();
+              const sIdx = shippersDB.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanP);
+              if (sIdx !== -1) {
+                shippersDB[sIdx].assistanceRequested = false;
+                writeShippersDatabase(shippersDB);
+                
+                if (supabase && shippersDB[sIdx].id) {
+                  supabase.from('shipper_profiles').update({ assistance_requested: false }).eq('id', shippersDB[sIdx].id).catch(e => {});
+                }
+              }
+
+              if (supabase) {
+                try {
+                  await supabase.from('orders').update({
+                    status: 'ACCEPTED',
+                    shipper_id: shipper.id,
+                    shipper_name: shipper.name,
+                    shipper_phone: shipper.phone,
+                    accepted_at: new Date().toISOString()
+                  }).eq('id', orderId);
+                } catch (e) {}
+              }
+
+              sendTelegramOrderStatusUpdateNotification(updatedOrder).catch(e => {});
+
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã gán và tự động nhận đơn thành công!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `✅ *Đã gán và tự động nhận đơn thành công!*\n\n🆔 *Đơn:* \`${orderId}\`\n🛵 *Tài xế:* ${shipper.name} (${shipper.phone})`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Gán đơn thất bại (đơn đã được gán hoặc đã hủy)!' });
+            }
+          } else if (data.startsWith('sos_cancel:')) {
+            const phone = data.split(':')[1];
+            const cleanP = phone.trim().replace(/\s+/g, '');
+            const shippers = readShippersDatabase();
+            const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanP);
+            
+            if (idx !== -1) {
+              shippers[idx].assistanceRequested = false;
+              writeShippersDatabase(shippers);
+
+              if (supabase && shippers[idx].id) {
+                supabase.from('shipper_profiles').update({ assistance_requested: false }).eq('id', shippers[idx].id).catch(e => {});
+              }
+
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã hủy yêu cầu hỗ trợ SOS!' });
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+                chat_id: chatId,
+                message_id: msgId,
+                text: `❌ *Đã hủy yêu cầu hỗ trợ SOS!*\n\n🛵 *Tài xế:* ${shippers[idx].name} (${shippers[idx].phone})`,
+                parse_mode: 'Markdown'
+              });
+            } else {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy tài xế!' });
+            }
+          } else if (data.startsWith('sos_back:')) {
+            const phone = data.split(':')[1];
+            const cleanP = phone.trim().replace(/\s+/g, '');
+            const shippers = readShippersDatabase();
+            const s = shippers.find(sh => sh.phone.trim().replace(/\s+/g, '') === cleanP);
+            if (!s) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy tài xế!' });
+              continue;
+            }
+
+            const keyboard = {
+              inline_keyboard: [
+                [
+                  { text: '🎯 Chỉ định đơn nhanh', callback_data: `sos_assign_select:${cleanP}` },
+                  { text: '❌ Hủy yêu cầu SOS', callback_data: `sos_cancel:${cleanP}` }
+                ]
+              ]
+            };
+
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id });
+            await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
+              chat_id: chatId,
+              message_id: msgId,
+              text: `🆘 *Tài xế yêu cầu Hỗ trợ Tìm đơn*\n\n` +
+                `🛵 *Tài xế:* ${s.name} (${s.phone})\n` +
+                `📊 *Số lượt đã dùng hôm nay:* ${s.assistanceLimitToday || 0}/3\n` +
+                `⏳ *Trạng thái:* Đang chờ đơn hàng mới phát sinh để tự động gán ưu tiên.`,
+              parse_mode: 'Markdown',
+              reply_markup: keyboard
+            });
           } else if (data.startsWith('assign_auto:')) {
             const orderId = data.split(':')[1];
             const orders = readOrdersDatabase();
@@ -4635,10 +4789,21 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
           `🛵 *Tài xế:* ${shipper.name} (${shipper.phone})\n` +
           `📊 *Số lượt đã dùng hôm nay:* ${shipper.assistanceLimitToday}/3\n` +
           `⏳ *Trạng thái:* Đang chờ đơn hàng mới phát sinh để tự động gán ưu tiên.`;
+
+        const keyboard = {
+          inline_keyboard: [
+            [
+              { text: '🎯 Chỉ định đơn nhanh', callback_data: `sos_assign_select:${cleanPhone}` },
+              { text: '❌ Hủy yêu cầu SOS', callback_data: `sos_cancel:${cleanPhone}` }
+            ]
+          ]
+        };
+
         await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
           chat_id: TELEGRAM_CHAT_ID,
           text,
-          parse_mode: 'Markdown'
+          parse_mode: 'Markdown',
+          reply_markup: keyboard
         });
       } catch (err) {
         console.error('[Telegram Bot] Lỗi gửi tin hỗ trợ:', err.message);
