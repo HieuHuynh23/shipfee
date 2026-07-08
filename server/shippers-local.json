@@ -1,10 +1,11 @@
 [
   {
     "phone": "0901234567",
-    "name": "Nguyễn Văn Tài",
+    "name": "Nguyen Van Tai Updated",
     "status": "OFFLINE",
-    "lastCheckIn": "2026-07-04T16:19:07.339Z",
-    "lastCheckOut": "2026-06-21T09:28:20.460Z"
+    "lastCheckIn": "2026-07-05T05:41:52.197Z",
+    "lastCheckOut": "2026-06-21T09:28:20.460Z",
+    "email": "taixetest_upd@gmail.com"
   },
   {
     "phone": "0911223344",
@@ -19,5 +20,46 @@
     "status": "OFFLINE",
     "lastCheckIn": null,
     "lastCheckOut": null
+  },
+  {
+    "id": "7f0d5acf-789e-49af-9d4f-774b665306fb",
+    "phone": "0907296261",
+    "name": "Huỳnh TRung Hiếu",
+    "status": "OFFLINE",
+    "isApproved": true,
+    "lastCheckIn": "2026-07-05T15:44:07.668Z",
+    "lastCheckOut": "2026-07-05T15:44:29.678Z",
+    "totalOrders": 0,
+    "totalEarnings": 0,
+    "acceptanceRate": 100,
+    "completionRate": 100
+  },
+  {
+    "id": "ac8719d3-106e-48e1-b077-4d71f9cd73b6",
+    "phone": "0995454815",
+    "name": "Shipper Verify Test",
+    "email": "shipper_test_1783315454815@mailnesia.com",
+    "status": "OFFLINE",
+    "lastCheckIn": null,
+    "lastCheckOut": null,
+    "totalOrders": 0,
+    "totalEarnings": 0,
+    "acceptanceRate": 100,
+    "completionRate": 100
+  },
+  {
+    "id": "7abbdf8d-a734-40dd-9c2b-6d2b3bcecc8f",
+    "phone": "0977597431",
+    "name": "Tài xế Test Duyệt",
+    "email": "approve_test_1783317597431@mailnesia.com",
+    "avatarUrl": "http://localhost:3001/uploads/shippers/0977597431.png",
+    "isApproved": false,
+    "status": "OFFLINE",
+    "lastCheckIn": null,
+    "lastCheckOut": null,
+    "totalOrders": 0,
+    "totalEarnings": 0,
+    "acceptanceRate": 100,
+    "completionRate": 100
   }
 ]

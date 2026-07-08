@@ -4,7 +4,7 @@
 
 'use strict';
 
-const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '')
   ? 'http://localhost:3001'
   : 'https://shipfee-eo5s.onrender.com';
 
@@ -12,22 +12,74 @@ let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
 if (API_BASE.endsWith('/')) {
   API_BASE = API_BASE.slice(0, -1);
 }
-if (API_BASE !== 'http://localhost:3001') {
-  const originalFetch = window.fetch;
-  window.fetch = function(input, init) {
-    if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
-      input = input.replace('http://localhost:3001', API_BASE);
+const originalFetch = window.fetch;
+window.fetch = function(input, init) {
+  if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
+    input = input.replace('http://localhost:3001', API_BASE);
+  }
+  const token = localStorage.getItem('shipfee_jwt');
+  if (token) {
+    init = init || {};
+    init.headers = init.headers || {};
+    if (typeof init.headers.set === 'function') {
+      init.headers.set('Authorization', `Bearer ${token}`);
+    } else if (Array.isArray(init.headers)) {
+      init.headers.push(['Authorization', `Bearer ${token}`]);
+    } else {
+      init.headers['Authorization'] = `Bearer ${token}`;
     }
-    return originalFetch(input, init);
-  };
-}
+  }
+  return originalFetch(input, init);
+};
 
 // Helper to normalize phone numbers for robust matching (removes spaces)
 function cleanPhone(p) {
   return (p || '').toString().trim().replace(/\s+/g, '');
 }
 
+let driverAvatarBase64 = null;
+function previewDriverAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    driverAvatarBase64 = e.target.result;
+    const imgEl = document.getElementById('avatar-preview-img');
+    const iconEl = document.getElementById('avatar-preview-icon');
+    if (imgEl && iconEl) {
+      imgEl.src = e.target.result;
+      imgEl.style.display = 'block';
+      iconEl.style.display = 'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+window.previewDriverAvatar = previewDriverAvatar;
+
+function logoutApprovalPending() {
+  if (supabaseClient) {
+    supabaseClient.auth.signOut().then(() => {
+      localStorage.removeItem('shipfee_jwt');
+      localStorage.removeItem('shipfee_driver');
+      document.getElementById('approval-overlay').style.display = 'none';
+      document.getElementById('login-overlay').classList.add('active');
+    }).catch(() => {
+      localStorage.removeItem('shipfee_jwt');
+      localStorage.removeItem('shipfee_driver');
+      document.getElementById('approval-overlay').style.display = 'none';
+      document.getElementById('login-overlay').classList.add('active');
+    });
+  } else {
+    localStorage.removeItem('shipfee_jwt');
+    localStorage.removeItem('shipfee_driver');
+    document.getElementById('approval-overlay').style.display = 'none';
+    document.getElementById('login-overlay').classList.add('active');
+  }
+}
+window.logoutApprovalPending = logoutApprovalPending;
+
 // ── STATE MANAGEMENT ────────────────────────────────────────────────────────
+let supabaseClient = null;
 let currentDriver = null; // { name, phone }
 let activeOrder = null;   // current accepted order
 let pendingOrders = [];   // list of pending orders
@@ -55,7 +107,8 @@ let routeLine = null;
 const FLOW = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
 
 // ── DOM LOADED ──────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await initSupabase();
   loadDriverInfo();
   loadStats();
   initApp();
@@ -100,6 +153,126 @@ async function initApp() {
 }
 
 // ── SESSION & REGISTRATION ─────────────────────────────────────────────────
+let authMode = 'login'; // 'login' or 'register'
+
+function toggleAuthMode(e) {
+  if (e) e.preventDefault();
+  const link = document.getElementById('auth-toggle-link');
+  const text = document.getElementById('auth-toggle-text');
+  const btn = document.getElementById('login-btn');
+  const title = document.querySelector('#login-overlay .modal__brand h2');
+  
+  // Reset avatar preview
+  const imgEl = document.getElementById('avatar-preview-img');
+  const iconEl = document.getElementById('avatar-preview-icon');
+  if (imgEl) imgEl.style.display = 'none';
+  if (iconEl) iconEl.style.display = 'block';
+  const fileInput = document.getElementById('driver-avatar');
+  if (fileInput) fileInput.value = '';
+  driverAvatarBase64 = null;
+
+  if (authMode === 'login') {
+    authMode = 'register';
+    title.textContent = 'Đăng ký Tài xế';
+    text.textContent = 'Đã có tài khoản?';
+    link.textContent = 'Đăng nhập';
+    
+    document.getElementById('login-group-name').style.display = 'flex';
+    document.getElementById('login-group-phone').style.display = 'flex';
+    document.getElementById('login-group-email').style.display = 'flex';
+    document.getElementById('login-group-password').style.display = 'flex';
+    document.getElementById('login-group-avatar').style.display = 'flex';
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản';
+  } else {
+    authMode = 'login';
+    title.textContent = 'Đăng nhập Tài xế';
+    text.textContent = 'Chưa có tài khoản?';
+    link.textContent = 'Đăng ký ngay';
+    
+    document.getElementById('login-group-name').style.display = 'none';
+    document.getElementById('login-group-phone').style.display = 'none';
+    document.getElementById('login-group-email').style.display = 'flex';
+    document.getElementById('login-group-password').style.display = 'flex';
+    document.getElementById('login-group-avatar').style.display = 'none';
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+  }
+}
+
+async function handleAuthAction() {
+  if (authMode === 'login') {
+    await loginDriver();
+  } else {
+    await registerDriver();
+  }
+}
+
+async function registerDriver() {
+  const nameInput = document.getElementById('driver-name');
+  const phoneInput = document.getElementById('driver-phone');
+  const emailInput = document.getElementById('driver-email');
+  const passwordInput = document.getElementById('driver-password');
+
+  const name = nameInput.value.trim();
+  const phone = phoneInput.value.trim();
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+  
+  if (!name || !phone || !email || !password) {
+    showToast('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên, Số điện thoại, Email và Mật khẩu.', 'warning');
+    return;
+  }
+
+  if (!driverAvatarBase64) {
+    showToast('Thiếu ảnh chân dung', 'Vui lòng chọn ảnh chân dung để tiếp tục đăng ký.', 'warning');
+    return;
+  }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng ký...';
+
+  if (!supabaseClient) {
+    showToast('Supabase chưa cấu hình', 'Hệ thống đang hoạt động ở chế độ Online bắt buộc nhưng Supabase chưa được kết nối!', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản';
+    return;
+  }
+
+  try {
+    // 1. Tạo tài khoản thông qua API Backend (sử dụng signUp để gửi email xác nhận)
+    const response = await fetch(`${API_BASE}/api/shippers/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64 })
+    });
+
+    const res = await response.json();
+    if (!response.ok || !res.success) {
+      showToast('Đăng ký thất bại', res.error || 'Đăng ký tài khoản thất bại.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản';
+      return;
+    }
+
+    // 2. Thông báo yêu cầu xác thực email và chuyển sang chế độ đăng nhập
+    showToast(
+      'Đăng ký thành công!', 
+      'Một liên kết xác thực đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư và xác nhận tài khoản, sau đó chờ Admin phê duyệt để hoạt động.', 
+      'info'
+    );
+    toggleAuthMode();
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+    return;
+  } catch (err) {
+    console.error('Lỗi đăng ký tài xế:', err);
+    showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ API.', 'error');
+  }
+  btn.disabled = false;
+}
+
 function loadDriverInfo() {
   try {
     const raw = localStorage.getItem('shipfee_driver');
@@ -112,38 +285,62 @@ function loadDriverInfo() {
 }
 
 async function loginDriver() {
-  const nameInput = document.getElementById('driver-name');
-  const phoneInput = document.getElementById('driver-phone');
-  
-  const name = nameInput.value.trim();
-  const phone = phoneInput.value.trim();
-  
-  if (!name || !phone) {
-    showToast('Thiếu thông tin', 'Vui lòng nhập Họ tên và Số điện thoại.', 'warning');
+  if (!supabaseClient) {
+    showToast('Supabase chưa cấu hình', 'Hệ thống đang hoạt động ở chế độ Online bắt buộc nhưng Supabase chưa được kết nối!', 'error');
     return;
   }
-  
+
+  const emailInput = document.getElementById('driver-email');
+  const passwordInput = document.getElementById('driver-password');
+  const email = emailInput.value.trim();
+  const password = passwordInput.value.trim();
+
+  if (!email || !password) {
+    showToast('Thiếu thông tin', 'Vui lòng nhập Email và Mật khẩu.', 'warning');
+    return;
+  }
+
   try {
-    const response = await fetch('http://localhost:3001/api/shippers/login', {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      showToast('Đăng nhập thất bại', error.message, 'error');
+      return;
+    }
+
+    const session = data.session;
+    localStorage.setItem('shipfee_jwt', session.access_token);
+
+    // Gọi API của server để đồng bộ và lấy thông tin shipper
+    const response = await fetch(`${API_BASE}/api/shippers/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name, phone })
+      body: JSON.stringify({ token: session.access_token })
     });
-    
+
+    if (response.status === 403) {
+      // Tài khoản đang chờ phê duyệt
+      document.getElementById('login-overlay').classList.remove('active');
+      document.getElementById('approval-overlay').style.display = 'flex';
+      return;
+    }
+
     const result = await response.json();
     if (response.ok && result.success) {
-      // Đăng nhập thành công
-      currentDriver = { name: result.shipper.name, phone: result.shipper.phone };
+      currentDriver = { 
+        name: result.shipper.name, 
+        phone: result.shipper.phone,
+        avatarUrl: result.shipper.avatarUrl,
+        isApproved: result.shipper.isApproved
+      };
       localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       loadStats();
-      
+
       document.getElementById('login-overlay').classList.remove('active');
       updateDriverHeader();
       showToast('Đăng nhập thành công', `Chào mừng ${currentDriver.name} đã vào hệ thống!`, 'success');
-      
-      // Tự động vào ca (ONLINE / Check-in) sau khi đăng nhập thành công
+
       isOnline = true;
       const checkbox = document.getElementById('online-switch');
       const statusText = document.getElementById('status-text');
@@ -152,23 +349,22 @@ async function loginDriver() {
         statusText.textContent = 'Đang trong ca (Check-in)';
         statusText.className = 'status-indicator online';
       }
-      
-      // Đồng bộ trạng thái ONLINE lên server
-      fetch('http://localhost:3001/api/shippers/shift', {
+
+      fetch(`${API_BASE}/api/shippers/shift`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ phone: currentDriver.phone, status: 'ONLINE' })
       }).catch(err => console.warn('Lỗi tự động vào ca:', err));
-      
+
       startPolling();
     } else {
-      showToast('Đăng nhập thất bại', result.error || 'Thông tin tài xế không đúng.', 'error');
+      showToast('Đăng nhập thất bại', result.error || 'Đồng bộ thông tin tài xế thất bại.', 'error');
     }
   } catch (err) {
-    console.error('Lỗi đăng nhập:', err);
-    showToast('Lỗi kết nối', 'Không thể kết nối với server để xác thực.', 'error');
+    console.error('Lỗi login Supabase:', err);
+    showToast('Lỗi kết nối', 'Không thể kết nối với Supabase Auth.', 'error');
   }
 }
 
@@ -176,7 +372,21 @@ function updateDriverHeader() {
   if (!currentDriver) return;
   document.getElementById('header-name').textContent = currentDriver.name;
   document.getElementById('header-phone').textContent = currentDriver.phone;
-  document.getElementById('header-avatar').textContent = currentDriver.name.charAt(0);
+
+  const headerAvatarText = document.getElementById('header-avatar-text');
+  const headerAvatarImg = document.getElementById('header-avatar-img');
+
+  if (currentDriver.avatarUrl && headerAvatarImg && headerAvatarText) {
+    headerAvatarImg.src = currentDriver.avatarUrl;
+    headerAvatarImg.style.display = 'block';
+    headerAvatarText.style.display = 'none';
+  } else {
+    if (headerAvatarImg) headerAvatarImg.style.display = 'none';
+    if (headerAvatarText) {
+      headerAvatarText.textContent = currentDriver.name.charAt(0);
+      headerAvatarText.style.display = 'block';
+    }
+  }
 }
 
 async function toggleOnlineStatus() {
@@ -496,6 +706,33 @@ function openJobDetail(orderId) {
   document.getElementById('job-app-total').textContent = formatCurrency(order.appTotal);
   document.getElementById('job-store-total').textContent = formatCurrency(order.storeTotal);
   
+  // Render danh sách món ăn kèm ghi chú món
+  const itemsContainer = document.getElementById('job-items-list');
+  if (itemsContainer) {
+    itemsContainer.innerHTML = '';
+    (order.items || []).forEach(item => {
+      const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
+        ? ` <span style="color: #94a3b8; font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
+        : '';
+      const noteHtml = item.note
+        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
+        : '';
+      
+      const itemEl = document.createElement('div');
+      itemEl.style.borderBottom = '1px solid #1e293b';
+      itemEl.style.paddingBottom = '8px';
+      itemEl.style.marginTop = '4px';
+      itemEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
+          <span style="color:white; text-align:left;">${item.name}${optsText}</span>
+          <span style="color:var(--clr-primary); margin-left: 8px;">x${item.qty}</span>
+        </div>
+        ${noteHtml}
+      `;
+      itemsContainer.appendChild(itemEl);
+    });
+  }
+
   const noteBox = document.getElementById('job-note-box');
   const noteText = document.getElementById('job-note-text');
   if (noteBox && noteText) {
@@ -607,6 +844,33 @@ function renderActiveTrip() {
   document.getElementById('trip-app-total').textContent = formatCurrency(activeOrder.appTotal);
   document.getElementById('trip-earning').textContent = formatCurrency(activeOrder.shipperEarning);
   
+  // Render danh sách món ăn kèm ghi chú món cho active trip
+  const tripItemsContainer = document.getElementById('trip-items-list');
+  if (tripItemsContainer) {
+    tripItemsContainer.innerHTML = '';
+    (activeOrder.items || []).forEach(item => {
+      const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
+        ? ` <span style="color: #94a3b8; font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
+        : '';
+      const noteHtml = item.note
+        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
+        : '';
+      
+      const itemEl = document.createElement('div');
+      itemEl.style.borderBottom = '1px solid #1e293b';
+      itemEl.style.paddingBottom = '8px';
+      itemEl.style.marginTop = '4px';
+      itemEl.innerHTML = `
+        <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
+          <span style="color:white; text-align:left;">${item.name}${optsText}</span>
+          <span style="color:var(--clr-primary); margin-left: 8px;">x${item.qty}</span>
+        </div>
+        ${noteHtml}
+      `;
+      tripItemsContainer.appendChild(itemEl);
+    });
+  }
+
   const tripNoteBox = document.getElementById('trip-note-box');
   const tripNoteText = document.getElementById('trip-note-text');
   if (tripNoteBox && tripNoteText) {
@@ -1295,7 +1559,52 @@ function saveStats() {
     if (!currentDriver) return;
     const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
     localStorage.setItem(key, JSON.stringify(stats));
+    syncStatsToServer(); // Tự động đồng bộ lên CRM server
   } catch (e) {}
+}
+
+async function syncStatsToServer() {
+  if (!currentDriver) return;
+  try {
+    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
+    const raw = localStorage.getItem(key);
+    let statsObj = { accepted: 0, declined: 0, completed: 0 };
+    if (raw) statsObj = JSON.parse(raw);
+
+    const totalOffers = statsObj.accepted + statsObj.declined;
+    const arPercentage = totalOffers > 0 ? Math.round((statsObj.accepted / totalOffers) * 100) : 100;
+    const crPercentage = statsObj.accepted > 0 ? Math.round((statsObj.completed / statsObj.accepted) * 100) : 100;
+
+    let totalEarnings = 0;
+    if (Array.isArray(historyOrders)) {
+      historyOrders.forEach(o => {
+        totalEarnings += o.shipperEarning || 0;
+      });
+    }
+    const totalOrders = Array.isArray(historyOrders) ? historyOrders.length : 0;
+
+    const response = await fetch(`${API_BASE}/api/shippers/stats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        phone: currentDriver.phone,
+        stats: statsObj,
+        totalOrders,
+        totalEarnings,
+        acceptanceRate: arPercentage,
+        completionRate: crPercentage
+      })
+    });
+    
+    const res = await response.json();
+    if (res.success) {
+      console.log('[Stats Sync] Đã đồng bộ hiệu năng lên server.');
+    }
+  } catch (err) {
+    console.warn('[Stats Sync Fallback] Không thể đồng bộ hiệu năng:', err.message);
+  }
 }
 
 // ── STATS & HISTORY TAB ─────────────────────────────────────────────────────
@@ -1374,6 +1683,9 @@ function renderHistoryAndStats() {
     `;
     container.appendChild(card);
   });
+
+  // Kích hoạt đồng bộ các chỉ số thống kê tổng hợp mới nhất lên server CRM
+  syncStatsToServer();
 }
 
 // ── UTILITIES ───────────────────────────────────────────────────────────────
@@ -2177,6 +2489,15 @@ async function logoutDriver() {
     }
     
     localStorage.removeItem('shipfee_driver');
+    localStorage.removeItem('shipfee_jwt');
+    
+    if (supabaseClient) {
+      try {
+        await supabaseClient.auth.signOut();
+      } catch (e) {
+        console.warn('Lỗi đăng xuất Supabase:', e);
+      }
+    }
     
     currentDriver = null;
     activeOrder = null;
@@ -2189,6 +2510,8 @@ async function logoutDriver() {
     document.getElementById('login-overlay').classList.add('active');
     document.getElementById('driver-name').value = '';
     document.getElementById('driver-phone').value = '';
+    if (document.getElementById('driver-email')) document.getElementById('driver-email').value = '';
+    if (document.getElementById('driver-password')) document.getElementById('driver-password').value = '';
     
     const checkbox = document.getElementById('online-switch');
     const statusText = document.getElementById('status-text');
@@ -2202,6 +2525,78 @@ async function logoutDriver() {
   }
 }
 window.logoutDriver = logoutDriver;
+
+function showDriverProfile() {
+  if (!currentDriver) return;
+  
+  document.getElementById('profile-name').textContent = currentDriver.name || '-';
+  document.getElementById('profile-phone').textContent = currentDriver.phone || '-';
+
+  const avatarImg = document.getElementById('profile-avatar-img');
+  const avatarPlaceholder = document.getElementById('profile-avatar-placeholder');
+  
+  if (currentDriver.avatarUrl && avatarImg && avatarPlaceholder) {
+    avatarImg.src = currentDriver.avatarUrl;
+    avatarImg.style.display = 'block';
+    avatarPlaceholder.style.display = 'none';
+  } else {
+    if (avatarImg) avatarImg.style.display = 'none';
+    if (avatarPlaceholder) avatarPlaceholder.style.display = 'block';
+  }
+  
+  // Trạng thái ca
+  const statusTextEl = document.getElementById('status-text');
+  document.getElementById('profile-status').textContent = statusTextEl ? statusTextEl.textContent : (isOnline ? 'Đang trong ca (ONLINE)' : 'Đã tắt ca (OFFLINE)');
+  
+  // Lấy email từ Supabase Auth nếu có
+  if (supabaseClient) {
+    supabaseClient.auth.getSession().then(({ data: { session } }) => {
+      if (session && session.user) {
+        document.getElementById('profile-email').textContent = session.user.email;
+      } else {
+        document.getElementById('profile-email').textContent = 'Chưa xác thực trực tuyến';
+      }
+    }).catch(() => {
+      document.getElementById('profile-email').textContent = '-';
+    });
+  } else {
+    document.getElementById('profile-email').textContent = 'Ngoại tuyến';
+  }
+
+  // Thống kê AR/CR
+  const ar = localStorage.getItem('shipfee_ar') || '100';
+  const cr = localStorage.getItem('shipfee_cr') || '100';
+  document.getElementById('profile-ar').textContent = ar + '%';
+  document.getElementById('profile-cr').textContent = cr + '%';
+  
+  // Tổng đơn hoàn thành và doanh thu
+  const statsStr = localStorage.getItem('shipfee_stats') || '{"totalCompleted":0,"totalEarning":0}';
+  try {
+    const stats = JSON.parse(statsStr);
+    document.getElementById('profile-total-orders').textContent = (stats.totalCompleted || 0) + ' đơn';
+    document.getElementById('profile-revenue').textContent = formatCurrency(stats.totalEarning || 0);
+  } catch (e) {
+    document.getElementById('profile-total-orders').textContent = '0 đơn';
+    document.getElementById('profile-revenue').textContent = '0đ';
+  }
+
+  const overlay = document.getElementById('driver-profile-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+    overlay.classList.add('active');
+  }
+}
+
+function closeDriverProfile() {
+  const overlay = document.getElementById('driver-profile-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+    overlay.classList.remove('active');
+  }
+}
+
+window.showDriverProfile = showDriverProfile;
+window.closeDriverProfile = closeDriverProfile;
 
 window.addEventListener('pagehide', () => {
   if (callActive && activeOrder && activeOrder.id) {
@@ -2232,3 +2627,26 @@ document.addEventListener('touchend', function (event) {
   }
   lastTouchEnd = now;
 }, { passive: false });
+
+async function initSupabase() {
+  try {
+    const res = await fetch(`${API_BASE}/api/config`).then(r => r.json());
+    if (res.supabaseUrl && res.supabaseAnonKey && res.supabaseUrl !== 'your_supabase_url_here') {
+      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey);
+      console.log('[Supabase] Client initialized successfully via proxy config');
+      
+      // Update UI: hide name/phone, show email/password
+      document.getElementById('login-group-name').style.display = 'none';
+      document.getElementById('login-group-phone').style.display = 'none';
+      document.getElementById('login-group-email').style.display = 'flex';
+      document.getElementById('login-group-password').style.display = 'flex';
+      document.getElementById('login-btn').innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+    } else {
+      console.error('[Supabase] Proxy returned placeholder credentials. Supabase mode required but not configured!');
+      showToast('Cấu hình Supabase', 'Hệ thống đang hoạt động ở chế độ bắt buộc Supabase nhưng chưa cấu hình credentials. Vui lòng cập nhật file .env!', 'error');
+    }
+  } catch (e) {
+    console.error('[Supabase] Failed to retrieve config from proxy:', e);
+    showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API.', 'error');
+  }
+}

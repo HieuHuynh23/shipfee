@@ -4,7 +4,7 @@
 
 'use strict';
 
-const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '')
   ? 'http://localhost:3001'
   : 'https://shipfee-eo5s.onrender.com';
 
@@ -94,7 +94,7 @@ function getState() {
 
 function getDefaultState() {
   return {
-    cart: { restaurantId: null, items: {} },
+    cart: { restaurantId: null, items: {}, itemNotes: {} },
     activeOrder: null,
     deliveryAddress: '',
     deliveryName: '',
@@ -250,13 +250,22 @@ function removeFromCart(itemId, selectedOptions) {
   }
 
   const hasItems = Object.keys(state.cart.items).length > 0;
-  if (!hasItems) state.cart.restaurantId = null;
+  if (!hasItems) {
+    state.cart.restaurantId = null;
+    state.cart.itemNotes = {};
+  } else {
+    // Dọn dẹp ghi chú của các món không còn trong items
+    state.cart.itemNotes = state.cart.itemNotes || {};
+    Object.keys(state.cart.itemNotes).forEach(k => {
+      if (!state.cart.items[k]) delete state.cart.itemNotes[k];
+    });
+  }
   saveState(state);
 }
 
 function clearCart() {
   const state = getState();
-  state.cart = { restaurantId: null, items: {} };
+  state.cart = { restaurantId: null, items: {}, itemNotes: {} };
   saveState(state);
 }
 
@@ -264,10 +273,23 @@ function removeItemFromCart(itemId) {
   const state = getState();
   delete state.cart.items[itemId];
   const keys = Object.keys(state.cart.items).filter(k => k === itemId || k.startsWith(itemId + '::'));
-  keys.forEach(k => delete state.cart.items[k]);
+  keys.forEach(k => {
+    delete state.cart.items[k];
+    if (state.cart.itemNotes) delete state.cart.itemNotes[k];
+  });
 
   const hasItems = Object.keys(state.cart.items).length > 0;
-  if (!hasItems) state.cart.restaurantId = null;
+  if (!hasItems) {
+    state.cart.restaurantId = null;
+    state.cart.itemNotes = {};
+  }
+  saveState(state);
+}
+
+function updateCartItemNote(cartKey, note) {
+  const state = getState();
+  state.cart.itemNotes = state.cart.itemNotes || {};
+  state.cart.itemNotes[cartKey] = note;
   saveState(state);
 }
 
@@ -304,7 +326,8 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
         inStorePrice: item.inStorePrice + toppingsInStore,
         appPrice: item.appPrice + toppingsApp,
         selectedOptions,
-        qty
+        qty,
+        note: (cart.itemNotes && cart.itemNotes[cartKey]) || ''
       });
     }
   });

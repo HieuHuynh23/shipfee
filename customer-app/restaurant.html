@@ -556,6 +556,12 @@
       </div>
     </div>
 
+    <!-- Restaurant Status Alert Banner -->
+    <div id="restaurant-status-alert" style="display: none; background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 12px 16px; margin: 12px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <i class="fa-solid fa-circle-exclamation" style="font-size: 16px;"></i>
+      <span>Quán hiện đang TẠM ĐÓNG CỬA. Bạn chỉ có thể xem thực đơn và không thể đặt hàng lúc này.</span>
+    </div>
+
     <!-- Menu Sections -->
     <div id="menu-content" class="pb-cart">
       <!-- Populated by JS -->
@@ -689,11 +695,18 @@
         if (closedBadge) closedBadge.remove();
       }
       
-      if (RESTAURANT.isClosed) {
-        // Quán đóng cửa: hiển thị banner, ẩn menu và giỏ hàng
-        renderClosedBanner();
+      const isRestaurantClosed = RESTAURANT.isClosed || RESTAURANT.status === 'CLOSED';
+      
+      const alertBanner = document.getElementById('restaurant-status-alert');
+      if (alertBanner) alertBanner.style.display = 'none';
+
+      if (isRestaurantClosed) {
+        if (alertBanner) alertBanner.style.display = 'flex';
+        renderCategoryTabs();
+        renderMenu();
+        const cartBar = document.getElementById('cart-bar');
+        if (cartBar) cartBar.style.display = 'none';
       } else {
-        // Quán mở: hiển thị menu và giỏ hàng bình thường
         renderCategoryTabs();
         renderMenu();
         const cartBar = document.getElementById('cart-bar');
@@ -979,16 +992,19 @@
           }
         });
       }
-      const isAvailable = item.isAvailable !== false;
+      const isRestaurantClosed = RESTAURANT.isClosed || RESTAURANT.status === 'CLOSED';
+      const isAvailable = item.isAvailable !== false && item.available !== false;
 
       const el = document.createElement('div');
       el.className = 'food-item animate-fade-in' 
         + (qty > 0 ? ' selected' : '')
-        + (!isAvailable ? ' is-out-of-stock' : '');
+        + (!isAvailable || isRestaurantClosed ? ' is-out-of-stock' : '');
       el.id = 'food-item-' + item.id;
       
       let qtyControlHtml = '';
-      if (!isAvailable) {
+      if (isRestaurantClosed) {
+        qtyControlHtml = `<div class="qty-control disabled" style="background:#ef4444; width: auto; padding: 6px 12px; border-radius: 20px;"><span class="out-of-stock-text" style="color:white; font-size:10px; font-weight:700; letter-spacing:0.5px;">TẠM ĐÓNG</span></div>`;
+      } else if (!isAvailable) {
         qtyControlHtml = `<div class="qty-control disabled"><span class="out-of-stock-text">HẾT MÓN</span></div>`;
       } else {
         qtyControlHtml = `

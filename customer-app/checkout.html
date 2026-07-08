@@ -412,6 +412,12 @@
             <div class="order-item-row__name">${item.name}</div>
             ${optionsHtml}
             <div class="order-item-row__qty">x${qty}</div>
+            <div style="margin-top: 6px; max-width: 95%;">
+              <input type="text" class="item-note-input" placeholder="Ghi chú món ăn (ví dụ: ít hành, không cay...)" 
+                     value="${(cart.itemNotes && cart.itemNotes[cartKey]) || ''}" 
+                     onchange="updateItemNote('${cartKey}', this.value)"
+                     style="width: 100%; border: 1px dashed var(--clr-border); border-radius: 4px; padding: 4px 8px; font-size: 11px; outline: none; background: var(--clr-bg-surface-hover); color: var(--clr-text-main);">
+            </div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
             <div class="order-item-row__price">${SF.formatCurrency(itemTotalApp)}</div>
@@ -563,9 +569,15 @@
       SF.showToast('Đã xóa món', 'Món ăn đã được xóa khỏi giỏ hàng.', 'info');
     }
 
+    function updateItemNote(cartKey, value) {
+      SF.updateCartItemNote(cartKey, value);
+      SF.showToast('Đã lưu ghi chú', 'Ghi chú món ăn đã được cập nhật.', 'success', 1500);
+    }
+
     window.placeOrder = placeOrder;
     window.goToTracking = goToTracking;
     window.deleteItem = deleteItem;
+    window.updateItemNote = updateItemNote;
   </script>
 </body>
 </html>

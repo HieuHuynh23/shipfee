@@ -1,168 +1,271 @@
-﻿# Hướng Dẫn Kiến Trúc Hệ Thống & Triển Khai (Deployment Guide)
+# Hướng Dẫn Triển Khai Hệ Thống ShipFee (Deployment Guide)
 
-Tài liệu này hướng dẫn chi tiết cách thức tổ chức máy chủ, phân bổ đường dẫn (URL) và quy trình vận hành hệ thống **ShipFee** ở hai môi trường: **Môi trường Phát triển (Local Development)** và **Môi trường Thực tế (Production)**.
+Tài liệu này hướng dẫn chi tiết cách thức triển khai và vận hành hệ thống **ShipFee** trên hai môi trường: **Production (Online)** và **Local Development**.
 
 ---
 
 ## 1. Tổng Quan Kiến Trúc Hệ Thống
 
-Hệ thống **ShipFee** được thiết kế theo mô hình tách biệt giữa **Giao diện (Frontend)** và **Mã nguồn xử lý (Backend API)**, giúp tối ưu hiệu năng chịu tải và khả năng mở rộng.
+Hệ thống **ShipFee** được thiết kế theo mô hình tách biệt **Frontend** và **Backend API**, triển khai trên hai nền tảng cloud miễn phí:
 
 ```mermaid
 graph TD
-    subgraph Client [Môi trường Người dùng]
-        C[Web App Khách hàng]
-        S[Web App Tài xế - Shipper]
+    subgraph Client["Môi trường Người dùng"]
+        C["Web App Khách hàng"]
+        S["Web App Tài xế"]
+        A["CRM Admin Dashboard"]
     end
 
-    subgraph StaticServer [Máy chủ Frontend]
-        FS[Static Host: Nginx / CDN / http-server]
+    subgraph Vercel["Vercel — Frontend Static Host"]
+        FS["Static Files: HTML/CSS/JS"]
     end
 
-    subgraph ApiServer [Máy chủ Backend]
-        API[Node.js Express Server]
-        DB[(Local Database: JSON)]
+    subgraph Render["Render — Backend Server"]
+        API["Node.js Express API"]
+        DB["Local JSON Database (Chunks)"]
     end
 
-    C -->|Tải mã tĩnh HTML/CSS/JS| FS
-    S -->|Tải mã tĩnh HTML/CSS/JS| FS
-    C -->|Gửi yêu cầu & nhận dữ liệu| API
-    S -->|Gửi yêu cầu & nhận dữ liệu| API
-    API -->|Đọc/Ghi dữ liệu| DB
+    subgraph Supabase["Supabase — Cloud Database"]
+        SDB["PostgreSQL + Auth"]
+    end
+
+    C -->|"Tải mã tĩnh"| FS
+    S -->|"Tải mã tĩnh"| FS
+    A -->|"Tải mã tĩnh"| FS
+    C -->|"API Requests"| API
+    S -->|"API Requests"| API
+    A -->|"API Requests"| API
+    API -->|"Đọc/Ghi dữ liệu"| DB
+    API -->|"Auth & Sync"| SDB
 ```
 
-* **Frontend**: Được cấu thành từ mã nguồn tĩnh thuần túy (HTML, CSS, JS) nằm trong hai thư mục:
-  * `/customer-app`: Dành cho khách hàng đặt món, chọn địa chỉ và theo dõi đơn.
-  * `/shipper-app`: Dành cho tài xế trực tuyến, nhận đơn qua thanh vuốt, theo dõi bản đồ live và tương tác chat.
-* **Backend**: Chạy bằng Node.js Express (`server.js`) quản lý cơ sở dữ liệu `restaurants-local.json` và `orders-local.json`, cung cấp các cổng API cho cả hai ứng dụng khách hàng và tài xế.
+### Thành phần:
+- **Frontend** (Vercel): 3 ứng dụng tĩnh (HTML/CSS/JS)
+  - `/customer-app`: Khách hàng đặt món, chọn địa chỉ, theo dõi đơn
+  - `/shipper-app`: Tài xế nhận đơn, giao hàng, chat, gọi điện
+  - `/admin-app`: CRM quản lý quán, tài xế, đơn hàng, pricing
+- **Backend** (Render): Node.js Express API + JSON database phân mảnh
+- **Database bổ trợ** (Supabase): PostgreSQL cho auth và đồng bộ dữ liệu
 
 ---
 
-## 2. Môi Trường Phát Triển Cục Bộ (Local Development)
+## 2. Triển Khai Production Hiện Tại (Render + Vercel)
 
-Hiện tại, trong quá trình phát triển và kiểm thử, hệ thống hoạt động hoàn toàn cục bộ trên máy tính cá nhân (Localhost) và **không tốn bất kỳ chi phí mua tên miền hay máy chủ nào**.
+### 2.1. URL Production
+
+| Thành phần | URL |
+|------------|-----|
+| **Web Khách Hàng** | `https://shipfee.vercel.app/customer-app/` |
+| **Web Tài Xế** | `https://shipfee.vercel.app/shipper-app/` |
+| **CRM Admin** | `https://shipfee.vercel.app/admin-app/` |
+| **Backend API** | `https://shipfee-eo5s.onrender.com` |
+| **API Health Check** | `https://shipfee-eo5s.onrender.com/api/status` |
+
+### 2.2. Cấu Hình Render (Backend API)
+
+| Cài đặt | Giá trị |
+|---------|---------|
+| **Repository** | `github.com/HieuHuynh23/shipfee` |
+| **Branch** | `master` |
+| **Root Directory** | `server` |
+| **Build Command** | `npm install` |
+| **Start Command** | `node server.js` |
+| **Node Version** | 24.x (mặc định) |
+| **Instance Type** | Free |
+
+#### Environment Variables trên Render Dashboard:
+
+| Biến | Mô tả | Bắt buộc |
+|------|-------|----------|
+| `PORT` | Cổng API (Render tự gán) | ❌ |
+| `SUPABASE_URL` | URL dự án Supabase | ✅ |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key | ✅ |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key | ✅ |
+| `TELEGRAM_BOT_TOKEN` | Token bot Telegram phê duyệt tài xế | ✅ |
+| `TELEGRAM_CHAT_ID` | Chat ID nhóm Telegram quản trị | ✅ |
+| `METERED_API_KEY` | API key TURN server (WebRTC) | ❌ |
+
+> **Lưu ý**: File `.env` trên local dùng cho phát triển. Trên Render, cấu hình qua Dashboard → Environment.
+
+### 2.3. Cấu Hình Vercel (Frontend)
+
+| Cài đặt | Giá trị |
+|---------|---------|
+| **Repository** | `github.com/HieuHuynh23/shipfee` |
+| **Branch** | `master` |
+| **Framework Preset** | Other |
+| **Root Directory** | (trống — root của repo) |
+
+#### File `vercel.json`:
+```json
+{
+  "cleanUrls": false,
+  "redirects": [
+    { "source": "/", "destination": "/customer-app/", "permanent": false },
+    { "source": "/shipper", "destination": "/shipper-app/", "permanent": false },
+    { "source": "/admin", "destination": "/admin-app/", "permanent": false }
+  ]
+}
+```
+
+### 2.4. Quy Trình Deploy Tự Động
+
+```bash
+# Mọi thay đổi push lên master → tự động deploy
+git add .
+git commit -m "feat: mô tả thay đổi"
+git push origin master
+# → Render tự build lại backend (2-3 phút)
+# → Vercel tự build lại frontend (30-60 giây)
+```
+
+### 2.5. Auto-Detect API URL (Frontend)
+
+Tất cả 3 frontend app đều có cơ chế tự động phát hiện môi trường:
+
+```javascript
+const defaultApiUrl = (window.location.hostname === 'localhost' || ...)
+  ? 'http://localhost:3001'           // Local development
+  : 'https://shipfee-eo5s.onrender.com';  // Production
+
+// Fetch interceptor tự động thay thế localhost → Render URL
+window.fetch = function(input, init) {
+  if (input.startsWith('http://localhost:3001')) {
+    input = input.replace('http://localhost:3001', API_BASE);
+  }
+  // ... thêm JWT Authorization header
+};
+```
+
+---
+
+## 3. Xử Lý Sự Cố Phổ Biến (Troubleshooting)
+
+### 3.1. Render: `Error: Cannot find module 'dotenv'`
+**Nguyên nhân**: File `server/package.json` trên GitHub thiếu dependency.
+**Giải pháp**: Đảm bảo `server/package.json` có đầy đủ dependencies và đã được push lên GitHub:
+```json
+{
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "@supabase/supabase-js": "^2.45.0",
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "compression": "^1.8.1",
+    "axios": "^1.7.2",
+    "cheerio": "^1.2.0",
+    "puppeteer-core": "^25.1.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
+  }
+}
+```
+
+### 3.2. Render: API trả về 502/503
+**Nguyên nhân**: Free tier Render spin down sau 15 phút không có request.
+**Giải pháp**: Gửi lại request, server sẽ tự khởi động lại (cold start ~30-60 giây).
+
+### 3.3. Vercel: Trang trắng hoặc 404
+**Nguyên nhân**: File `vercel.json` thiếu hoặc sai cấu hình.
+**Giải pháp**: Kiểm tra `vercel.json` có đúng cấu hình redirects ở mục 2.3.
+
+---
+
+## 4. Môi Trường Phát Triển Cục Bộ (Local Development)
 
 ### Cấu hình Cổng (Ports) & Đường dẫn:
-* **Frontend Static Server** (Chạy qua thư viện tĩnh `http-server` hoặc `npx http-server`):
-  * **Cổng (Port)**: `8000`
-  * **Trang Khách Hàng**: `http://localhost:8000/customer-app/index.html`
-  * **Trang Tài Xế**: `http://localhost:8000/shipper-app/index.html`
-* **Backend API Server** (Chạy qua Node.js Express):
-  * **Cổng (Port)**: `3001`
-  * **Đường dẫn API**: `http://localhost:3001/api`
+| Thành phần | Cổng | URL |
+|------------|------|-----|
+| Backend API | 3001 | `http://localhost:3001/api` |
+| Frontend Static | 8000 | `http://localhost:8000/customer-app/index.html` |
+| Shipper App | 8000 | `http://localhost:8000/shipper-app/index.html` |
+| CRM Admin | 8000 | `http://localhost:8000/admin-app/index.html` |
 
 ### Cách khởi động:
-Bạn chỉ cần chạy tệp lệnh [start_server.ps1](file:///d:/FOOD%20DELIVERY/start_server.ps1) bằng PowerShell để tự động kích hoạt cả hai máy chủ tĩnh và API đồng thời:
 ```powershell
+# Khởi động toàn bộ hệ thống (API + Frontend + Crawler Scheduler)
 powershell -ExecutionPolicy Bypass -File start_server.ps1
 ```
 
----
-
-## 3. Môi Trường Thực Tế (Production Deployment)
-
-Khi đưa hệ thống vào sử dụng thực tế và công khai cho doanh nghiệp, bạn **CHỈ CẦN MUA DUY NHẤT 1 TÊN MIỀN** chính (ví dụ: `shipfee.vn`). Dưới đây là hai phương án phân bổ hạ tầng phổ biến:
-
-### Phương Án A: Sử dụng Tên Miền Con (Subdomain) - KHUYÊN DÙNG
-Phương án này giúp phân chia rõ ràng thương hiệu và tăng khả năng chịu tải độc lập cho từng dịch vụ. Tên miền con là **hoàn toàn miễn phí** sau khi bạn mua tên miền chính.
-
-| Thành phần | URL Công khai | Cách thức cấu hình máy chủ |
-| :--- | :--- | :--- |
-| **Web Khách Hàng** | `https://shipfee.vn` hoặc `https://app.shipfee.vn` | Trỏ thư mục tĩnh `/customer-app` trên Hosting/Nginx. |
-| **Web Tài Xế** | `https://shipper.shipfee.vn` | Trỏ thư mục tĩnh `/shipper-app` trên Hosting/Nginx. |
-| **Backend API** | `https://api.shipfee.vn` | Chạy ứng dụng Node.js Express ở cổng nội bộ và chuyển tiếp (Reverse Proxy) qua tên miền này. |
-
-> [!TIP]
-> Bạn có thể quản lý và trỏ các subdomain này hoàn toàn miễn phí thông qua trang quản trị DNS của nhà cung cấp tên miền (ví dụ: Cloudflare, Mắt Bão, Tenten, Pavietnam, Namecheap...).
+Script `start_server.ps1` tự động:
+1. Kiểm tra Node.js và cài đặt dependencies
+2. Giải phóng cổng 3001 và 8000 nếu bị chiếm
+3. Khởi động API server (Node.js Express)
+4. Khởi động Frontend server (http-server với gzip + CORS)
+5. Khởi động Crawl Scheduler daemon (10h-18h)
+6. Mở trình duyệt và giám sát tiến trình
 
 ---
 
-### Phương An B: Chạy chung 1 Tên Miền qua Đường Dẫn (Subfolder)
-Phương án này giúp tối giản hóa cấu hình chứng chỉ SSL/HTTPS vì tất cả dịch vụ đều nằm dưới cùng một tên miền duy nhất.
+## 5. Phương Án Mở Rộng — Triển Khai VPS/Server Riêng
 
-* **Trang Khách Hàng**: `https://shipfee.vn/` (Trang chủ)
-* **Trang Tài Xế**: `https://shipfee.vn/shipper/` (Trỏ tới thư mục `/shipper-app`)
-* **Đường dẫn API**: `https://shipfee.vn/api/` (Chuyển tiếp yêu cầu AJAX từ trình duyệt đến máy chủ Node.js Express đang chạy ẩn phía sau).
+Khi doanh nghiệp cần hiệu năng cao hơn hoặc custom domain, có thể chuyển sang VPS:
 
----
+### Bước 1: Mua tên miền và VPS
+- Mua **1 tên miền** (ví dụ: `shipfee.vn`)
+- Thuê **1 VPS** Linux (Ubuntu 22.04 LTS) từ DigitalOcean, Vultr, AWS, etc.
 
-## 4. Hướng Dẫn Từng Bước Triển Khai Lên VPS/Server Thực Tế
-
-### Bước 1: Mua tên miền và Máy chủ (VPS)
-* Mua **1 tên miền** từ bất kỳ nhà cung cấp nào.
-* Thuê **1 máy chủ ảo (VPS)** chạy hệ điều hành Linux (Ubuntu Server 20.04/22.04 LTS được khuyến nghị) từ các nhà cung cấp như DigitalOcean, Vultr, AWS, Google Cloud, Hostinger, v.v.
-
-### Bước 2: Cài đặt môi trường trên VPS
-Cài đặt Node.js và trình quản lý tiến trình ngầm `pm2` để giữ API server chạy 24/7 không bị tắt:
+### Bước 2: Cài đặt môi trường
 ```bash
-# Cài đặt Node.js
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# Cài đặt PM2 để quản lý tiến trình chạy ngầm
+sudo apt-get install -y nodejs nginx
 sudo npm install -y pm2 -g
 ```
 
-### Bước 3: Chạy Backend API ngầm
-Đưa mã nguồn của hệ thống lên VPS, di chuyển vào thư mục `/server` và khởi động qua `pm2`:
+### Bước 3: Chạy Backend API
 ```bash
 cd /path/to/project/server
 npm install
 pm2 start server.js --name "shipfee-api"
-pm2 save
-pm2 startup
+pm2 save && pm2 startup
 ```
 
-### Bước 4: Cấu hình Web Server Nginx làm Reverse Proxy và phân phối File Tĩnh
-Cài đặt Nginx để vừa phân phối file tĩnh của hai App vừa làm lá chắn bảo mật cho API:
-```bash
-sudo apt-get install nginx -y
-```
-
-Cấu hình tệp `/etc/nginx/sites-available/default` tương tự như sau:
+### Bước 4: Cấu hình Nginx
 ```nginx
 server {
     listen 80;
-    server_name shipfee.vn shipper.shipfee.vn api.shipfee.vn;
+    server_name shipfee.vn api.shipfee.vn shipper.shipfee.vn;
 
-    # 1. Định cấu hình API Server
     location /api/ {
-        proxy_pass http://localhost:3001; # Chuyển tiếp tới Node.js API chạy ở port 3001
+        proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
     }
 
-    # 2. Định cấu hình Web App Khách hàng (shipfee.vn)
     location / {
         root /path/to/project/customer-app;
         index index.html;
         try_files $uri $uri/ =404;
     }
 
-    # 3. Định cấu hình Web App Shipper (shipper.shipfee.vn hoặc thư mục con)
     location /shipper/ {
         alias /path/to/project/shipper-app/;
+        index index.html;
+        try_files $uri $uri/ =404;
+    }
+
+    location /admin/ {
+        alias /path/to/project/admin-app/;
         index index.html;
         try_files $uri $uri/ =404;
     }
 }
 ```
 
-### Bước 5: Cài đặt chứng chỉ bảo mật SSL (HTTPS) miễn phí
-Sử dụng Let's Encrypt (Certbot) để tự động kích hoạt giao thức HTTPS bảo mật cho hệ thống:
+### Bước 5: SSL/HTTPS miễn phí
 ```bash
 sudo apt-get install certbot python3-certbot-nginx -y
-sudo certbot --nginx -d shipfee.vn -d shipper.shipfee.vn -d api.shipfee.vn
+sudo certbot --nginx -d shipfee.vn -d api.shipfee.vn -d shipper.shipfee.vn
 ```
-Certbot sẽ tự động cấu hình lại Nginx, chuyển hướng tất cả lưu lượng HTTP thường sang HTTPS bảo mật 100%.
 
 ---
 
-## 5. Kết Luận
-Kiến trúc tách biệt Frontend & Backend hiện tại của **ShipFee** cho phép doanh nghiệp của bạn:
-1. Phát triển nhanh chóng ở môi trường cục bộ (Localhost) không tốn chi phí.
-2. Tiết kiệm chi phí tên miền khi ra thực tế (chỉ cần mua duy nhất 1 tên miền chính).
-3. Đảm bảo tính linh hoạt tối đa khi mở rộng quy mô, nâng cấp độc lập giao diện khách hàng hoặc tài xế mà không ảnh hưởng tới lõi dữ liệu phía sau.
+## 6. Kết Luận
+
+Kiến trúc **ShipFee** hiện tại cho phép:
+1. **Triển khai miễn phí** trên Render + Vercel với auto-deploy qua Git
+2. **Phát triển nhanh** ở môi trường local không tốn chi phí
+3. **Mở rộng linh hoạt** sang VPS/custom domain khi cần
+4. **Tách biệt hoàn toàn** frontend và backend — nâng cấp độc lập

@@ -2,6 +2,7 @@
   "cleanUrls": false,
   "redirects": [
     { "source": "/", "destination": "/customer-app/", "permanent": false },
-    { "source": "/shipper", "destination": "/shipper-app/", "permanent": false }
+    { "source": "/shipper", "destination": "/shipper-app/", "permanent": false },
+    { "source": "/admin", "destination": "/admin-app/", "permanent": false }
   ]
 }

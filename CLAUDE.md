@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **shipfee** (1670 symbols, 3005 relationships, 148 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **shipfee** (2072 symbols, 3921 relationships, 184 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -44,157 +44,232 @@ This project is indexed by GitNexus as **shipfee** (1670 symbols, 3005 relations
 
 ---
 
-# ShipFee — Hướng Dẫn Dự Án
+# ShipFee — Hướng Dẫn Dự Án (Production)
+
+## Triển Khai Trực Tuyến (Online Deployment)
+
+| Thành phần | Nền tảng | URL Production |
+|------------|----------|----------------|
+| **Backend API** | Render | `https://shipfee-eo5s.onrender.com` |
+| **Frontend** (Customer, Shipper, CRM) | Vercel | `https://shipfee.vercel.app` |
+| **Database** | Supabase + Local JSON chunks | `https://zegfxtprqfksvcukdfif.supabase.co` |
+
+Tất cả triển khai tự động qua **git push** lên nhánh `master` tại [github.com/HieuHuynh23/shipfee](https://github.com/HieuHuynh23/shipfee).
+
+### URL Truy Cập
+
+| Ứng dụng | URL |
+|-----------|-----|
+| Web Khách Hàng | `https://shipfee.vercel.app/customer-app/` |
+| Web Tài Xế | `https://shipfee.vercel.app/shipper-app/` |
+| CRM Admin | `https://shipfee.vercel.app/admin-app/` |
+| API Status | `https://shipfee-eo5s.onrender.com/api/status` |
+
+---
 
 ## Kiến Trúc Hệ Thống
 
 ```
 d:\FOOD DELIVERY\
-├── customer-app/          # Frontend Khách hàng (HTML/CSS/JS)
-│   ├── index.html         # Trang chủ — danh sách quán ăn, chọn địa chỉ (Leaflet map)
-│   ├── restaurant.html    # Chi tiết quán ăn + thêm vào giỏ
-│   ├── checkout.html      # Xác nhận đơn hàng (Leaflet map giao hàng)
-│   ├── tracking.html      # Theo dõi đơn hàng (Leaflet map + shipper simulation)
-│   ├── app.js             # State management, cart, order logic (localStorage)
-│   └── style.css          # Design system tokens + components
+├── customer-app/              # Frontend Khách hàng (HTML/CSS/JS)
+│   ├── index.html             # Trang chủ — danh sách quán ăn, chọn địa chỉ (Leaflet map)
+│   ├── restaurant.html        # Chi tiết quán ăn + thêm vào giỏ
+│   ├── checkout.html          # Xác nhận đơn hàng (Leaflet map giao hàng)
+│   ├── tracking.html          # Theo dõi đơn hàng (Leaflet map + shipper simulation + WebRTC call)
+│   ├── app.js                 # State management, cart, order logic (localStorage)
+│   └── style.css              # Design system tokens + components
 │
-├── shipper-app/           # Frontend Tài xế (HTML/CSS/JS)
-│   ├── index.html         # Giao diện tài xế - Trực tuyến, nhận đơn, live map và chat nhanh
-│   ├── app.js             # Logic vuốt kéo, Audio chime synth, nhắn tin nhanh và AR/CR rates
-│   └── style.css          # Design system HUD dark theme, slider cảm ứng mobile-first
+├── shipper-app/               # Frontend Tài xế (HTML/CSS/JS)
+│   ├── index.html             # Giao diện tài xế - HUD dark mode, nhận đơn, live map, chat
+│   ├── app.js                 # Logic vuốt kéo, Audio chime synth, nhắn tin, AR/CR rates, WebRTC call
+│   └── style.css              # Design system HUD dark theme, slider cảm ứng mobile-first
 │
-├── server/                # Backend Node.js Express (port 3001)
-│   ├── server.js          # API server — phục vụ trực tiếp từ Local DB, quản lý đồng bộ nền
-│   ├── menuScraper.js     # Puppeteer scraper dùng để đối chiếu & đồng bộ giá món ăn với ShopeeFood
-│   ├── restaurants-local.json  # Database độc lập chứa thông tin quán + thực đơn đầy đủ
-│   └── package.json       # Dependencies: express, compression, cors, puppeteer-core...
+├── admin-app/                 # Frontend CRM Admin (HTML/CSS/JS) — SPA Router
+│   ├── index.html             # Bố cục SPA: sidebar + main panel
+│   ├── app.js                 # CRUD modules: Dashboard, Orders, Restaurants, Shippers, Customers, Pricing
+│   └── style.css              # Dark theme CRM dashboard
 │
-├── start_server.ps1       # Launcher: API + http-server frontend (hỗ trợ 1000+ user)
-├── test_system.ps1        # Automated API test (PASS:33/FAIL:0)
-├── test_checkout_tracking.js  # Puppeteer E2E test checkout→tracking (PASS:27/FAIL:0)
-└── bulk_crawl.js          # Script đối chiếu và đồng bộ giá món ăn hàng loạt với ShopeeFood
+├── server/                    # Backend Node.js Express (Render — port 3001)
+│   ├── server.js              # API server chính — REST endpoints, pricing engine, order dispatch, WebRTC signaling
+│   ├── dbHelper.js            # Database helper — đọc/ghi chunk files phân mảnh (15 chunks)
+│   ├── menuScraper.js         # Puppeteer scraper đối chiếu & đồng bộ giá món ăn với ShopeeFood
+│   ├── menu_processor.js      # Xử lý và chuẩn hóa dữ liệu menu từ ShopeeFood
+│   ├── restaurants-chunks/    # Database phân mảnh (15 files JSON) chứa thông tin quán + thực đơn
+│   ├── menus/                 # Menu riêng lẻ theo từng quán (tách ra từ chunk để tiết kiệm bộ nhớ)
+│   ├── orders-local.json      # Cơ sở dữ liệu đơn hàng
+│   ├── shippers-local.json    # Cơ sở dữ liệu tài xế
+│   ├── pricing-config.json    # Cấu hình giá động (markup, surcharge, min earning...)
+│   ├── public/uploads/        # Avatar tài xế đã tải lên
+│   ├── .env                   # Environment variables (Supabase, Telegram, TURN server)
+│   └── package.json           # Dependencies: express, cors, compression, dotenv, axios, puppeteer-core, supabase
+│
+├── package.json               # Root package.json cho Render (postinstall → server/npm install)
+├── vercel.json                # Cấu hình Vercel: redirects (/ → customer-app, /shipper → shipper-app, /admin → admin-app)
+├── crawl_scheduler.js         # Daemon hẹn giờ cào menu ShopeeFood (10h-18h hằng ngày)
+├── bulk_crawl.js              # Script cào menu ShopeeFood hàng loạt (chạy thủ công)
+├── start_server.ps1           # Launcher local: API + http-server frontend + crawl scheduler
+├── PRICING.md                 # Tài liệu thiết kế hệ thống tính giá chi tiết
+└── DEPLOYMENT_GUIDE.md        # Hướng dẫn triển khai Render + Vercel + VPS
 ```
+
+---
 
 ## Tính Năng Chính
 
 ### Độc Lập Dữ Liệu & Xem Thực Đơn
-- **Phục vụ từ Database Độc lập (ShopeeFood-Independent)**: Giao diện và API chi tiết quán (`/api/restaurants/:id`) phục vụ thực đơn trực tiếp 100% từ cơ sở dữ liệu local `restaurants-local.json`, phản hồi tức thời (<5ms) và hoạt động bền vững không bị ảnh hưởng bởi lỗi mạng hay chính sách chặn IP của ShopeeFood.
-- **Đặt cho bản thân** hoặc **Đặt cho người thân** (bắt buộc chọn).
-- Khi đặt cho người thân: nhập tên, SĐT người thân + SĐT người đặt.
-- **Ghim vị trí trên bản đồ Leaflet** để shipper giao chính xác (hỗ trợ nút "Sử dụng vị trí GPS hiện tại").
-- **Duyệt thực đơn quán đóng cửa**: Xem thực đơn ở chế độ chỉ đọc (Read-only, hiển thị trạng thái "TẠM ĐÓNG") thay vì ẩn quán, giúp tăng trải nghiệm khách hàng.
+- **Database phân mảnh (15 JSON chunks)**: Thông tin quán + thực đơn được chia nhỏ qua `dbHelper.js` để tối ưu hiệu năng đọc/ghi đồng thời. Menu mỗi quán được tách riêng vào thư mục `menus/`.
+- **Phục vụ từ Database Độc lập (ShopeeFood-Independent)**: API phục vụ thực đơn 100% từ dữ liệu local, phản hồi tức thời (<5ms), không phụ thuộc vào ShopeeFood.
+- **Đặt cho bản thân** hoặc **Đặt cho người thân** (bắt buộc chọn). Khi đặt cho người thân: nhập tên, SĐT người thân + SĐT người đặt.
+- **Ghim vị trí trên bản đồ Leaflet** để shipper giao chính xác (hỗ trợ GPS).
+- **Duyệt thực đơn quán đóng cửa**: Xem ở chế độ chỉ đọc (hiển thị "TẠM ĐÓNG") thay vì ẩn quán.
+
+### Hệ Thống Tính Giá (Chi tiết tại PRICING.md)
+- **Markup cố định 28%**: `appPrice = round100(inStorePrice × 1.28) + distanceSurcharge`
+- **Phụ thu khoảng cách ẩn**: Miễn phí ≤1.5km, trên 1.5km: `round100(7000 × √(d - 1.5))`
+- **Ưu đãi đặt nhiều món**: Giảm 15% phụ thu cho món thứ 2 trở đi (tối thiểu 2.000đ/món)
+- **Sàn thu nhập shipper**: Tối thiểu 15.000đ/đơn — tự động thu thêm "Phí đơn hàng nhỏ" nếu thiếu
+- **Free Ship hiển thị**: Giao diện luôn hiển thị "Miễn phí vận chuyển"
 
 ### Đối Chiếu & Đồng Bộ Giá Món Ăn (ShopeeFood Price Sync)
-- **ShopeeFood làm dữ liệu đối chiếu**: Hệ thống không phụ thuộc vào ShopeeFood để hiển thị món ăn, nhưng sử dụng dữ liệu ShopeeFood để đối chiếu, kiểm tra chênh lệch và cập nhật giá bán.
-- **Tự động đồng bộ ngầm**: Tiến trình chạy ngầm (Sweep Worker / Bulk Scraper) sẽ định kỳ lấy menu từ ShopeeFood, so khớp với món ăn hiện tại để cập nhật giá gốc (`inStorePrice`) tại quán nếu có thay đổi từ phía ShopeeFood.
-- **Tính toán tự động giá App**: Giá bán trên ứng dụng (`appPrice`) được tự động cập nhật theo công thức: `appPrice = inStorePrice * (1 + 28% Markup)`.
+- **ShopeeFood làm dữ liệu đối chiếu**: Hệ thống không phụ thuộc ShopeeFood để hiển thị, nhưng dùng để đối chiếu và cập nhật giá.
+- **Daemon tự động (crawl_scheduler.js)**: Chạy hằng ngày 10h-18h, cào menu cho các quán chưa có dữ liệu thực tế.
+- **Tính toán tự động giá App**: `appPrice = inStorePrice × (1 + MARKUP_RATE)`.
 
-### Phí Ship Ẩn Theo Khoảng Cách (Hidden Shipping Fee)
-- **Tự động tích hợp phí ship vào giá món**: Tự động tính khoảng cách từ khách hàng đến quán. Nếu khoảng cách $> 2$ km, hệ thống tự động cộng phụ phí ẩn vào giá bán ứng dụng (`appPrice`) của từng món ăn:
-  - Khoảng cách từ 2km đến 10km: $+5.000$đ / km / món cho mỗi km vượt quá 2km.
-  - Khoảng cách trên 10km: $+40.000$đ $+$ $8.000$đ / km / món cho mỗi km vượt quá 10km.
-- **Giữ vững cam kết "Free Ship"**: Toàn bộ giao diện giỏ hàng, thanh toán và theo dõi đều hiển thị phí vận chuyển là "Miễn phí" (Free Shipping).
-- **Bảo vệ thu nhập tài xế**: Tài xế nhận trọn vẹn phụ phí khoảng cách vì `shipperEarning` được tính bằng chênh lệch `appTotal - storeTotal`.
-
-### Theo Dõi Đơn Hàng
-- Bản đồ Leaflet hiển thị 3 markers: Quán (🏪) / Điểm giao (🏠) / Shipper (🛵)
-- **Lộ trình đường phố thực tế (Real Street Routing)**: Bản đồ kết nối lộ trình thực tế qua đường bộ bằng OSRM API thay vì đường chim bay.
-- **Mô phỏng chuyển động mượt mà (Smooth Animation)**: Shipper di chuyển mượt mà dọc theo các cung đường phố thực tế trong suốt quá trình giao nhận.
-- Shipper di chuyển qua các bước: PENDING → ACCEPTED (đi đến quán) → PURCHASED (đang giao) → DELIVERED.
-- Timeline 4 bước với timestamp chi tiết.
+### Theo Dõi Đơn Hàng & WebRTC Call
+- Bản đồ Leaflet 3 markers: Quán (🏪) / Điểm giao (🏠) / Shipper (🛵)
+- **Lộ trình đường phố thực tế** qua OSRM API
+- **Mô phỏng chuyển động mượt mà** dọc các cung đường
+- Trạng thái: PENDING → ACCEPTED → PURCHASED → DELIVERED
+- **Gọi điện WebRTC** giữa khách hàng và tài xế (signaling qua API polling)
+- **Chat hai chiều** thời gian thực qua API polling 3 giây
 
 ### Web App Tài Xế (Shipper Web App)
-- **Thiết kế giao diện HUD Dark Mode thể thao**: Giao diện tối HUD tối ưu hóa độ tương phản cao, giao diện trực quan và chuyên nghiệp.
-- **Thanh vuốt cảm ứng Swipe to Action**: Tích hợp các thao tác vuốt kéo thả mượt mà trên cả PC và thiết bị di động (Touch / Mouse drag physics). Hỗ trợ "Vuốt để nhận đơn" (Swipe to Accept) và "Vuốt để đổi trạng thái" (Swipe to Advance) giúp giảm thiểu các thao tác nhấp nhầm và tự động snap-back nếu kéo chưa đạt 90%.
-- **Hệ thống nhạc chuông chimes báo đơn mới**: Tích hợp Web Audio API tự tổng hợp âm thanh chuông bíp cảnh báo tài xế tức thì khi có đơn hàng mới xuất hiện mà không cần tải file `.mp3` tĩnh.
-- **Thống kê chất lượng tài xế (AR/CR Metrics)**: Hệ thống tự động lưu trữ và tính toán Tỷ lệ nhận đơn (AR - Acceptance Rate) và Tỷ lệ hoàn thành đơn (CR - Completion Rate) trong `localStorage` để phân tích chất lượng phục vụ của shipper.
-- **Đồng bộ hóa Ghi chú & Trò chuyện hai chiều**: Hiển thị nổi bật ghi chú của khách hàng (note) tại Job Modal và Active Trip Card. Hỗ trợ hệ thống nhắn tin nhanh (Quick message) và nhắn tin gõ tay (Custom message) đồng bộ hai chiều thời gian thực giữa Khách hàng (trang Tracking) và Tài xế thông qua API, tự cập nhật qua polling 3 giây.
+- **HUD Dark Mode**: Giao diện tối, độ tương phản cao, chuyên nghiệp
+- **Swipe to Action**: Vuốt kéo thả (Touch/Mouse), snap-back 90%
+- **Nhạc chuông Web Audio API**: Tổng hợp âm thanh báo đơn mới
+- **AR/CR Metrics**: Tỷ lệ nhận đơn và hoàn thành đơn
+- **Chat & Ghi chú**: Đồng bộ hai chiều với khách hàng
 
-## Hiệu Năng (sau khi nâng cấp)
+### CRM Admin Dashboard (admin-app)
+- **SPA Router**: Dashboard, Orders, Restaurants, Shippers, Customers, Pricing
+- **Quản lý quán ăn**: Bật/tắt, chỉnh menu, đồng bộ giá ShopeeFood
+- **Quản lý tài xế**: Đăng ký, phê duyệt (Telegram bot), chỉnh sửa, avatar
+- **Quản lý đơn hàng**: Theo dõi, gán shipper thủ công, thống kê
+- **Pricing Config**: Điều chỉnh markup, surcharge, min earning trực tiếp
 
-| Thành phần | Trước | Sau |
-|-----------|-------|-----|
-| Frontend server | PowerShell HttpListener (single-thread) | **http-server** (async Node.js) |
-| Gzip compression | ❌ Không có | ✅ `compression` middleware (level 6) |
-| Cache-Control API | ❌ Không có | ✅ `public, max-age=30, stale-while-revalidate=60` |
-| CORS | Cơ bản | ✅ Origin whitelist cụ thể |
-| Khả năng chịu tải | ~10 user/lúc | **1000–5000+ user/lúc** |
-| Payload Size (List API) | 9.7 MB (kèm menus) | **~150 KB** (lược bỏ menu ở list endpoint, giảm 98.5%) |
-| LocalStorage Quota | ❌ Lỗi QuotaExceededError (không lưu được) | ✅ Đạt chuẩn lưu trữ mượt mà dưới 5MB |
+---
 
 ## Server API Endpoints
 
+### Restaurants
 | Endpoint | Method | Mô tả |
 |----------|--------|-------|
-| `/api/restaurants` | GET | Danh sách quán (có filter ?q=, ?lat=, ?lon=) |
+| `/api/restaurants` | GET | Danh sách quán (filter: `?q=`, `?lat=`, `?lon=`) |
 | `/api/restaurants/:id` | GET | Chi tiết quán + auto-scrape menu nếu cần |
-| `/api/status` | GET | Health check + trạng thái cache |
+
+### Orders
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/api/orders` | POST | Tạo đơn hàng mới |
+| `/api/orders` | GET | Danh sách đơn (filter: `?shipperPhone=`) |
+| `/api/orders/:id` | GET | Chi tiết đơn hàng |
+| `/api/orders/:id/accept` | POST | Shipper nhận đơn |
+| `/api/orders/:id/decline` | POST | Shipper từ chối đơn |
+| `/api/orders/:id/status` | POST | Cập nhật trạng thái đơn |
+| `/api/orders/:id/location` | POST | Cập nhật vị trí shipper (per-order) |
+| `/api/orders/:id/rate` | POST | Đánh giá đơn hàng |
+| `/api/orders/:id/messages` | POST | Gửi/nhận tin nhắn |
+
+### WebRTC Call Signaling
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/api/orders/:id/call/initiate` | POST | Khởi tạo cuộc gọi |
+| `/api/orders/:id/call/respond` | POST | Phản hồi cuộc gọi (answer/reject/candidate) |
+| `/api/orders/:id/call/candidate` | POST | Gửi ICE candidate |
+| `/api/orders/:id/call/poll` | GET | Polling trạng thái cuộc gọi (`?role=customer|shipper`) |
+| `/api/webrtc/ice-servers` | GET | Lấy cấu hình TURN/STUN servers |
+
+### Shippers
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/api/shippers` | GET | Danh sách tất cả tài xế |
+| `/api/shippers/login` | POST | Đăng nhập tài xế (JWT) |
+| `/api/shippers/register` | POST | Đăng ký tài xế mới (chờ duyệt Telegram) |
+| `/api/shippers/shift` | POST | Bật/tắt trực tuyến (auth) |
+| `/api/shippers/location` | POST | Cập nhật vị trí GPS tài xế (auth) |
+| `/api/shippers/stats` | POST | Thống kê hoạt động tài xế (auth) |
+| `/api/shippers/profile` | GET | Xem profile tài xế |
+
+### Admin (CRM) — Yêu cầu JWT Admin
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/api/admin/dashboard` | GET | Dữ liệu tổng quan dashboard |
+| `/api/admin/shippers` | POST | Thêm tài xế mới |
+| `/api/admin/shippers/:oldPhone` | PUT | Cập nhật thông tin tài xế |
+| `/api/admin/shippers/:phone` | DELETE | Xóa tài xế |
+| `/api/admin/shippers/:phone/approve` | POST | Phê duyệt tài xế |
+| `/api/admin/restaurants/:id` | PUT | Cập nhật thông tin quán |
+| `/api/admin/restaurants/:id/menu` | PUT | Cập nhật menu quán |
+| `/api/admin/restaurants/:id/sync-price` | POST | Đồng bộ giá với ShopeeFood |
+| `/api/admin/restaurants/:id/toggle-status` | POST | Bật/tắt hoạt động quán |
+| `/api/admin/restaurants/:id/menu/:itemId/toggle-availability` | POST | Bật/tắt món ăn |
+| `/api/admin/customers` | GET | Danh sách khách hàng |
+| `/api/admin/orders` | GET | Danh sách đơn hàng (admin) |
+| `/api/admin/orders/stats` | GET | Thống kê đơn hàng |
+| `/api/admin/orders/:id/assign` | POST | Gán shipper cho đơn |
+| `/api/admin/pricing-config` | GET | Lấy cấu hình giá |
+| `/api/admin/pricing-config` | POST | Cập nhật cấu hình giá |
+
+### Hệ thống
+| Endpoint | Method | Mô tả |
+|----------|--------|-------|
+| `/api/status` | GET | Health check + trạng thái hệ thống |
+| `/api/config` | GET | Cấu hình public (markup, surcharge...) |
 | `/api/cache/clear` | POST | Xóa cache thủ công |
+
+---
 
 ## Chạy Dự Án
 
+### Production (Online — Tự động qua Git Push)
+```bash
+# Commit và push lên master → Render & Vercel tự động deploy
+git add . && git commit -m "message" && git push origin master
+```
+
+### Local Development (Tùy chọn)
 ```powershell
-# Khởi động toàn bộ hệ thống
+# Khởi động toàn bộ hệ thống local (API + Frontend + Crawler Scheduler)
 powershell -ExecutionPolicy Bypass -File start_server.ps1
 
-# Test API
-powershell -ExecutionPolicy Bypass -File test_system.ps1
-
-# Test E2E Checkout→Tracking
-node test_checkout_tracking.js
-
-# Crawl menu ShopeeFood hàng loạt
+# Chạy crawler thủ công
 node bulk_crawl.js --concurrency=2
+
+# Chạy crawler scheduler (force mode — bỏ qua giới hạn giờ)
+node crawl_scheduler.js --force
 ```
+
+---
+
+## Environment Variables (server/.env)
+
+| Biến | Mô tả |
+|------|-------|
+| `PORT` | Cổng API server (mặc định: 3001) |
+| `SUPABASE_URL` | URL dự án Supabase |
+| `SUPABASE_ANON_KEY` | Supabase anon/public key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key |
+| `TELEGRAM_BOT_TOKEN` | Token bot Telegram phê duyệt tài xế |
+| `TELEGRAM_CHAT_ID` | Chat ID nhóm Telegram quản trị |
+| `METERED_API_KEY` | API key dịch vụ TURN server (WebRTC) — tùy chọn |
+
+---
 
 ## Lưu Ý Quan Trọng
 
-- `restaurants-local.json` là database chính độc lập — **không xóa**. Đây là nguồn dữ liệu chính chứa thông tin quán và thực đơn đã được cào sẵn từ trước.
-- **Quy trình Đối chiếu & Làm sạch**: Hệ thống định kỳ chạy Sweep Worker để đối chiếu thực đơn local với ShopeeFood nhằm cập nhật giá gốc (`inStorePrice`) và phát hiện các quán đã đóng cửa hoàn toàn để cập nhật trạng thái hoạt động trên database local thay vì cào đồng bộ.
-- Sweep Worker daemon tự động chạy ngầm để thực hiện đối chiếu giá món ăn và tình trạng hoạt động mỗi 30 giây.
-- Puppeteer dùng Chrome tại `C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`.
-- GitNexus dùng `--skip-git` vì project không dùng git truyền thống.
-
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
-
-This project is indexed by GitNexus as **FOOD DELIVERY** (949 symbols, 1494 relationships, 84 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
-
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
-
-## Always Do
-
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
-
-## Never Do
-
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
-
-## Resources
-
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/FOOD DELIVERY/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/FOOD DELIVERY/clusters` | All functional areas |
-| `gitnexus://repo/FOOD DELIVERY/processes` | All execution flows |
-| `gitnexus://repo/FOOD DELIVERY/process/{name}` | Step-by-step execution trace |
-
-## CLI
-
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
-
-<!-- gitnexus:end -->
+- **Database phân mảnh** (`server/restaurants-chunks/`) là dữ liệu chính — **không xóa**.
+- **Menu riêng lẻ** (`server/menus/`) chứa menu chi tiết từng quán — tách ra để tiết kiệm RAM.
+- **Fetch Interceptor**: Cả 3 frontend app đều có interceptor tự động thay thế `localhost:3001` → Render URL khi chạy online.
+- **Auto-deploy**: Mọi thay đổi push lên `master` sẽ tự động deploy lên Render (backend) và Vercel (frontend).
+- **Render Root Directory**: `server` — Build Command: `npm install` — Start Command: `node server.js`.
+- **Crawl Scheduler**: Daemon tự động chạy ngầm 10h-18h, cào menu ShopeeFood cho các quán chưa có dữ liệu.

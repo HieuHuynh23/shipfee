@@ -40,5 +40,14 @@ server/menus/
 test_screenshots/
 _backup/
 .agents/
+
+# Tool-generated files
+.gitnexus/
+.grapuco/
+.claude/
+skills-lock.json
+project_mindmap.html
+
+# Server test scripts (matched individually)
 server/test_*.js
 
