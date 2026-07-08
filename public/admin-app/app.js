@@ -83,11 +83,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const saved = localStorage.getItem('shipfee_admin');
+  const jwt = localStorage.getItem('shipfee_jwt');
   if (saved) {
-    try {
-      adminUser = JSON.parse(saved);
-      showApp();
-    } catch (e) {}
+    if (supabaseClient && !jwt) {
+      console.log('[Auth] Phát hiện session Demo cũ bị kẹt không có JWT, tự động dọn dẹp.');
+      localStorage.removeItem('shipfee_admin');
+      localStorage.removeItem('shipfee_jwt');
+      document.getElementById('login-page').classList.remove('hidden');
+    } else {
+      try {
+        adminUser = JSON.parse(saved);
+        showApp();
+      } catch (e) {}
+    }
   }
 });
 
