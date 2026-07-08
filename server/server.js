@@ -4443,7 +4443,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
 app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => {
   try {
     const { oldPhone } = req.params;
-    const { name, phone, email, password, cccd } = req.body;
+    const { name, phone, email, password, cccd, avatar } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Thiếu Tên hoặc SĐT tài xế!' });
     }
@@ -4469,10 +4469,25 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
       }
     }
 
+    // Xử lý và lưu ảnh chân dung (Base64 -> PNG)
+    let avatarUrl = shipper.avatarUrl || '';
+    if (avatar) {
+      try {
+        const base64Data = avatar.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const fileName = `${cleanedNewPhone}.png`;
+        const filePath = path.join(UPLOADS_DIR, fileName);
+        fs.writeFileSync(filePath, buffer);
+        avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
+      } catch (err) {
+        console.error('[Avatar Save Error] Lỗi lưu ảnh chân dung từ admin:', err.message);
+      }
+    }
+
     // Cập nhật thông tin trên Supabase Auth nếu có uuid và email/password
     if (supabase && uuid) {
       const updateData = {
-        user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '' }
+        user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '', avatar_url: avatarUrl }
       };
       if (email) updateData.email = email;
       if (password) updateData.password = password;
@@ -4495,7 +4510,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
           email: email ? email.trim() : `${cleanedNewPhone}@shipfee.vn`,
           password: password || '123456',
           phone: newFormatPhone,
-          user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '' },
+          user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '', avatar_url: avatarUrl },
           email_confirm: true,
           phone_confirm: true
         });
@@ -4515,7 +4530,8 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
             full_name: name,
             is_approved: true,
             status: 'OFFLINE',
-            cccd: cccd || ''
+            cccd: cccd || '',
+            avatar_url: avatarUrl
           });
           if (profileError) {
             console.error('[Supabase Profile Insert Error] Lỗi tạo profile:', profileError.message);
@@ -4530,7 +4546,8 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
           .update({
             phone: cleanedNewPhone,
             full_name: name,
-            cccd: cccd || ''
+            cccd: cccd || '',
+            avatar_url: avatarUrl
           })
           .eq('id', uuid);
 
@@ -4545,6 +4562,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
     shipper.phone = cleanedNewPhone;
     if (email) shipper.email = email;
     shipper.cccd = cccd || ''; // Cập nhật CCCD
+    shipper.avatarUrl = avatarUrl; // Cập nhật avatarUrl
 
     shippers[shipperIndex] = shipper;
     writeShippersDatabase(shippers);

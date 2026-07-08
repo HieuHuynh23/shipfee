@@ -39,6 +39,7 @@ let currentPage = 'dashboard';
 let adminUser = null;
 let pollTimer = null;
 let editingShipperPhone = null;
+let adminShipperAvatarBase64 = null;
 
 // Cache
 let cachedShippers = [];
@@ -836,14 +837,21 @@ window.approveShipper = approveShipper;
 
 function openAddShipperModal() {
   editingShipperPhone = null;
+  adminShipperAvatarBase64 = null;
   document.getElementById('shipper-modal-title').textContent = 'Thêm Tài xế mới';
   document.getElementById('modal-shipper-name').value = '';
   document.getElementById('modal-shipper-phone').value = '';
   document.getElementById('modal-shipper-cccd').value = '';
   document.getElementById('modal-shipper-email').value = '';
   document.getElementById('modal-shipper-password').value = '';
-  const avatarContainer = document.getElementById('modal-shipper-avatar-container');
-  if (avatarContainer) avatarContainer.style.display = 'none';
+  
+  const fileInput = document.getElementById('modal-shipper-avatar-input');
+  if (fileInput) fileInput.value = '';
+  const img = document.getElementById('modal-shipper-avatar-img');
+  const placeholder = document.getElementById('modal-shipper-avatar-placeholder');
+  if (img) img.style.display = 'none';
+  if (placeholder) placeholder.style.display = 'block';
+
   openModal('shipper-modal');
 }
 
@@ -851,6 +859,7 @@ function editShipper(phone) {
   const s = cachedShippers.find(sh => sh.phone === phone);
   if (!s) return;
   editingShipperPhone = phone;
+  adminShipperAvatarBase64 = null;
   document.getElementById('shipper-modal-title').textContent = 'Sửa thông tin Tài xế';
   document.getElementById('modal-shipper-name').value = s.name || '';
   document.getElementById('modal-shipper-phone').value = s.phone || '';
@@ -858,15 +867,17 @@ function editShipper(phone) {
   document.getElementById('modal-shipper-email').value = s.email || '';
   document.getElementById('modal-shipper-password').value = '';
   
-  const avatarContainer = document.getElementById('modal-shipper-avatar-container');
-  const avatarImg = document.getElementById('modal-shipper-avatar-img');
-  if (avatarContainer && avatarImg) {
-    if (s.avatarUrl) {
-      avatarImg.src = s.avatarUrl;
-      avatarContainer.style.display = 'flex';
-    } else {
-      avatarContainer.style.display = 'none';
-    }
+  const fileInput = document.getElementById('modal-shipper-avatar-input');
+  if (fileInput) fileInput.value = '';
+  const img = document.getElementById('modal-shipper-avatar-img');
+  const placeholder = document.getElementById('modal-shipper-avatar-placeholder');
+  if (s.avatarUrl && img && placeholder) {
+    img.src = s.avatarUrl;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+  } else {
+    if (img) img.style.display = 'none';
+    if (placeholder) placeholder.style.display = 'block';
   }
   
   openModal('shipper-modal');
@@ -889,12 +900,12 @@ async function saveShipper() {
     if (editingShipperPhone) {
       res = await apiFetch(`/api/admin/shippers/${editingShipperPhone}`, {
         method: 'PUT',
-        body: JSON.stringify({ name, phone, email, password, cccd })
+        body: JSON.stringify({ name, phone, email, password, cccd, avatar: adminShipperAvatarBase64 })
       });
     } else {
       res = await apiFetch('/api/admin/shippers', {
         method: 'POST',
-        body: JSON.stringify({ name, phone, email, password, cccd })
+        body: JSON.stringify({ name, phone, email, password, cccd, avatar: adminShipperAvatarBase64 })
       });
     }
 
@@ -910,6 +921,24 @@ async function saveShipper() {
     showToast('Lỗi kết nối server', 'error');
   }
 }
+
+function handleAdminShipperAvatarChange(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    adminShipperAvatarBase64 = evt.target.result;
+    const img = document.getElementById('modal-shipper-avatar-img');
+    const placeholder = document.getElementById('modal-shipper-avatar-placeholder');
+    if (img && placeholder) {
+      img.src = evt.target.result;
+      img.style.display = 'block';
+      placeholder.style.display = 'none';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+window.handleAdminShipperAvatarChange = handleAdminShipperAvatarChange;
 
 async function deleteShipper(phone) {
   if (!confirm(`Xác nhận xóa tài xế ${phone}?`)) return;
