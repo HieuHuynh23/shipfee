@@ -2520,7 +2520,7 @@ async function fetchAndParseFromFoody(q = '') {
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const CACHE_FILE     = path.join(__dirname, 'cache.json');
-const FALLBACK_FILE  = path.join(__dirname, '..', 'customer-app', 'restaurants-data.js');
+const FALLBACK_FILE  = path.join(__dirname, '..', 'public', 'customer-app', 'restaurants-data.js');
 const CACHE_DURATION = 10 * 60 * 1000; // 10 phút
 
 // Cần Thơ city ID trên ShopeeFood = 59
@@ -2550,7 +2550,7 @@ const SHOPEEFOOD_HEADERS = {
 app.use(express.json());
 
 // Phục vụ thư mục customer-app tĩnh (để không cần mở file:// trực tiếp)
-app.use('/app', express.static(path.join(__dirname, '..', 'customer-app')));
+app.use('/app', express.static(path.join(__dirname, '..', 'public', 'customer-app')));
 
 // ── CACHE HELPERS ────────────────────────────────────────────────────────────
 function readCache() {
@@ -4050,25 +4050,18 @@ app.post('/api/shippers/register', async (req, res) => {
       }
     }
 
-    // Sử dụng Supabase Anon client signUp để tự động kích hoạt gửi email xác thực thực tế
-    const anonSupabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-
-    const { data: signUpData, error: signUpError } = await anonSupabase.auth.signUp({
+    // Sử dụng Supabase Admin Client để tạo user trực tiếp và tự động xác thực email (email_confirm: true)
+    // Việc này giúp tránh lỗi Supabase không gửi email xác thực do giới hạn SMTP miễn phí
+    const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
       email: email.trim(),
       password: password,
-      options: {
-        data: {
-          full_name: name.trim(),
-          phone: cleanedPhone,
-          role: 'shipper',
-          is_approved: false,
-          avatar_url: avatarUrl
-        }
+      email_confirm: true,
+      user_metadata: {
+        full_name: name.trim(),
+        phone: cleanedPhone,
+        role: 'shipper',
+        is_approved: false,
+        avatar_url: avatarUrl
       }
     });
 

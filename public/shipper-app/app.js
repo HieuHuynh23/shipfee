@@ -254,11 +254,11 @@ async function registerDriver() {
       return;
     }
 
-    // 2. Thông báo yêu cầu xác thực email và chuyển sang chế độ đăng nhập
+    // 2. Thông báo đăng ký thành công (email được tự động kích hoạt) và chờ Admin duyệt SĐT
     showToast(
       'Đăng ký thành công!', 
-      'Một liên kết xác thực đã được gửi tới email của bạn. Vui lòng kiểm tra hộp thư và xác nhận tài khoản, sau đó chờ Admin phê duyệt để hoạt động.', 
-      'info'
+      'Tài khoản của bạn đã được khởi tạo và tự động xác thực email. Vui lòng chờ Admin duyệt Số điện thoại để bắt đầu nhận đơn!', 
+      'success'
     );
     toggleAuthMode();
     btn.disabled = false;
