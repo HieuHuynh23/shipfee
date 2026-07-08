@@ -666,14 +666,25 @@
       return R * c;
     }
 
+    // ── PAGINATION STATE FOR LAZY LOADING ──
+    let currentLimit = 20;
+    let displayedData = [];
+    let fullDataToDisplay = [];
+
     // ── RENDER RESTAURANTS ──
-    function renderRestaurants(list) {
+    function renderRestaurants(list, isAppend = false) {
       const container = document.getElementById('restaurant-list');
       const countEl   = document.getElementById('restaurant-count');
 
-      container.innerHTML = '';
+      if (!isAppend) {
+        container.innerHTML = '';
+        fullDataToDisplay = list || [];
+        displayedData = fullDataToDisplay.slice(0, currentLimit);
+      } else {
+        displayedData = list || [];
+      }
 
-      if (!list || list.length === 0) {
+      if (fullDataToDisplay.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state__icon">🔍</div>
@@ -681,12 +692,15 @@
             <div class="empty-state__desc">Thử tìm kiếm với từ khóa khác hoặc chọn danh mục khác.</div>
           </div>`;
         countEl.textContent = '';
+        removeLoadMoreBtn();
         return;
       }
 
-      countEl.textContent = list.length + ' quán';
+      countEl.textContent = fullDataToDisplay.length + ' quán';
 
-      list.forEach((r, i) => {
+      const dataToRender = isAppend ? displayedData.slice(displayedData.length - currentLimit) : displayedData;
+
+      dataToRender.forEach((r, i) => {
         if (!r) return;
         const card = document.createElement('article');
         const isClosed = r.isClosed === true;
@@ -756,6 +770,37 @@
           </div>`;
         container.appendChild(card);
       });
+
+      removeLoadMoreBtn();
+      if (displayedData.length < fullDataToDisplay.length) {
+        createLoadMoreBtn();
+      }
+    }
+
+    function createLoadMoreBtn() {
+      const container = document.getElementById('restaurant-list');
+      if (!container) return;
+      const loadMoreBtn = document.createElement('button');
+      loadMoreBtn.id = 'btn-load-more';
+      loadMoreBtn.className = 'btn btn--secondary';
+      loadMoreBtn.style.margin = '30px auto';
+      loadMoreBtn.style.display = 'block';
+      loadMoreBtn.style.padding = '10px 30px';
+      loadMoreBtn.style.fontSize = '13px';
+      loadMoreBtn.style.fontWeight = '600';
+      loadMoreBtn.style.borderRadius = '20px';
+      loadMoreBtn.textContent = 'Xem thêm cửa hàng';
+      loadMoreBtn.onclick = () => {
+        const nextLimit = displayedData.length + 20;
+        displayedData = fullDataToDisplay.slice(0, nextLimit);
+        renderRestaurants(displayedData, true);
+      };
+      container.after(loadMoreBtn);
+    }
+
+    function removeLoadMoreBtn() {
+      const btn = document.getElementById('btn-load-more');
+      if (btn) btn.remove();
     }
 
     function renderMiniCards(containerId, list) {
@@ -819,8 +864,9 @@
           .slice(0, 10);
         renderMiniCards('near-list', nearList);
 
-        // 3. Tất Cả Cửa Hàng
-        renderRestaurants(ALL_DATA || []);
+        // 3. Tất Cả Cửa Hàng: Mặc định ẩn quán đóng cửa ở trang chủ (chỉ hiện quán hoạt động)
+        const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
+        renderRestaurants(activeOnlyList);
       } catch (err) {
         console.error('[Render] Lỗi render danh sách quán:', err);
         SF.showToast('Lỗi hiển thị', 'Phát hiện dữ liệu lỗi. Đang tự động khôi phục dữ liệu...', 'warning');
@@ -849,7 +895,7 @@
           const openRests = ALL_DATA.filter(r => r && !r.isClosed);
           renderMiniCards('featured-list', openRests.slice(0, 10));
           renderMiniCards('near-list', openRests.slice(0, 10));
-          renderRestaurants(ALL_DATA);
+          renderRestaurants(openRests);
         } catch (recoverErr) {
           console.error('[Render] Không thể khôi phục tự động:', recoverErr);
           const container = document.getElementById('restaurant-list');

@@ -173,8 +173,26 @@ function writeAll(restaurants) {
   return true;
 }
 
+function readActive() {
+  const all = readAll();
+  return all.filter(r => r && !r.isClosed);
+}
+
+function getCrawlQueue() {
+  const all = readAll();
+  return all.filter(r => {
+    if (!r) return false;
+    // Lấy quán đóng cửa tạm thời (không phải vĩnh viễn) hoặc quán chưa có menu thực tế
+    const isTempClosed = r.isClosed && !(r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn')));
+    const needMenu = !r.isClosed && !r.hasRealMenu;
+    return isTempClosed || needMenu;
+  });
+}
+
 module.exports = {
   read: readAll,
+  readActive,
+  getCrawlQueue,
   write: writeAll,
   updateRestaurant,
   getChunkIndex,
