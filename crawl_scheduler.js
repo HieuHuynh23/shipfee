@@ -1,24 +1,27 @@
 /**
  * crawl_scheduler.js — Scheduled bulk ShopeeFood menu crawler daemon.
  *
- * Runs daily from 10:00 AM to 6:00 PM (18:00), processing restaurants lacking real menu data.
- * Outputs stats of successful, failed, closed and remaining restaurants on stopping or finishing.
+ * Daily tasks (10:00 AM to 6:00 PM):
+ *   Phase 1: Crawl real menus for active restaurants lacking menu data
+ *   Phase 2: Re-check temporarily closed restaurants to see if they've reopened
  *
  * Usage:
- *   node crawl_scheduler.js [--concurrency=2] [--force]
+ *   node crawl_scheduler.js [--concurrency=2] [--force] [--check-closed]
  */
 
 'use strict';
 
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const dbHelper = require('./server/dbHelper');
 
 // ── Configuration ──────────────────────────────────────────────────────────────
-const API_BASE = 'http://localhost:3001';
+const API_BASE = process.env.API_BASE || 'http://localhost:3001';
 const CONCURRENCY = parseInt(process.argv.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '2', 10);
 const FORCE = process.argv.includes('--force');
+const CHECK_CLOSED_ONLY = process.argv.includes('--check-closed');
 const TIMEOUT_MS = 120_000; // 120s timeout per restaurant scrape
 
 const LOG_FILE = path.join(__dirname, 'server', 'crawl_scheduler.log');
@@ -43,7 +46,8 @@ function writeLog(msg, color = C.reset) {
 function get(url) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('TIMEOUT')), TIMEOUT_MS);
-    http.get(url, (res) => {
+    const client = url.startsWith('https') ? https : http;
+    client.get(url, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -59,6 +63,7 @@ function get(url) {
 let activeWorkers = 0;
 let isCrawling = false;
 let shouldStop = false;
+let currentPhase = ''; // 'menu' or 'closed-check'
 
 let stats = {
   success: 0,
@@ -66,6 +71,8 @@ let stats = {
   closed: 0,
   skipped: 0,
   totalAttempted: 0,
+  reopened: 0,       // Quán tạm đóng nhưng đã mở lại
+  stillClosed: 0,    // Quán vẫn đóng cửa
   date: ''
 };
 
@@ -73,47 +80,36 @@ function checkDateReset() {
   const todayStr = new Date().toLocaleDateString('vi-VN');
   if (stats.date !== todayStr) {
     stats = {
-      success: 0,
-      failed: 0,
-      closed: 0,
-      skipped: 0,
-      totalAttempted: 0,
+      success: 0, failed: 0, closed: 0, skipped: 0,
+      totalAttempted: 0, reopened: 0, stillClosed: 0,
       date: todayStr
     };
   }
 }
 
-async function crawlBatch() {
-  if (isCrawling) return;
-  isCrawling = true;
-  shouldStop = false;
-  
-  checkDateReset();
-  
-  writeLog(`▶️ BẮT ĐẦU TIẾN TRÌNH CÀO MENU SHOPEEFOOD (Khung giờ vàng 10h - 18h)`, C.cyan);
+// ── Phase 1: Crawl menus for active restaurants ──────────────────────────────
+async function crawlMenuBatch() {
+  currentPhase = 'menu';
   
   const allRestaurants = dbHelper.read();
   const targets = allRestaurants.filter(r => r && r.id && r.hasRealMenu !== true && r.isClosed !== true);
   
-  writeLog(`📊 Số lượng quán trong DB: ${allRestaurants.length} | Chưa có menu real: ${targets.length} quán`);
+  writeLog(`📊 [Phase 1: Menu] DB: ${allRestaurants.length} quán | Chưa có menu real: ${targets.length} quán`);
   
   if (targets.length === 0) {
-    writeLog(`✨ Tất cả các quán ăn đã có dữ liệu thực tế! Hoàn tất cào dữ liệu.`);
-    isCrawling = false;
+    writeLog(`✨ [Phase 1] Tất cả quán đang mở đã có menu thực tế!`, C.green);
     return;
   }
 
   let index = 0;
   
-  // Worker loop
   async function worker() {
     activeWorkers++;
     while (index < targets.length && !shouldStop) {
-      // Check time limit
       const now = new Date();
       const hour = now.getHours();
       if (!FORCE && (hour < 10 || hour >= 18)) {
-        writeLog(`⏰ Ngoài khung giờ 10h - 18h. Yêu cầu dừng tiến trình cào dữ liệu...`, C.yellow);
+        writeLog(`⏰ Ngoài khung giờ 10h - 18h. Dừng Phase 1...`, C.yellow);
         shouldStop = true;
         break;
       }
@@ -153,9 +149,104 @@ async function crawlBatch() {
     activeWorkers--;
   }
 
-  // Start concurrent workers
   const workers = Array.from({ length: CONCURRENCY }, () => worker());
   await Promise.all(workers);
+}
+
+// ── Phase 2: Re-check closed restaurants ─────────────────────────────────────
+async function checkClosedBatch() {
+  currentPhase = 'closed-check';
+  
+  const allRestaurants = dbHelper.read();
+  // Lấy quán tạm đóng (không phải đóng vĩnh viễn)
+  const closedTargets = allRestaurants.filter(r => {
+    if (!r || !r.id || !r.isClosed) return false;
+    // Bỏ qua quán đã đánh dấu đóng vĩnh viễn
+    if (r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn'))) return false;
+    return true;
+  });
+  
+  writeLog(`📊 [Phase 2: Kiểm tra quán đóng] Tìm thấy ${closedTargets.length} quán tạm đóng cần kiểm tra`, C.cyan);
+  
+  if (closedTargets.length === 0) {
+    writeLog(`✨ [Phase 2] Không có quán tạm đóng cần kiểm tra!`, C.green);
+    return;
+  }
+
+  // Giới hạn kiểm tra 50 quán/ngày để không quá tải
+  const DAILY_CHECK_LIMIT = 50;
+  const todayTargets = closedTargets.slice(0, DAILY_CHECK_LIMIT);
+  writeLog(`🔄 Kiểm tra ${todayTargets.length}/${closedTargets.length} quán tạm đóng hôm nay (giới hạn ${DAILY_CHECK_LIMIT}/ngày)`);
+
+  let checkIndex = 0;
+  
+  async function checkWorker() {
+    activeWorkers++;
+    while (checkIndex < todayTargets.length && !shouldStop) {
+      const now = new Date();
+      const hour = now.getHours();
+      if (!FORCE && (hour < 10 || hour >= 18)) {
+        shouldStop = true;
+        break;
+      }
+      
+      const r = todayTargets[checkIndex++];
+      if (!r) continue;
+      
+      try {
+        writeLog(`🔍 [Closed Check ${checkIndex}/${todayTargets.length}] Kiểm tra: ${r.name}...`);
+        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}`);
+        
+        if (result.status === 200 && result.body && result.body.data) {
+          const data = result.body.data;
+          if (!data.isClosed && data.hasRealMenu) {
+            stats.reopened++;
+            writeLog(`🟢 ĐÃ MỞ LẠI: ${r.name} — có ${data.menu?.length || 0} món thực tế`, C.green);
+          } else if (!data.isClosed) {
+            stats.reopened++;
+            writeLog(`🟡 ĐÃ MỞ LẠI (chưa có menu): ${r.name}`, C.yellow);
+          } else {
+            stats.stillClosed++;
+            writeLog(`⬛ VẪN ĐÓNG: ${r.name}`, C.gray);
+          }
+        } else {
+          stats.stillClosed++;
+          writeLog(`⬛ KHÔNG THỂ KIỂM TRA: ${r.name} (status: ${result.status})`, C.gray);
+        }
+      } catch (err) {
+        stats.stillClosed++;
+        writeLog(`⬛ LỖI KIỂM TRA: ${r.name} — ${err.message}`, C.gray);
+      }
+      
+      // Delay 3s giữa mỗi lần kiểm tra để tránh quá tải
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+    activeWorkers--;
+  }
+
+  // Chỉ dùng 1 worker cho việc kiểm tra để tránh rate limit
+  await checkWorker();
+}
+
+// ── Main crawl batch ─────────────────────────────────────────────────────────
+async function crawlBatch() {
+  if (isCrawling) return;
+  isCrawling = true;
+  shouldStop = false;
+  
+  checkDateReset();
+  
+  writeLog(`\n▶️ BẮT ĐẦU TIẾN TRÌNH CÀO & KIỂM TRA (Khung giờ 10h - 18h)`, C.cyan);
+  
+  if (!CHECK_CLOSED_ONLY) {
+    // Phase 1: Cào menu cho quán chưa có
+    await crawlMenuBatch();
+  }
+  
+  // Phase 2: Kiểm tra quán tạm đóng cửa (chạy sau Phase 1 hoặc khi dùng --check-closed)
+  if (!shouldStop) {
+    await checkClosedBatch();
+  }
   
   isCrawling = false;
   printDailyReport();
@@ -164,16 +255,26 @@ async function crawlBatch() {
 function printDailyReport() {
   const finalRests = dbHelper.read();
   const remaining = finalRests.filter(r => r && r.hasRealMenu !== true && r.isClosed !== true).length;
+  const totalClosed = finalRests.filter(r => r && r.isClosed).length;
+  const totalActive = finalRests.length - totalClosed;
   
   writeLog(`\n╔══════════════════════════════════════════════════════╗`, C.cyan);
-  writeLog(`║  BÁO CÁO KẾT QUẢ CÀO HẰNG NGÀY                      ║`, C.cyan);
+  writeLog(`║  BÁO CÁO KẾT QUẢ CÀO & KIỂM TRA HẰNG NGÀY         ║`, C.cyan);
   writeLog(`╚══════════════════════════════════════════════════════╝`, C.cyan);
-  writeLog(`  ✅ Thành công hôm nay : ${stats.success} quán`, C.green);
-  writeLog(`  🔴 Quán đóng cửa      : ${stats.closed} quán`, C.gray);
-  writeLog(`  ⚠️  Không có menu thực : ${stats.skipped} quán`, C.yellow);
-  writeLog(`  ❌ Thất bại/Lỗi cào   : ${stats.failed} quán`);
-  writeLog(`  📊 Tổng số đã thử     : ${stats.totalAttempted} quán`);
-  writeLog(`  Remaining (Chưa cào)  : ${remaining} quán`, C.yellow);
+  writeLog(`  📊 Tổng quán trong DB  : ${finalRests.length} quán`);
+  writeLog(`  🟢 Quán đang hoạt động : ${totalActive} quán`, C.green);
+  writeLog(`  🔴 Quán đóng cửa       : ${totalClosed} quán`, C.gray);
+  writeLog(`  ────────────────────────────────────────────`);
+  writeLog(`  ✅ Menu cào thành công  : ${stats.success} quán`, C.green);
+  writeLog(`  🔴 Phát hiện đóng cửa  : ${stats.closed} quán`, C.gray);
+  writeLog(`  ⚠️  Không có menu thực  : ${stats.skipped} quán`, C.yellow);
+  writeLog(`  ❌ Thất bại/Lỗi cào    : ${stats.failed} quán`);
+  writeLog(`  ────────────────────────────────────────────`);
+  writeLog(`  🟢 Quán mở lại (reopen): ${stats.reopened} quán`, C.green);
+  writeLog(`  ⬛ Vẫn đóng cửa        : ${stats.stillClosed} quán`, C.gray);
+  writeLog(`  ────────────────────────────────────────────`);
+  writeLog(`  📊 Tổng số đã thử      : ${stats.totalAttempted} quán`);
+  writeLog(`  Remaining (Chưa cào)   : ${remaining} quán`, C.yellow);
   writeLog(`========================================================\n`, C.cyan);
 }
 
@@ -200,13 +301,14 @@ function tick() {
 }
 
 // Startup info
-writeLog(`🤖 Khởi động Trình Hẹn Giờ Cào Dữ Liệu Tự Động (ShopeeFood Menu Scheduler)`);
+writeLog(`🤖 Khởi động Trình Hẹn Giờ Cào Dữ Liệu & Kiểm Tra Tự Động`);
 writeLog(`📅 Khung giờ làm việc: Hằng ngày từ 10:00 sáng đến 18:00 tối`);
-writeLog(`⚙️  Thiết lập: Concurrency=${CONCURRENCY} | Chế độ ép buộc=${FORCE ? 'BẬT' : 'TẮT'}`);
+writeLog(`⚙️  Thiết lập: Concurrency=${CONCURRENCY} | Force=${FORCE ? 'BẬT' : 'TẮT'} | CheckClosedOnly=${CHECK_CLOSED_ONLY ? 'BẬT' : 'TẮT'}`);
 
 const initialRests = dbHelper.read();
-const missing = initialRests.filter(r => r && r.hasRealMenu !== true && r.isClosed !== true).length;
-writeLog(`📊 Trạng thái Database hiện tại: ${initialRests.length} quán | Còn thiếu: ${missing} quán`);
+const missingMenu = initialRests.filter(r => r && r.hasRealMenu !== true && r.isClosed !== true).length;
+const closedCount = initialRests.filter(r => r && r.isClosed).length;
+writeLog(`📊 Database: ${initialRests.length} quán | Thiếu menu: ${missingMenu} | Đóng cửa: ${closedCount}`);
 
 // Run first check immediately
 tick();
