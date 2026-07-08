@@ -1,5 +1,6 @@
 {
   "cleanUrls": false,
+  "outputDirectory": ".",
   "redirects": [
     { "source": "/", "destination": "/customer-app/", "permanent": false },
     { "source": "/shipper", "destination": "/shipper-app/", "permanent": false },
