@@ -275,11 +275,49 @@ async function registerDriver() {
   btn.disabled = false;
 }
 
+async function refreshDriverInfo() {
+  if (!currentDriver || !currentDriver.phone) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/shippers/profile?phone=${currentDriver.phone}`).then(r => r.json());
+    if (res.success && res.shipper) {
+      currentDriver = {
+        name: res.shipper.name,
+        phone: res.shipper.phone,
+        avatarUrl: res.shipper.avatarUrl || '',
+        isApproved: res.shipper.isApproved,
+        cccd: res.shipper.cccd || ''
+      };
+      localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      updateDriverHeader();
+      
+      // Nếu modal profile đang mở, cập nhật lại các trường trong modal
+      const overlay = document.getElementById('driver-profile-overlay');
+      if (overlay && overlay.style.display !== 'none') {
+        document.getElementById('profile-name').textContent = currentDriver.name || '-';
+        document.getElementById('profile-phone').textContent = currentDriver.phone || '-';
+        const cccdEl = document.getElementById('profile-cccd');
+        if (cccdEl) cccdEl.textContent = currentDriver.cccd || 'Chưa cập nhật';
+        
+        const avatarImg = document.getElementById('profile-avatar-img');
+        const avatarPlaceholder = document.getElementById('profile-avatar-placeholder');
+        if (currentDriver.avatarUrl && avatarImg && avatarPlaceholder) {
+          avatarImg.src = currentDriver.avatarUrl;
+          avatarImg.style.display = 'block';
+          avatarPlaceholder.style.display = 'none';
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[Profile Refresh Error] Không thể làm mới hồ sơ tài xế:', err);
+  }
+}
+
 function loadDriverInfo() {
   try {
     const raw = localStorage.getItem('shipfee_driver');
     if (raw) {
       currentDriver = JSON.parse(raw);
+      refreshDriverInfo(); // Tự động làm mới thông tin từ server khi khởi chạy app
     }
   } catch (e) {
     console.error('Lỗi đọc thông tin tài xế:', e);
@@ -2529,7 +2567,7 @@ async function logoutDriver() {
 }
 window.logoutDriver = logoutDriver;
 
-function showDriverProfile() {
+async function showDriverProfile() {
   if (!currentDriver) return;
   
   document.getElementById('profile-name').textContent = currentDriver.name || '-';
@@ -2564,11 +2602,14 @@ function showDriverProfile() {
         document.getElementById('profile-email').textContent = 'Chưa xác thực trực tuyến';
       }
     }).catch(() => {
-      document.getElementById('profile-email').textContent = '-';
+      document.getElementById('profile-email').textContent = 'Chưa xác thực trực tuyến';
     });
   } else {
     document.getElementById('profile-email').textContent = 'Ngoại tuyến';
   }
+
+  // Gọi đồng bộ bất đồng bộ từ server để cập nhật thông tin mới nhất
+  refreshDriverInfo();
 
   // Thống kê AR/CR
   const ar = localStorage.getItem('shipfee_ar') || '100';
