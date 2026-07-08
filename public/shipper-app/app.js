@@ -285,7 +285,9 @@ async function refreshDriverInfo() {
         phone: res.shipper.phone,
         avatarUrl: res.shipper.avatarUrl || '',
         isApproved: res.shipper.isApproved,
-        cccd: res.shipper.cccd || ''
+        cccd: res.shipper.cccd || '',
+        assistanceLimitToday: res.shipper.assistanceLimitToday || 0,
+        assistanceRequested: res.shipper.assistanceRequested || false
       };
       localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       updateDriverHeader();
@@ -373,7 +375,9 @@ async function loginDriver() {
         phone: result.shipper.phone,
         avatarUrl: result.shipper.avatarUrl,
         isApproved: result.shipper.isApproved,
-        cccd: result.shipper.cccd || ''
+        cccd: result.shipper.cccd || '',
+        assistanceLimitToday: result.shipper.assistanceLimitToday || 0,
+        assistanceRequested: result.shipper.assistanceRequested || false
       };
       localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       loadStats();
@@ -677,10 +681,31 @@ function renderPendingOrders(orders) {
   if (pendingCountEl) pendingCountEl.textContent = orders.length;
 
   if (orders.length === 0) {
+    let assistanceHtml = '';
+    if (isOnline && currentDriver) {
+      const usedToday = currentDriver.assistanceLimitToday || 0;
+      const isRequested = currentDriver.assistanceRequested === true;
+      
+      assistanceHtml = `
+        <div id="assistance-container" style="margin-top: 15px; text-align: center; width: 100%;">
+          <button class="btn" id="btn-request-assistance" onclick="requestOrderAssistance()" 
+            ${isRequested ? 'disabled' : ''} 
+            style="background: ${isRequested ? '#4b5563' : '#dc2626'}; color: white; padding: 10px 18px; font-weight: 700; border-radius: 8px; border: none; font-size: 13px; cursor: ${isRequested ? 'not-allowed' : 'pointer'}; display: inline-flex; align-items: center; gap: 6px;">
+            <i class="fa-solid ${isRequested ? 'fa-hourglass-half' : 'fa-circle-question'}"></i> 
+            ${isRequested ? 'Đang chờ gán đơn ưu tiên...' : '🆘 Yêu cầu Hỗ trợ Tìm đơn'}
+          </button>
+          <p style="font-size: 11px; color: var(--clr-text-muted); margin-top: 6px; margin-bottom: 0;">
+            Lưu ý: Chỉ hỗ trợ tối đa 3 lần/ngày. Đã dùng: <strong id="assistance-used-count">${usedToday}</strong>/3
+          </p>
+        </div>
+      `;
+    }
+
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-radar fa-spin-slow" style="color:var(--clr-text-muted);"></i>
         <p>${isOnline ? 'Đang tìm kiếm đơn hàng lân cận...' : 'Vui lòng BẬT NHẬN ĐƠN để tìm đơn mới'}</p>
+        ${assistanceHtml}
       </div>`;
     return;
   }
@@ -2711,3 +2736,59 @@ async function initSupabase() {
     showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API.', 'error');
   }
 }
+
+async function requestOrderAssistance() {
+  if (!currentDriver || !currentDriver.phone) {
+    showToast('Lỗi', 'Không xác định được thông tin tài xế!', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-request-assistance');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang yêu cầu...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/api/shippers/request-assistance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('shipfee_jwt')}`
+      },
+      body: JSON.stringify({ phone: currentDriver.phone })
+    }).then(r => r.json());
+
+    if (res.success) {
+      showToast('Thành công', res.message, 'success');
+      currentDriver.assistanceLimitToday = res.limitUsed;
+      currentDriver.assistanceRequested = true;
+      localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      
+      if (res.orderId) {
+        if (typeof pollJobs === 'function') pollJobs();
+      } else {
+        const countText = document.getElementById('assistance-used-count');
+        if (countText) countText.textContent = res.limitUsed;
+        if (btn) {
+          btn.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> Đang chờ gán đơn ưu tiên...';
+          btn.style.background = '#4b5563';
+        }
+      }
+    } else {
+      showToast('Thất bại', res.error || 'Yêu cầu hỗ trợ thất bại.', 'error');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-circle-question"></i> 🆘 Yêu cầu Hỗ trợ Tìm đơn';
+      }
+    }
+  } catch (err) {
+    console.error('Lỗi yêu cầu hỗ trợ tìm đơn:', err);
+    showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-circle-question"></i> 🆘 Yêu cầu Hỗ trợ Tìm đơn';
+    }
+  }
+}
+window.requestOrderAssistance = requestOrderAssistance;

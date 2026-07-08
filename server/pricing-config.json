@@ -4,5 +4,13 @@
   "freeDistanceKm": 1.5,
   "surchargeCoefficient": 7000,
   "minShipperEarning": 15000,
-  "multiItemDiscount": 0.15
+  "multiItemDiscount": 0.15,
+  "telegramConfig": {
+    "enableNewShipperAlert": true,
+    "enableNewOrderAlert": false,
+    "enableOrderUpdateAlert": false,
+    "enablePeriodicReport": true,
+    "enableEmergencyAlert": true,
+    "reportIntervalHours": 6
+  }
 }

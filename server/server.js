@@ -188,6 +188,10 @@ async function sendTelegramNewShipperNotification(shipper) {
 
 async function sendTelegramNewOrderNotification(order) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  if (pricingConfig.telegramConfig && pricingConfig.telegramConfig.enableNewOrderAlert === false) {
+    console.log('[Telegram Bot] Bỏ qua gửi thông báo đơn hàng mới do cấu hình tắt.');
+    return;
+  }
   try {
     const itemsText = (order.items || []).map(i => {
       let text = `• ${i.name} x${i.quantity || i.qty}`;
@@ -235,6 +239,10 @@ async function sendTelegramNewOrderNotification(order) {
 
 async function sendTelegramOrderStatusUpdateNotification(order) {
   if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  if (pricingConfig.telegramConfig && pricingConfig.telegramConfig.enableOrderUpdateAlert === false) {
+    console.log('[Telegram Bot] Bỏ qua gửi thông báo trạng thái đơn do cấu hình tắt.');
+    return;
+  }
   try {
     let statusEmoji = 'ℹ️';
     let statusName = order.status;
@@ -1280,9 +1288,46 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
         .map(o => o.shipperPhone.trim().replace(/\s+/g, ''))
     );
 
+    const now = Date.now();
+
+    // 🆘 ƯU TIÊN 1: Tìm tài xế đang Yêu cầu Hỗ trợ Tìm đơn (assistanceRequested = true) và rảnh
+    let assistanceShipper = null;
+    let minAssistanceDist = Infinity;
+
+    for (const s of onlineShippers) {
+      const cleanedPhone = s.phone.trim().replace(/\s+/g, '');
+      if (busyShipperPhones.has(cleanedPhone)) continue;
+
+      const cleanDeclined = (declinedShippers || []).map(p => p.trim().replace(/\s+/g, ''));
+      if (cleanDeclined.includes(cleanedPhone)) continue;
+
+      if (s.assistanceRequested === true) {
+        const loc = onlineShipperLocations.get(cleanedPhone);
+        // Nếu có tọa độ thì tính khoảng cách, nếu không coi như bằng 0 (ưu tiên tối đa)
+        const dist = (loc && now - loc.lastSeen <= 120000)
+          ? calcDistance(restaurantLat, restaurantLon, loc.lat, loc.lon)
+          : 0;
+
+        if (dist < minAssistanceDist) {
+          minAssistanceDist = dist;
+          assistanceShipper = {
+            phone: s.phone,
+            name: s.name,
+            distance: dist,
+            isAssisted: true
+          };
+        }
+      }
+    }
+
+    if (assistanceShipper) {
+      console.log(`[Priority Dispatch] 🎯 Gán đơn hàng ưu tiên cho shipper ${assistanceShipper.name} (${assistanceShipper.phone}) đang yêu cầu hỗ trợ tìm đơn.`);
+      return assistanceShipper;
+    }
+
+    // 🚴 ƯU TIÊN 2: Tìm shipper gần nhất theo khoảng cách thông thường
     let nearestShipper = null;
     let minDistance = Infinity;
-    const now = Date.now();
 
     for (const s of onlineShippers) {
       const cleanedPhone = s.phone.trim().replace(/\s+/g, '');
@@ -3727,6 +3772,31 @@ app.post('/api/orders/:id/accept', async (req, res) => {
     }
 
     console.log(`[Order Server] 🛵 Shipper đã nhận đơn: ${id}`);
+    
+    // Tắt cờ yêu cầu hỗ trợ tìm đơn của tài xế này sau khi nhận đơn thành công
+    if (shipperPhone) {
+      try {
+        const shippers = readShippersDatabase();
+        const cleanPhone = shipperPhone.trim().replace(/\s+/g, '');
+        const sIdx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+        if (sIdx !== -1 && shippers[sIdx].assistanceRequested) {
+          shippers[sIdx].assistanceRequested = false;
+          writeShippersDatabase(shippers);
+          console.log(`[Priority Dispatch] 🟢 Đã tắt cờ hỗ trợ tìm đơn cho shipper ${shippers[sIdx].name} vì đã nhận đơn thành công.`);
+          
+          if (supabase && shippers[sIdx].id) {
+            supabase
+              .from('shipper_profiles')
+              .update({ assistance_requested: false })
+              .eq('id', shippers[sIdx].id)
+              .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+          }
+        }
+      } catch (err) {
+        console.error('[Assistance Clean Error] Lỗi dọn dẹp cờ hỗ trợ tìm đơn:', err.message);
+      }
+    }
+
     sendTelegramOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -4323,6 +4393,121 @@ app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
     }
 
     res.json({ success: true, shipper: shippers[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/request-assistance
+ * Tài xế gửi yêu cầu hỗ trợ tìm đơn (SOS Dispatch)
+ */
+app.post('/api/shippers/request-assistance', authenticateShipper, async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) {
+      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại tài xế!' });
+    }
+
+    const shippers = readShippersDatabase();
+    const cleanPhone = phone.trim().replace(/\s+/g, '');
+    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
+    }
+
+    const shipper = shippers[idx];
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+    
+    // Kiểm tra ngày cuối dùng hỗ trợ
+    if (shipper.lastAssistanceDate !== today) {
+      shipper.assistanceLimitToday = 0;
+      shipper.lastAssistanceDate = today;
+    }
+
+    if (shipper.assistanceLimitToday >= 3) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Bạn đã sử dụng hết 3 lượt hỗ trợ tìm đơn hôm nay! Vui lòng thử lại vào ngày mai.' 
+      });
+    }
+
+    // Tăng lượt sử dụng
+    shipper.assistanceLimitToday = (shipper.assistanceLimitToday || 0) + 1;
+    shipper.assistanceRequested = true;
+    shipper.lastAssistanceDate = today;
+    shippers[idx] = shipper;
+    writeShippersDatabase(shippers);
+
+    console.log(`[Order Assistance] 🆘 Shipper ${shipper.name} (${shipper.phone}) yêu cầu hỗ trợ tìm đơn. Lượt dùng: ${shipper.assistanceLimitToday}/3`);
+
+    // Đồng bộ lên Supabase nếu có
+    if (supabase && shipper.id) {
+      try {
+        await supabase
+          .from('shipper_profiles')
+          .update({
+            assistance_limit_today: shipper.assistanceLimitToday,
+            last_assistance_date: today,
+            assistance_requested: true
+          })
+          .eq('id', shipper.id);
+      } catch (err) {
+        console.error('[Supabase Sync Error] Lỗi đồng bộ yêu cầu hỗ trợ:', err.message);
+      }
+    }
+
+    // Kiểm tra xem có đơn hàng nào đang PENDING và chưa có ai nhận không
+    const orders = readOrdersDatabase();
+    // Lấy danh sách các đơn hàng PENDING mà không được gán cho ai hoặc offer đã hết hạn
+    const pendingOrders = orders.filter(o => o.status === 'PENDING' && (!o.assignedShipperPhone || (o.offerExpiresAt && Date.now() > o.offerExpiresAt)));
+
+    if (pendingOrders.length > 0) {
+      // Chọn đơn hàng lâu nhất
+      pendingOrders.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      const targetOrder = pendingOrders[0];
+
+      // Gán đơn hàng này trực tiếp cho tài xế này luôn (Dispatch targeted)
+      await updateOrdersDatabase((allOrders) => {
+        const oIdx = allOrders.findIndex(o => o.id === targetOrder.id);
+        if (oIdx !== -1) {
+          allOrders[oIdx].assignedShipperPhone = cleanPhone;
+          allOrders[oIdx].offerExpiresAt = Date.now() + 60000; // Cho 60 giây để accept
+        }
+      });
+
+      console.log(`[Priority Dispatch] 🎯 Gán ngay đơn ${targetOrder.id} cho tài xế ${shipper.name} đang yêu cầu hỗ trợ.`);
+      return res.json({ 
+        success: true, 
+        message: 'Đã tìm thấy đơn hàng phù hợp và gán ưu tiên cho bạn!', 
+        orderId: targetOrder.id,
+        limitUsed: shipper.assistanceLimitToday
+      });
+    }
+
+    // Gửi cảnh báo khẩn cấp lên Telegram nếu được cấu hình
+    if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID) {
+      try {
+        const text = `🆘 *Tài xế yêu cầu Hỗ trợ Tìm đơn*\n\n` +
+          `🛵 *Tài xế:* ${shipper.name} (${shipper.phone})\n` +
+          `📊 *Số lượt đã dùng hôm nay:* ${shipper.assistanceLimitToday}/3\n` +
+          `⏳ *Trạng thái:* Đang chờ đơn hàng mới phát sinh để tự động gán ưu tiên.`;
+        await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+          chat_id: TELEGRAM_CHAT_ID,
+          text,
+          parse_mode: 'Markdown'
+        });
+      } catch (err) {
+        console.error('[Telegram Bot] Lỗi gửi tin hỗ trợ:', err.message);
+      }
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Hệ thống đang tìm kiếm đơn. Đơn hàng tiếp theo phát sinh sẽ được tự động gán ưu tiên cho bạn!', 
+      limitUsed: shipper.assistanceLimitToday 
+    });
+
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
