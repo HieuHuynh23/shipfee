@@ -4575,9 +4575,11 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
         authError = err;
       }
 
-      // Nếu lỗi là User not found (lệch đồng bộ Supabase Auth), tự động tạo mới tài khoản trên Supabase Auth online
+      // Nếu lỗi là User not found (lệch đồng bộ Supabase Auth), tự động xử lý bằng cách tạo mới hoặc đồng bộ UUID từ online
       if (authError && authError.message && authError.message.includes('User not found')) {
-        console.log(`[Supabase Update] User ${uuid} không tồn tại trên Supabase Auth. Tiến hành tự động tạo mới...`);
+        console.log(`[Supabase Update] User ${uuid} không tồn tại trên Supabase Auth. Tiến hành tự động xử lý...`);
+        let targetUser = null;
+
         const { data: createData, error: createError } = await supabase.auth.admin.createUser({
           email: email ? email.trim() : `${cleanedNewPhone}@shipfee.vn`,
           password: password || '123456',
@@ -4588,16 +4590,41 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
         });
 
         if (createError) {
-          console.error('[Supabase Create Error] Không thể tạo mới tài xế thay thế:', createError.message);
-          return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message + ' (Thử tạo mới cũng thất bại: ' + createError.message + ')' });
+          // Nếu email đã được đăng ký, tìm kiếm user đó trên Supabase Auth để đồng bộ UUID
+          if (createError.message && (createError.message.includes('already been registered') || createError.message.includes('already exists'))) {
+            console.log(`[Supabase Synced] Email ${email} đã có sẵn trên Supabase Auth. Đang truy vấn để tự động đồng bộ UUID...`);
+            try {
+              const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
+              if (!listError && users) {
+                const found = users.find(u => u.email === email.trim());
+                if (found) {
+                  targetUser = found;
+                  console.log(`[Supabase Synced] Đã tìm thấy user online trùng khớp. Đồng bộ UUID sang: ${found.id}`);
+                  // Cập nhật thông tin mới lên tài khoản online đó
+                  await supabase.auth.admin.updateUserById(found.id, updateData);
+                }
+              }
+            } catch (err) {
+              console.error('[Supabase Synced Error] Lỗi truy vấn listUsers:', err.message);
+            }
+          }
+          
+          if (!targetUser) {
+            console.error('[Supabase Create Error] Không thể tạo mới tài xế thay thế:', createError.message);
+            return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message + ' (Thử tạo mới cũng thất bại: ' + createError.message + ')' });
+          }
         } else if (createData && createData.user) {
-          // Cập nhật UUID mới của tài khoản vừa tạo
-          shipper.id = createData.user.id;
-          authError = null; // Bỏ qua lỗi
+          targetUser = createData.user;
+        }
 
-          // Tạo profile trong table shipper_profiles
-          const { error: profileError } = await supabase.from('shipper_profiles').insert({
-            id: createData.user.id,
+        if (targetUser) {
+          // Cập nhật UUID mới của tài khoản vừa tạo hoặc vừa đồng bộ
+          shipper.id = targetUser.id;
+          authError = null; // Bỏ qua lỗi ban đầu
+
+          // Tạo/Cập nhật profile trong table shipper_profiles
+          const { error: profileError } = await supabase.from('shipper_profiles').upsert({
+            id: targetUser.id,
             phone: cleanedNewPhone,
             full_name: name,
             is_approved: true,
@@ -4606,7 +4633,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
             avatar_url: avatarUrl
           });
           if (profileError) {
-            console.error('[Supabase Profile Insert Error] Lỗi tạo profile:', profileError.message);
+            console.error('[Supabase Profile Upsert Error] Lỗi ghi profile:', profileError.message);
           }
         }
       } else if (authError) {
