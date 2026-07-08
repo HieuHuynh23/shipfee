@@ -2639,9 +2639,22 @@ async function initSupabase() {
   try {
     const res = await fetch(`${API_BASE}/api/config`).then(r => r.json());
     if (res.supabaseUrl && res.supabaseAnonKey && res.supabaseUrl !== 'your_supabase_url_here') {
-      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey);
+      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey, {
+        auth: {
+          storageKey: 'shipfee_driver_auth_token',
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
       console.log('[Supabase] Client initialized successfully via proxy config');
       
+      // Tự động khôi phục JWT token từ storage của client
+      supabaseClient.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          localStorage.setItem('shipfee_jwt', session.access_token);
+        }
+      }).catch(e => console.warn('Lỗi lấy session shipper:', e));
+
       // Update UI: hide name/phone, show email/password
       document.getElementById('login-group-name').style.display = 'none';
       document.getElementById('login-group-phone').style.display = 'none';

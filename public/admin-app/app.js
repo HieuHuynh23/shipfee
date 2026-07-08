@@ -53,7 +53,13 @@ async function initSupabase() {
   try {
     const res = await originalFetch(`${API_BASE}/api/config`).then(r => r.json());
     if (res.supabaseUrl && res.supabaseAnonKey && res.supabaseUrl !== 'your_supabase_url_here') {
-      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey);
+      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey, {
+        auth: {
+          storageKey: 'shipfee_admin_auth_token',
+          persistSession: true,
+          autoRefreshToken: true
+        }
+      });
       console.log('[Supabase] Admin client initialized successfully via proxy config');
     }
   } catch (e) {
