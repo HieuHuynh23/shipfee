@@ -35,6 +35,8 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
   
   // Tự động kiểm tra và tạo tài khoản Admin mặc định
   seedAdminUser();
+  // Tự động kiểm tra và tạo storage bucket "avatars" công khai
+  initSupabaseStorage();
 } else {
   console.log('[Supabase] Supabase is NOT configured. Operating in LOCAL/BYPASS mode.');
 }
@@ -73,6 +75,70 @@ async function seedAdminUser() {
   } catch (err) {
     console.error('[Supabase Admin Seed] Lỗi khởi tạo:', err.message);
   }
+}
+
+async function initSupabaseStorage() {
+  if (!supabase) return;
+  try {
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    if (listError) throw listError;
+    
+    const exists = buckets.some(b => b.name === 'avatars');
+    if (!exists) {
+      const { error: createError } = await supabase.storage.createBucket('avatars', {
+        public: true,
+        fileSizeLimit: 1024 * 1024 * 5 // 5MB
+      });
+      if (createError) throw createError;
+      console.log('[Supabase Storage] Đã khởi tạo bucket "avatars" công khai thành công.');
+    } else {
+      console.log('[Supabase Storage] Bucket "avatars" đã tồn tại.');
+    }
+  } catch (err) {
+    console.warn('[Supabase Storage] Không thể khởi tạo bucket "avatars" (có thể do thiếu quyền):', err.message);
+  }
+}
+
+async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
+  let avatarUrl = '';
+  // 1. Lưu local filesystem (dự phòng)
+  const fileName = `${cleanedPhone}.png`;
+  try {
+    const base64DataClean = base64Data.replace(/^data:image\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64DataClean, 'base64');
+    const filePath = path.join(UPLOADS_DIR, fileName);
+    fs.writeFileSync(filePath, buffer);
+    avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
+  } catch (err) {
+    console.error('[Avatar Local Save Error] Lỗi lưu ảnh local:', err.message);
+  }
+
+  // 2. Tải lên Supabase Storage (lưu trữ bền vững đám mây)
+  if (supabase) {
+    try {
+      const base64DataClean = base64Data.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(base64DataClean, 'base64');
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(`shippers/${fileName}`, buffer, {
+          contentType: 'image/png',
+          upsert: true
+        });
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(`shippers/${fileName}`);
+      
+      if (publicUrl) {
+        avatarUrl = publicUrl;
+        console.log(`[Supabase Storage] Upload thành công avatar của shipper ${cleanedPhone}: ${avatarUrl}`);
+      }
+    } catch (err) {
+      console.warn(`[Supabase Storage Upload Error] Không thể upload avatar lên Supabase Storage (sử dụng URL local dự phòng):`, err.message);
+    }
+  }
+  return avatarUrl;
 }
 
 // Khởi tạo thư mục upload ảnh chân dung tài xế
@@ -2948,12 +3014,36 @@ app.get('/api/restaurants', async (req, res) => {
       responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon, true);
       console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
     } else {
-      responseData = processRestaurantsWithLocation(cachedRestaurants, req.query.lat, req.query.lon);
-      console.log(`[Response] ✅ Trả ngay ${responseData.length} quán từ memory cache (mở: ${responseData.filter(r=>!r.isClosed).length}, đóng: ${responseData.filter(r=>r.isClosed).length})`);
+      // ── LỌC QUÁN ĐÓNG CỬA ──
+      // Mặc định chỉ trả về quán đang mở (isClosed !== true)
+      // CRM Admin có thể truyền ?includeAll=true để xem toàn bộ
+      const includeAll = req.query.includeAll === 'true';
+      let sourceData = includeAll ? cachedRestaurants : cachedRestaurants.filter(r => !r.isClosed);
+      responseData = processRestaurantsWithLocation(sourceData, req.query.lat, req.query.lon);
+      const totalOpen = responseData.filter(r => !r.isClosed).length;
+      const totalClosed = responseData.filter(r => r.isClosed).length;
+      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng: ${totalClosed}, includeAll: ${includeAll})`);
     }
+
+    // ── PAGINATION ──
+    const page = parseInt(req.query.page) || 0;
+    const limit = parseInt(req.query.limit) || 0;
+    let paginatedData = responseData;
+    let totalBeforePagination = responseData.length;
+    if (limit > 0 && page > 0) {
+      const startIdx = (page - 1) * limit;
+      paginatedData = responseData.slice(startIdx, startIdx + limit);
+    }
+
     // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
     if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-    return res.json({ source: query ? 'local_search_cached' : 'local_cached', data: stripMenus(responseData), total: responseData.length });
+    return res.json({
+      source: query ? 'local_search_cached' : 'local_cached',
+      data: stripMenus(paginatedData),
+      total: totalBeforePagination,
+      page: page || 1,
+      limit: limit || totalBeforePagination
+    });
   }
 
   // 3. Fallback: nếu chưa có local JSON, đọc từ restaurants-data.js bằng eval
@@ -4037,19 +4127,10 @@ app.post('/api/shippers/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Số điện thoại này đã được đăng ký trên hệ thống!' });
     }
 
-    // Xử lý và lưu ảnh chân dung (Base64 -> PNG)
+    // Xử lý và lưu ảnh chân dung (Base64 -> PNG & Supabase Storage)
     let avatarUrl = '';
     if (avatar) {
-      try {
-        const base64Data = avatar.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        const fileName = `${cleanedPhone}.png`;
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        fs.writeFileSync(filePath, buffer);
-        avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
-      } catch (err) {
-        console.error('[Avatar Save Error] Lỗi lưu ảnh chân dung:', err.message);
-      }
+      avatarUrl = await uploadShipperAvatar(cleanedPhone, avatar, req);
     }
 
     // Sử dụng Supabase Admin Client để tạo user trực tiếp và tự động xác thực email (email_confirm: true)
@@ -4469,19 +4550,10 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
       }
     }
 
-    // Xử lý và lưu ảnh chân dung (Base64 -> PNG)
+    // Xử lý và lưu ảnh chân dung (Base64 -> PNG & Supabase Storage)
     let avatarUrl = shipper.avatarUrl || '';
     if (avatar) {
-      try {
-        const base64Data = avatar.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        const fileName = `${cleanedNewPhone}.png`;
-        const filePath = path.join(UPLOADS_DIR, fileName);
-        fs.writeFileSync(filePath, buffer);
-        avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
-      } catch (err) {
-        console.error('[Avatar Save Error] Lỗi lưu ảnh chân dung từ admin:', err.message);
-      }
+      avatarUrl = await uploadShipperAvatar(cleanedNewPhone, avatar, req);
     }
 
     // Cập nhật thông tin trên Supabase Auth nếu có uuid và email/password
@@ -4999,6 +5071,79 @@ app.post('/api/admin/restaurants/:id/menu/:itemId/toggle-availability', authenti
 
     console.log(`[Admin Menu] 🍔 Admin đã đổi trạng thái món "${menu[idx].name}" tại quán "${restId}" sang ${available ? 'Còn món' : 'Hết món'}`);
     res.json({ success: true, itemId: itemId, available: available });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/crawl-queue
+ * Danh sách quán cần kiểm tra lại (tạm đóng) + quán cần cào menu thực tế
+ */
+app.get('/api/admin/crawl-queue', authenticateAdmin, (req, res) => {
+  try {
+    const all = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
+    
+    // Phân loại quán đóng cửa
+    const tempClosed = []; // Tạm đóng — cần kiểm tra lại
+    const permClosed = []; // Đóng hẳn
+    const needMenu = [];   // Còn hoạt động nhưng chưa có menu thực tế
+    
+    all.forEach(r => {
+      if (r.isClosed) {
+        if (r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn'))) {
+          permClosed.push({ id: r.id, name: r.name, closedAt: r.closedAt, reason: r.closedReason });
+        } else {
+          tempClosed.push({ id: r.id, name: r.name, closedAt: r.closedAt, reason: r.closedReason || 'Không rõ', crawlNextAttempt: r.crawlNextAttempt });
+        }
+      } else if (!r.hasRealMenu) {
+        needMenu.push({ id: r.id, name: r.name, menuTemplateFallback: !!r.menuTemplateFallback, dishCount: (r.dishNames || []).length });
+      }
+    });
+
+    res.json({
+      success: true,
+      summary: {
+        total: all.length,
+        active: all.length - tempClosed.length - permClosed.length,
+        tempClosed: tempClosed.length,
+        permClosed: permClosed.length,
+        needRealMenu: needMenu.length,
+        hasRealMenu: all.filter(r => r.hasRealMenu && !r.isClosed).length
+      },
+      tempClosed: tempClosed.slice(0, 100),
+      permClosed: permClosed.slice(0, 50),
+      needMenu: needMenu.slice(0, 100)
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/data-stats
+ * Thống kê nhanh tình trạng dữ liệu quán và menu
+ */
+app.get('/api/admin/data-stats', authenticateAdmin, (req, res) => {
+  try {
+    const all = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
+    const closed = all.filter(r => r.isClosed).length;
+    const active = all.length - closed;
+    const hasReal = all.filter(r => r.hasRealMenu && !r.isClosed).length;
+    const fallback = all.filter(r => !r.hasRealMenu && !r.isClosed).length;
+    
+    res.json({
+      success: true,
+      stats: {
+        totalRestaurants: all.length,
+        activeRestaurants: active,
+        closedRestaurants: closed,
+        closedPercent: ((closed / all.length) * 100).toFixed(1) + '%',
+        withRealMenu: hasReal,
+        withFallbackMenu: fallback,
+        menuCoverage: ((hasReal / active) * 100).toFixed(1) + '%'
+      }
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
