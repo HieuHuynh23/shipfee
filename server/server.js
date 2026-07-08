@@ -141,6 +141,95 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
   return avatarUrl;
 }
 
+async function syncShippersFromSupabase() {
+  if (!supabase) return;
+  console.log('[Supabase Sync] 🔄 Đang đồng bộ thông tin tài xế từ Supabase Auth online về local JSON...');
+  try {
+    const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
+    if (authError) throw authError;
+    if (!authData || !authData.users) {
+      console.log('[Supabase Sync] Không tìm thấy user nào trên Supabase Auth.');
+      return;
+    }
+
+    const localShippers = readShippersDatabase();
+    let changed = false;
+
+    // Lọc ra các user là shipper từ Supabase Auth
+    const onlineShippers = authData.users.filter(u => u.user_metadata && u.user_metadata.role === 'shipper');
+
+    onlineShippers.forEach(u => {
+      // Chuẩn hóa phone từ định dạng Supabase Auth (+84... hoặc 84... hoặc 0...) về định dạng 0...
+      let rawPhone = u.phone || u.user_metadata.phone || '';
+      let cleanPhone = rawPhone.trim().replace(/\s+/g, '').replace(/^\+84/, '0').replace(/^84/, '0');
+      if (!cleanPhone) return;
+
+      const metadata = u.user_metadata;
+      const email = u.email || '';
+      
+      const idx = localShippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+
+      if (idx !== -1) {
+        // Cập nhật thông tin nếu có sự khác biệt
+        const s = localShippers[idx];
+        if (
+          s.id !== u.id ||
+          s.name !== (metadata.full_name || s.name) ||
+          s.cccd !== (metadata.cccd || '') ||
+          s.avatarUrl !== (metadata.avatar_url || '') ||
+          (email && s.email !== email)
+        ) {
+          s.id = u.id;
+          s.name = metadata.full_name || s.name;
+          s.cccd = metadata.cccd || '';
+          s.avatarUrl = metadata.avatar_url || '';
+          if (email) s.email = email;
+          changed = true;
+        }
+      } else {
+        // Thêm shipper mới từ Supabase Auth vào local JSON
+        localShippers.push({
+          id: u.id,
+          phone: cleanPhone,
+          name: metadata.full_name || 'Tài xế tự do',
+          email: email || `${cleanPhone}@shipfee.vn`,
+          cccd: metadata.cccd || '',
+          avatarUrl: metadata.avatar_url || '',
+          isApproved: true, // Mặc định là true nếu đã có trên Supabase
+          status: 'OFFLINE',
+          lastCheckIn: null,
+          lastCheckOut: null,
+          totalOrders: 0,
+          totalEarnings: 0,
+          acceptanceRate: 100,
+          completionRate: 100
+        });
+        changed = true;
+      }
+
+      // Đảm bảo ghi profile đồng bộ vào bảng shipper_profiles luôn nếu bảng trống
+      supabase.from('shipper_profiles').upsert({
+        id: u.id,
+        phone: cleanPhone,
+        full_name: metadata.full_name || 'Tài xế tự do',
+        is_approved: true,
+        status: 'OFFLINE',
+        cccd: metadata.cccd || '',
+        avatar_url: metadata.avatar_url || ''
+      }).catch(err => console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', err.message));
+    });
+
+    if (changed) {
+      writeShippersDatabase(localShippers);
+      console.log('[Supabase Sync] ✅ Đã đồng bộ thành công thông tin tài xế từ Supabase Auth về local JSON.');
+    } else {
+      console.log('[Supabase Sync] Dữ liệu tài xế local đã trùng khớp hoàn toàn với Supabase Auth.');
+    }
+  } catch (err) {
+    console.error('[Supabase Sync Error] Lỗi đồng bộ tài xế từ Supabase Auth:', err.message);
+  }
+}
+
 // Khởi tạo thư mục upload ảnh chân dung tài xế
 const UPLOADS_DIR = path.join(__dirname, 'public/uploads/shippers');
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -5775,6 +5864,9 @@ app.listen(PORT, () => {
 
   // Tự động quét và làm sạch dữ liệu trong file local JSON tránh menu sai lệch do lỗi cũ
   sanitizeLocalJsonData();
+
+  // Tự động đồng bộ thông tin tài xế từ Supabase Auth online về local JSON
+  syncShippersFromSupabase();
 
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();
