@@ -1159,7 +1159,11 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-04T05:32:21.453Z"
+    "menuUpdatedAt": "2026-07-08T07:32:48.808Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:32:48.808Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_highlands_coffee_can_tho",
@@ -1186,7 +1190,7 @@
       "Trà Đào Cam Sả"
     ],
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:33:03.949Z"
+    "menuUpdatedAt": "2026-07-08T07:33:30.429Z"
   },
   {
     "id": "r_ct_whisk_matcha_cold_whisk_va_matcha_creamy_tra_sua_thai_sen_mau_than",
@@ -1211,8 +1215,11 @@
       "Trà Sữa Matcha",
       "Trà Sữa Socola"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:33:45.390Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:34:11.665Z",
+    "closedAt": "2026-07-08T07:34:11.665Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 15:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_quan_an_pallet_mau_than",

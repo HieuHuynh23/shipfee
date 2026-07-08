@@ -8780,8 +8780,11 @@
       "Bò lúc lắc"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.042Z",
-    "menuUpdatedAt": "2026-07-04T04:54:55.493Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:56:33.805Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:56:33.805Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_the_warm_ca_phe_tra_sua_tra_trai_cay",
@@ -8866,8 +8869,11 @@
       "Gà Nướng Muối Ớt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.049Z",
-    "menuUpdatedAt": "2026-07-04T04:55:37.047Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:57:15.352Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:57:15.352Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_mimi_quan_an",
@@ -9301,8 +9307,11 @@
       "Khoai môn cacao (700ml)"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.077Z",
-    "menuUpdatedAt": "2026-07-04T04:57:00.485Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T06:58:39.256Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T06:58:39.256Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 19:30 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_1932_tea_coffee_tra_trai_cay_ca_phe_muoi_mau_than_noi_dai",
@@ -9592,41 +9601,25 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/buzz-tea-coffee-179-quang-trung",
     "dishNames": [
-      "Matcha khoai môn",
-      "Matcha chuối",
-      "Matcha việt quốc",
-      "Matcha dâu",
-      "Matcha sữa size L",
-      "Matcha đá xây",
-      "Matcha cafe",
-      "Matcha kem muối",
-      "Matcha sữa size M",
-      "Matcha cafe kem muối",
-      "Cafe đen đá",
-      "Cafe muối",
-      "Bạc xỉu kem muối",
-      "Cafe sữa tươi sương sáo",
-      "Cafe đen đá sữa",
-      "Bạc xỉu",
-      "Cafe sữa caramel",
-      "Cacao kem muối",
-      "Cacao sữa tươi trân châu",
-      "Cacao dẻo dầm milo",
-      "Sữa tươi trân châu đường đen",
-      "Sữa dâu thăng hoa",
-      "Trà dâu",
-      "Trà ổi",
-      "Trà trái cây nhiệt đới",
-      "Trà sen vàng machiato",
-      "Hồng trà machiato",
-      "Hồng trà pudding",
-      "Trà mãng cầu"
+      "Latte",
+      "Cà Phê Muối",
+      "Nước Ép Cam",
+      "Americano",
+      "Trà Sen Vàng",
+      "Croissant",
+      "Cà Phê Sữa Đá",
+      "Bánh Flan",
+      "Trà Đào Cam Sả",
+      "Matcha Latte",
+      "Cà Phê Đen Đá",
+      "Cà Phê Trứng",
+      "Bạc Xỉu",
+      "Cappuccino"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.082Z",
-    "menuUpdatedAt": "2026-07-04T04:57:41.955Z",
+    "menuUpdatedAt": "2026-07-08T06:59:20.429Z",
     "isClosed": false
   },
   {
@@ -10644,35 +10637,25 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tiem-tra-p-t-tra-sua-tra-trai-cay-matcha-tran-viet-chau",
     "dishNames": [
-      "Trà Dâu Tằm (Size Vừa 700ml)",
-      "Matcha Latte (Size Vừa 700ml)",
-      "Trà Dâu Tằm (Size Vừa 700ml)",
-      "Trà Tắc (Size Lớn 1000ml)",
-      "Trà Dâu Tây (Size Vừa 700ml)",
-      "Trà Vải (Size Vừa 700ml)",
-      "Trà Dâu Tằm (Size Lớn 1000ml)",
-      "Trà Nhãn (Size Vừa 700ml)",
-      "Trà Đào (Size Vừa 700ml)",
-      "Trà Dâu Tây (Size Lớn 1000ml)",
-      "Matcha Latte (Size Vừa 700ml)",
-      "Sâm Dứa Sữa (Size Vừa 700ml)",
-      "Cacao Latte (Size Vừa 700ml)",
-      "Sữa Tươi Trân Châu Đường Đen",
-      "Hồng Trà Sữa (Size Vừa 700ml)",
-      "CaCao Sữa (Size Vừa 700ml)",
-      "Trân Châu Trắng",
-      "Đào Miếng",
-      "Dâu Tằm",
-      "Trái Vải",
-      "Trân Châu Đen",
-      "Trái Nhãn",
-      "Dâu Tây"
+      "Topping Trân Châu",
+      "Trà Oolong Sữa",
+      "Trà Sữa Khoai Môn",
+      "Trà Đào",
+      "Topping Pudding",
+      "Trà Sữa Socola",
+      "Kem Cheese Trà Xanh",
+      "Trà Vải",
+      "Trà Sữa Hokkaido",
+      "Sữa Tươi Trân Châu",
+      "Trà Sữa Matcha",
+      "Trà Sữa Trân Châu Đường Đen",
+      "Trà Sữa Truyền Thống",
+      "Yakult Đào"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.119Z",
-    "menuUpdatedAt": "2026-07-04T05:00:32.843Z",
+    "menuUpdatedAt": "2026-07-08T07:02:12.874Z",
     "isClosed": false
   },
   {
@@ -10770,7 +10753,7 @@
       "Croissant"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.120Z",
-    "menuUpdatedAt": "2026-07-04T05:01:15.451Z",
+    "menuUpdatedAt": "2026-07-08T07:02:56.277Z",
     "isClosed": false
   },
   {
@@ -11529,7 +11512,7 @@
       "Sinh Tố Bơ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.170Z",
-    "menuUpdatedAt": "2026-07-04T05:02:38.947Z",
+    "menuUpdatedAt": "2026-07-08T07:04:21.256Z",
     "isClosed": false
   },
   {
@@ -12383,7 +12366,7 @@
       "Bánh Mì Thịt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.206Z",
-    "menuUpdatedAt": "2026-07-04T05:03:20.285Z",
+    "menuUpdatedAt": "2026-07-08T07:05:02.356Z",
     "isClosed": false
   },
   {
@@ -12453,8 +12436,11 @@
       "Trà Vị Nho - Size L"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.207Z",
-    "menuUpdatedAt": "2026-07-04T05:04:01.508Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T07:05:45.289Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:05:45.289Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nQuán đang đóng cửa\nBạn có thể hẹn đơn giao sau 00:00 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_nem_nuong_nha_trang_41_mac_thien_tich",
@@ -13905,7 +13891,7 @@
       "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.299Z",
-    "menuUpdatedAt": "2026-07-04T05:11:00.206Z",
+    "menuUpdatedAt": "2026-07-08T07:12:05.887Z",
     "isClosed": false
   },
   {
@@ -15247,7 +15233,7 @@
       "Cơm Gà Xối Mỡ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.429Z",
-    "menuUpdatedAt": "2026-07-04T05:13:50.191Z",
+    "menuUpdatedAt": "2026-07-08T07:14:57.067Z",
     "isClosed": false
   },
   {
@@ -16366,7 +16352,7 @@
       "Trà Đào"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.500Z",
-    "menuUpdatedAt": "2026-07-04T05:15:13.272Z",
+    "menuUpdatedAt": "2026-07-08T07:15:39.054Z",
     "isClosed": false
   },
   {

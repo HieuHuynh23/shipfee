@@ -4,9 +4,7 @@
 
 'use strict';
 
-const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '')
-  ? 'http://localhost:3001'
-  : 'https://shipfee-eo5s.onrender.com';
+const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
 
 let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
 if (API_BASE.endsWith('/')) {

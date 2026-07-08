@@ -140,7 +140,7 @@ async function sendTelegramNewOrderNotification(order) {
       `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
       `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
       `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
-      `🔗 *Mở CRM Admin:* http://localhost:8000/admin-app/index.html\n\n` +
+      `🔗 *Mở CRM Admin:* https://shipfee.vercel.app/admin-app/index.html\n\n` +
       `Chọn thao tác nhanh dưới đây để điều phối.`;
 
     const keyboard = {
@@ -937,7 +937,7 @@ function startTelegramPolling() {
               `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
               `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
               `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
-              `🔗 *Mở CRM Admin:* http://localhost:8000/admin-app/index.html\n\n` +
+              `🔗 *Mở CRM Admin:* https://shipfee.vercel.app/admin-app/index.html\n\n` +
               `Chọn thao tác nhanh dưới đây để điều phối.`;
 
             const keyboard = {

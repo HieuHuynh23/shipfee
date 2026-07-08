@@ -17257,7 +17257,7 @@
       "Bún Bò Huế"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.540Z",
-    "menuUpdatedAt": "2026-07-04T04:56:19.381Z",
+    "menuUpdatedAt": "2026-07-08T06:57:57.952Z",
     "isClosed": false
   },
   {
@@ -17913,7 +17913,11 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-04T04:58:46.253Z"
+    "menuUpdatedAt": "2026-07-08T07:00:25.097Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:00:25.097Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_chao_coi_mt68_lau_ga_cac_mon_nhau_binh_dan",
@@ -17939,7 +17943,11 @@
       "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
       "Rau Nấm Lẩu Thập Cẩm Sạch"
     ],
-    "menuUpdatedAt": "2026-07-04T04:59:51.008Z"
+    "menuUpdatedAt": "2026-07-08T07:01:30.176Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:01:30.176Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_tiem_nha_na_an_vat_tran_hoang_na",
@@ -18298,8 +18306,11 @@
       "Bánh gạo truyền thống lắc"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.587Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:01:57.175Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:03:40.095Z",
+    "closedAt": "2026-07-08T07:03:40.095Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_five_star_chicken_tran_quang_dieu",
@@ -19283,8 +19294,11 @@
       "Hồng trà"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.668Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:04:42.565Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:06:28.177Z",
+    "closedAt": "2026-07-08T07:06:28.177Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_banh_mi_bich_tram_hai_ba_trung",
@@ -19372,8 +19386,11 @@
       "Mức mận hà nội"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.671Z",
-    "menuUpdatedAt": "2026-07-04T05:06:06.425Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T07:07:10.512Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:07:10.511Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_july_takoyaki_banh_bach_tuot",
@@ -19916,7 +19933,7 @@
       "Cà Phê Sữa Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.708Z",
-    "menuUpdatedAt": "2026-07-04T05:06:48.798Z",
+    "menuUpdatedAt": "2026-07-08T07:07:54.813Z",
     "isClosed": false
   },
   {
@@ -20382,8 +20399,11 @@
       "Nước suối"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.745Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:07:31.062Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:08:36.022Z",
+    "closedAt": "2026-07-08T07:08:36.022Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 14/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_diem_tam_hoang_hu_tieu_bun_mam",
@@ -20699,8 +20719,11 @@
       "Trân châu hoàng kim thủ công"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.757Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:08:12.215Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:09:19.103Z",
+    "closedAt": "2026-07-08T07:09:19.103Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_an_nhien_2_banh_ca_phe",
@@ -20736,7 +20759,7 @@
       "Trà Đào Cam Sả"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.763Z",
-    "menuUpdatedAt": "2026-07-04T05:08:55.796Z",
+    "menuUpdatedAt": "2026-07-08T07:10:01.157Z",
     "isClosed": false
   },
   {
@@ -20930,8 +20953,11 @@
       "Sâm dứa sữa"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.776Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T05:09:37.003Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-08T07:10:42.228Z",
+    "closedAt": "2026-07-08T07:10:42.228Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nQuán đang đóng cửa\nQuán sẽ mở cửa vào lúc 09:13 08/08/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_coti_cafe",
@@ -21001,8 +21027,11 @@
       "Cơm xíu mại"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.781Z",
-    "menuUpdatedAt": "2026-07-04T05:10:18.507Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-08T07:11:23.517Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:11:23.517Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_com_ga_xoi_mo_com_chien_duong_chau_hem_lien_to",
@@ -21136,7 +21165,11 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-04T05:12:04.203Z"
+    "menuUpdatedAt": "2026-07-08T07:13:10.140Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:13:10.140Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_pho_coffee_nguyen_trai",
@@ -21162,7 +21195,11 @@
       "Trà Đào Cam Sả Hạt Chia",
       "Bánh Croissant Bơ Tỏi Nướng Giòn"
     ],
-    "menuUpdatedAt": "2026-07-04T05:13:08.622Z"
+    "menuUpdatedAt": "2026-07-08T07:14:14.392Z",
+    "isClosed": true,
+    "closedAt": "2026-07-08T07:14:14.392Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
   },
   {
     "id": "r_ct_mi_cay_gangnam_vo_truong_toan",
