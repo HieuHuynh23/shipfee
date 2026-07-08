@@ -4480,23 +4480,63 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
       const newFormatPhone = cleanedNewPhone.startsWith('0') ? '+84' + cleanedNewPhone.slice(1) : cleanedNewPhone;
       updateData.phone = newFormatPhone;
 
-      const { error: authError } = await supabase.auth.admin.updateUserById(uuid, updateData);
-      if (authError) {
-        return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message });
+      let authError = null;
+      try {
+        const updateRes = await supabase.auth.admin.updateUserById(uuid, updateData);
+        authError = updateRes.error;
+      } catch (err) {
+        authError = err;
       }
 
-      // Cập nhật profile trong table shipper_profiles
-      const { error: profileError } = await supabase
-        .from('shipper_profiles')
-        .update({
-          phone: cleanedNewPhone,
-          full_name: name,
-          cccd: cccd || ''
-        })
-        .eq('id', uuid);
+      // Nếu lỗi là User not found (lệch đồng bộ Supabase Auth), tự động tạo mới tài khoản trên Supabase Auth online
+      if (authError && authError.message && authError.message.includes('User not found')) {
+        console.log(`[Supabase Update] User ${uuid} không tồn tại trên Supabase Auth. Tiến hành tự động tạo mới...`);
+        const { data: createData, error: createError } = await supabase.auth.admin.createUser({
+          email: email ? email.trim() : `${cleanedNewPhone}@shipfee.vn`,
+          password: password || '123456',
+          phone: newFormatPhone,
+          user_metadata: { full_name: name, role: 'shipper', cccd: cccd || '' },
+          email_confirm: true,
+          phone_confirm: true
+        });
 
-      if (profileError) {
-        console.error('[Supabase Error] Lỗi cập nhật profile:', profileError.message);
+        if (createError) {
+          console.error('[Supabase Create Error] Không thể tạo mới tài xế thay thế:', createError.message);
+          return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message + ' (Thử tạo mới cũng thất bại: ' + createError.message + ')' });
+        } else if (createData && createData.user) {
+          // Cập nhật UUID mới của tài khoản vừa tạo
+          shipper.id = createData.user.id;
+          authError = null; // Bỏ qua lỗi
+
+          // Tạo profile trong table shipper_profiles
+          const { error: profileError } = await supabase.from('shipper_profiles').insert({
+            id: createData.user.id,
+            phone: cleanedNewPhone,
+            full_name: name,
+            is_approved: true,
+            status: 'OFFLINE',
+            cccd: cccd || ''
+          });
+          if (profileError) {
+            console.error('[Supabase Profile Insert Error] Lỗi tạo profile:', profileError.message);
+          }
+        }
+      } else if (authError) {
+        return res.status(400).json({ success: false, error: 'Lỗi Supabase Auth: ' + authError.message });
+      } else {
+        // Cập nhật profile bình thường trong table shipper_profiles
+        const { error: profileError } = await supabase
+          .from('shipper_profiles')
+          .update({
+            phone: cleanedNewPhone,
+            full_name: name,
+            cccd: cccd || ''
+          })
+          .eq('id', uuid);
+
+        if (profileError) {
+          console.error('[Supabase Error] Lỗi cập nhật profile:', profileError.message);
+        }
       }
     }
 
