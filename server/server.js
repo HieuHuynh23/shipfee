@@ -3688,9 +3688,38 @@ app.post('/api/orders', async (req, res) => {
     // Find nearest available shipper for targeted dispatch
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, []);
     if (nearest) {
-      newOrder.assignedShipperPhone = nearest.phone.trim().replace(/\s+/g, '');
-      newOrder.offerExpiresAt = Date.now() + 30000; // 30 seconds
-      console.log(`[Dispatch] 🎯 Đơn ${newOrder.id} được gửi đề xuất riêng cho tài xế ${nearest.name} (${nearest.phone}), cách ${nearest.distance.toFixed(2)} km`);
+      if (nearest.isAssisted === true) {
+        // TỰ ĐỘNG GÁN THẲNG VÀ NHẬN LUÔN (Không cần bấm chấp nhận)
+        newOrder.status = 'ACCEPTED';
+        newOrder.acceptedAt = Date.now();
+        newOrder.shipperPhone = nearest.phone.trim().replace(/\s+/g, '');
+        newOrder.shipperName = nearest.name;
+        newOrder.shipperId = 'shipper-default';
+        
+        // Tìm ID thực tế của shipper và tắt cờ SOS
+        const shippers = readShippersDatabase();
+        const cleanP = nearest.phone.trim().replace(/\s+/g, '');
+        const targetS = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanP);
+        if (targetS) {
+          newOrder.shipperId = targetS.id || 'shipper-default';
+          targetS.assistanceRequested = false;
+          writeShippersDatabase(shippers);
+          console.log(`[SOS Auto-Accept] 🟢 Đã tự động gán và dọn cờ SOS cho shipper ${targetS.name}`);
+          
+          if (supabase && targetS.id) {
+            supabase
+              .from('shipper_profiles')
+              .update({ assistance_requested: false })
+              .eq('id', targetS.id)
+              .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+          }
+        }
+        console.log(`[SOS Dispatch] ⚡ Đơn ${newOrder.id} đã được TỰ ĐỘNG NHẬN cho tài xế SOS: ${nearest.name} (${nearest.phone})`);
+      } else {
+        newOrder.assignedShipperPhone = nearest.phone.trim().replace(/\s+/g, '');
+        newOrder.offerExpiresAt = Date.now() + 30000; // 30 seconds
+        console.log(`[Dispatch] 🎯 Đơn ${newOrder.id} được gửi đề xuất riêng cho tài xế ${nearest.name} (${nearest.phone}), cách ${nearest.distance.toFixed(2)} km`);
+      }
     } else {
       console.log(`[Dispatch] ⚠️ Không có tài xế trực tuyến rảnh rỗi. Đơn ${newOrder.id} chuyển vào bể chung (Public Pool)`);
     }
@@ -4556,19 +4585,44 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
       pendingOrders.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
       const targetOrder = pendingOrders[0];
 
-      // Gán đơn hàng này trực tiếp cho tài xế này luôn (Dispatch targeted)
+      // Gán đơn hàng này trực tiếp và tự động nhận luôn cho tài xế này (Auto-Accept SOS)
+      let finalOrder = null;
       await updateOrdersDatabase((allOrders) => {
         const oIdx = allOrders.findIndex(o => o.id === targetOrder.id);
         if (oIdx !== -1) {
-          allOrders[oIdx].assignedShipperPhone = cleanPhone;
-          allOrders[oIdx].offerExpiresAt = Date.now() + 60000; // Cho 60 giây để accept
+          allOrders[oIdx].status = 'ACCEPTED';
+          allOrders[oIdx].acceptedAt = Date.now();
+          allOrders[oIdx].shipperId = shipper.id || 'shipper-default';
+          allOrders[oIdx].shipperName = shipper.name;
+          allOrders[oIdx].shipperPhone = cleanPhone;
+          allOrders[oIdx].assignedShipperPhone = null;
+          allOrders[oIdx].offerExpiresAt = null;
+          finalOrder = allOrders[oIdx];
         }
       });
 
-      console.log(`[Priority Dispatch] 🎯 Gán ngay đơn ${targetOrder.id} cho tài xế ${shipper.name} đang yêu cầu hỗ trợ.`);
+      // Tắt cờ assistanceRequested của tài xế
+      shipper.assistanceRequested = false;
+      shippers[idx] = shipper;
+      writeShippersDatabase(shippers);
+
+      if (supabase && shipper.id) {
+        supabase
+          .from('shipper_profiles')
+          .update({ assistance_requested: false })
+          .eq('id', shipper.id)
+          .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+      }
+
+      console.log(`[Priority Dispatch] 🎯 Tự động gán và nhận đơn ${targetOrder.id} cho tài xế SOS ${shipper.name}`);
+      
+      if (finalOrder) {
+        sendTelegramOrderStatusUpdateNotification(finalOrder).catch(e => console.error('Lỗi gửi Telegram:', e.message));
+      }
+
       return res.json({ 
         success: true, 
-        message: 'Đã tìm thấy đơn hàng phù hợp và gán ưu tiên cho bạn!', 
+        message: 'Đã tự động gán và nhận đơn hàng phù hợp cho bạn!', 
         orderId: targetOrder.id,
         limitUsed: shipper.assistanceLimitToday
       });

@@ -575,6 +575,8 @@ async function syncAllData() {
         if (isFirstLoad) {
           switchTab('trip');
           startGpsTracking();
+          if (typeof playChimeSound === 'function') playChimeSound();
+          showToast('Nhận đơn thành công! ⚡', 'Hệ thống đã tự động gán đơn hàng ưu tiên cho bạn.', 'success');
         }
         if (document.getElementById('chat-overlay').classList.contains('active')) {
           renderShipperChatMessages();
