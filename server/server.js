@@ -2921,6 +2921,8 @@ app.use(express.json());
 
 // Phục vụ thư mục customer-app tĩnh (để không cần mở file:// trực tiếp)
 app.use('/app', express.static(path.join(__dirname, '..', 'public', 'customer-app')));
+app.use('/shipper-app', express.static(path.join(__dirname, '..', 'public', 'shipper-app')));
+app.use('/admin-app', express.static(path.join(__dirname, '..', 'public', 'admin-app')));
 
 // ── CACHE HELPERS ────────────────────────────────────────────────────────────
 function readCache() {

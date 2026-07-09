@@ -117,27 +117,38 @@ async function initApp() {
     document.getElementById('login-overlay').classList.remove('active');
     updateDriverHeader();
     
-    // Đồng bộ trạng thái ca làm việc (Check-in/Check-out) từ server
+    // Set UI immediately from localStorage to prevent flash of OFFLINE status
+    const savedStatus = localStorage.getItem('shipfee_driver_online') || 'true';
+    isOnline = (savedStatus === 'true');
+    const checkbox = document.getElementById('online-switch');
+    const statusText = document.getElementById('status-text');
+    if (checkbox && statusText) {
+      checkbox.checked = isOnline;
+      if (isOnline) {
+        statusText.textContent = 'Đang trong ca (Check-in)';
+        statusText.className = 'status-indicator online';
+      } else {
+        statusText.textContent = 'Đã tắt ca (Check-out)';
+        statusText.className = 'status-indicator offline';
+      }
+    }
+    
+    // Đồng bộ trạng thái ca làm việc (Check-in/Check-out) từ server bằng API profile
     try {
-      const res = await fetch('http://localhost:3001/api/shippers');
+      const res = await fetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`);
       if (res.ok) {
         const json = await res.json();
-        if (json.success && Array.isArray(json.data)) {
-          const cleanedPhone = currentDriver.phone.trim().replace(/\s+/g, '');
-          const me = json.data.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
-          if (me) {
-            isOnline = (me.status === 'ONLINE');
-            const checkbox = document.getElementById('online-switch');
-            const statusText = document.getElementById('status-text');
-            if (checkbox && statusText) {
-              checkbox.checked = isOnline;
-              if (isOnline) {
-                statusText.textContent = 'Đang trong ca (Check-in)';
-                statusText.className = 'status-indicator online';
-              } else {
-                statusText.textContent = 'Đã tắt ca (Check-out)';
-                statusText.className = 'status-indicator offline';
-              }
+        if (json.success && json.shipper) {
+          isOnline = (json.shipper.status === 'ONLINE');
+          localStorage.setItem('shipfee_driver_online', isOnline);
+          if (checkbox && statusText) {
+            checkbox.checked = isOnline;
+            if (isOnline) {
+              statusText.textContent = 'Đang trong ca (Check-in)';
+              statusText.className = 'status-indicator online';
+            } else {
+              statusText.textContent = 'Đã tắt ca (Check-out)';
+              statusText.className = 'status-indicator offline';
             }
           }
         }
@@ -387,6 +398,7 @@ async function loginDriver() {
       showToast('Đăng nhập thành công', `Chào mừng ${currentDriver.name} đã vào hệ thống!`, 'success');
 
       isOnline = true;
+      localStorage.setItem('shipfee_driver_online', 'true');
       const checkbox = document.getElementById('online-switch');
       const statusText = document.getElementById('status-text');
       if (checkbox && statusText) {
@@ -443,7 +455,7 @@ async function toggleOnlineStatus() {
   if (!currentDriver) return;
   
   try {
-    const res = await fetch('http://localhost:3001/api/shippers/shift', {
+    const res = await fetch(`${API_BASE}/api/shippers/shift`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -454,6 +466,7 @@ async function toggleOnlineStatus() {
     const result = await res.json();
     if (res.ok && result.success) {
       isOnline = nextOnline;
+      localStorage.setItem('shipfee_driver_online', isOnline);
       if (isOnline) {
         statusText.textContent = 'Đang trong ca (Check-in)';
         statusText.className = 'status-indicator online';
@@ -519,7 +532,7 @@ async function syncAllData() {
   if (!currentDriver) return;
   
   try {
-    const url = `http://localhost:3001/api/orders?shipperPhone=${encodeURIComponent(currentDriver.phone)}`;
+    const url = `${API_BASE}/api/orders?shipperPhone=${encodeURIComponent(currentDriver.phone)}`;
     const res = await fetch(url);
     if (!res.ok) throw new Error('API server error');
     const result = await res.json();
@@ -599,7 +612,7 @@ async function syncAllData() {
 async function syncActiveOrderOnly() {
   if (!activeOrder) return;
   try {
-    const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}`);
+    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}`);
     if (res.status === 404) {
       showToast('Đơn hàng không tồn tại', 'Đơn hàng hiện tại không còn trên hệ thống.', 'warning');
       activeOrder = null;
@@ -845,7 +858,7 @@ async function acceptOrder(orderId) {
   }
   
   try {
-    const response = await fetch(`http://localhost:3001/api/orders/${orderId}/accept`, {
+    const response = await fetch(`${API_BASE}/api/orders/${orderId}/accept`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1069,7 +1082,7 @@ async function advanceTripStatus() {
   const nextStatus = activeOrder.status === 'ACCEPTED' ? 'PURCHASED' : 'DELIVERED';
   
   try {
-    const response = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/status`, {
+    const response = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1156,7 +1169,7 @@ function stopGpsTracking() {
 async function sendLocationToServer(lat, lon) {
   try {
     if (activeOrder) {
-      await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/location`, {
+      await fetch(`${API_BASE}/api/orders/${activeOrder.id}/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1164,7 +1177,7 @@ async function sendLocationToServer(lat, lon) {
         body: JSON.stringify({ lat, lon })
       });
     } else if (isOnline && currentDriver) {
-      await fetch(`http://localhost:3001/api/shippers/location`, {
+      await fetch(`${API_BASE}/api/shippers/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1271,7 +1284,7 @@ async function declineTargetedOffer(isAuto = false) {
   targetedOffer = null;
 
   try {
-    const res = await fetch(`http://localhost:3001/api/orders/${offerId}/decline`, {
+    const res = await fetch(`${API_BASE}/api/orders/${offerId}/decline`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1351,7 +1364,7 @@ function renderShipperChatMessages() {
 async function sendQuickMessage(text) {
   if (!activeOrder) return;
   try {
-    const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/messages`, {
+    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1384,7 +1397,7 @@ async function sendShipperCustomMessage() {
 
   if (!activeOrder) return;
   try {
-    const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/messages`, {
+    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1933,7 +1946,7 @@ async function checkIncomingCall(orderId) {
   return; // VoIP calling disabled
   if (callActive) return;
   try {
-    const res = await fetch(`http://localhost:3001/api/orders/${orderId}/call/poll?role=shipper`);
+    const res = await fetch(`${API_BASE}/api/orders/${orderId}/call/poll?role=shipper`);
     if (!res.ok) return;
     const json = await res.json();
     const callObj = json.call;
@@ -1973,7 +1986,7 @@ let iceServersConfig = {
 
 async function fetchIceServers() {
   try {
-    const res = await fetch(`http://localhost:3001/api/webrtc/ice-servers`);
+    const res = await fetch(`${API_BASE}/api/webrtc/ice-servers`);
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -2171,7 +2184,7 @@ async function acceptCall() {
 
   if (!hasMicrophone) {
     try {
-      await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+      await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2182,7 +2195,7 @@ async function acceptCall() {
   }
 
   try {
-    const pollRes = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/poll?role=shipper`);
+    const pollRes = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/poll?role=shipper`);
     const pollJson = await pollRes.json();
     const callObj = pollJson.call;
 
@@ -2199,7 +2212,7 @@ async function acceptCall() {
     peerConnection = new RTCPeerConnection(iceServersConfig);
     peerConnection.oniceconnectionstatechange = () => {
       handleIceConnectionState('Callee', startShipperSimulatedCall, () => {
-        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+        fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2211,7 +2224,7 @@ async function acceptCall() {
         console.warn('[WebRTC] Callee ICE Connection failed/disconnected, falling back to simulated call');
         showToast('Kết nối thất bại', 'Không thể kết nối trực tiếp (do chặn mạng/WiFi). Chuyển sang cuộc gọi mô phỏng.', 'warning');
         
-        fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+        fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2239,7 +2252,7 @@ async function acceptCall() {
     };
     peerConnection.onicecandidate = async (event) => {
       if (event.candidate) {
-        await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/candidate`, {
+        await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/candidate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sender: 'shipper', candidate: event.candidate })
@@ -2255,7 +2268,7 @@ async function acceptCall() {
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+    await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'accept', answer })
@@ -2263,7 +2276,7 @@ async function acceptCall() {
   } catch (err) {
     console.error('Shipper accept WebRTC failed, fallback to simulated', err);
     try {
-      await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+      await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2297,7 +2310,7 @@ function declineCall() {
   callActive = false;
   if (activeOrder) {
     try {
-      fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+      fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'decline' })
@@ -2318,7 +2331,7 @@ async function startShipperOutgoingSimulatedCall() {
 
   try {
     const offer = { type: 'offer', sdp: 'simulated' };
-    await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/initiate`, {
+    await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/initiate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ caller: 'shipper', offer })
@@ -2358,7 +2371,7 @@ function startCallPolling(role) {
   callPollInterval = setInterval(async () => {
     if (!callActive) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/poll?role=shipper`);
+      const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/poll?role=shipper`);
       if (!res.ok) return;
       const json = await res.json();
       const callObj = json.call;
@@ -2430,7 +2443,7 @@ function endCall() {
 
   if (activeOrder && activeOrder.id) {
     try {
-      fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+      fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'end' })
@@ -2546,7 +2559,7 @@ async function logoutDriver() {
   if (confirm('Bạn có chắc chắn muốn đăng xuất tài khoản tài xế?')) {
     if (isOnline && currentDriver) {
       try {
-        await fetch('http://localhost:3001/api/shippers/shift', {
+        await fetch(`${API_BASE}/api/shippers/shift`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: currentDriver.phone, status: 'OFFLINE' })
@@ -2558,6 +2571,7 @@ async function logoutDriver() {
     
     localStorage.removeItem('shipfee_driver');
     localStorage.removeItem('shipfee_jwt');
+    localStorage.removeItem('shipfee_driver_online');
     
     if (supabaseClient) {
       try {
@@ -2675,7 +2689,7 @@ window.closeDriverProfile = closeDriverProfile;
 
 window.addEventListener('pagehide', () => {
   if (callActive && activeOrder && activeOrder.id) {
-    fetch(`http://localhost:3001/api/orders/${activeOrder.id}/call/respond`, {
+    fetch(`${API_BASE}/api/orders/${activeOrder.id}/call/respond`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'end' }),
