@@ -69,3 +69,6 @@ server/discover_foody_api.js
 server/migrate_db.js
 server/verify_optimization.js
 server/test_*.js
+
+.vercel
+.env*

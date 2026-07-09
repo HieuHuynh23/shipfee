@@ -6397,8 +6397,11 @@
       "Tep chien bot combo 2 mieng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.974Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-04T16:35:18.994Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-09T11:46:27.581Z",
+    "closedAt": "2026-07-09T11:46:27.581Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_moc_ky_food_heo_quay_vit_quay_ga_nuong_sot_gia_truyen",
@@ -8992,64 +8995,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_diem_den",
-    "name": "Điểm Đến - Quán Ăn Gia Đình",
-    "category": "Đồ ăn",
-    "rating": 8.1,
-    "reviews": 200,
-    "distance": "3.6 km",
-    "time": "28-38 phút",
-    "address": "118/9/47B Trần Phú, P. Cái Khế, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3501114",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwg107dvnizd1a@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/diem-den",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Điểm Đến",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Điểm Đến",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.232Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:10:22.616Z"
-  },
-  {
-    "id": "r_ct_tanh_vu_quan_an_gia_dinh",
-    "name": "Tánh Vũ - Quán Ăn Gia Đình",
-    "category": "Đồ ăn",
-    "rating": 7,
-    "reviews": 1130,
-    "distance": "0.9 km",
-    "time": "15-25 phút",
-    "address": "Lộ Tẻ Bằng Tăng, P. Thới Long, Quận Ô Môn , Cần Thơ",
-    "phone": "0292 3198370",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwf2v5ky123d25@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tanh-vu-quan-an-gia-dinh",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Tánh Vũ",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Tánh Vũ",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.233Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:11:26.559Z"
-  },
-  {
     "id": "r_ct_sil_my_quan_an_gia_dinh",
     "name": "Sìl Mỳ - Quán Ăn Gia Đình",
     "category": "Đồ ăn",
@@ -9073,35 +9018,6 @@
     "isClosed": true,
     "closedAt": "2026-07-04T16:56:13.072Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_chi_nam_quan_nhau",
-    "name": "Chị Năm - Quán Nhậu",
-    "category": "Đồ ăn",
-    "rating": 5.5,
-    "reviews": 10,
-    "distance": "3.1 km",
-    "time": "26-36 phút",
-    "address": "238 Cách Mạng Tháng 8, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3630872",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwalvj5izvtnfd@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/chi-nam-quan-nhau",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Chị Năm",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Chị Năm",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.236Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T00:48:43.028Z"
   },
   {
     "id": "r_ct_quan_nhau_12",
@@ -9129,36 +9045,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_quan_nuong_ngoi_le_lai",
-    "name": "Quán Nướng Ngói - Lê Lai",
-    "category": "Nướng/BBQ",
-    "rating": 8,
-    "reviews": 152,
-    "distance": "2.5 km",
-    "time": "23-33 phút",
-    "address": "6 Lê Lai, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3257144",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwet98wn37x7c4@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-nuong-ngoi-le-lai",
-    "dishNames": [
-      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Nướng Ngói",
-      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Nướng Ngói",
-      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
-      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
-      "Rau Nấm Lẩu Thập Cẩm Sạch"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.241Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:14:38.524Z"
-  },
-  {
     "id": "r_ct_quan_anh_map_nem_nuong_com_ga_xoi_mo",
     "name": "Quán Anh Mập - Nem Nướng & Cơm Gà Xối Mỡ",
     "category": "Cơm tấm",
@@ -9182,36 +9068,6 @@
     "isClosed": true,
     "closedAt": "2026-07-04T16:59:31.960Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_tam_bo_de_quan_com_chay",
-    "name": "Tâm Bồ Đề - Quán Cơm Chay",
-    "category": "Cơm tấm",
-    "rating": 4.4,
-    "reviews": 10,
-    "distance": "0.7 km",
-    "time": "13-23 phút",
-    "address": "299 Nguyễn Văn Linh, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3479831",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwg48hjdrizf84@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tam-bo-de-quan-com-chay",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Tâm Bồ Đề Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Tâm Bồ Đề",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.249Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T00:48:17.991Z"
   },
   {
     "id": "r_ct_tiem_com_chin_muoi_chin",
@@ -9275,66 +9131,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_quan_com_hong_thu",
-    "name": "Quán Cơm Hồng Thu",
-    "category": "Cơm tấm",
-    "rating": 5.2,
-    "reviews": 363,
-    "distance": "2.9 km",
-    "time": "25-35 phút",
-    "address": "390/4 Trần Nam Phú, P. Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3591136",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw96vushf3yx5c@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-hong-thu",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Hồng Thu Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Hồng Thu",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.255Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T00:50:32.294Z"
-  },
-  {
-    "id": "r_ct_quan_com_169",
-    "name": "Quán Cơm 169",
-    "category": "Cơm tấm",
-    "rating": 7.4,
-    "reviews": 2150,
-    "distance": "2.5 km",
-    "time": "22-32 phút",
-    "address": "169 Hoàng Văn Thụ, P. An Cư, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3364707",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstyslp21zmh6e@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-169",
-    "dishNames": [
-      "Cơm Chiên Dương Châu 169 Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê 169",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.255Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:18:55.097Z"
-  },
-  {
     "id": "r_ct_quan_com_cay_gua",
     "name": "Quán Cơm Cây Gừa",
     "category": "Cơm tấm",
@@ -9358,36 +9154,6 @@
     "isClosed": true,
     "closedAt": "2026-07-04T17:03:29.240Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_quan_com_dau_do",
-    "name": "Quán Cơm Đậu Đỏ",
-    "category": "Cơm tấm",
-    "rating": 5.2,
-    "reviews": 52,
-    "distance": "0.8 km",
-    "time": "14-24 phút",
-    "address": "Lương Định Của, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3484656",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwba30mrpjo942@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-dau-do",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Đậu Đỏ Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Đậu Đỏ",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.256Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:19:59.109Z"
   },
   {
     "id": "r_ct_quan_co_gon_bun_rieu_goi",
@@ -9473,35 +9239,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_quan_909_cafe_wifi",
-    "name": "Quán 909 Cafe Wifi",
-    "category": "Cà phê",
-    "rating": 4.3,
-    "reviews": 10,
-    "distance": "3.8 km",
-    "time": "29-39 phút",
-    "address": "57 Vành Đai Phi Trường, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3450929",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw7log5qbvmh30@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-909-cafe-wifi",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ 909 Cafe Wifi",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) 909 Cafe Wifi",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.264Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:22:48.006Z"
-  },
-  {
     "id": "r_ct_khanh_dang_quan_an_cafe_sang",
     "name": "Khánh Đằng - Quán Ăn Cafe Sáng",
     "category": "Cà phê",
@@ -9525,65 +9262,6 @@
     "isClosed": true,
     "closedAt": "2026-07-04T17:07:28.113Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_coffee_bar_muong_thanh_khach_san_muong_thanh_can_tho",
-    "name": "Coffee Bar Mường Thanh - Khách Sạn Mường Thanh Cần Thơ",
-    "category": "Cà phê",
-    "rating": 7,
-    "reviews": 1811316,
-    "distance": "3.4 km",
-    "time": "27-37 phút",
-    "address": "Lê Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3458264",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lweo9k9f4nh505@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/coffee-bar-muong-thanh-khach-san-muong-thanh-can-tho",
-    "dishNames": [
-      "Cà Phê Sữa Đá Bar Mường Thanh Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa Bar Mường Thanh",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.267Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:23:52.198Z"
-  },
-  {
-    "id": "r_ct_say_steak_house_wine_bar",
-    "name": "Sậy - Steak House & Wine Bar",
-    "category": "Đồ ăn",
-    "rating": 7.2,
-    "reviews": 156632,
-    "distance": "3.5 km",
-    "time": "27-37 phút",
-    "address": "71/6 Đường 3 Tháng 2, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3936864",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbj1ssqyq5579@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/say-steak-house-wine-bar",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Sậy",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sậy",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.268Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:24:56.040Z"
   },
   {
     "id": "r_ct_bep_bar_banh_banh_nuong_cac_loai_duong_30_4",
@@ -9621,36 +9299,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T12:35:47.198Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
-  },
-  {
-    "id": "r_ct_tra_sua_tocotoco_bubble_tea_tran_nam_phu",
-    "name": "Trà sữa TocoToco Bubble Tea - Trần Nam Phú",
-    "category": "Trà sữa",
-    "rating": 5.4,
-    "reviews": 229,
-    "distance": "4.1 km",
-    "time": "30-40 phút",
-    "address": "390B1 Trần Nam Phú, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3597394",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv3w3hpv6pwd1@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tra-sua-tocotoco-bubble-tea-tran-nam-phu",
-    "dishNames": [
-      "Trà Sữa Trân Châu Hoàng Kim TocoToco Bubble Tea",
-      "Trà Sữa Matcha Đậu Đỏ Dẻo TocoToco Bubble Tea",
-      "Lục Trà Nhài Sữa Kem Macchiato",
-      "Trà Đào Cam Sả Tươi Mát",
-      "Thạch Trân Châu Hoàng Kim Thêm"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.271Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T00:48:07.415Z"
   },
   {
     "id": "r_ct_trai_cay_xo_cha_ba_bu",
@@ -9741,36 +9389,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_mien_tay_quan_oc",
-    "name": "Miền Tây - Quán Ốc",
-    "category": "Đồ ăn",
-    "rating": 4.3,
-    "reviews": 10,
-    "distance": "1.5 km",
-    "time": "18-28 phút",
-    "address": "290D Nguyễn Văn Linh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3141308",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwacwmr7utaxde@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/mien-tay-quan-oc",
-    "dishNames": [
-      "Ốc Hương Rang Muối Ớt Cay Nồng Miền Tây",
-      "Ốc Móng Tay Xào Tỏi Hành Thơm Lừng Miền Tây",
-      "Sò Huyết Cháy Tỏi Bơ Ngọt Béo",
-      "Mực Trứng Hấp Sả Hành Gừng Tươi",
-      "Càng Ghẹ Rang Muối Cay Kéo Sợi"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.282Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:28:48.805Z"
-  },
-  {
     "id": "r_ct_tra_sua_thanh_hang_che_thai_milo_dam_nguyen_van_linh",
     "name": "Trà Sữa Thanh Hằng - Chè Thái & Milo Dầm - Nguyễn Văn Linh",
     "category": "Trà sữa",
@@ -9834,36 +9452,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T12:40:16.227Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_bun_bo_o_xuan_shop_online",
-    "name": "Bún Bò O Xuân - Shop Online",
-    "category": "Bún Bò",
-    "rating": 5,
-    "reviews": 20,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "Hẻm 44 Lê Hồng Phong, P. Trà Nóc, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3546943",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwamih1ieqc91d@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bun-bo-o-xuan-shop-online",
-    "dishNames": [
-      "Bún Bò Huế O Xuân Đặc Biệt Giò Chả",
-      "Bún Bò Tái Nạm Gầu Bò O Xuân",
-      "Bún Bò Huế Thường (Thịt + Chả)",
-      "Đĩa Chả Cua / Chả Huế Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.286Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:29:52.997Z"
   },
   {
     "id": "r_ct_com_ga_tay_do_cach_mang_thang_8",
@@ -9938,35 +9526,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 07:00 07/07/2026\n\nOk"
   },
   {
-    "id": "r_ct_aroi_thai_2_nguyen_thai_hoc",
-    "name": "Aroi Thai 2 - Nguyễn Thái Học",
-    "category": "Đồ ăn",
-    "rating": 7,
-    "reviews": 178419,
-    "distance": "0.4 km",
-    "time": "12-22 phút",
-    "address": "78C Nguyễn Thái Học, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3832949",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbhkmua06hl7b@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/aroi-thai-2-nguyen-thai-hoc",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Aroi Thai 2",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Aroi Thai 2",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.291Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:32:00.741Z"
-  },
-  {
     "id": "r_ct_siamcha_tra_thai_ngon",
     "name": "SIAMCHA - Trà Thái Ngon",
     "category": "Đồ ăn",
@@ -10006,35 +9565,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
   },
   {
-    "id": "r_ct_sky_food_drink",
-    "name": "Sky Food & Drink",
-    "category": "Đồ ăn",
-    "rating": 7.9,
-    "reviews": 4432,
-    "distance": "3.0 km",
-    "time": "25-35 phút",
-    "address": "186/11A1 Nguyễn Văn Cừ, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3661261",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu2v8sypw2h05@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/sky-food-drink",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Sky Food & Drink",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sky Food & Drink",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.292Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:33:04.960Z"
-  },
-  {
     "id": "r_ct_xoai_lac_coc_lac_han_quoc",
     "name": "Xoài Lắc & Cóc Lắc Hàn Quốc",
     "category": "Đồ ăn",
@@ -10058,36 +9588,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T12:44:21.670Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_takoyaki_banh_bach_tuoc_banh_xeo_nhat_ban",
-    "name": "Takoyaki - Bánh Bạch Tuộc & Bánh Xèo Nhật Bản",
-    "category": "Đồ ăn",
-    "rating": 4.3,
-    "reviews": 11,
-    "distance": "1.6 km",
-    "time": "18-28 phút",
-    "address": "Chợ Đêm Trần Phú, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3952289",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8kg6k0yva12e@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/takoyaki-banh-bach-tuoc-banh-xeo-nhat-ban",
-    "dishNames": [
-      "Set Sushi Thập Cẩm Premium (10 Viên) Takoyaki",
-      "Tokbokki Phô Mai Cay Kéo Sợi Takoyaki",
-      "Kimbap Chiên Xù Giòn Rụm Lớn",
-      "Mỳ Tương Đen Jajangmyeon Đặc Trưng Takoyaki",
-      "Cơm Trộn Thịt Bò Bulgogi Trứng Lòng Đào"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.295Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:34:09.477Z"
   },
   {
     "id": "r_ct_mi_y_nguyen_van_cu_noi_dai",
@@ -10155,36 +9655,6 @@
     "menuUpdatedAt": "2026-07-07T19:34:50.034Z"
   },
   {
-    "id": "r_ct_y_loan_cafe",
-    "name": "Ý Loan Cafe",
-    "category": "Cà phê",
-    "rating": 4.5,
-    "reviews": 177,
-    "distance": "1.2 km",
-    "time": "16-26 phút",
-    "address": "65B Mậu Thân, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3266898",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhhjkq97zyx19@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/y-loan-cafe",
-    "dishNames": [
-      "Pizza Thập Cẩm Phô Mai Mozzarella (M) Ý Loan Cafe",
-      "Pizza Hải Sản Sốt Pesto (Size M) Ý Loan Cafe",
-      "Mỳ Ý Sốt Bò Bằm Bolognaise",
-      "Burger Bò Phô Mai Double Cheesy",
-      "Khoai Tây Bổ Múi Bơ Tỏi (Lớn)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.300Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:35:54.171Z"
-  },
-  {
     "id": "r_ct_tiem_banh_ong_map",
     "name": "Tiệm Bánh Ông Mập",
     "category": "Đồ ăn",
@@ -10208,36 +9678,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T12:47:16.317Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_the_fox_coffee_nguyen_van_cu_noi_dai",
-    "name": "The Fox Coffee - Nguyễn Văn Cừ Nối Dài",
-    "category": "Cà phê",
-    "rating": 5.2,
-    "reviews": 158,
-    "distance": "0.7 km",
-    "time": "14-24 phút",
-    "address": "131 Nguyễn Văn Cừ Nối Dài, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3303625",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvaxigni4zo33@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/the-fox-coffee-nguyen-van-cu-noi-dai",
-    "dishNames": [
-      "Cà Phê Sữa Đá The Fox Coffee Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa The Fox Coffee",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.307Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:37:43.236Z"
   },
   {
     "id": "r_ct_mo_mo_tra_sua_tra_trai_cay",
@@ -10349,36 +9789,6 @@
     "menuUpdatedAt": "2026-07-07T19:39:04.603Z"
   },
   {
-    "id": "r_ct_co_linh_bun_bo_cay_banh_tam_cay",
-    "name": "Cô Linh - Bún Bò Cay & Bánh Tầm Cay",
-    "category": "Bún Bò",
-    "rating": 7.4,
-    "reviews": 151,
-    "distance": "1.6 km",
-    "time": "18-28 phút",
-    "address": "31A Đường 30 Tháng 4, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3278659",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwar3jvjr26x92@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/co-linh-bun-bo-cay-banh-tam-cay",
-    "dishNames": [
-      "Bún Bò Huế Cô Linh Đặc Biệt Giò Chả",
-      "Bún Bò Tái Nạm Gầu Bò Cô Linh",
-      "Bún Bò Huế Thường (Thịt + Chả)",
-      "Đĩa Chả Cua / Chả Huế Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.311Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:40:09.229Z"
-  },
-  {
     "id": "r_ct_banh_tam_ca_mau",
     "name": "Bánh Tằm Cà Mau",
     "category": "Đồ ăn",
@@ -10430,35 +9840,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_an_ngon_sinh_vien_banh_tam_xiu_mai_3_thang_2.sqmprz",
-    "name": "Ăn Ngon Sinh Viên - Bánh Tằm Xíu Mại - 3 Tháng 2",
-    "category": "Đồ ăn",
-    "rating": 4.5,
-    "reviews": 89,
-    "distance": "2.7 km",
-    "time": "23-33 phút",
-    "address": "12/9 Hẻm 51, 3 tháng 2, P. Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3430534",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvg5ib1l02hfe@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/an-ngon-sinh-vien-banh-tam-xiu-mai-3-thang-2.sqmprz",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Ăn Ngon Sinh Viên",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ăn Ngon Sinh Viên",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.313Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:41:13.540Z"
-  },
-  {
     "id": "r_ct_lau_mam_bon_mua",
     "name": "Lẩu Mắm Bốn Mùa",
     "category": "Lẩu",
@@ -10484,65 +9865,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_quan_lau_mo_am",
-    "name": "Quán Lẩu Mờ Ắm",
-    "category": "Lẩu",
-    "rating": 8.1,
-    "reviews": 1811016,
-    "distance": "0.7 km",
-    "time": "14-24 phút",
-    "address": "Hẻm liên khu vực 2-3, An Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3724566",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu1wwlvqrh5b0@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-lau-mo-am",
-    "dishNames": [
-      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Lẩu Mờ Ắm",
-      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Lẩu Mờ Ắm",
-      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
-      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
-      "Rau Nấm Lẩu Thập Cẩm Sạch"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.315Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:42:59.179Z"
-  },
-  {
-    "id": "r_ct_ca_loc_quay_hiep_thanh_nguyen_van_cu_noi_dai",
-    "name": "Cá Lóc Quay Hiệp Thành - Nguyễn Văn Cừ Nối Dài",
-    "category": "Đồ ăn",
-    "rating": 8.1,
-    "reviews": 115318,
-    "distance": "2.4 km",
-    "time": "22-32 phút",
-    "address": "131 Nguyễn Văn Cừ Nối Dài, P. An Bình, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3799641",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstus91qpww4be@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ca-loc-quay-hiep-thanh-nguyen-van-cu-noi-dai",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Cá Lóc Quay Hiệp Thành",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cá Lóc Quay Hiệp Thành",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.318Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:44:03.694Z"
-  },
-  {
     "id": "r_ct_banh_mi_binh_dan_cach_mang_thang_8",
     "name": "Bánh Mì Bình Dân - Cách Mạng Tháng 8",
     "category": "Bánh Mì",
@@ -10566,35 +9888,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T12:53:22.246Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_banh_con_nhim_ly_tu_trong",
-    "name": "Bánh Con Nhím - Lý Tự Trọng",
-    "category": "Đồ ăn",
-    "rating": 8.3,
-    "reviews": 10498,
-    "distance": "3.7 km",
-    "time": "28-38 phút",
-    "address": "2 Lý Tự Trọng, An Lạc, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3288024",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwezvz12o4bfb8@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/banh-con-nhim-ly-tu-trong",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Bánh Con Nhím",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Con Nhím",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.337Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:45:49.868Z"
   },
   {
     "id": "r_ct_bun_nuoc_leo_soc_trang_co_huong",
@@ -10784,35 +10077,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_quan_a_canh_nhau_binh_dan",
-    "name": "Quán A Cảnh - Nhậu Bình Dân",
-    "category": "Đồ ăn",
-    "rating": 4.3,
-    "reviews": 10,
-    "distance": "1.5 km",
-    "time": "18-28 phút",
-    "address": "137 Nguyễn Đệ, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3566261",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwdtkznvril766@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-a-canh-nhau-binh-dan",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ A Cảnh",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) A Cảnh",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.368Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:48:16.314Z"
-  },
-  {
     "id": "r_ct_dieu_dieu_an_vat_kim_bap_ga_u_muoi",
     "name": "Diệu Diệu - Ăn Văt, Kim Bắp & Gà Ủ Muối",
     "category": "Gà",
@@ -10873,35 +10137,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_anh_hai_quan_chao_long",
-    "name": "Anh Hai - Quán Cháo Lòng",
-    "category": "Đồ ăn",
-    "rating": 7.4,
-    "reviews": 2110,
-    "distance": "0.6 km",
-    "time": "13-23 phút",
-    "address": "272 Đường 30 Tháng 4, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3964548",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbmt9ecnfmh6f@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/anh-hai-quan-chao-long",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Anh Hai",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Anh Hai",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.373Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:49:20.404Z"
-  },
-  {
     "id": "r_ct_a_lung_quan_ly_hong_thanh",
     "name": "A Lũng Quán - Lý Hồng Thanh",
     "category": "Đồ ăn",
@@ -10936,36 +10171,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_quan_che_cay_bang",
-    "name": "Quán Chè Cây Bàng",
-    "category": "Tráng miệng",
-    "rating": 4.3,
-    "reviews": 362,
-    "distance": "1.6 km",
-    "time": "18-28 phút",
-    "address": "584 Quốc Lộ 91, Quận Thốt Nốt , Cần Thơ",
-    "phone": "0292 3817731",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwdeuzc9i7yzf5@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-che-cay-bang",
-    "dishNames": [
-      "Trà Sữa Trân Châu Hoàng Kim Chè Cây Bàng",
-      "Trà Sữa Matcha Đậu Đỏ Dẻo Chè Cây Bàng",
-      "Lục Trà Nhài Sữa Kem Macchiato",
-      "Trà Đào Cam Sả Tươi Mát",
-      "Thạch Trân Châu Hoàng Kim Thêm"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.378Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:51:07.127Z"
-  },
-  {
     "id": "r_ct_ngoc_thao_quan_che",
     "name": "Ngọc Thảo - Quán Chè",
     "category": "Tráng miệng",
@@ -10991,65 +10196,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_quan_263_nhau_binh_dan",
-    "name": "Quán 263 - Nhậu Bình Dân",
-    "category": "Đồ ăn",
-    "rating": 5.3,
-    "reviews": 10,
-    "distance": "1.8 km",
-    "time": "19-29 phút",
-    "address": "263 Nguyễn Đệ, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3857677",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwgkbzocih21c2@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-263-nhau-binh-dan",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ 263",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) 263",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.387Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:52:12.014Z"
-  },
-  {
-    "id": "r_ct_quan_com_ech_30k_kdc_nam_long",
-    "name": "Quán Cơm Ếch 30K - KDC Nam Long",
-    "category": "Cơm tấm",
-    "rating": 6.6,
-    "reviews": 132,
-    "distance": "3.0 km",
-    "time": "25-35 phút",
-    "address": "D1-12 Đường Số 1 KDC Nam Long, P. Hưng Thạnh, Quận Cái Răng , Cần Thơ",
-    "phone": "0292 3269861",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu9oklkggqsd9@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-ech-30k-kdc-nam-long",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Ếch 30K Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Ếch 30K",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.392Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:53:16.154Z"
-  },
-  {
     "id": "r_ct_l_frus_cold_press_juice",
     "name": "L’ Frus –  Cold Press Juice",
     "category": "Đồ ăn",
@@ -11073,64 +10219,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:01:11.554Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_loi_xua_cafe",
-    "name": "Lối Xưa Cafe",
-    "category": "Cà phê",
-    "rating": 4.8,
-    "reviews": 118,
-    "distance": "2.2 km",
-    "time": "21-31 phút",
-    "address": "54, Nguyễn Việt Hồng, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3543357",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhlwlvsfrob8c@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/loi-xua-cafe",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Lối Xưa Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Lối Xưa Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.409Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:54:20.421Z"
-  },
-  {
-    "id": "r_ct_ngoc_yen_cafe_tran_van_hoai",
-    "name": "Ngọc Yến Cafe - Trần Văn Hoài",
-    "category": "Cà phê",
-    "rating": 7.4,
-    "reviews": 2140,
-    "distance": "0.4 km",
-    "time": "12-22 phút",
-    "address": "164J Trần Văn Hoài , Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3694624",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwgdy7w1ck4bdc@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ngoc-yen-cafe-tran-van-hoai",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Ngọc Yến Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ngọc Yến Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.412Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:55:24.690Z"
   },
   {
     "id": "r_ct_bong_s_cafe",
@@ -11232,35 +10320,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_healthy_meal_bua_an_giam_can_dep_da",
-    "name": "Hệ thống Healthy Meal - Bữa Ăn Giảm Cân & Đẹp Da",
-    "category": "Đồ ăn",
-    "rating": 8.7,
-    "reviews": 222,
-    "distance": "3.4 km",
-    "time": "27-37 phút",
-    "address": "4 chi nhánh",
-    "phone": "0292 3399526",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu9yqwmet3842@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/thuong-hieu/healthy-meal-bua-an-giam-can-dep-da?c=can-tho",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Healthy Meal",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Healthy Meal",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.424Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T00:48:11.078Z"
-  },
-  {
     "id": "r_ct_moc_eat_clean_can_tho",
     "name": "Mộc - Eat Clean - Cần Thơ",
     "category": "Đồ ăn",
@@ -11294,35 +10353,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:04:41.787Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
-  },
-  {
-    "id": "r_ct_foodfit_dinh_duong_thong_minh_healthy_food_nguyen_van_cu_noi_dai.otdagi",
-    "name": "FOODFIT Dinh Dưỡng Thông Minh - Healthy Food  - Nguyễn Văn Cừ Nối Dài",
-    "category": "Đồ ăn",
-    "rating": 4.8,
-    "reviews": 289,
-    "distance": "2.3 km",
-    "time": "22-32 phút",
-    "address": "388j68a, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3710017",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvgfuxcasw436@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/foodfit-dinh-duong-thong-minh-healthy-food-nguyen-van-cu-noi-dai.otdagi",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ FOODFIT Dinh Dưỡng Thông Minh",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) FOODFIT Dinh Dưỡng Thông Minh",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.428Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:58:14.534Z"
   },
   {
     "id": "r_ct_ms_nhi_nuoc_ep_detox_clean_eat_tran_hung_dao",
@@ -11399,35 +10429,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 11:00 Ngày mai\n\nOk"
   },
   {
-    "id": "r_ct_toi_ben_quan_an_gia_dinh",
-    "name": "Tới Bến - Quán Ăn Gia Đình",
-    "category": "Đồ ăn",
-    "rating": 5.4,
-    "reviews": 210,
-    "distance": "1.4 km",
-    "time": "17-27 phút",
-    "address": "32 Võ Văn Kiệt, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3261709",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw7nf533l9ej9e@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/toi-ben-quan-an-gia-dinh",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Tới Bến",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Tới Bến",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.446Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T19:59:18.611Z"
-  },
-  {
     "id": "r_ct_cuon_non_la_chuyen_mon_cuon_nguyen_van_cu",
     "name": "Cuộn Nón Lá - Chuyên Món Cuộn - Nguyễn Văn Cừ",
     "category": "Đồ ăn",
@@ -11463,35 +10464,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:30 07/07/2026\n\nOk"
   },
   {
-    "id": "r_ct_phuoc_an_dau_phong_rang_toi_ot",
-    "name": "Phước An - Đậu Phộng Rang Tỏi Ớt",
-    "category": "Đồ ăn",
-    "rating": 5.3,
-    "reviews": 321,
-    "distance": "1.8 km",
-    "time": "19-29 phút",
-    "address": "Mậu Thân, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3637642",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw9snb8do99777@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/phuoc-an-dau-phong-rang-toi-ot",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Phước An",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Phước An",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.447Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:00:22.803Z"
-  },
-  {
     "id": "r_ct_tiem_com_khuya_co_vy",
     "name": "Tiệm Cơm Khuya Cô Vy",
     "category": "Cơm tấm",
@@ -11515,36 +10487,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:08:08.706Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_huong_xua_coffee",
-    "name": "Hương Xưa Coffee",
-    "category": "Cà phê",
-    "rating": 5,
-    "reviews": 200,
-    "distance": "1.7 km",
-    "time": "19-29 phút",
-    "address": "1/11D Lý Tự Trọng, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3259860",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwa5k6zuvduj04@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/huong-xua-coffee",
-    "dishNames": [
-      "Cà Phê Sữa Đá Hương Xưa Coffee Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa Hương Xưa Coffee",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.453Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:02:08.848Z"
   },
   {
     "id": "r_ct_sua_tuoi_hang_khong_shop_online",
@@ -11572,66 +10514,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_tra_sua_fin",
-    "name": "Trà Sữa Fin",
-    "category": "Trà sữa",
-    "rating": 4.1,
-    "reviews": 50,
-    "distance": "1.5 km",
-    "time": "17-27 phút",
-    "address": "3 Tháng 2, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3426621",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhx84vx78bdd6@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tra-sua-fin",
-    "dishNames": [
-      "Trà Sữa Trân Châu Hoàng Kim Fin",
-      "Trà Sữa Matcha Đậu Đỏ Dẻo Fin",
-      "Lục Trà Nhài Sữa Kem Macchiato",
-      "Trà Đào Cam Sả Tươi Mát",
-      "Thạch Trân Châu Hoàng Kim Thêm"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.453Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:03:12.933Z"
-  },
-  {
-    "id": "r_ct_tiamo_tra_sua",
-    "name": "Tiamo - Trà Sữa",
-    "category": "Trà sữa",
-    "rating": 4.3,
-    "reviews": 223,
-    "distance": "1.4 km",
-    "time": "17-27 phút",
-    "address": "Nguyễn Việt Hồng, P. Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3740222",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbctmzo6uah54@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tiamo-tra-sua",
-    "dishNames": [
-      "Trà Sữa Trân Châu Hoàng Kim Tiamo",
-      "Trà Sữa Matcha Đậu Đỏ Dẻo Tiamo",
-      "Lục Trà Nhài Sữa Kem Macchiato",
-      "Trà Đào Cam Sả Tươi Mát",
-      "Thạch Trân Châu Hoàng Kim Thêm"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.455Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:04:17.336Z"
-  },
-  {
     "id": "r_ct_oc_mam_101",
     "name": "Ốc Mâm 101",
     "category": "Đồ ăn",
@@ -11655,35 +10537,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:11:25.836Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_fruits_fresh_clean_giao_hang_tan_noi",
-    "name": "Fruits Fresh & Clean - Giao Hàng Tận Nơi",
-    "category": "Đồ ăn",
-    "rating": 7.6,
-    "reviews": 1112,
-    "distance": "1.5 km",
-    "time": "17-27 phút",
-    "address": "Quốc Lộ 1A, Quận Cái Răng , Cần Thơ",
-    "phone": "0292 3333052",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwe62phfyl0b92@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/fruits-fresh-clean-giao-hang-tan-noi",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Fruits Fresh & Clean",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Fruits Fresh & Clean",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.456Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:05:21.463Z"
   },
   {
     "id": "r_ct_gai_xuong_rong_an_vat_gia_re",
@@ -11711,66 +10564,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_oc_bien_2",
-    "name": "Ốc Biển 2",
-    "category": "Đồ ăn",
-    "rating": 4.6,
-    "reviews": 132,
-    "distance": "3.5 km",
-    "time": "27-37 phút",
-    "address": "9 Quang Trung, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3725819",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbmaxo82va148@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/oc-bien-2",
-    "dishNames": [
-      "Ốc Hương Rang Muối Ớt Cay Nồng Biển 2",
-      "Ốc Móng Tay Xào Tỏi Hành Thơm Lừng Biển 2",
-      "Sò Huyết Cháy Tỏi Bơ Ngọt Béo",
-      "Mực Trứng Hấp Sả Hành Gừng Tươi",
-      "Càng Ghẹ Rang Muối Cay Kéo Sợi"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.457Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:06:25.515Z"
-  },
-  {
-    "id": "r_ct_com_chay_thien_phuoc",
-    "name": "Cơm Chay Thiện Phước",
-    "category": "Cơm tấm",
-    "rating": 4.9,
-    "reviews": 213,
-    "distance": "3.9 km",
-    "time": "30-40 phút",
-    "address": "178 Ba Tháng Hai, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3718050",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwexhdyy13o90f@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-chay-thien-phuoc",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Cơm Chay Thiện Phước Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Chay Thiện Phước",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.458Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:07:29.900Z"
-  },
-  {
     "id": "r_ct_quan_phu_hai_san_tuoi_song",
     "name": "Quán Phú - Hải Sản Tươi Sống",
     "category": "Hải sản",
@@ -11794,35 +10587,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:14:42.515Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_thit_tho_91",
-    "name": "Thịt Thỏ 91",
-    "category": "Đồ ăn",
-    "rating": 4.5,
-    "reviews": 132,
-    "distance": "3.5 km",
-    "time": "27-37 phút",
-    "address": "91/21 CMT8, P. An Thới, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3143370",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lweva9d6m9cp2d@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/thit-tho-91",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Thịt Thỏ 91",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Thịt Thỏ 91",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.460Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:08:33.780Z"
   },
   {
     "id": "r_ct_bun_ca_chau_doc_cach_mang_thang_tam",
@@ -11983,35 +10747,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
   },
   {
-    "id": "r_ct_dac_san_da_lat_tai_can_tho_dau_tay_da_lat_so_634_duong_b15_shop_online",
-    "name": "Đặc sản Đà Lạt tại Cần Thơ - Dâu Tây Đà Lạt - Số 634, đường B15, kdc 91B, p An Khánh,q Ninh Kiều, tp Cần Thơ",
-    "category": "Đồ ăn",
-    "rating": 5.4,
-    "reviews": 310,
-    "distance": "0.9 km",
-    "time": "15-25 phút",
-    "address": "Số 634, đường b15, khu dân cư 91b, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3801764",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvgelwe6v2c6e@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/dac-san-da-lat-tai-can-tho-dau-tay-da-lat-so-634-duong-b15-shop-online",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Đặc sản Đà Lạt tại Cần Thơ",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Đặc sản Đà Lạt tại Cần Thơ",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.479Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:11:00.225Z"
-  },
-  {
     "id": "r_ct_diem_tam_7_duoc_tran_quang_dieu",
     "name": "Điểm Tâm 7 Được - Trần Quang Diệu",
     "category": "Đồ ăn",
@@ -12035,65 +10770,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:18:27.438Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_nam_bao_ngu_shop_online",
-    "name": "Nấm Bào Ngư - Shop Online",
-    "category": "Đồ ăn",
-    "rating": 4.4,
-    "reviews": 30,
-    "distance": "2.0 km",
-    "time": "20-30 phút",
-    "address": "41/10 Lê Hồng Phong, P. Bình Thuỷ, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3485169",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwdhva4i59sp51@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/nam-bao-ngu-shop-online",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Nấm Bào Ngư",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nấm Bào Ngư",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.491Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:12:04.300Z"
-  },
-  {
-    "id": "r_ct_ha_my_coffee",
-    "name": "Hà My Coffee",
-    "category": "Cà phê",
-    "rating": 5.4,
-    "reviews": 10,
-    "distance": "1.9 km",
-    "time": "19-29 phút",
-    "address": "66A Nguyễn Truyền Thanh, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3432498",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwg3uu34wl3t94@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ha-my-coffee",
-    "dishNames": [
-      "Cà Phê Sữa Đá Hà My Coffee Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa Hà My Coffee",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.492Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:13:09.218Z"
   },
   {
     "id": "r_ct_bia_set",
@@ -12180,64 +10856,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_hy_lac_chay_duong_30_thang_4",
-    "name": "Hỷ Lạc Chay - Đường 30 Tháng 4",
-    "category": "Chay",
-    "rating": 7.7,
-    "reviews": 3317316,
-    "distance": "1.0 km",
-    "time": "15-25 phút",
-    "address": "Đường 30 Tháng 4, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3917909",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsttwf2npqc9e9@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hy-lac-chay-duong-30-thang-4",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Hỷ Lạc Chay",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Hỷ Lạc Chay",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.503Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:15:37.259Z"
-  },
-  {
-    "id": "r_ct_nuoc_mia_kim_yen_duong_30_thang_4",
-    "name": "Nước Mía Kim Yến - Đường 30 Tháng 4",
-    "category": "Đồ ăn",
-    "rating": 4.8,
-    "reviews": 10,
-    "distance": "2.0 km",
-    "time": "20-30 phút",
-    "address": "264A Đường 30 Tháng 4, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3566535",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwfzl7eie3fd6b@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/nuoc-mia-kim-yen-duong-30-thang-4",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Nước Mía Kim Yến",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nước Mía Kim Yến",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.505Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:16:41.799Z"
-  },
-  {
     "id": "r_ct_tra_sua_chi_dau_duong_30_thang_4",
     "name": "Trà Sữa Chị Dậu - Đường 30 Tháng 4",
     "category": "Trà sữa",
@@ -12261,35 +10879,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:23:19.352Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_lan_cafe_nguyen_van_cu",
-    "name": "Lan Cafe - Nguyễn Văn Cừ",
-    "category": "Cà phê",
-    "rating": 8,
-    "reviews": 180,
-    "distance": "1.8 km",
-    "time": "19-29 phút",
-    "address": "295 Nguyễn Văn Cừ, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3910335",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwgcowkr1pll10@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/lan-cafe-nguyen-van-cu",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Lan Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Lan Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.507Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:17:45.982Z"
   },
   {
     "id": "r_ct_hu_tieu_mi_go_nguyen_van_cu",
@@ -12330,36 +10919,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:24:15.581Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk"
-  },
-  {
-    "id": "r_ct_tra_sua_ivy_nguyen_van_cu",
-    "name": "Trà Sữa Ivy - Nguyễn Văn Cừ",
-    "category": "Trà sữa",
-    "rating": 5,
-    "reviews": 167,
-    "distance": "0.7 km",
-    "time": "14-24 phút",
-    "address": "343 Đường Nguyễn Văn Cừ, P. An Hoà, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3465983",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu9xvyvomu14b@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/tra-sua-ivy-nguyen-van-cu",
-    "dishNames": [
-      "Trà Sữa Trân Châu Hoàng Kim Ivy",
-      "Trà Sữa Matcha Đậu Đỏ Dẻo Ivy",
-      "Lục Trà Nhài Sữa Kem Macchiato",
-      "Trà Đào Cam Sả Tươi Mát",
-      "Thạch Trân Châu Hoàng Kim Thêm"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.510Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:18:50.391Z"
   },
   {
     "id": "r_ct_hu_tieu_go_nguyen_van_cu",
@@ -12516,66 +11075,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_com_duong_chau_com_tam_dai_lo_hoa_binh",
-    "name": "Cơm Dương Châu & Cơm Tấm - Đại Lộ Hòa Bình",
-    "category": "Cơm tấm",
-    "rating": 7.3,
-    "reviews": 6311,
-    "distance": "1.5 km",
-    "time": "18-28 phút",
-    "address": "6 Đại Lộ Hòa Bình, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3253882",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwacwr3pkm3f3f@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-duong-chau-com-tam-dai-lo-hoa-binh",
-    "dishNames": [
-      "Cơm Tấm Sườn Nướng Lu Cơm Dương Châu & Cơm Tấm",
-      "Cơm Tấm Sườn Bì Chả Cơm Dương Châu & Cơm Tấm Đặc Biệt",
-      "Cơm Tấm Ba Chỉ Heo Quay Giòn Bì",
-      "Cơm Tấm Đùi Gà Xối Mỡ",
-      "Canh Khổ Qua Nhồi Thịt Heo"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.518Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:21:57.542Z"
-  },
-  {
-    "id": "r_ct_ba_chieu_coffee",
-    "name": "Ba Chiêu Coffee",
-    "category": "Cà phê",
-    "rating": 4.7,
-    "reviews": 10,
-    "distance": "1.9 km",
-    "time": "20-30 phút",
-    "address": "256A Nguyễn Văn Cừ, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3932014",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwe6k1w87ly1ef@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ba-chieu-coffee",
-    "dishNames": [
-      "Cà Phê Sữa Đá Ba Chiêu Coffee Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa Ba Chiêu Coffee",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.520Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:23:01.743Z"
-  },
-  {
     "id": "r_ct_ghe_dau_coffee",
     "name": "Ghế Đẩu Coffee",
     "category": "Cà phê",
@@ -12599,64 +11098,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:29:01.731Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_mi_keo_nguoi_hoa_mau_than",
-    "name": "Mì Kéo Người Hoa - Mậu Thân",
-    "category": "Bún/Phở",
-    "rating": 3,
-    "reviews": 155,
-    "distance": "3.8 km",
-    "time": "29-39 phút",
-    "address": "59 Mậu Thân, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3604992",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwcyk4oftfbv2f@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/mi-keo-nguoi-hoa-mau-than",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Mì Kéo Người Hoa",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Mì Kéo Người Hoa",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.522Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:24:46.538Z"
-  },
-  {
-    "id": "r_ct_lickie_ice_dream",
-    "name": "Lickie Ice Dream",
-    "category": "Đồ ăn",
-    "rating": 8.2,
-    "reviews": 259338,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "Tòa Nhà VNPT, 11 Phan Đình Phùng, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3161528",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwcdsd25f4rda8@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/lickie-ice-dream",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Lickie Ice Dream",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Lickie Ice Dream",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.524Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:26:32.174Z"
   },
   {
     "id": "r_ct_chao_trang_chao_dau_banh_ngot_thu_duyen",
@@ -12796,65 +11237,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
   },
   {
-    "id": "r_ct_bao_tran_cafe_duong_3_thang_2",
-    "name": "Bảo Trân Cafe - Đường 3 Tháng 2",
-    "category": "Cà phê",
-    "rating": 7.9,
-    "reviews": 6440,
-    "distance": "0.9 km",
-    "time": "14-24 phút",
-    "address": "206 Đường 3 Tháng 2, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3829907",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwb7cnwz5peh70@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bao-tran-cafe-duong-3-thang-2",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Bảo Trân Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bảo Trân Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.535Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:27:36.076Z"
-  },
-  {
-    "id": "r_ct_xoi_man_banh_mi_duong_3_thang_2",
-    "name": "Xôi Mặn & Bánh Mì - Đường 3 Tháng 2",
-    "category": "Bánh Mì",
-    "rating": 8,
-    "reviews": 4181,
-    "distance": "1.3 km",
-    "time": "17-27 phút",
-    "address": "132 Đường 3 Tháng 2, Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3414372",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbugod9ak7v35@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/xoi-man-banh-mi-duong-3-thang-2",
-    "dishNames": [
-      "Bánh Mì Heo Quay Giòn Bì Xôi Mặn & Bánh Mì Đặc Biệt",
-      "Bánh Mì Xá Xíu Pâté Bơ Tươi Xôi Mặn & Bánh Mì",
-      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
-      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
-      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.539Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:28:40.696Z"
-  },
-  {
     "id": "r_ct_fresh_yaourt_deo",
     "name": "Fresh - Yaourt Dẻo",
     "category": "Đồ ăn",
@@ -12878,36 +11260,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:33:50.459Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_pho_nga_nguyen_van_linh",
-    "name": "Phở Nga - Nguyễn Văn Linh",
-    "category": "Bún/Phở",
-    "rating": 7.9,
-    "reviews": 6220,
-    "distance": "1.9 km",
-    "time": "20-30 phút",
-    "address": "Nguyễn Văn Linh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3973271",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstwnln2nt0988@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Yêu thích"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/pho-nga-nguyen-van-linh",
-    "dishNames": [
-      "Phở Bò Nga Đặc Biệt (Tái, Nạm, Gầu, Gân)",
-      "Phở Bò Tái Bắp Hoa Tươi Nga",
-      "Phở Gà Ta Xé Đùi Trứng Non",
-      "Đĩa Thịt Bò Tái Thêm",
-      "Quẩy Giòn Chấm Phở (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.551Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:29:45.111Z"
   },
   {
     "id": "r_ct_cam_ep_buoi_ep_nguyen_van_linh",
@@ -12935,65 +11287,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_sua_dau_nanh_cach_mang_thang_8",
-    "name": "Sữa Đậu Nành - Cách Mạng Tháng 8",
-    "category": "Đồ ăn",
-    "rating": 8,
-    "reviews": 150,
-    "distance": "0.6 km",
-    "time": "13-23 phút",
-    "address": "44B Cách Mạng Tháng 8, P. Cái Khế, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3898804",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwfw9tfjy9cp41@resize_ss640x400",
-    "tags": [
-      "Nổi bật",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/sua-dau-nanh-cach-mang-thang-8",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Sữa Đậu Nành",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sữa Đậu Nành",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.556Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:30:48.885Z"
-  },
-  {
-    "id": "r_ct_com_tam_cach_mang_thang_tam",
-    "name": "Cơm Tấm - Cách Mạng Tháng Tám",
-    "category": "Cơm tấm",
-    "rating": 7,
-    "reviews": 160,
-    "distance": "4.2 km",
-    "time": "31-41 phút",
-    "address": "29 Cách Mạng Tháng Tám, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3949132",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwf2aobiym6x57@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-tam-cach-mang-thang-tam",
-    "dishNames": [
-      "Cơm Tấm Sườn Nướng Lu Cơm Tấm",
-      "Cơm Tấm Sườn Bì Chả Cơm Tấm Đặc Biệt",
-      "Cơm Tấm Ba Chỉ Heo Quay Giòn Bì",
-      "Cơm Tấm Đùi Gà Xối Mỡ",
-      "Canh Khổ Qua Nhồi Thịt Heo"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.557Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:32:39.728Z"
-  },
-  {
     "id": "r_ct_kim_nghe_doner_kebab_cach_mang_thang_8",
     "name": "Kim Nghề - Doner Kebab - Cách Mạng Tháng 8",
     "category": "Đồ ăn",
@@ -13017,36 +11310,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:37:06.968Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_hu_tieu_mi_sa_dec_cach_mang_thang_8",
-    "name": "Hủ Tiếu Mì Sa Đéc - Cách Mạng Tháng 8",
-    "category": "Hủ Tiếu",
-    "rating": 4.8,
-    "reviews": 10,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "558 Cách Mạng Tháng 8, P. Bùi Hữu Nghĩa, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3877807",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhi01y52u3f4e@resize_ss640x400",
-    "tags": [
-      "Đang mở",
-      "Mới mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hu-tieu-mi-sa-dec-cach-mang-thang-8",
-    "dishNames": [
-      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Mì Sa Đéc",
-      "Hủ Tiếu Nam Vang Khô Trộn Sốt Mì Sa Đéc",
-      "Hủ Tiếu Hoành Thánh Xá Xíu",
-      "Xương Ống Hầm Mềm Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.560Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:33:45.653Z"
   },
   {
     "id": "r_ct_com_ga_thanh_phuong_cach_mang_thang_tam",
@@ -13351,34 +11614,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_chao_dinh_duong_viet_soup_tran_hung_dao",
-    "name": "Cháo Dinh Dưỡng Việt Soup - Trần Hưng Đạo",
-    "category": "Đồ ăn",
-    "rating": 5.1,
-    "reviews": 342,
-    "distance": "4.2 km",
-    "time": "31-41 phút",
-    "address": "96 Trần Hưng Đạo, P. An Nghiệp, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3764328",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw9xyzpdmnkrd3@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/chao-dinh-duong-viet-soup-tran-hung-dao",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Cháo Dinh Dưỡng Việt Soup",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Dinh Dưỡng Việt Soup",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.577Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:38:36.546Z"
-  },
-  {
     "id": "r_ct_huong_duong_tiem_tra_banh",
     "name": "Hướng Dương - Tiệm Trà Bánh - Trần Hưng Đạo",
     "category": "Đồ ăn",
@@ -13472,62 +11707,6 @@
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
-    "id": "r_ct_co_tu_quan_nhau_binh_dan",
-    "name": "Cô Tư - Quán Nhậu Bình Dân",
-    "category": "Đồ ăn",
-    "rating": 8,
-    "reviews": 12740,
-    "distance": "2.8 km",
-    "time": "24-34 phút",
-    "address": "161 Vành Đai Phi Trường, P. An Thới, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3402667",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhxhztpsgyjc8@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/co-tu-quan-nhau-binh-dan",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Cô Tư",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cô Tư",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.590Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:39:42.714Z"
-  },
-  {
-    "id": "r_ct_ha_anh_cafe_vanh_dai_phi_truong",
-    "name": "Hà Anh Cafe",
-    "category": "Cà phê",
-    "rating": 4.6,
-    "reviews": 10,
-    "distance": "1.9 km",
-    "time": "19-29 phút",
-    "address": "446 Vành Đai Phi Trường, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3870765",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwhmwuqsxivvdd@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ha-anh-cafe-vanh-dai-phi-truong",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Hà Anh Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Hà Anh Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.591Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:40:48.378Z"
-  },
-  {
     "id": "r_ct_khu_am_thuc_cho_xuan_khanh",
     "name": "Khu Ẩm Thực Chợ Xuân Khánh",
     "category": "Đồ ăn",
@@ -13550,63 +11729,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:45:06.108Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_phi_lu_quan",
-    "name": "Phì Lũ Quán",
-    "category": "Đồ ăn",
-    "rating": 5.5,
-    "reviews": 406,
-    "distance": "1.3 km",
-    "time": "16-26 phút",
-    "address": "108/21, Trần Quang Diệu, P. An Thới, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3416336",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8e10h9bizf55@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/phi-lu-quan",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Phì Lũ Quán",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Phì Lũ Quán",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.601Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:41:53.714Z"
-  },
-  {
-    "id": "r_ct_com_tam_43",
-    "name": "Cơm Tấm 43",
-    "category": "Cơm tấm",
-    "rating": 7.9,
-    "reviews": 5265,
-    "distance": "3.0 km",
-    "time": "25-35 phút",
-    "address": "43 Đồng Khởi, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3680745",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwb2hpgg89gb44@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-tam-43",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Cơm Tấm 43 Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Tấm 43",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.601Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:42:59.253Z"
   },
   {
     "id": "r_ct_gom_de_vao_dau_bo_ke_hung_loi",
@@ -13657,63 +11779,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_mon_ngon_xuka_teen",
-    "name": "Món Ngon Xuka.Teen - Ăn Vặt",
-    "category": "Đồ ăn",
-    "rating": 7.8,
-    "reviews": 1170,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "7 Đường Số 1, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3969263",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwb2tbxdt5gbc4@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/mon-ngon-xuka-teen",
-    "dishNames": [
-      "Mẹt Cá Viên Chiên Thập Cẩm Sốt Mắm Món Ngon Xuka.Teen",
-      "Bánh Tráng Trộn Sa Tế Tôm Trứng Cút Món Ngon Xuka.Teen",
-      "Bánh Tráng Cuộn Bơ Hành Phi",
-      "Tokbokki Phô Mai Cay Ly Lớn",
-      "Trà Tắc Hạt Chia Giải Khát"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.607Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:44:03.543Z"
-  },
-  {
-    "id": "r_ct_chao_long_cai_tac_hung",
-    "name": "Cháo Lòng Cái Tắc Hưng",
-    "category": "Đồ ăn",
-    "rating": 4.6,
-    "reviews": 30,
-    "distance": "2.0 km",
-    "time": "20-30 phút",
-    "address": "233/4 Nguyễn Văn Linh , Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3708793",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwb3qtfbmpjvcb@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/chao-long-cai-tac-hung",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Cháo Lòng Cái Tắc Hưng",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Lòng Cái Tắc Hưng",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.608Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:45:07.927Z"
-  },
-  {
     "id": "r_ct_kim_yen_nuoc_mia_cam_ep",
     "name": "Kim Yến - Nước Mía & Cam Ép",
     "category": "Đồ ăn",
@@ -13738,35 +11803,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_com_cai_khe",
-    "name": "Cơm Cái Khế",
-    "category": "Cơm tấm",
-    "rating": 5.2,
-    "reviews": 20,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "86B1 Ung Văn Khiêm, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3838241",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwh9jxoyn36j06@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-cai-khe",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Cơm Cái Khế Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Cái Khế",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.610Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:46:12.948Z"
-  },
-  {
     "id": "r_ct_banh_uot_tttm_cai_khe",
     "name": "Bánh Ướt - TTTM Cái Khế",
     "category": "Đồ ăn",
@@ -13789,64 +11825,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:50:38.077Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_quan_com_dung_hang",
-    "name": "Quán Cơm Dung Hằng",
-    "category": "Cơm tấm",
-    "rating": 7.6,
-    "reviews": 180,
-    "distance": "1.1 km",
-    "time": "16-26 phút",
-    "address": "Lô 44 Trung Tâm Thương Mại Cái Khế, Trần Văn Khéo, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3592357",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwh2misy034r7d@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-dung-hang",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Dung Hằng Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Dung Hằng",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.615Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:47:17.221Z"
-  },
-  {
-    "id": "r_ct_hu_tieu_hoa",
-    "name": "Hủ Tiếu Hoa",
-    "category": "Hủ Tiếu",
-    "rating": 6.8,
-    "reviews": 171,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "33 Nguyễn Khuyến, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3179313",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8dx2dn9m1l95@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hu-tieu-hoa",
-    "dishNames": [
-      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Hoa",
-      "Hủ Tiếu Nam Vang Khô Trộn Sốt Hoa",
-      "Hủ Tiếu Hoành Thánh Xá Xíu",
-      "Xương Ống Hầm Mềm Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.619Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:48:20.897Z"
   },
   {
     "id": "r_ct_to_map_coffee",
@@ -13999,62 +11977,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Ngày mai\n\nOk"
   },
   {
-    "id": "r_ct_yumi_cafe_dj",
-    "name": "Yumi Cafe DJ",
-    "category": "Cà phê",
-    "rating": 4.2,
-    "reviews": 10,
-    "distance": "3.5 km",
-    "time": "28-38 phút",
-    "address": "430 Phú Mỹ, Quận Cái Răng , Cần Thơ",
-    "phone": "0292 3719033",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwfeke3en1sp7c@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/yumi-cafe-dj",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Yumi Cafe DJ",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Yumi Cafe DJ",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.631Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:51:29.729Z"
-  },
-  {
-    "id": "r_ct_go_moc_cafe_quang_trung",
-    "name": "Gỗ Mộc Cafe - Quang Trung",
-    "category": "Cà phê",
-    "rating": 4.8,
-    "reviews": 10,
-    "distance": "2.4 km",
-    "time": "22-32 phút",
-    "address": "73 Quang Trung, P. Hưng Phú, Quận Cái Răng , Cần Thơ",
-    "phone": "0292 3824648",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu48frn4n2c30@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/go-moc-cafe-quang-trung",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Gỗ Mộc Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Gỗ Mộc Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.634Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:52:34.171Z"
-  },
-  {
     "id": "r_ct_tra_hoa_com_tam_long_xuyen_nui_xao_bo_tra_trai_cay",
     "name": "TRÀ HOA - Cơm Tấm Long Xuyên, Nui Xào Bò & Trà Trái Cây",
     "category": "Cơm tấm",
@@ -14115,35 +12037,6 @@
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
   },
   {
-    "id": "r_ct_bun_rieu_co_ba_bui_huu_nghia",
-    "name": "Bún Riêu Cô Ba - Bùi Hữu Nghĩa",
-    "category": "Đồ ăn",
-    "rating": 4,
-    "reviews": 30,
-    "distance": "1.8 km",
-    "time": "19-29 phút",
-    "address": "674 Bùi Hữu Nghĩa, P. Long Hòa, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3257378",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbghjk177bv72@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bun-rieu-co-ba-bui-huu-nghia",
-    "dishNames": [
-      "Bún Riêu Cua Giò Heo Ốc Cô Ba Đặc Biệt",
-      "Bún Riêu Bắp Bò Chả Huế Cô Ba",
-      "Bún Riêu Ốc Đậu Hũ Chiên Giòn",
-      "Khoanh Giò Heo Hầm Mềm Thêm",
-      "Trà Đá Nhài Thanh Mát"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.653Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-09T01:33:37.747Z"
-  },
-  {
     "id": "r_ct_dulee_milk_tea_macchiato_bui_huu_nghia",
     "name": "Dulee - Milk Tea & Macchiato - Bùi Hữu Nghĩa",
     "category": "Trà sữa",
@@ -14176,63 +12069,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T13:57:14.443Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
-  },
-  {
-    "id": "r_ct_com_bo_kho_755",
-    "name": "Cơm - Bò Kho 755",
-    "category": "Cơm tấm",
-    "rating": 4.6,
-    "reviews": 20,
-    "distance": "1.4 km",
-    "time": "17-27 phút",
-    "address": "755 Bùi Hữu Nghĩa, P. Bình Thủy, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3145670",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbhs95sdj2z27@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/com-bo-kho-755",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Cơm Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.655Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:54:41.482Z"
-  },
-  {
-    "id": "r_ct_rang_dong_cafe",
-    "name": "Rạng Đông Cafe",
-    "category": "Cà phê",
-    "rating": 4.4,
-    "reviews": 395,
-    "distance": "2.8 km",
-    "time": "24-34 phút",
-    "address": "414 Bùi Hữu Nghĩa, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3469625",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8yd6i3l0pnda@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/rang-dong-cafe",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Rạng Đông Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Rạng Đông Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.656Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:55:45.580Z"
   },
   {
     "id": "r_ct_di_bay_com_chien_duong_chau_goi_cuon_21_1_nguyen_thi_minh_khai",
@@ -14413,35 +12249,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 17:00 07/07/2026\n\nOk"
   },
   {
-    "id": "r_ct_phuoc_ky_quan_com",
-    "name": "Phước Ký - Quán Cơm",
-    "category": "Cơm tấm",
-    "rating": 4,
-    "reviews": 10,
-    "distance": "3.3 km",
-    "time": "27-37 phút",
-    "address": "16/9 Lê Hồng Phong, Quận Bình Thủy , Cần Thơ",
-    "phone": "0292 3909736",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwi3dvefr9wb3e@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/phuoc-ky-quan-com",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Phước Ký Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Phước Ký",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.665Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:57:32.331Z"
-  },
-  {
     "id": "r_ct_quan_com_toan_404",
     "name": "Quán Cơm Toàn 404",
     "category": "Cơm tấm",
@@ -14499,35 +12306,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_bun_xao_my_hoa",
-    "name": "Bún Xào Mỹ Hóa",
-    "category": "Đồ ăn",
-    "rating": 8.1,
-    "reviews": 14666,
-    "distance": "1.6 km",
-    "time": "18-28 phút",
-    "address": "58 Hai Bà Trưng, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3515501",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwezuvisenkp04@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bun-xao-my-hoa",
-    "dishNames": [
-      "Bún Xào Thịt Nướng Bún Xào Mỹ Hóa Đặc Biệt",
-      "Bún Xào Ba Chỉ Heo Cực Ngon Bún Xào Mỹ Hóa",
-      "Bún Xào Hải Sản Tôm Mực Tươi",
-      "Bún Xào Chay Đậu Hũ Rau Củ",
-      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.671Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T20:59:17.405Z"
-  },
-  {
     "id": "r_ct_reng_cafe",
     "name": "Reng Cafe",
     "category": "Cà phê",
@@ -14576,62 +12354,6 @@
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc."
   },
   {
-    "id": "r_ct_bun_mang_chi_hao_de_tham",
-    "name": "Bún Măng Chí Hào - Đề Thám",
-    "category": "Đồ ăn",
-    "rating": 7.3,
-    "reviews": 14456,
-    "distance": "3.1 km",
-    "time": "26-36 phút",
-    "address": "12 Đề Thám, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3328610",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstvej4mz004e1@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bun-mang-chi-hao-de-tham",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Bún Măng Chí Hào",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bún Măng Chí Hào",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.679Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:00:21.574Z"
-  },
-  {
-    "id": "r_ct_nt_milktea_homemade",
-    "name": "NT - Milktea Homemade",
-    "category": "Đồ ăn",
-    "rating": 5.4,
-    "reviews": 10,
-    "distance": "2.0 km",
-    "time": "20-30 phút",
-    "address": "Ngô Quyền, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3789913",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbprsznq5spda@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/nt-milktea-homemade",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ NT",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) NT",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.684Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:01:25.827Z"
-  },
-  {
     "id": "r_ct_tra_sua_chi_phuong",
     "name": "Trà Sữa Chị Phương",
     "category": "Trà sữa",
@@ -14654,63 +12376,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T14:05:06.356Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_xoi_xiu_mai_xo_viet_nghe_tinh",
-    "name": "Xôi Xíu Mại - Xô Viết Nghệ Tĩnh",
-    "category": "Đồ ăn",
-    "rating": 8.4,
-    "reviews": 181,
-    "distance": "2.8 km",
-    "time": "24-34 phút",
-    "address": "Xô Viết Nghệ Tĩnh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3689477",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwaccnwnvr2z2d@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/xoi-xiu-mai-xo-viet-nghe-tinh",
-    "dishNames": [
-      "Bánh Mì Heo Quay Giòn Bì Xôi Xíu Mại Đặc Biệt",
-      "Bánh Mì Xá Xíu Pâté Bơ Tươi Xôi Xíu Mại",
-      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
-      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
-      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.688Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:02:30.015Z"
-  },
-  {
-    "id": "r_ct_thac_mo_cafe_xo_viet_nghe_tinh",
-    "name": "Thác Mơ Cafe - Xô Viết Nghệ Tĩnh",
-    "category": "Cà phê",
-    "rating": 5,
-    "reviews": 10,
-    "distance": "3.3 km",
-    "time": "26-36 phút",
-    "address": "29 Xô Viết Nghệ Tĩnh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3181115",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbpri1ns4pn9f@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/thac-mo-cafe-xo-viet-nghe-tinh",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Thác Mơ Cafe",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Thác Mơ Cafe",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.689Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:03:33.843Z"
   },
   {
     "id": "r_ct_tiem_banh_co_van_u_xo_viet_nghe_tinh",
@@ -14769,63 +12434,6 @@
     "menuUpdatedAt": "2026-07-07T21:04:14.662Z",
     "isClosed": false,
     "menuTemplateFallback": false
-  },
-  {
-    "id": "r_ct_hu_tieu_hung_ky",
-    "name": "Hủ Tiếu Hưng Ký",
-    "category": "Hủ Tiếu",
-    "rating": 7.7,
-    "reviews": 3120,
-    "distance": "3.5 km",
-    "time": "27-37 phút",
-    "address": "1161 Quốc Lộ 91, KV. 11, P. Châu Văn Liêm, Quận Ô Môn , Cần Thơ",
-    "phone": "0292 3979818",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwfvtpdkshy398@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hu-tieu-hung-ky",
-    "dishNames": [
-      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Hưng Ký",
-      "Hủ Tiếu Nam Vang Khô Trộn Sốt Hưng Ký",
-      "Hủ Tiếu Hoành Thánh Xá Xíu",
-      "Xương Ống Hầm Mềm Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.699Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:05:18.933Z"
-  },
-  {
-    "id": "r_ct_banh_bot_chien_huynh_cuong",
-    "name": "Bánh Bột Chiên - Huỳnh Cương",
-    "category": "Đồ ăn",
-    "rating": 8.4,
-    "reviews": 163,
-    "distance": "3.3 km",
-    "time": "26-36 phút",
-    "address": "Hẻm 51 Huỳnh Cương, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3883774",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw9n22etjx09b0@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/banh-bot-chien-huynh-cuong",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Bánh Bột Chiên",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Bột Chiên",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.700Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:07:04.104Z"
   },
   {
     "id": "r_ct_banh_uot_bun_xao_tran_quang_dieu",
@@ -14919,34 +12527,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_hung_mi",
-    "name": "Húng Mì",
-    "category": "Đồ ăn",
-    "rating": 4.8,
-    "reviews": 154,
-    "distance": "2.9 km",
-    "time": "25-35 phút",
-    "address": "38A Xô Viết Nghệ Tĩnh, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3534666",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw9jkkucgue352@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hung-mi",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Húng Mì",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Húng Mì",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.717Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:10:13.562Z"
-  },
-  {
     "id": "r_ct_chao_long_nam_dinh",
     "name": "Cháo Lòng Nam Định",
     "category": "Đồ ăn",
@@ -14982,35 +12562,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T14:10:51.524Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nQuán đang đóng cửa\nBạn có thể hẹn đơn giao sau 06:00 Ngày mai\n\nOk"
-  },
-  {
-    "id": "r_ct_quan_an_thao_hu_tieu_chao_long",
-    "name": "Quán Ăn Thảo - Hủ Tiếu & Cháo Lòng",
-    "category": "Hủ Tiếu",
-    "rating": 5.2,
-    "reviews": 10,
-    "distance": "4.0 km",
-    "time": "30-40 phút",
-    "address": "50/3G Trần Chiên, P. Lê Bình, Quận Cái Răng , Cần Thơ",
-    "phone": "0292 3624782",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu44jbonf7o8b@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-an-thao-hu-tieu-chao-long",
-    "dishNames": [
-      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Ăn Thảo",
-      "Hủ Tiếu Nam Vang Khô Trộn Sốt Ăn Thảo",
-      "Hủ Tiếu Hoành Thánh Xá Xíu",
-      "Xương Ống Hầm Mềm Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.722Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:11:17.840Z"
   },
   {
     "id": "r_ct_cafe_com_tam_chao_long",
@@ -15069,35 +12620,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T14:12:25.943Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 00:01 07/07/2026\n\nOk"
-  },
-  {
-    "id": "r_ct_hoa_nang_coffee",
-    "name": "Hoa Nắng Coffee",
-    "category": "Cà phê",
-    "rating": 8.5,
-    "reviews": 4241,
-    "distance": "3.1 km",
-    "time": "25-35 phút",
-    "address": "299C Nguyễn Văn Cừ Nối Dài, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3953151",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lstuz3zfcxqc66@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hoa-nang-coffee",
-    "dishNames": [
-      "Cà Phê Sữa Đá Hoa Nắng Coffee Gia Truyền",
-      "Bạc Xỉu Sương Sáo Cốt Dừa Hoa Nắng Coffee",
-      "Cà Phê Muối Kem Bông Thơm Béo",
-      "Trà Đào Cam Sả Hạt Chia",
-      "Bánh Croissant Bơ Tỏi Nướng Giòn"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.731Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:12:22.213Z"
   },
   {
     "id": "r_ct_beno_do_an_nhanh",
@@ -15171,64 +12693,6 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk"
   },
   {
-    "id": "r_ct_ngoc_diem_quan_com_binh_dan",
-    "name": "Ngọc Diễm - Quán Cơm  Bình Dân",
-    "category": "Cơm tấm",
-    "rating": 7,
-    "reviews": 160,
-    "distance": "1.1 km",
-    "time": "16-26 phút",
-    "address": "Bốn Tổng - Một Ngàn, Huyện Cờ Đỏ , Cần Thơ",
-    "phone": "0292 3129803",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8srowsc5az17@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/ngoc-diem-quan-com-binh-dan",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Ngọc Diễm Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Ngọc Diễm",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.734Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:14:07.401Z"
-  },
-  {
-    "id": "r_ct_quan_com_binh_dan_16",
-    "name": "Quán Cơm Bình Dân 16",
-    "category": "Cơm tấm",
-    "rating": 4.2,
-    "reviews": 6192,
-    "distance": "2.9 km",
-    "time": "25-35 phút",
-    "address": "52 Nguyễn Thái Học, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3563159",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsty4tpkoptwf4@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/quan-com-binh-dan-16",
-    "dishNames": [
-      "Cơm Chiên Dương Châu Bình Dân 16 Đặc Biệt",
-      "Cơm Sườn Rim Chua Ngọt Vị Quê Bình Dân 16",
-      "Cơm Thịt Kho Tàu Trứng Cút",
-      "Cơm Bò Xào Bông Cải Xanh",
-      "Canh Chua Cá Lóc Nam Bộ"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.736Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:15:11.465Z"
-  },
-  {
     "id": "r_ct_xe_banh_mi_c1_dai_hoc_can_tho",
     "name": "Xe Bánh Mì C1 - Đại Học Cần Thơ",
     "category": "Đồ ăn",
@@ -15251,63 +12715,6 @@
     "isClosed": true,
     "closedAt": "2026-07-03T14:15:35.919Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến."
-  },
-  {
-    "id": "r_ct_hau_ky_hu_tieu_mi_ga",
-    "name": "Hậu Ký - Hủ Tiếu, Mì Gà",
-    "category": "Hủ Tiếu",
-    "rating": 7.7,
-    "reviews": 2111,
-    "distance": "1.6 km",
-    "time": "18-28 phút",
-    "address": "3 Nam Kỳ Khởi Nghĩa, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3822823",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwh8zcoyvyl5cb@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/hau-ky-hu-tieu-mi-ga",
-    "dishNames": [
-      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Hậu Ký",
-      "Hủ Tiếu Nam Vang Khô Trộn Sốt Hậu Ký",
-      "Hủ Tiếu Hoành Thánh Xá Xíu",
-      "Xương Ống Hầm Mềm Thêm",
-      "Bánh Quẩy Chiên Giòn (2 cái)"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.738Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:16:15.428Z"
-  },
-  {
-    "id": "r_ct_thu_ngan_diem_tam_cafe",
-    "name": "Thu Ngân - Điểm Tâm & Cafe",
-    "category": "Cà phê",
-    "rating": 5,
-    "reviews": 10,
-    "distance": "2.3 km",
-    "time": "21-31 phút",
-    "address": "59 Đường 3 Tháng 2, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3903001",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwbtcvnxvpwb94@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/thu-ngan-diem-tam-cafe",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Thu Ngân",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Thu Ngân",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.745Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:17:19.614Z"
   },
   {
     "id": "r_ct_hy_coffee_con_khuong",
@@ -15564,35 +12971,6 @@
     "isClosed": false
   },
   {
-    "id": "r_ct_co_bay_banh_canh_tom_nuoc_dua",
-    "name": "Cô Bảy - Bánh Canh Tôm Nước Dừa",
-    "category": "Đồ ăn",
-    "rating": 4.9,
-    "reviews": 30,
-    "distance": "3.2 km",
-    "time": "26-36 phút",
-    "address": "37 Ngô Văn Sở, P. Tân An, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3938651",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwf03q1u8lp7e5@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/co-bay-banh-canh-tom-nuoc-dua",
-    "dishNames": [
-      "Bánh Canh Cua Bột Gạo Cô Bảy Đặc Biệt",
-      "Bánh Canh Giò Heo Sườn Non Cô Bảy",
-      "Bánh Canh Tôm Thịt Chả Cá Thác Lác",
-      "Bánh Quẩy Chiên Giòn Thêm (2 cái)",
-      "Nước Sâm La Hán Quả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.772Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:20:29.405Z"
-  },
-  {
     "id": "r_ct_canh_nau_garden_cafe",
     "name": "Cánh Nâu Garden Cafe",
     "category": "Cà phê",
@@ -15681,34 +13059,6 @@
     "menuUpdatedAt": "2026-07-07T21:21:51.233Z",
     "isClosed": false,
     "menuTemplateFallback": false
-  },
-  {
-    "id": "r_ct_bo_ne_25k_70_mau_than",
-    "name": "Bò Né 25k - 70 Mậu Thân",
-    "category": "Đồ ăn",
-    "rating": 7,
-    "reviews": 2203,
-    "distance": "2.7 km",
-    "time": "24-34 phút",
-    "address": "70 Mậu Thân, P. An Nghiệp, Quận Ninh Kiều , Cần Thơ",
-    "phone": "0292 3485807",
-    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwcdh0saygnt08@resize_ss640x400",
-    "tags": [
-      "Đang mở"
-    ],
-    "minOrder": 30000,
-    "hasRealMenu": true,
-    "menuTemplateFallback": false,
-    "foodyHref": "/can-tho/bo-ne-25k-70-mau-than",
-    "dishNames": [
-      "Bánh Xèo Miền Tây Khổng Lồ Bò Né 25k",
-      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bò Né 25k",
-      "Nem Nướng Nha Trang (Set 1 người)",
-      "Trà Đá Chanh Sả Mát Lạnh"
-    ],
-    "menuProcessedAt": "2026-06-30T16:55:49.780Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:22:55.567Z"
   },
   {
     "id": "r_ct_banh_mi_heo_quay_com_chien_duong_chau",

@@ -2689,9 +2689,8 @@
       "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.791Z",
-    "menuUpdatedAt": "2026-07-04T06:58:14.004Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T02:37:54.749Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_banh_canh_khoanh_gio_hai_san_999_le_lai",
@@ -2770,7 +2769,6 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-cuon-hue-vien-mac-dinh-chi",
     "dishNames": [
       "Phở Bò",
@@ -2785,7 +2783,7 @@
       "Hủ Tiếu Nam Vang"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.800Z",
-    "menuUpdatedAt": "2026-07-04T06:59:59.770Z",
+    "menuUpdatedAt": "2026-07-09T02:38:36.224Z",
     "isClosed": false
   },
   {
@@ -3022,8 +3020,11 @@
       "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.810Z",
-    "menuUpdatedAt": "2026-07-04T07:03:11.104Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T02:40:42.238Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T02:40:42.238Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 17:00 14/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_kim_ngoc_banh_trang_tron_sai_gon_mau_than",
@@ -3487,8 +3488,11 @@
       "Bún Bò Huế"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.829Z",
-    "menuUpdatedAt": "2026-07-04T07:07:50.070Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T02:44:16.199Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T02:44:16.199Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 07:00 20/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_an_an_vat_bt",
@@ -4000,9 +4004,8 @@
       "Trà Sen Vàng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.862Z",
-    "menuUpdatedAt": "2026-07-04T07:14:39.957Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T02:49:59.402Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_com_tam_ngon_tran_chien",
@@ -5371,8 +5374,11 @@
       "Mì Xào Bò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.947Z",
-    "menuUpdatedAt": "2026-07-04T07:31:29.805Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T03:00:26.270Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T03:00:26.270Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_my_y_719_ly_tu_trong",
@@ -6188,9 +6194,8 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.004Z",
-    "menuUpdatedAt": "2026-07-04T07:40:04.772Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T03:06:50.749Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_oc_le_duong",
@@ -6703,8 +6708,11 @@
       "Cơm Chiên Hải Sản"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.031Z",
-    "menuUpdatedAt": "2026-07-04T07:47:34.276Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T03:12:18.538Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T03:12:18.538Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:30 14/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_vua_kho_su_su_vo_nguyen_giap",
@@ -8320,9 +8328,8 @@
       "Trà Sữa Khoai Môn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.148Z",
-    "menuUpdatedAt": "2026-07-04T08:06:35.784Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T03:26:52.929Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_b_o_n_milk_tea_coffee",
@@ -8970,9 +8977,8 @@
       "Chả Giò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.186Z",
-    "menuUpdatedAt": "2026-07-04T08:15:11.643Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T03:34:20.593Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_quan_ong_chu_chuyen_tra_shan_tuyet_hong_tra_sua",
@@ -10182,9 +10188,8 @@
       "Hủ Tiếu Mì"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.288Z",
-    "menuUpdatedAt": "2026-07-04T08:38:30.693Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T03:54:38.324Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_kunthai_tra_sua_thai_dam_vi_mac_thien_tich",
@@ -10551,9 +10556,8 @@
       "Bánh Mì Bơ Tỏi"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.303Z",
-    "menuUpdatedAt": "2026-07-04T08:44:57.159Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T04:00:37.935Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_ut_ri_bo_nuong_ngoi",
@@ -11874,9 +11878,8 @@
       "Hủ Tiếu Nam Vang"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.485Z",
-    "menuUpdatedAt": "2026-07-04T09:05:07.388Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T04:20:38.335Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_duyen_an_vat_chay_com_phan_chay_cho_noi_cai_rang",
@@ -12564,9 +12567,8 @@
       "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.534Z",
-    "menuUpdatedAt": "2026-07-04T09:17:10.064Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T04:32:20.485Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_bun_thit_xao_duong_3_thang_2",
@@ -13649,8 +13651,11 @@
       "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.658Z",
-    "menuUpdatedAt": "2026-07-04T09:40:10.029Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T04:53:59.846Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T04:53:59.846Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Ngày mai\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_xoi_ga_phu_qui_nguyen_thi_minh_khai",
@@ -13934,8 +13939,11 @@
       "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.697Z",
-    "menuUpdatedAt": "2026-07-04T09:52:55.854Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T05:06:36.302Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T05:06:36.302Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_a_quyen_com_ga_xoi_mo",
@@ -14344,8 +14352,11 @@
       "Chả Giò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.737Z",
-    "menuUpdatedAt": "2026-07-04T10:04:13.669Z",
-    "isClosed": false
+    "menuUpdatedAt": "2026-07-09T05:17:46.561Z",
+    "isClosed": true,
+    "closedAt": "2026-07-09T05:17:46.561Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   },
   {
     "id": "r_ct_banh_uot_quang_trung",
@@ -14903,9 +14914,8 @@
       "Rau Nướng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.787Z",
-    "menuUpdatedAt": "2026-07-04T10:14:24.104Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T05:27:43.014Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_vieboo_healthy_food_drink",
@@ -15018,7 +15028,11 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-04T15:39:51.907Z",
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-09T10:52:28.143Z",
+    "menuTemplateFallback": false,
+    "isClosed": true,
+    "closedAt": "2026-07-09T10:52:28.143Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
   }
 ]

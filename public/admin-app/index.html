@@ -221,13 +221,23 @@
     </div>
   </div>
 
-  <!-- Supabase JS Client library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- Supabase JS Client library (Try local first, then CDNs) -->
+  <script src="supabase.js"></script>
   <script>
     if (typeof supabase === 'undefined') {
-      console.warn('jsDelivr CDN failed to load Supabase, falling back to unpkg...');
-      document.write('<script src="https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js"><\/script>');
+      console.warn('Local supabase.js failed to load, falling back to jsDelivr...');
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"><\/script>');
     }
+  </script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (typeof supabase === 'undefined') {
+        console.warn('jsDelivr failed to load Supabase, trying unpkg...');
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@supabase/supabase-js@2.39.8/dist/umd/supabase.js';
+        document.body.appendChild(script);
+      }
+    });
   </script>
   <script src="app.js?v=2.2"></script>
 </body>

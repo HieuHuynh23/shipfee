@@ -45,7 +45,7 @@ function extractMenuFromApiData(apiData, slug) {
         : (dish.price?.value || 35000);
 
       if (inStorePrice <= 100) return; // Bỏ qua các món ghi chú/admin 1đ
-      
+
       // Thêm 28% markup cố định (làm tròn 100đ)
       const appPrice = Math.round((inStorePrice * 1.28) / 100) * 100;
 
@@ -107,6 +107,9 @@ async function scrapeMenu(slug) {
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--js-flags="--max-old-space-size=256"',
       '--use-gl=desktop',
       '--disable-web-security',
       '--disable-features=IsolateOrigins,site-per-process,TrackingPrevention,EdgeTrackingPrevention',
@@ -121,7 +124,18 @@ async function scrapeMenu(slug) {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
-    
+
+    // Tối ưu hóa RAM tối đa: chặn tải hình ảnh, fonts, media (không chặn stylesheet để tránh treo trang)
+    await page.setRequestInterception(true);
+    page.on('request', req => {
+      const resourceType = req.resourceType();
+      if (['image', 'font', 'media'].includes(resourceType)) {
+        req.abort();
+      } else {
+        req.continue();
+      }
+    });
+
     // Set ngôn ngữ và timezone Việt Nam
     await page.setExtraHTTPHeaders({
       'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7'
@@ -140,7 +154,7 @@ async function scrapeMenu(slug) {
     // Lắng nghe TẤT CẢ các gói tin có chứa menu
     page.on('response', async response => {
       const respUrl = response.url();
-      
+
       // Bắt endpoint menu chính
       if (respUrl.includes('get_delivery_dishes')) {
         try {
@@ -148,7 +162,7 @@ async function scrapeMenu(slug) {
           const parsed = JSON.parse(text);
           const items = (parsed?.reply?.menu_infos || []).reduce((acc, c) => acc + (c.dishes || []).length, 0);
           console.log(`[menuScraper] [API] Đã bắt được menu JSON! Status: ${response.status()}, Items: ${items}`);
-          
+
           // Ghi nhận: API đã phản hồi (kể cả khi 0 items)
           apiResponded = true;
           if (items > apiCapturedCount) {
@@ -164,7 +178,7 @@ async function scrapeMenu(slug) {
           console.error('[menuScraper] [API] Lỗi khi phân tích JSON menu:', e.message);
         }
       }
-      
+
       // Fallback: bắt endpoint tìm kiếm quán nếu menu chính fail
       if (respUrl.includes('restaurant_info') || respUrl.includes('get_restaurant')) {
         try {
@@ -174,13 +188,13 @@ async function scrapeMenu(slug) {
             apiData = parsed;
             apiPromiseResolve(true);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     });
 
     // ── BƯỚC 1: Vào trang Cần Thơ để thiết lập cookies địa điểm ──
     console.log('[menuScraper] Đi tới trang Can Tho để thiết lập cookies vị trí...');
-    await page.goto('https://shopeefood.vn/can-tho', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
+    await page.goto('https://shopeefood.vn/can-tho', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => { });
     await new Promise(r => setTimeout(r, 1000));
 
     // ── BƯỚC 2: Vào trang chi tiết quán ──
@@ -190,7 +204,7 @@ async function scrapeMenu(slug) {
       console.log('[menuScraper] ⚠️ networkidle2 timeout, thử lại với domcontentloaded...');
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-      } catch(e2) {
+      } catch (e2) {
         console.error('[menuScraper] ❌ Không thể tải trang:', e2.message);
       }
     });
@@ -199,24 +213,24 @@ async function scrapeMenu(slug) {
     try {
       // Chờ 1.5s xem có popup không
       await new Promise(r => setTimeout(r, 1500));
-      
+
       // Phát hiện modal đóng cửa và kiểm tra nội dung
       const modalInfo = await page.evaluate(() => {
         const selectors = [
           '[class*="modal"]', '[class*="popup"]', '[class*="dialog"]',
           '[class*="alert"]', '.ReactModal__Overlay', '[role="dialog"]'
         ];
-        
+
         const closedKeywords = [
-          'đóng cửa', 'dong cua', 'closed', 'không phục vụ', 
+          'đóng cửa', 'dong cua', 'closed', 'không phục vụ',
           'ngoài giờ', 'nghỉ', 'tạm ngưng', 'hiện tại không', 'chưa mở',
           'outside working hours', 'not available'
         ];
-        
+
         let foundClosedModal = false;
         let closedText = '';
         let foundAndClicked = false;
-        
+
         for (const sel of selectors) {
           const modals = document.querySelectorAll(sel);
           for (const modal of modals) {
@@ -228,21 +242,21 @@ async function scrapeMenu(slug) {
             }
           }
         }
-        
+
         // Click nút Ok/Đóng để dismiss modal
         const btnSelectors = [
           '[class*="modal"] button', '[class*="popup"] button',
           '[class*="dialog"] button', '[role="dialog"] button',
           '.btn-ok', '.btn-close'
         ];
-        
+
         for (const sel of btnSelectors) {
           const btns = document.querySelectorAll(sel);
           for (const btn of btns) {
             const text = btn.innerText?.toLowerCase() || '';
-            if (text.includes('ok') || text.includes('đóng') || text.includes('dong') || 
-                text.includes('đồng ý') || text.includes('tiếp tục') || 
-                text === '×' || text === 'x' || text.trim() === '') {
+            if (text.includes('ok') || text.includes('đóng') || text.includes('dong') ||
+              text.includes('đồng ý') || text.includes('tiếp tục') ||
+              text === '×' || text === 'x' || text.trim() === '') {
               btn.click();
               foundAndClicked = true;
               break;
@@ -250,10 +264,10 @@ async function scrapeMenu(slug) {
           }
           if (foundAndClicked) break;
         }
-        
+
         return { foundClosedModal, closedText, foundAndClicked };
       });
-      
+
       if (modalInfo.foundClosedModal) {
         console.log('[menuScraper] 🔴 Phát hiện modal ĐÓNG CỬA trên trang! Lý do:', modalInfo.closedText);
         closedDetected = true;
@@ -263,7 +277,7 @@ async function scrapeMenu(slug) {
         console.log('[menuScraper] Đã đóng popup/modal trên trang...');
         await new Promise(r => setTimeout(r, 500));
       }
-    } catch (e) {}
+    } catch (e) { }
 
     // ── BƯỚC 4: Scroll trang để trigger lazy-load API ──
     console.log('[menuScraper] Đang scroll trang để kích hoạt lazy-load menu...');
@@ -316,19 +330,19 @@ async function scrapeMenu(slug) {
           return dishes;
         }
       }
-      
+
       // API phản hồi 200 OK nhưng menu rỗng hoàn toàn (0 món)
       // → Quán tồn tại nhưng không có menu delivery = đóng cửa hoặc không nhận đơn
       console.log(`[menuScraper] 🔴 API xác nhận: Quán không có menu delivery → Đóng cửa/Không nhận đơn.`);
       return { closed: true, reason: closedReason || 'Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.' };
-      
+
     } else {
       console.log('[menuScraper] ⚠️ Không bắt được API trong 20 giây. Chuyển sang DOM fallback...');
     }
 
     // ── FALLBACK: DOM SCROLL & EXTRACT ──
     console.log('[menuScraper] 🔄 Đang dùng DOM Fallback để trích xuất menu...');
-    
+
     // Scroll adaptive để load virtualized items
     await page.evaluate(async () => {
       await new Promise((resolve) => {
@@ -355,7 +369,7 @@ async function scrapeMenu(slug) {
 
     const rawDishes = await page.evaluate(() => {
       const list = [];
-      
+
       // Selector ưu tiên: ShopeeFood mới
       const rows = document.querySelectorAll(
         '.item-restaurant-row, ' +
@@ -363,7 +377,7 @@ async function scrapeMenu(slug) {
         '[class*="menu-item"]:not([class*="menu-item-link"]), ' +
         '[class*="product-item"], [class*="item-card"]'
       );
-      
+
       rows.forEach(row => {
         const nameEl = row.querySelector(
           '.item-restaurant-name, h2, h3, h4, ' +
@@ -378,7 +392,7 @@ async function scrapeMenu(slug) {
         const descEl = row.querySelector(
           '.item-restaurant-desc, [class*="desc"], [class*="description"]'
         );
-        
+
         let category = 'Món ăn';
         const menuGroup = row.closest(
           '.menu-group, [class*="group"], [class*="section"], ' +
@@ -392,31 +406,31 @@ async function scrapeMenu(slug) {
             category = catTitleEl.innerText.trim().split('\n')[0];
           }
         }
-        
+
         const name = nameEl?.innerText?.trim();
         const priceText = priceEl?.innerText?.trim();
         const imgSrc = imgEl?.src || '';
         const desc = descEl?.innerText?.trim() || '';
-        
+
         // Phát hiện trạng thái hết hàng từ các lớp hoặc văn bản
         const rowText = row.innerText.toLowerCase();
         const btnEl = row.querySelector('button, [class*="btn"], [class*="add"]');
         const btnText = btnEl ? btnEl.innerText.toLowerCase() : '';
-        const isOutOfStock = 
-          rowText.includes('hết') || 
-          rowText.includes('tạm hết') || 
-          rowText.includes('sold out') || 
-          rowText.includes('ngưng bán') || 
+        const isOutOfStock =
+          rowText.includes('hết') ||
+          rowText.includes('tạm hết') ||
+          rowText.includes('sold out') ||
+          rowText.includes('ngưng bán') ||
           rowText.includes('đã bán hết') ||
           row.classList.contains('is-out-of-stock') ||
           row.classList.contains('sold-out') ||
           (btnEl && (btnEl.disabled || btnEl.classList.contains('disabled') || btnText.includes('hết') || btnText.includes('sold')));
-        
+
         if (name && name.length > 1 && priceText) {
           list.push({ name, priceText, img: imgSrc, category, desc, isAvailable: !isOutOfStock });
         }
       });
-      
+
       return list;
     });
 
@@ -433,17 +447,17 @@ async function scrapeMenu(slug) {
         const pageText = await page.evaluate(() => document.body.innerText.toLowerCase());
         const inactiveKeywords = ['không tồn tại', 'chưa có dịch vụ', 'ngưng hoạt động', 'bài viết không tồn tại', 'địa điểm này chưa có'];
         const closedKeywords = ['đóng cửa', 'dong cua', 'ngoài giờ', 'không phục vụ', 'outside working hours', 'closed'];
-        
+
         if (inactiveKeywords.some(kw => pageText.includes(kw))) {
           console.log('[menuScraper] 🔴 Phát hiện quán KHÔNG HOẠT ĐỘNG hoặc KHÔNG TỒN TẠI trên ShopeeFood.');
           return { closed: true, reason: 'Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.' };
         }
-        
+
         if (closedKeywords.some(kw => pageText.includes(kw))) {
           console.log('[menuScraper] 🔴 Trang chứa từ khóa đóng cửa → Xác nhận quán ĐÓNG CỬA.');
           return { closed: true, reason: 'Quán hiện đang đóng cửa ngoài giờ phục vụ.' };
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (rawDishes.length > 0) {
@@ -483,7 +497,13 @@ async function scrapeMenu(slug) {
     console.error(`[menuScraper] ❌ Thất bại khi cào menu cho "${slug}":`, err.message);
     return [];
   } finally {
-    await browser.close();
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeErr) {
+        console.warn('[menuScraper] Lỗi khi đóng browser (bỏ qua):', closeErr.message);
+      }
+    }
   }
 }
 
