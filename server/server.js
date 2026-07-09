@@ -2434,8 +2434,23 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
 function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter = false) {
   if (!Array.isArray(localData)) return [];
   
-  const userLat = parseFloat(lat) || 10.0345;
-  const userLon = parseFloat(lon) || 105.7876;
+  let userLat = parseFloat(lat) || 10.0345;
+  let userLon = parseFloat(lon) || 105.7876;
+
+  // Kiểm tra nếu tọa độ người dùng nằm ngoài Cần Thơ (cách trung tâm Ninh Kiều > 20km)
+  const dLat = (10.0345 - userLat) * Math.PI / 180;
+  const dLon = (105.7876 - userLon) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(userLat * Math.PI / 180) * Math.cos(10.0345 * Math.PI / 180) * 
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const distFromCenter = 6371 * c; // km
+
+  if (distFromCenter > 20) {
+    userLat = 10.0345;
+    userLon = 105.7876;
+  }
+
   const userCoords = { lat: userLat, lon: userLon };
 
   const processed = localData.map(r => {

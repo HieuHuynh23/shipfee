@@ -1117,6 +1117,17 @@ async function advanceTripStatus() {
 // ── GPS REAL POSITION TRACKING ──────────────────────────────────────────────
 let lastGpsSendTime = 0;
 
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 function startGpsTracking() {
   stopGpsTracking();
   
@@ -1129,10 +1140,21 @@ function startGpsTracking() {
   
   watchPositionId = navigator.geolocation.watchPosition(
     async (position) => {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
+      let lat = position.coords.latitude;
+      let lon = position.coords.longitude;
       
-      document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-location-crosshairs fa-spin-slow"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+      // Kiểm tra xem vị trí có nằm ngoài Cần Thơ không (cách trung tâm Ninh Kiều > 20km)
+      const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
+      if (distFromCenter > 20) {
+        // Tự động chuyển vị trí về Trung tâm Cần Thơ + jitter nhỏ để tránh chồng đè marker
+        const jitterLat = (Math.random() - 0.5) * 0.006;
+        const jitterLon = (Math.random() - 0.5) * 0.006;
+        lat = 10.0345 + jitterLat;
+        lon = 105.7876 + jitterLon;
+        document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-location-crosshairs fa-spin-slow"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)}) (Giả lập Cần Thơ)`;
+      } else {
+        document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-location-crosshairs fa-spin-slow"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+      }
       
       if (shipperMarker) {
         shipperMarker.setLatLng([lat, lon]);

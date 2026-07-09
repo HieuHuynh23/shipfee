@@ -583,8 +583,20 @@
 
     async function loadRestaurantsFromServer(lat, lon) {
       const state = SF.getState();
-      const queryLat = lat !== undefined ? lat : (state.userLat || 10.0345);
-      const queryLon = lon !== undefined ? lon : (state.userLon || 105.7876);
+      let queryLat = lat !== undefined ? lat : (state.userLat || 10.0345);
+      let queryLon = lon !== undefined ? lon : (state.userLon || 105.7876);
+      
+      // Kiểm tra nếu tọa độ nằm ngoài Cần Thơ (> 20km từ trung tâm Ninh Kiều)
+      const distFromCenter = clientHaversine(queryLat, queryLon, 10.0345, 105.7876);
+      if (distFromCenter > 20) {
+        queryLat = 10.0345;
+        queryLon = 105.7876;
+        
+        // Cập nhật lại state để đồng bộ lâu dài
+        state.userLat = 10.0345;
+        state.userLon = 105.7876;
+        SF.saveState(state);
+      }
       
       let retries = 3;
       let delay = 3000;
@@ -1320,24 +1332,36 @@
         (position) => {
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
-          tempGpsCoords = { lat, lon };
           
-          document.getElementById('modal-address-input').value = `Vị trí GPS (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
+          // Kiểm tra xem vị trí có nằm ngoài Cần Thơ không (cách trung tâm Ninh Kiều > 20km)
+          const distFromCenter = clientHaversine(lat, lon, 10.0345, 105.7876);
+          let finalLat = lat;
+          let finalLon = lon;
+          if (distFromCenter > 20) {
+            finalLat = 10.0345;
+            finalLon = 105.7876;
+            SF.showToast('📍 Vùng phục vụ', 'Bạn đang ở ngoài Cần Thơ. Hệ thống tự động chuyển định vị về Trung tâm Ninh Kiều để bạn trải nghiệm!', 'info');
+          } else {
+            SF.showToast('📍 Đã định vị', 'Lấy tọa độ GPS thành công!', 'success');
+          }
+          
+          tempGpsCoords = { lat: finalLat, lon: finalLon };
+          
+          document.getElementById('modal-address-input').value = `Vị trí GPS (${finalLat.toFixed(4)}, ${finalLon.toFixed(4)})`;
           
           btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
           btn.disabled = false;
           btn.style.background = 'rgba(16, 185, 129, 0.1)';
           btn.style.color = '#10B981';
           btn.style.borderColor = '#10B981';
-          SF.showToast('📍 Đã định vị', 'Lấy tọa độ GPS thành công!', 'success');
 
           // Update map and marker location
-          showMapAt(lat, lon, false);
+          showMapAt(finalLat, finalLon, false);
 
           const pinBadge = document.getElementById('map-pin-badge');
           if (pinBadge) {
             pinBadge.style.display = 'flex';
-            pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí GPS chính xác: ${lat.toFixed(5)}, ${lon.toFixed(5)}!`;
+            pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí GPS chính xác: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}!`;
           }
         },
         (error) => {
