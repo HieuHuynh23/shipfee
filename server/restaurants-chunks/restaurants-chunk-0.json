@@ -24,7 +24,8 @@
       "Bông lan trứng muối size mini",
       "Bento Bông lan trứng muối"
     ],
-    "menuUpdatedAt": "2026-07-08T05:16:57.520Z"
+    "menuUpdatedAt": "2026-07-08T05:16:57.520Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_pancake_sam_sam_mau_than",
@@ -193,10 +194,8 @@
       "Sinh tố chanh dây"
     ],
     "menuUpdatedAt": "2026-07-08T05:17:39.188Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T05:17:39.188Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_highlands_coffee_nguyen_van_cu_can_tho",
@@ -287,7 +286,8 @@
       "Combo Sáng Highlands 58K",
       "Highlands 1000th - Mua 2 Trà tặng 1 ly 1000đ",
       "Highlands 1000th - Mua 2 Freeze tặng 1 ly 1000đ"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_highlands_coffee_huynh_cuong_can_tho",
@@ -367,7 +367,8 @@
       "Highlands 1000th - Mua 2 Trà tặng 1 ly 1000đ",
       "Combo Tỉnh Táo Highlands",
       "Highlands 1000th - Mua 2 Freeze tặng 1 ly 1000đ"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_kfc_lotte_mart_can_tho",
@@ -512,7 +513,8 @@
       "7Up (Tiêu Chuẩn)",
       "Pepsi Không Đường (Tiêu Chuẩn)",
       "7Up (Vừa)"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_doi_juice_nha_nguyen_van_linh",
@@ -584,7 +586,8 @@
       "Rau má",
       "Rau má sữa",
       "Trân Châu Trắng"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_the_joy_coffee_house",
@@ -652,7 +655,8 @@
       "Cơm sườn trứng",
       "Cơm gà",
       "Bún xào"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_pe_an_ga_u_muoi_food_and_drink",
@@ -768,7 +772,8 @@
       "Muối ớt xiêm xanh 500g",
       "Tiêu đen ngủ vị 500g"
     ],
-    "menuUpdatedAt": "2026-07-08T04:28:10.678Z"
+    "menuUpdatedAt": "2026-07-08T04:28:10.678Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_chay_bun_chay_han_han",
@@ -809,7 +814,8 @@
       "Boncha",
       "Bún xào",
       "Bun nem"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_dannygreen_tra_sua_tra_trai_cay_nuoc_ep_organic_hoang_van_thu",
@@ -934,7 +940,8 @@
       "Mắm Cá Lóc Chưng Thịt DannyGreen Hộp 150Gr",
       "[Hộp 400g] Cá He Kho Riệu - Đại Ngư DannyGreen",
       "Combo 2 Nước Ép Đóng Lon Vị Ngẫu Nhiên Giảm Về 29K"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_an_gia_dinh_song_hau_lau_mam_com_van_phong_le_loi",
@@ -1127,10 +1134,8 @@
       "Lạp xưởng chiên"
     ],
     "menuUpdatedAt": "2026-07-08T04:29:33.699Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T04:29:33.699Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_dee_coffee",
@@ -1226,10 +1231,8 @@
       "Trà Ổi Hồng Cam Tươi 15k"
     ],
     "menuUpdatedAt": "2026-07-08T04:33:44.176Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T04:33:44.176Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_cf_cac_nuoc_ep_ca_phe_tra_tran_nam_phu",
@@ -1338,7 +1341,8 @@
       "Da heo mắm hành",
       "Đậu phộng tỏi ớt",
       "Bánh tráng ớt rim sa tế"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bo_he_lo_banh_canh_viet_cach_mang_thang_8",
@@ -1362,10 +1366,8 @@
       "Nạc bò"
     ],
     "menuUpdatedAt": "2026-07-08T04:47:33.015Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T04:47:33.015Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tra_sua_tocotoco_sense_city_can_tho",
@@ -1454,7 +1456,8 @@
       "TRÙM DEAL ToCoToCo",
       "Trùm Deal - Trà Dứa Thạch Konjac"
     ],
-    "menuUpdatedAt": "2026-07-08T04:41:58.963Z"
+    "menuUpdatedAt": "2026-07-08T04:41:58.963Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nuoc_giai_khat_gau_chill",
@@ -1512,7 +1515,8 @@
       "Cà phê sữa",
       "Cà phê đen",
       "Bạc Xĩu"
-    ]
+    ],
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_coko",
@@ -1538,11 +1542,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T05:47:44.587Z",
-    "closedAt": "2026-07-08T05:47:44.587Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_thai_68",
@@ -1568,7 +1570,8 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "menuUpdatedAt": "2026-07-08T05:48:27.337Z"
+    "menuUpdatedAt": "2026-07-08T05:48:27.337Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_aurora_cafe",
@@ -1686,10 +1689,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.715Z",
     "menuUpdatedAt": "2026-07-08T05:43:12.850Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T05:43:12.850Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nuoc_mia_my_tho_cam_van_2",
@@ -1715,11 +1716,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T05:54:46.406Z",
-    "closedAt": "2026-07-08T05:54:46.406Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_banh_tacos_banh_bao_kep_dai_loan_nha_labubu",
@@ -1746,7 +1745,8 @@
       "Nước Ngọt"
     ],
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T05:55:27.378Z"
+    "menuUpdatedAt": "2026-07-08T05:55:27.378Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_hong_tra_sua_ba_co_gai_tam_hao",
@@ -1771,7 +1771,8 @@
       "Trà Sữa Matcha",
       "Trà Sữa Socola"
     ],
-    "menuUpdatedAt": "2026-07-08T05:56:08.897Z"
+    "menuUpdatedAt": "2026-07-08T05:56:08.897Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_goi_cuon_hihi",
@@ -1798,7 +1799,8 @@
       "Nước Ngọt"
     ],
     "menuUpdatedAt": "2026-07-08T05:56:51.099Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_warm_coffee_mau_than",
@@ -1851,7 +1853,8 @@
       "Matcha latte kem trứng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.722Z",
-    "menuUpdatedAt": "2026-07-08T05:52:41.246Z"
+    "menuUpdatedAt": "2026-07-08T05:52:41.246Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nhi_nhi_shop_dac_san_vung_mien_shop_online",
@@ -1895,10 +1898,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nguyen-vu-icafe-game-center",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nguyễn Vũ Icafe Game Center",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nguyễn Vũ Icafe Game Center",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.723Z",
     "menuUpdatedAt": "2026-07-01T09:20:00.411Z",
     "isClosed": true,
@@ -1929,7 +1937,8 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "menuUpdatedAt": "2026-07-08T05:57:34.824Z"
+    "menuUpdatedAt": "2026-07-08T05:57:34.824Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bear_hamburger",
@@ -1955,11 +1964,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T05:58:15.391Z",
-    "closedAt": "2026-07-08T05:58:15.391Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tra_sua_chat",
@@ -1985,7 +1992,8 @@
       "Trà Sữa Socola"
     ],
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T05:58:56.982Z"
+    "menuUpdatedAt": "2026-07-08T05:58:56.982Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_kem_xoi_dai_hoc_can_tho_khu_2",
@@ -2011,11 +2019,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:00:01.608Z",
-    "closedAt": "2026-07-08T06:00:01.608Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_ngoc_yen_cafe_nguyen_van_cu",
@@ -2041,11 +2047,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:01:05.889Z",
-    "closedAt": "2026-07-08T06:01:05.889Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_lotteria_vincom_xuan_khanh",
@@ -2071,11 +2075,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:02:10.970Z",
-    "closedAt": "2026-07-08T06:02:10.970Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_pizza_y_galaxy",
@@ -2101,11 +2103,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:03:15.217Z",
-    "closedAt": "2026-07-08T06:03:15.217Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_buffet_109",
@@ -2131,11 +2131,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:04:20.163Z",
-    "closedAt": "2026-07-08T06:04:20.163Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_kushin_bbq_le_loi",
@@ -2161,11 +2159,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:05:24.611Z",
-    "closedAt": "2026-07-08T06:05:24.611Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_banh_mochi_sweets_can_tho",
@@ -2191,11 +2187,9 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T06:06:28.971Z",
-    "closedAt": "2026-07-08T06:06:28.971Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bot_bakery",
@@ -2217,14 +2211,10 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bot-bakery",
     "dishNames": [
-      "Bánh mì dẻo kem tiramisu",
-      "Phô mai chảy",
-      "Cuộn xúc xích chấm sốt",
-      "Cua phô mai",
-      "COMBO siêu bánh mì",
-      "Set mix mini",
-      "Su kem vani & matcha",
-      "Su dai Singapore"
+      "Bánh Xèo Miền Tây Khổng Lồ Bột Bakery",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bột Bakery",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.738Z",
     "menuUpdatedAt": "2026-07-02T14:17:32.141Z",
@@ -2252,77 +2242,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/thuong-hieu/diep-thi-food-com-ga-mi-xao-bo?c=can-tho",
     "dishNames": [
-      "Combo Cơm gà sốt chua ngọt + Nước Ngọt SPVB",
-      "Combo Cơm Bò Thăn Mềm Xào Hành Tây + Nước ngọt SPVB",
-      "Combo Cơm gà sốt chua ngọt + Nước Ngọt SPVB",
-      "Combo Cơm Bò Thăn Mềm Xào Hành Tây + Nước ngọt SPVB",
-      "Combo Nui Xào Bò Thăn Mềm + Canh Rong Biển + Nước ngọt SPVB",
-      "Cơm gà mix vị + Súp Gà Hầm + Pepsi",
-      "Combo 2 Cơm Gà Sốt Chua Ngọt + 2 Pepsi",
-      "Cơm gà mix vị phô mai - chua ngọt",
-      "Cơm gà sốt chua ngọt",
-      "Cơm gà xù sốt phô mai",
-      "Cơm Gà Mắm Tỏi - Cơm Chiên",
-      "Cơm Gà Mắm Tỏi - Cơm Trắng",
-      "Cơm Bò Thăn Mềm Xào Hành Tây",
-      "Cơm Bò Sốt Tiêu Đen",
-      "Cơm Chiên Bò Hành Tây",
-      "Cơm Gà Xù",
-      "Gà Xù Sốt Cay (Hộp Trắng)",
-      "Cơm Gà Mắm Cay - Cơm Chiên",
-      "Cơm Gà Mắm Cay - Cơm Trắng",
-      "Cơm Gà Sốt Mắm Cay - Cơm Chiên",
-      "Cơm Gà Mắm Cay - Cơm Trắng",
-      "Gà xù sốt cay (Hộp Trắng)",
-      "2 Combo Cơm Gà Xù Sốt Cay + Súp Gà + 2 Pepsi",
-      "Nui Xào Bò",
-      "Mì Xào Bò",
-      "Salad Rau Củ Sốt Mayo",
-      "Gà Xù + Salad Rau Củ Sốt Mayo",
-      "Salad rau củ sốt dầu giấm",
-      "Súp Gà Hầm Rau Củ",
-      "Canh Rong Biển Thịt",
-      "Trà Tắc",
-      "Coca 390ml + Tẩy Đá",
-      "Cơm Gà Xù + Nước Ngọt",
-      "Mì Xào Bò + Nước Ngọt",
-      "Gà Xù Salad Mayo + Nước Ngọt",
-      "Cơm Bò Xào Hành Tây + Nước Ngọt",
-      "Combo 2 Cơm Gà Mix Vị + 2 Súp Gà Hầm",
-      "Cơm Chiên Thêm",
-      "Trứng Ốp La",
-      "Cơm Trắng Thêm",
-      "Gà Xù Thêm",
-      "Đùi gà mắm tỏi Thêm",
-      "Sốt phô mai thêm",
-      "Bò Sốt Tiêu Đen Thêm",
-      "Mì Xào Thêm",
-      "Sốt chua ngọt thêm",
-      "Nui Xào Thêm",
-      "Bò Xào Hành Tây Thêm",
-      "Nước Ngọt Ly",
-      "Sốt mix vị thêm",
-      "Cơm chiên Gà Mắm Tỏi + Canh rong biển + Nước Ngọt",
-      "Cơm bò xào hành tây + Canh Rong Biển + Nước ngọt",
-      "Cơm Gà Mix + Súp Gà (Ly) + Nước Ngọt",
-      "Combo 6 Món Gà Mắm Tỏi",
-      "Salad rau củ sốt dầu giấm",
-      "Gà xù sốt cay (Hộp Trắng)",
-      "Salad rau củ sốt dầu giấm",
-      "Salad rau củ sốt dầu giấm",
-      "COMBO Tiết Kiệm (Cơm Gà Mix +  Súp Gà)",
-      "Gà Xù Sốt Cay (Hộp Trắng)",
-      "Combo 3 Cơm Chiên Đùi Gà Mắm Tỏi + 3 Súp gà Hầm + 3 Pepsi",
-      "Combo 3 Cơm Chiên Đùi Gà Mắm Tỏi + 3 Súp gà Hầm + 3 Pepsi",
-      "Cơm Chiên Đùi Gà Mắm Tỏi +  Súp gà Hầm + Pepsi",
-      "Cơm gà mix vị + Súp gà Hầm + Pepsi",
-      "Pepsi",
-      "2 Pepsi",
-      "2 Cơm gà mix vị + 2 Súp Gà Hầm + 2 chai Pepsi",
-      "Cơm Gà Sốt Cay + 1 Súp gà Hầm + Pepsi  390ml",
-      "Mì xào bò + Súp Gà + Pepsi 390ml",
-      "1 Pepsi chai",
-      "Pepsi"
+      "Cơm Gà Xối Mỡ Da Giòn (Đùi) Diệp Thị Food",
+      "Cơm Gà Hải Nam Luộc Diệp Thị Food",
+      "Cơm Gà Quay Chảo Sốt Mật Ong",
+      "Cơm Gà Xé Phay Hành Tây",
+      "Canh Gà Lá Giang Lá Chanh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.740Z",
     "menuUpdatedAt": "2026-07-02T14:17:48.244Z",
@@ -2350,61 +2274,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-ga-dot-hoang-ty-be-van-dan",
     "dishNames": [
-      "CƠM GÀ ĐỐT Ô THUM",
-      "CƠM GÀ MẮM TỎI",
-      "CƠM GÀ CHIÊN MUỐI ỚT",
-      "CƠM GÀ HẤP THẢO MỘC",
-      "Cơm gà sốt ME CAY",
-      "CƠM GÀ SỐT THÁI",
-      "Cơm gà sốt ME MÈ",
-      "CƠM GÀ SỐT CHAO CAY",
-      "CƠM GÀ SỐT CAY",
-      "CƠM BA RỌI MUỐI SẢ BÌ TRỨNG HỘP XỐP ",
-      "CƠM NẠC HEO CHIÊN BÌ TRỨNG ( Phần KM đồ ăn hơi ít",
-      "CƠM CỐT LẾT TẨM MẬT ONG",
-      "CƠM BA RỌI MUỐI SẢ",
-      "CƠM CỐT LẾT TẨM VỊ CHAO",
-      "CƠM CỐT LẾT SỐT CAY",
-      "CƠM CỐT LẾT SỐT ME",
-      "CƠM + CANH RONG BIỂN THỊT",
-      "CƠM GÀ ĐỐT Ô THUM",
-      "CƠM GÀ MẮM TỎI",
-      "CƠM GÀ CHIÊN MUỐI ỚT",
-      "CƠM GÀ HẤP THẢO MỘC",
-      "Cơm gà sốt ME CAY",
-      "CƠM GÀ SỐT THÁI",
-      "Cơm gà sốt ME MÈ",
-      "CƠM GÀ SỐT CHAO CAY",
-      "CƠM GÀ SỐT CAY",
-      "Cơm Chiên (Trứng)",
-      "CƠM TRỨNG CHIÊN XÚC XÍCH",
-      "CƠM CHIÊN TRỨNG + CANH RONG BIỂN",
-      "CƠM BA RỌI MUỐI SẢ BÌ TRỨNG HỘP XỐP ",
-      "CƠM NẠC HEO CHIÊN BÌ TRỨNG ( Phần KM đồ ăn hơi ít",
-      "CƠM TRẮNG TRỨNG CHIÊN SỐT CAY",
-      "\"Cơm Chiên (Trứng) + Canh rong biển \"",
-      "Cơm trắng và bì thêm",
-      "CƠM CỐT LẾT TẨM MẬT ONG",
-      "CƠM BA RỌI MUỐI SẢ",
-      "CƠM CỐT LẾT TẨM VỊ CHAO",
-      "CƠM CỐT LẾT SỐT CAY",
-      "CƠM CỐT LẾT SỐT ME",
-      "CƠM VI CÁ HỒI CHIÊN MẮM TỎI",
-      "CƠM CHẢ CÁ PHỈ THÚY SỐT MẮM TỎI",
-      "CƠM VI CÁ SỐT THÁI",
-      "CƠM VI CÁ SỐT ME",
-      "CƠM VI CÁ HỒI SỐT CAY",
-      "CƠM MỰC SỐT MẮM TỎI",
-      "CƠM MỰC SỐT THÁI",
-      "Cơm mực sốt Me",
-      "TRỨNG CHIÊN XÚC XÍCH MẮM HÀNH",
-      "CƠM + CANH RONG BIỂN THỊT",
-      "CƠM THÊM",
-      "CANH RONG BIỂN THỊT",
-      "TRỨNG CHIÊN",
-      "CANH CẢI THẢO",
-      "CANH CẢI THÌA",
-      "SÚP TRỨNG"
+      "Cơm Gà Xối Mỡ Da Giòn (Đùi) Đốt Hoàng Tỷ",
+      "Cơm Gà Hải Nam Luộc Đốt Hoàng Tỷ",
+      "Cơm Gà Quay Chảo Sốt Mật Ong",
+      "Cơm Gà Xé Phay Hành Tây",
+      "Canh Gà Lá Giang Lá Chanh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.741Z",
     "menuUpdatedAt": "2026-07-02T14:18:04.790Z",
@@ -2439,7 +2313,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.741Z",
     "menuUpdatedAt": "2026-07-08T06:38:27.636Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_phan_tuan_anh",
@@ -2461,30 +2336,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-phan-tuan-anh",
     "dishNames": [
-      "Canh chua cá ba sa",
-      "Canh nấm thịt bằm",
-      "Canh khổ qua",
-      "Canh cải thịt bằm",
-      "Canh rau tập tàn tép",
-      "Cơm sườn ram mặn",
-      "Cơm thịt xào mắm ruốc",
-      "Cơm bò lúc lắc",
-      "Cơm thịt kho trứng",
-      "Cơm thịt kho đậu hũ",
-      "Cơm cá ngừ kho khóm (thơm)",
-      "Cơm gà sốt tỏi ớt",
-      "Cơm cá ba sa kho tiêu",
-      "Cơm gà xào mặn",
-      "Cơm ếch kho mặn ngọt",
-      "Cơm thịt kho tiêu",
-      "Cơm gà nấu nấm",
-      "Cơm gà chiên nước mắm",
-      "Cơm bò xào sả ớt",
-      "Cơm cá trê chiên",
-      "Cơm rang cá mặn",
-      "Cơm thịt xào khóm (thơm)",
-      "Cơm gà chiên sả ớt",
-      "Cơm bò xào thập cẩm"
+      "Cơm Chiên Dương Châu Cơm Phần Tuấn Anh Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Phần Tuấn Anh",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.744Z",
     "menuUpdatedAt": "2026-07-02T14:18:39.374Z",
@@ -2532,10 +2388,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.749Z",
     "menuUpdatedAt": "2026-07-08T06:39:08.970Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:39:08.970Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_dau_mam_tom_co_huong_banh_bach_tuoc_va_banh_ca",
@@ -2626,7 +2480,8 @@
       "1 Bánh Bạch Tuộc Phổ Thông (5v) + 1 Coca-Cola"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.751Z",
-    "menuUpdatedAt": "2026-07-08T05:51:59.280Z"
+    "menuUpdatedAt": "2026-07-08T05:51:59.280Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_xao_cha_gio_tieu_39_truong_dinh",
@@ -2666,10 +2521,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.756Z",
     "menuUpdatedAt": "2026-07-08T05:49:52.621Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T05:49:52.621Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_minhi_mi_tron_an_vat",
@@ -2698,7 +2551,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.757Z",
     "menuUpdatedAt": "2026-07-08T06:39:49.796Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_mi_cay_chay_phat_tai_2",
@@ -2751,7 +2605,8 @@
       "Lẩu kim chi 70(1  goi mỳ)"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.758Z",
-    "menuUpdatedAt": "2026-07-08T05:51:16.610Z"
+    "menuUpdatedAt": "2026-07-08T05:51:16.610Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tik_tak_mi_cay_tra_sua",
@@ -2773,102 +2628,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tik-tak-mi-cay-tra-sua",
     "dishNames": [
-      "Mì Cay Bò ( Đã Trụng Chín- Ăn Liền )",
-      "Mì Cay Thập Cẩm ( Đã Trụng Chín - Ăn Liền )",
-      "Mì Cay Thập Cẩm ( Mì Không Trụng )",
-      "Mì Cay Hải Sản ( Đã Trụng Chín )",
-      "Mì Cay Hải Sản ( Mì Không Trụng )",
-      "Mì Cay Bò ( Không Trụng )",
-      "Lẩu Thịt Bò",
-      "Lẩu Tok Bok Ki",
-      "Lẩu Hải Sản",
-      "Mì Ý thịt heo bằm",
-      "Mì Ý Sốt Thịt Gà bằm",
-      "Mì Ý thịt heo bằm + xúc xích",
-      "Mì Ý thịt heo bằm + hải sản",
-      "Cơm Cuộn Thập Cẩm",
-      "Cơm Cuộn Chiên Giòn",
-      "Cơm Trộn Hàn Quốc ( Thịt Bò )",
-      "Cơm Cuộn Phủ Phô Mai Đút Lò",
-      "Cơm Cuộn Chiên Giòn - Phủ Phô Mai",
-      "Cơm Trộn Hàn Quốc ( Thịt Gà Xắt Lựu )",
-      "Bò Xào Củ Hành",
-      "Cơm Chiên Dương Châu",
-      "Cơm Rang Thịt Gà Xắt Lựu",
-      "Cơm Trộn Hàn Quốc ( Thịt Bò )",
-      "Cơm Trộn Hàn Quốc ( Thịt Gà Xắt Lựu )",
-      "Trứng Cút Chiên Giòn Sốt Me",
-      "Thịt bò thêm ( Của Mì Cay )",
-      "Nấm kim châm thêm ( Của Mì Cay )",
-      "Chả cá thêm ( Của Mì Cay )",
-      "Mì gói Hàn Quốc thêm ( Của Mì Cay )",
-      "Kim chi thêm ( Của Mì Cay )",
-      "Bông cải thêm ( Của Mì Cay )",
-      "Hải sản thêm ( Của Mì Cay Hoặc Bún Thái )",
-      "Xúc xích thêm ( Của Mì Cay )",
-      "Chả cốm thêm ( Của Bún Đậu )",
-      "Thịt luộc thêm ( Của Bún Đậu )",
-      "Đậu hủ thêm ( Của Bún Đậu )",
-      "Dồi Sun Thêm ",
-      "Sữa tươi trân châu đường đen",
-      "Trà Sữa Truyền Thống",
-      "Trà đào",
-      "Trà Sữa Matcha",
-      "Trà sữa Việt Quất",
-      "Trà Sữa Bạc Hà",
-      "Trà Sữa Socola",
-      "Trà sữa phúc bồn tử",
-      "Trà Sữa Mật Ong",
-      "Trà Sữa Caramel",
-      "Trà sữa dâu",
-      "Nước Ép Dưa Hấu",
-      "Nước Ép Khóm",
-      "Nước Ép Ổi -Thơm",
-      "Nước Ép Ổi",
-      "Nước Ép Dưa Hấu - Thơm",
-      "Nước Ép Táo",
-      "Nước ép ổi - cam",
-      "Nước Ép táo - ổi",
-      "Nước Ép ổi - dưa hấu",
-      "Nước Ép táo - thơm",
-      "Hồng Trà - Mưt  Đào 🍑 - Mật Ong",
-      "Hồng Trà - Mứt Dâu Tây - Mật Ong",
-      "Lục Trà - Mứt Chanh Dây - Mật Ong",
-      "Hồng Trà - Mứt Dâu Tằm - Mật Ong",
-      "Hồng Trà - Mứt Phúc Bồn Tử",
-      "Lục Trà - Mứt Thơm - Mật Ong",
-      "Hông Trà - Mứt Táo - Mật Ong",
-      "Yaourt Việt Quất",
-      "Mojito Bạc Hà",
-      "Yaourt Dâu",
-      "Mojito Dâu",
-      "Yaourt Phúc Bồn Tử",
-      "Yaourt MatCha",
-      "Mojito Việt Quất",
-      "Mojito Chanh Dây",
-      "Yaourt Đá",
-      "Mojito Phúc Bồn Tử",
-      "Sô Đa Việt Quất",
-      "Sô Đa Dâu",
-      "Sô Đa Phúc Bồn Tử",
-      "Lip Ton Đá",
-      "Ca Cao Sữa Đá",
-      "Lipton Sữa",
-      "Lip Ton Cam",
-      "Lipton Mật Ong",
-      "Ca Cao Đá",
-      "Lipton Chanh Dây",
-      "Lipton Dâu",
-      "Lip Ton Phúc Bồn Tử",
-      "Lip Ton Việt Quất",
-      "Lon Sting",
-      "Pepsi (lon/chai)",
-      "Chai: Trà Xanh",
-      "Lon 7 Up (lon/chai)",
-      "Bò Cụng ( Thái Lan ).",
-      "Chai Ô Long",
-      "Sting  ( Lon / Chai )",
-      "Bò Cụng ( Thái Lan )"
+      "Trà Sữa Trân Châu Hoàng Kim Tik Tak",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Tik Tak",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.758Z",
     "menuUpdatedAt": "2026-07-02T14:19:27.578Z",
@@ -2922,27 +2686,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hu-tieu-mi-nhi-kieu",
     "dishNames": [
-      "Mì khô + súp thịt  (thịt, gan)",
-      "Mì khô + súp xương (xương , gan)",
-      "Mì khô + súp thập cẩm  (thịt, gan, hoành, xương)",
-      "Mì khô + súp hoành thánh (thịt, gan, hoành thánh)",
-      "Hủ tiếu mì khô + súp thịt  (thịt, gan)",
-      "Hủ tiếu mì khô + súp thập cẩm  (thịt, gan, hoành, xương)",
-      "Hủ tiếu mì khô + súp xương (xương , gan)",
-      "Hủ tiếu mì khô + súp hoành thánh  (thịt, gan, hoành thánh)",
-      "Hoành thánh",
-      "Mì xương",
-      "Mì thập cẩm",
-      "Mì thịt",
-      "Mì hoành",
-      "Mì hoành xương",
-      "Hoành thánh thêm",
-      "Bánh thêm",
-      "Xương thêm",
-      "Thịt gan thêm",
-      "Thịt, gan thêm",
-      "Hủ tiếu xương",
-      "Hủ tiếu thịt"
+      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Mì Nhị Kiều",
+      "Hủ Tiếu Nam Vang Khô Trộn Sốt Mì Nhị Kiều",
+      "Hủ Tiếu Hoành Thánh Xá Xíu",
+      "Xương Ống Hầm Mềm Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.763Z",
     "menuUpdatedAt": "2026-07-02T14:20:23.809Z",
@@ -2970,18 +2718,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mat-troi-do-mi-cay-mi-tron",
     "dishNames": [
-      "Mì cay thập cẩm 55",
-      "Mì cay hải sản 50",
-      "Mì cay bò 50",
-      "Mì cay xúc xích chả 45",
-      "Mì cay bò + trà chanh ",
-      "Mì cay thập cẩm + trà chanh ",
-      "Mì cay xúc xích chả + trà chanh ",
-      "Mì cay hải sản + trà chanh ",
-      "Mì sốt cay thập cẩm 50",
-      "Mì sốt cay bò",
-      "Sốt cay hải sản 45",
-      "Mì sốt cay xúc xích chả 40"
+      "Mì Cay Thập Cẩm 7 Cấp Độ Mặt Trời Đỏ",
+      "Mì Xào Giòn Hải Sản Mặt Trời Đỏ Đặc Biệt",
+      "Hủ Tiếu Gõ Khô Trộn Tỏi Phi",
+      "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
+      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.763Z",
     "menuUpdatedAt": "2026-07-02T14:20:39.839Z",
@@ -3009,66 +2750,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/at-binh-banh-mi-coffe-to-go",
     "dishNames": [
-      "Bánh mì pate gà",
-      "Bánh mì pate trứng ốp la",
-      "Bánh mì pate thịt nguội",
-      "Bánh mì pate - gà - thịt nguội",
-      "Sandwich jambon - fomai- cà chua",
-      "Sandwich jambon-fomai-pate-gà-cà chua",
-      "Bánh mì gà trứng",
-      "Sandwich trứng-fomai-cà chua",
-      "Bánh mì  trứng ốp la",
-      "Khoai tây chiên (French fries)",
-      "Sandwich cá ngừ-sốt mayonaise",
-      "Bánh mì bò, phô mai, salad,  cà chua",
-      "Sandwich gà - fomai - cà chua",
-      "Sandwich-jambon-pate-gà-cà chua",
-      "Bánh mì chay phô mai",
-      "Bánh mì trứng thịt nguội",
-      "Sandwich trứng - cà chua",
-      "Bánh mì bò, salad, cà chua",
-      "Sandwich pate - gà - cà chua",
-      "Bánh mì gà thịt nguội",
-      "Bánh mì cá , sốt mayonaise",
-      "Sandwich jambon - pate - cà chua",
-      "Sandwich jambon-salad-cà chua",
-      "Sandwich fomai-cà chua",
-      "Bánh mì Hamberger trứng ốp la",
-      "Cafe sữa đá",
-      "Cafe sữa đá đặc biệt",
-      "Cafe đá",
-      "Nước ép cam",
-      "Cacao sữa đá",
-      "Nước ép thơm",
-      "Lipton sữa",
-      "Nước ép dưa hấu",
-      "Nước ép ổi",
-      "Cafe sữa đá xay",
-      "Lipoton đá",
-      "Milo sữa đá đặc biệt",
-      "Milo sữa đá",
-      "Nước ép táo",
-      "Coca lon lạnh 320ml",
-      "Cacao sữa đá đặc biệt",
-      "Nước ép cam sữa / mật ong",
-      "Nước ép chanh dây",
-      "Nước Artichaut đỏ",
-      "Nước ép cà rốt",
-      "Sinh tố mãng cầu",
-      "Lipton sữa đá xay",
-      "Sinh tố dâu",
-      "Sinh tố cam",
-      "Đá chanh tươi",
-      "Yaourt đá",
-      "Chanh muối",
-      "Sữa tươi",
-      "Nước ép cà chua",
-      "Sting  dâu",
-      "Hamburger bò-trứng-fomai-salad-cà chua",
-      "Hamburger gà-sốt mayonaise",
-      "Hamburger bò-salad-cà chua",
-      "Ổ bánh Gateau-flan (lớn)",
-      "Ổ bánh Gateau-flan (size trung)"
+      "Bánh Mì Heo Quay Giòn Bì AT. Bình Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi AT. Bình",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.765Z",
     "menuUpdatedAt": "2026-07-02T14:20:55.819Z",
@@ -3169,7 +2855,8 @@
       "Nuoc ngot"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.766Z",
-    "menuUpdatedAt": "2026-07-08T05:49:09.910Z"
+    "menuUpdatedAt": "2026-07-08T05:49:09.910Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_chao_dinh_duong_cay_thi_duong_3_thang_2",
@@ -3191,44 +2878,10 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chao-dinh-duong-cay-thi-duong-3-thang-2",
     "dishNames": [
-      "Cháo thịt heo phần đặc biệt",
-      "Cháo cá lóc phần đặc biệt",
-      "Cháo bồ câu đậu xanh phần đặc biệt",
-      "Cháo óc heo phần đặc biệt",
-      "Cháo lươn đậu xanh phần đặc biệt",
-      "Cháo cua phần đặc biệt",
-      "Cháo thịt bò phần đặc biệt",
-      "Cháo gà ác đậu xanh phần đặc biệt",
-      "Cháo tôm phần đặc biệt",
-      "Cháo bồ câu đậu xanh phần lớn",
-      "Cháo lươn đậu xanh phần lớn",
-      "Cháo Cua Phần Lớn",
-      "Cháo lươn đậu xanh phần nhỏ",
-      "Cháo bò phô mai phần nhỏ",
-      "Cháo cá lóc phần lớn",
-      "Cháo Thịt Bò Phần Lớn",
-      "Cháo gà ác đậu xanh phần lớn",
-      "Cháo tôm phần lớn",
-      "Cháo bò phô mai phần đặc biệt",
-      "Cháo cá chẽm khoai môn phần đặc biệt",
-      "Cháo thịt heo phần lớn",
-      "Cháo óc heo phần nhỏ",
-      "Cháo cá hồi phần đặc biệt",
-      "Cháo gà ác đậu xanh phần nhỏ",
-      "Cháo bò phô mai phần lớn",
-      "Cháo tôm phần nhỏ",
-      "Cháo thịt bò phần nhỏ",
-      "Cháo Thịt Bò Phần Đặc Biệt",
-      "Cháo cá lóc phần nhỏ",
-      "Cháo óc heo phần lớn",
-      "Cháo cá hồi phần nhỏ",
-      "Cháo cá chẽm khoai môn phần lớn",
-      "Cháo ếch phần đặc biệt",
-      "Cháo ếch phần nhỏ",
-      "Cháo cá chẽm khoai môn phần nhỏ",
-      "Cháo cá hồi phần lớn",
-      "Cháo ếch phần lớn",
-      "Cháo Cá Lóc Phần Lớn"
+      "Bánh Xèo Miền Tây Khổng Lồ Cháo Dinh Dưỡng Cây Thị",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Dinh Dưỡng Cây Thị",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.774Z",
     "menuUpdatedAt": "2026-07-02T14:21:14.162Z",
@@ -3256,72 +2909,10 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chao-so-108",
     "dishNames": [
-      "Cháo thập cẩm 3 Món(sò -bò -mực ) + 1 Pepsi",
-      "Cháo sò + 1 Pepsi",
-      "Cháo bò + 1 Pepsi",
-      "1 Pepsico lẻ",
-      "Cháo thập cẩm 3 Món(sò -bò -mực ) + 1 Coca",
-      "Cháo sò + 1 Coca",
-      "Cháo bò + 1 Coca",
-      "02 Cháo sò + 02 Coca",
-      "01 Coca-Cola chai",
-      "Gỏi cuốn(2c)",
-      "Cháo Thập Cẩm 5 Món ( sò- Bò- Mực -hàu -sò điệp)",
-      "Gỏi thái truyền thống",
-      "Gỏi thái Hải sản",
-      "Cháo sò",
-      "Cháo thập cẩm 3 Món(sò -bò -mực )",
-      "Cháo bò",
-      "Thập Cẩm 4 Món ( sò -bò-mực-hàu)",
-      "Cháo sò đặc biệt",
-      "Cháo hàu sữa",
-      "Cháo sò hàu",
-      "Cháo hàu sữa đặc biệt",
-      "Cháo sò bò",
-      "Cháo sò mực",
-      "Cháo mực",
-      "Cháo sò bò -đặc biệt",
-      "Cháo bò đặc biệt",
-      "Cháo sò điệp",
-      "Cháo mực đặc biệt",
-      "Cháo sò điệp đặc biệt",
-      "Hàu sữa nướng phomai",
-      "Hàu sữa nướng mỡ hành",
-      "Sò điệp nướng mỡ hành",
-      "Sò điệp nướng phô mai",
-      "Sò huyết rang me",
-      "Sò huyết rang muối",
-      "ỐC MÓNG TAY XÀO ME",
-      "Sò Huyết Xào Tỏi",
-      "Sò huyết xào rau răm",
-      "Sò huyết lacoste",
-      "Cút lộn xào me",
-      "Cút lộn chiên",
-      "Cút lộn luộc",
-      "Hột vịt lộn",
-      "Hột vịt lộn xào me",
-      "Hột vịt lộn chiên",
-      "Yaua sữa tươi 100%",
-      "Trà Tắc",
-      "Trà Đá Đường",
-      "Nước ngọt lon",
-      "Bánh quẩy",
-      "Sò thêm",
-      "Hàu thêm",
-      "Bò thêm",
-      "Mực thêm",
-      "Sò điệp thêm",
-      "Dụng cụ ăn uống",
-      "Cafe sữa",
-      "Cafe đá",
-      "LẨU CHÁO THẬP CẨM 5 MÓN(sò,bò,mực,hàu, sò điệp)",
-      "LẨU CHÁO SÒ HUYẾT",
-      "Lẩu Cháo 2 món(sò,bò,mực,hàu,sò điệp)tuỳ chọn",
-      "Lẩu Cháo 3 món (sò,bò,mực,hàu,sò điệp)tuỳ chọn",
-      "Lẩu Cháo 4 món (sò,bò,mực,hàu,sò điệp) tuỳ chọn",
-      "Cháo thập cẩm 3 Món(sò -bò -mực ) + 1 Coca",
-      "Cháo sò + 1 Coca",
-      "Cháo bò + 1 Coca"
+      "Bánh Xèo Miền Tây Khổng Lồ Cháo Sò 108",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Sò 108",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.774Z",
     "menuUpdatedAt": "2026-07-02T14:21:30.855Z",
@@ -3359,11 +2950,9 @@
       "Bún mắm nêm"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.779Z",
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T05:53:22.840Z",
-    "closedAt": "2026-07-08T05:53:22.840Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:30 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_mang_chao_goi_vit_xiem_cafe_pha_may_nuoc_ep_trai_cay_69",
@@ -3421,7 +3010,8 @@
       "Cánh vịt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.780Z",
-    "menuUpdatedAt": "2026-07-08T05:54:05.137Z"
+    "menuUpdatedAt": "2026-07-08T05:54:05.137Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_chao_mi_tron_ech_mr_huu_1990",
@@ -3467,10 +3057,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.781Z",
     "menuUpdatedAt": "2026-07-08T05:50:33.606Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T05:50:33.606Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_chao_ech_singapore_54_tran_viet_chau",
@@ -3492,16 +3080,10 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chao-ech-singapore-54-tran-viet-chau",
     "dishNames": [
-      "Cháo ếch Singapore",
-      "Kem chuối cốt dừa",
-      "Cháo ếch 2 con + 1 Ly sâm",
-      "Cháo ếch + 1 Ly sâm",
-      "Cháo Ếch Singapore",
-      "Cháo Ếch Singapore + chay sâm",
-      "Sâm lạnh",
-      "Redbull Thái",
-      "Sting",
-      "7up"
+      "Bánh Xèo Miền Tây Khổng Lồ Cháo Ếch Singapore 54",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Ếch Singapore 54",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.781Z",
     "menuUpdatedAt": "2026-07-02T14:21:48.305Z",
@@ -3564,11 +3146,8 @@
       "Bò vòng bòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.783Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-07T21:55:44.743Z",
-    "closedAt": "2026-07-07T21:55:44.742Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:30 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-07T21:55:44.743Z"
   },
   {
     "id": "r_ct_xoi_ga_my_duc_phan_chu_trinh",
@@ -3719,7 +3298,8 @@
       "Cà Phê Sữa Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.792Z",
-    "menuUpdatedAt": "2026-07-08T06:07:11.364Z"
+    "menuUpdatedAt": "2026-07-08T06:07:11.364Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_an_sau_lap_banh_canh_ca_loc_hu_tieu_muc_chao_long",
@@ -3781,7 +3361,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.794Z",
     "menuUpdatedAt": "2026-07-08T06:07:52.671Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_ca_ro_342",
@@ -3997,7 +3578,8 @@
       "Gỏi đu đủ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.806Z",
-    "menuUpdatedAt": "2026-07-08T06:08:34.520Z"
+    "menuUpdatedAt": "2026-07-08T06:08:34.520Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bao_khang_banh_xeo_hai_san_rau_rung",
@@ -4190,7 +3772,8 @@
       "Lạp xưởng tươi Cai lậy 500gr"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.811Z",
-    "menuUpdatedAt": "2026-07-08T06:09:15.496Z"
+    "menuUpdatedAt": "2026-07-08T06:09:15.496Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_voi_ham_an_banh_trang_dac_san_shop_online",
@@ -4273,7 +3856,8 @@
       "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.825Z",
-    "menuUpdatedAt": "2026-07-08T06:09:58.003Z"
+    "menuUpdatedAt": "2026-07-08T06:09:58.003Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_banh_beo_co_tuyet",
@@ -4304,7 +3888,8 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.826Z",
-    "menuUpdatedAt": "2026-07-08T06:10:40.154Z"
+    "menuUpdatedAt": "2026-07-08T06:10:40.154Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_banh_beo_chen_banh_khot",
@@ -4398,7 +3983,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.833Z",
     "menuUpdatedAt": "2026-07-08T06:11:22.049Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_tam_suon_quay_lu_hang_duong_so_23",
@@ -4507,7 +4093,8 @@
       "Canh Khổ Qua Nhồi Thịt Heo"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.841Z",
-    "menuUpdatedAt": "2026-07-08T06:12:04.374Z"
+    "menuUpdatedAt": "2026-07-08T06:12:04.374Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_ga_thanh_phuong_89_cach_mang_thang_8",
@@ -4535,7 +4122,8 @@
       "Canh Gà Lá Giang Lá Chanh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.845Z",
-    "menuUpdatedAt": "2026-07-08T06:12:45.861Z"
+    "menuUpdatedAt": "2026-07-08T06:12:45.861Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_chien_duong_chau_xinh_hem_51_ba_thang_hai",
@@ -4749,7 +4337,8 @@
       "Canh Gà Lá Giang Lá Chanh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.861Z",
-    "menuUpdatedAt": "2026-07-08T06:13:26.907Z"
+    "menuUpdatedAt": "2026-07-08T06:13:26.907Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_coffee_sport_2_ca_phe_com_van_phong_tran_hung_dao",
@@ -4777,7 +4366,8 @@
       "Canh Chua Cá Lóc Nam Bộ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.862Z",
-    "menuUpdatedAt": "2026-07-08T06:14:08.546Z"
+    "menuUpdatedAt": "2026-07-08T06:14:08.546Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_the_gardens_ca_phe_am_thuc",
@@ -4930,10 +4520,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.874Z",
     "menuUpdatedAt": "2026-07-08T06:14:49.546Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:14:49.546Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_rieu_ba_nguyen_mau_than",
@@ -5150,10 +4738,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.876Z",
     "menuUpdatedAt": "2026-07-08T06:15:30.449Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:15:30.449Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 17:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_cha_ha_noi_a_van_khu_vuc_6",
@@ -5206,7 +4792,8 @@
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.884Z",
-    "menuUpdatedAt": "2026-07-08T06:16:12.323Z"
+    "menuUpdatedAt": "2026-07-08T06:16:12.323Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_hue_vien_bun_mam",
@@ -5544,10 +5131,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.904Z",
     "menuUpdatedAt": "2026-07-08T06:16:53.436Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:16:53.436Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 15:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_pho_bo_kho_truong_dinh",
@@ -5788,7 +5373,8 @@
       "Combo Gia Đình"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.926Z",
-    "menuUpdatedAt": "2026-07-08T06:17:35.096Z"
+    "menuUpdatedAt": "2026-07-08T06:17:35.096Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_pizza_sai_gon_nguyen_van_linh",
@@ -5958,7 +5544,8 @@
       "Phở Gà"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.935Z",
-    "menuUpdatedAt": "2026-07-08T06:18:16.419Z"
+    "menuUpdatedAt": "2026-07-08T06:18:16.419Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_ga_ran_mr_thinh",
@@ -6250,7 +5837,8 @@
       "Bộ ghim bấm"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.944Z",
-    "menuUpdatedAt": "2026-07-08T06:18:58.512Z"
+    "menuUpdatedAt": "2026-07-08T06:18:58.512Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_cop_s_tea_an_vat",
@@ -6278,7 +5866,8 @@
       "Trà Tắc Hạt Chia Giải Khát"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.946Z",
-    "menuUpdatedAt": "2026-07-08T06:19:41.189Z"
+    "menuUpdatedAt": "2026-07-08T06:19:41.189Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_banh_dung_anh_banh_kem_banh_ngot_nguyen_van_cu_noi_dai",
@@ -6307,10 +5896,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.946Z",
     "menuUpdatedAt": "2026-07-08T06:20:23.845Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:20:23.845Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 07:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_sushi_kimpap_nguyen_viet_hong",
@@ -6449,10 +6036,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.958Z",
     "menuUpdatedAt": "2026-07-08T06:21:04.911Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:21:04.911Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 13:45 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bep_hoa_tam_bun_ca_ri_bun_mang_vit_xiem",
@@ -6512,7 +6097,8 @@
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.975Z",
-    "menuUpdatedAt": "2026-07-08T06:21:46.847Z"
+    "menuUpdatedAt": "2026-07-08T06:21:46.847Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bun_banh_hoi_heo_quay_thang_dau",
@@ -6751,7 +6337,8 @@
       "Phở Bò Chín"
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.999Z",
-    "menuUpdatedAt": "2026-07-08T06:22:29.601Z"
+    "menuUpdatedAt": "2026-07-08T06:22:29.601Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_oc_chao_36_mon",
@@ -7097,7 +6684,8 @@
       "Cơm Tấm Bì Chả"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.024Z",
-    "menuUpdatedAt": "2026-07-08T06:23:11.794Z"
+    "menuUpdatedAt": "2026-07-08T06:23:11.794Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_com_tam_thit_nuong_kim_tien_phuong_beo",
@@ -7129,11 +6717,8 @@
       "Cơm ba rọi nướng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.025Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-07T22:06:21.612Z",
-    "closedAt": "2026-07-07T22:06:21.612Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-07T22:06:21.612Z"
   },
   {
     "id": "r_ct_quan_com_viet_ngo_si_lien",
@@ -7165,7 +6750,8 @@
       "Cơm Gà Xối Mỡ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.027Z",
-    "menuUpdatedAt": "2026-07-08T06:23:52.890Z"
+    "menuUpdatedAt": "2026-07-08T06:23:52.890Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_com_tan_thanh_tran_phu",
@@ -7463,7 +7049,8 @@
       "Phở Bò Tái"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.042Z",
-    "menuUpdatedAt": "2026-07-08T06:24:35.742Z"
+    "menuUpdatedAt": "2026-07-08T06:24:35.742Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_muoi_be_quan_an_gia_dinh",
@@ -7587,10 +7174,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.055Z",
     "menuUpdatedAt": "2026-07-08T06:25:17.116Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:25:17.116Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_kim_tram_bo_la_lot_banh_hoi_nem_nuong_lau_thai_kdc_cbgv_dhct",
@@ -8018,7 +7603,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.082Z",
     "menuUpdatedAt": "2026-07-08T06:25:58.250Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiz_taz_cafe",
@@ -8106,7 +7692,8 @@
       "Sữa Tươi Trân Châu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.086Z",
-    "menuUpdatedAt": "2026-07-08T06:26:39.815Z"
+    "menuUpdatedAt": "2026-07-08T06:26:39.815Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tra_sua_quindy_nguyen_viet_hong",
@@ -8396,7 +7983,8 @@
       "Bánh gạo lắc phomai"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.086Z",
-    "menuUpdatedAt": "2026-07-06T04:33:57.490Z"
+    "menuUpdatedAt": "2026-07-06T04:33:57.490Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tra_sua_bobapop_xo_viet_nghe_tinh_can_tho",
@@ -8681,7 +8269,8 @@
       "Hủ Tiếu Nam Vang"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.098Z",
-    "menuUpdatedAt": "2026-07-08T06:27:22.348Z"
+    "menuUpdatedAt": "2026-07-08T06:27:22.348Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nuoc_ep_sinh_to_116_nguyen_van_cu_noi_dai",
@@ -8846,7 +8435,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.103Z",
     "menuUpdatedAt": "2026-07-08T06:28:05.181Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bua_an_dinh_duong_sinh_to_nuoc_ep_268",
@@ -9353,7 +8943,8 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.113Z",
-    "menuUpdatedAt": "2026-07-08T06:28:46.382Z"
+    "menuUpdatedAt": "2026-07-08T06:28:46.382Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_coffee_sieu_toc_matcha_latte_sinh_to_nuoc_ep",
@@ -9391,7 +8982,8 @@
       "Matcha Latte"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.115Z",
-    "menuUpdatedAt": "2026-07-08T06:29:27.727Z"
+    "menuUpdatedAt": "2026-07-08T06:29:27.727Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_ruby_coffee_matcha_milk_tea_3_thang_2",
@@ -9424,7 +9016,8 @@
       "Croissant"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.118Z",
-    "menuUpdatedAt": "2026-07-08T06:30:08.629Z"
+    "menuUpdatedAt": "2026-07-08T06:30:08.629Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_ca_phe_ngoc_chan",
@@ -9717,7 +9310,8 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.125Z",
-    "menuUpdatedAt": "2026-07-08T06:30:50.202Z"
+    "menuUpdatedAt": "2026-07-08T06:30:50.202Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_lip_coffee_tra_trai_cay_kem_mix_sua_chua_cai_rang",
@@ -10006,7 +9600,8 @@
       "Mì Xào Bò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.150Z",
-    "menuUpdatedAt": "2026-07-08T06:31:31.305Z"
+    "menuUpdatedAt": "2026-07-08T06:31:31.305Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tra_chanh_con_ca",
@@ -11025,7 +10620,8 @@
       "Bún Bò Huế"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.179Z",
-    "menuUpdatedAt": "2026-07-08T06:32:13.717Z"
+    "menuUpdatedAt": "2026-07-08T06:32:13.717Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_the_cake_fairy_banh_ngot_nguyen_van_linh",
@@ -11059,11 +10655,9 @@
       "Panna cotta vị dâu 100ml"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.179Z",
-    "isClosed": true,
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-08T05:38:21.813Z",
-    "closedAt": "2026-07-08T05:38:21.813Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 14/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_banh_kem_deli_baker",
@@ -11148,7 +10742,8 @@
       "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.188Z",
-    "menuUpdatedAt": "2026-07-08T06:32:55.161Z"
+    "menuUpdatedAt": "2026-07-08T06:32:55.161Z",
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_nho_dzien_cakes",
@@ -11223,7 +10818,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.190Z",
     "menuUpdatedAt": "2026-07-08T06:33:37.365Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_mini_quan_an_vat",
@@ -11380,10 +10976,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.199Z",
     "menuUpdatedAt": "2026-07-08T06:34:18.406Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:34:18.406Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_an_vat_xinh_xan_do_an_nuoc_uong_khu_vuc_6",
@@ -11516,7 +11110,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.202Z",
     "menuUpdatedAt": "2026-07-08T06:35:00.419Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nguyen_vu_icafe_com_trua_duong_3_thang_2",
@@ -11606,10 +11201,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.205Z",
     "menuUpdatedAt": "2026-07-08T06:35:41.764Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:35:41.764Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 15:30 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_bep_nha_hima_ha_cao_tra_trai_cay_tuoi_huynh_cuong",
@@ -11809,10 +11402,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.216Z",
     "menuUpdatedAt": "2026-07-08T06:36:23.306Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:36:23.306Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 17:30 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_nem_nuong_hai_van_de_tham",
@@ -12573,26 +12164,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-a-map",
     "dishNames": [
-      "Sữa tươi trân châu đường đen",
-      "Trà đào",
-      "Soda Blue Sea",
-      "Soda chanh dây",
-      "Trà sữa phô mai",
-      "Trà sữa socola",
-      "Trà sữa Thái xanh",
-      "Trà sữa Phúc Long",
-      "Sữa tươi ca cao trân châu đường đen macchiato",
-      "Sữa tươi trân châu đường đen macchiato",
-      "Trà đào macchiato",
-      "Hồng trà macchiato",
-      "Trà sữa macchiato"
+      "Trà Sữa Truyền Thống",
+      "Trà Sữa Socola",
+      "Kem Cheese Trà Xanh",
+      "Topping Pudding",
+      "Trà Vải",
+      "Yakult Đào",
+      "Trà Sữa Hokkaido",
+      "Topping Trân Châu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.269Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T06:43:19.233Z",
-    "closedAt": "2026-07-08T06:43:19.233Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T06:43:19.233Z"
   },
   {
     "id": "r_ct_ngoc_loan_banh_bot_loc_hue",
@@ -12640,14 +12223,19 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-1988-tran-ngoc-que",
     "dishNames": [
-      "Bánh Mì Chả Bò Đà Nẵng"
+      "Bánh Mì Gà Xé",
+      "Bánh Mì Chả Cá",
+      "Bánh Mì Ốp La",
+      "Bánh Mì Sốt Vang",
+      "Bánh Mì Bì Chả",
+      "Bánh Mì Bơ Tỏi",
+      "Bánh Mì Thịt",
+      "Nước Mía",
+      "Xôi Mặn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.276Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T06:44:00.745Z",
-    "closedAt": "2026-07-08T06:44:00.745Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T06:44:00.745Z"
   },
   {
     "id": "r_ct_sai_gon_bo_lo_banh_mi",
@@ -12707,7 +12295,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.279Z",
     "menuUpdatedAt": "2026-07-08T06:44:43.410Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_lau_ran_mien_tay_tran_van_hoai",
@@ -12755,63 +12344,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/3t-food-drinks",
     "dishNames": [
-      "Hủ Tiếu - Xương heo",
-      "Mỳ ( Tươi) - Xương Heo",
-      "Mỳ - Gà",
-      "Miến - Gà",
-      "Mỳ Trộn khô  - kèm súp",
-      "Mỳ - Gà ( Mỳ Gói )",
-      "Bánh Lọt - Xương Heo",
-      "Miến Gà Trộn khô - kèm súp",
-      "Cơm trắng",
-      "Mỳ gói",
-      "Bún thêm",
-      "Mỳ tươi",
-      "Nước ép cam",
-      "Trà đường  miền Tây  đậm trà Long Phụng",
-      "Cold brew",
-      "Bạc xĩu",
-      "Đá me đậu phộng",
-      "Matcha latte",
-      "Đá dâu",
-      "Cà Phê Đen",
-      "Yogurt lắc Việt Quốc",
-      "Nước ép Táo",
-      "Cà Phê Sửa",
-      "Nước ép  ổi",
-      "Matcha latte dâu",
-      "Cacao  sửa",
-      "Cà Phê Muối",
-      "Cacao ST Trân Châu Đường đen",
-      "Sữa chua lắc đào",
-      "Trà Đào Cam Xả",
-      "Cà phê sô-cô-la",
-      "Cà phê hạnh nhân",
-      "Sửa Tươi Trân Châu Đường  Đen",
-      "Cacao",
-      "Nước ép chanh dây",
-      "Chanh muối",
-      "Sâm Dứa Sửa Sương Sáo",
-      "Soda việt quốc",
-      "Sửa  Chua Lắc Dâu",
-      "Đá Chanh",
-      "Sinh Tố mãng  Cầu",
-      "Sinh Tố Việt Quốc",
-      "Soda Dâu",
-      "Soda Đào",
-      "Milo dầm",
-      "Sinh Tố sa bo chê",
-      "Sinh Tố Dâu",
-      "Cacao muối",
-      "Cacao sửa tươi trân châu đường đen",
-      "Trà  Bí Đao sương sáo hạt chia"
+      "Cà Phê Sữa Đá",
+      "Cơm Tấm Sườn",
+      "Chả Giò",
+      "Trà Đá",
+      "Phở Bò",
+      "Gỏi Cuốn",
+      "Nước Ngọt",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.283Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T06:45:24.907Z",
-    "closedAt": "2026-07-08T06:45:24.907Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T06:45:24.907Z"
   },
   {
     "id": "r_ct_quan_vi_dieu_mien_trung_chuyen_cac_mon_mien_trung",
@@ -12859,9 +12403,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/vuong-banh-mi-cha-ca-nha-trang",
     "dishNames": [
-      "Bánh Mì Chả Cá Nha Trang",
-      "Bánh Mì Chả Cá Nha Trang (Vừa)",
-      "Chả Cá (100g)"
+      "Bánh Mì Chả Cá",
+      "Bánh Mì Bì Chả",
+      "Bánh Mì Thịt",
+      "Bánh Mì Bơ Tỏi",
+      "Nước Mía",
+      "Xôi Mặn",
+      "Bánh Mì Sốt Vang",
+      "Bánh Mì Ốp La",
+      "Bánh Mì Gà Xé"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.288Z",
     "menuUpdatedAt": "2026-07-02T14:30:01.601Z",
@@ -12889,33 +12439,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-thai-do-chung-cu-178-ba-thang-hai",
     "dishNames": [
-      "Trà Chai Thái Đỏ",
-      "Trà Chai Thái Xanh",
-      "Trà sữa Thái đỏ",
-      "Trà sữa Thái xanh",
-      "Trà sữa truyền thống",
-      "Trà sữa Khoai Môn",
-      "Trà Thái Hoa Hồng",
-      "Lục trà sữa Xoài",
-      "Trà Ôloong Đại Thiên Hương",
-      "Lục Trà Sữa Chuối",
-      "Lục Trà Sữa Dâu",
-      "Trân châu bánh bò",
-      "Trà Me Chiang Mai",
-      "Trà Sốt Tắc Thái Xanh",
-      "Trà Thái Đào",
-      "Trà Thái Vải",
-      "Trà Sốt Tắc Thái Đỏ",
-      "Trà Đào Hồng Đài",
-      "Bánh Que Sốt Kem Dẻo Cacao",
-      "Bánh Que Sốt Kem dẻo Thái đỏ",
-      "Bánh Que Sốt Kem Dẻo Matcha",
-      "Matcha Latte",
-      "Matcha La-Bana (Matcha Chuối)",
-      "Matcha Latte Dâu",
-      "Thái Xanh Latte Chuối",
-      "Thaitea La-Bana (Thái Đỏ Latte Chuối)",
-      "Matcha Latte Xoài"
+      "Cơm Tấm Sườn",
+      "Phở Bò",
+      "Trà Đá",
+      "Bún Bò Huế",
+      "Gỏi Cuốn",
+      "Cà Phê Sữa Đá",
+      "Mì Xào Bò",
+      "Chả Giò",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.290Z",
     "menuUpdatedAt": "2026-07-02T14:30:18.087Z",
@@ -12969,21 +12501,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bo-bit-tet-1102-cha-muc-kdc-metro",
     "dishNames": [
-      "Bò Bít Tết",
-      "Bò Bít Tết Trứng ",
-      "Bò Bít Tết Cá Mòi ",
-      "Bò Bít Tết ĐẶC BIỆT",
-      "Bò Lúc Lắc Nui ",
-      "Bò Lúc Lắc ",
-      "Bò Lúc Lắc Khoai Tây ",
-      "Mỳ Ý",
-      "Mì Xào Bò ",
-      "Cá Mòi ",
-      "Cá Mòi Ốp La",
-      "Bánh Mì Thêm ",
-      "Nước ngọt lon",
-      "Nước suối ",
-      "Nước ngọt ly "
+      "Hủ Tiếu Nam Vang",
+      "Cháo Lòng",
+      "Nước Ngọt",
+      "Chả Giò",
+      "Bún Bò Huế",
+      "Gỏi Cuốn",
+      "Trà Đá",
+      "Cà Phê Sữa Đá",
+      "Mì Xào Bò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.301Z",
     "menuUpdatedAt": "2026-07-02T14:31:13.097Z",
@@ -13049,7 +12575,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.305Z",
     "menuUpdatedAt": "2026-07-08T06:46:47.228Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_dau_hu_thui_dai_loan_le_hong_phong",
@@ -13071,20 +12598,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dau-hu-thui-dai-loan-le-hong-phong",
     "dishNames": [
-      "Thái đỏ",
-      "Matcha",
-      "Cá viên chiên",
-      "Đậu hũ thúi thường",
-      "Đậu hũ thúi đặc biệt",
-      "Đậu hũ thúi chua cay",
-      "Chè đài loan",
-      "Cánh , đùi gà chiên",
-      "Trứng gà thảo mộc",
-      "Trà ổi hồng ",
-      "Trà tắc cam xoài ",
-      "Trà tắc xí muội ",
-      "Trà dâu tây ",
-      "Trà đá me"
+      "Trà Đá",
+      "Cháo Lòng",
+      "Bánh Mì Thịt",
+      "Gỏi Cuốn",
+      "Cơm Tấm Sườn",
+      "Hủ Tiếu Nam Vang",
+      "Chả Giò",
+      "Phở Bò",
+      "Mì Xào Bò",
+      "Cà Phê Sữa Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.306Z",
     "menuUpdatedAt": "2026-07-02T14:32:29.247Z",
@@ -13112,50 +12635,21 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tiem-tra-pn",
     "dishNames": [
-      "Trà Sữa Khúc Bạch 700ml",
-      "Trà Sữa Truyền Thống",
-      "Trà Sữa Truyền Thống Đặc Biệt",
-      "Trà Sữa Cacao",
-      "Trà Sữa Chuối",
-      "Trà Sữa Hồng Kông",
-      "Trà Sữa Thạch Đào",
-      "TRÀ SỮA CARAMEL",
-      "Trà Lài Thanh Nhãn (1000ML)",
-      "Trà Đào 700ml",
-      "Trà Vải Bạc Hà 700ml",
-      "Trà Thanh Long Tươi 700ml",
-      "Trà Nhiệt Đới 700ml",
-      "Trà Vải 700ml",
-      "Trà Thanh Vải Nhiệt Đới 700ml",
-      "Trà Khóm Mâm Xôi 700ml",
-      "Trà Đào Quýt Bồng Bềnh 700ml",
-      "Trà Đào Ổi Hồng 700ml",
-      "Trà Ổi Hồng 700ml",
-      "Trà Mâm Xôi Chanh Leo 700ml",
-      "TRÀ MÃNG CẦU TƯƠI",
-      "Matcha Latte Sữa Gấu 1000ml",
-      "Matcha Latte 1000ml",
-      "Matcha Latte 700ml",
-      "Matcha Latte Sữa Gấu 700ml",
-      "Hồng Trà Thanh Long 700ml",
-      "Hồng Trà Dâu Tươi 700ml",
-      "Hồng Trà Full Topping 700ml",
-      "Hồng Trà Sủi Bọt 700ml",
-      "SODA ỔI HỒNG",
-      "SODA DÂU TƯƠI",
-      "SODA CAM ĐÀO",
-      "Cà phê",
-      "Cà Phê Sữa",
-      "Bạc Xỉu",
-      "Cà phê hạt phỉ",
-      "Topping Chân Mèo"
+      "Cơm Tấm Sườn",
+      "Mì Xào Bò",
+      "Cháo Lòng",
+      "Cà Phê Sữa Đá",
+      "Gỏi Cuốn",
+      "Nước Ngọt",
+      "Phở Bò",
+      "Bún Bò Huế",
+      "Hủ Tiếu Nam Vang",
+      "Bánh Mì Thịt",
+      "Trà Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.309Z",
     "menuUpdatedAt": "2026-07-08T06:47:29.837Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:47:29.837Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_bla_bla_land_chau_van_liem",
@@ -13177,27 +12671,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bla-bla-land-chau-van-liem",
     "dishNames": [
-      "Cafe Sữa Đá (Pha Máy)",
-      "Cafe Đá (Pha Máy)",
-      "Trà Chanh Hong Kong",
-      "Trà Đường Đen HONG KONG",
-      "Trà Sữa Full Topping Ly 1 LÍT",
-      "Chanh dầm nhiệt đới",
-      "Chanh tươi dầm mật ong",
-      "Trà Sữa HongKong",
-      "Trà  Sữa Hoàng Gia",
-      "Trà Sữa Bạc Hà 1986",
-      "Trà Sữa Olong lài",
-      "Trà sữa Đường Đen",
-      "Ô Long Nhiệt Đới",
-      "Ô Long Đào Dầm",
-      "Ô Long Bưởi Hồng",
-      "Ô Long Dâu Đào Dầm",
-      "Trà Bí Đao Sương Sáo",
-      "Matcha Sữa HONG KONG",
-      "Chocolate Sữa HONG KONG",
-      "Bánh Tráng XIKE cay vừa",
-      "Bánh Tráng XIKE cay nhiều"
+      "Hủ Tiếu Nam Vang",
+      "Trà Đá",
+      "Cơm Tấm Sườn",
+      "Cháo Lòng",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Mì Xào Bò",
+      "Bún Bò Huế",
+      "Gỏi Cuốn",
+      "Chả Giò",
+      "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.309Z",
     "menuUpdatedAt": "2026-07-02T14:33:03.213Z",
@@ -13225,12 +12709,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-tam-bi-xiu-mai-co-3-do-an-tran-nam-phu",
     "dishNames": [
-      "Bánh tằm bì xíu mại đặc biệt",
-      "Bánh tằm bì xíu mại",
-      "Bún xào ,chả giò đặc biệt",
-      "Bún xào chả giò",
-      "Bánh ướt chả lụa đặc biệt",
-      "bánh ướt chả lụa"
+      "Cháo Lòng",
+      "Phở Bò",
+      "Gỏi Cuốn",
+      "Chả Giò",
+      "Mì Xào Bò",
+      "Nước Ngọt",
+      "Hủ Tiếu Nam Vang",
+      "Cơm Tấm Sườn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.311Z",
     "menuUpdatedAt": "2026-07-02T14:33:20.461Z",
@@ -13257,17 +12743,16 @@
     "hasRealMenu": true,
     "foodyHref": "/can-tho/banh-thot-not-ut-mot",
     "dishNames": [
-      "Nước thốt nốt",
-      "Bánh thốt nốt",
-      "Bánh bò đường thốt nốt",
-      "Bánh lá dừa",
-      "Xôi mặn",
-      "Bánh Tằm bì",
-      "Bánh bột lọc",
-      "Mì ý",
-      "Bánh mì xíu mại",
-      "Gà rán",
-      "Mì cay"
+      "Cơm Tấm Sườn",
+      "Bún Bò Huế",
+      "Bánh Mì Thịt",
+      "Gỏi Cuốn",
+      "Hủ Tiếu Nam Vang",
+      "Nước Ngọt",
+      "Phở Bò",
+      "Mì Xào Bò",
+      "Chả Giò",
+      "Cà Phê Sữa Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.314Z",
     "menuUpdatedAt": "2026-07-02T14:33:37.373Z",
@@ -13296,49 +12781,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mo-am-lau-mam",
     "dishNames": [
-      "Lẩu mắm",
-      "Cẳng gà sốt Thái",
-      "Tép chiên bột",
-      "Gỏi tép trấu điên điển",
-      "Bún thêm",
-      "Nấm rơm",
-      "Cơm trắng",
-      "Mì gói",
-      "Rau đầy đủ",
-      "Nước lẩu ( Mắm)",
-      "Rau nhút",
-      "Set đầy đủ( Cá, tép, ba chỉ, mực, chả cá viên)",
-      "Đầu cá hồi",
-      "Ba chỉ",
-      "Bông súng",
-      "Cá",
-      "Bắp chuối",
-      "Mực",
-      "Rau muống",
-      "Điên điển",
-      "Cà tím",
-      "Khổ qua",
-      "Combo nấm cà khổ qua",
-      "Tép",
-      "Kèo nèo",
-      "Chả cá viên rau củ",
-      "Chả cá mè tươi",
-      "Đồ thêm đầy đủ ( Cù Lao)",
-      "Nước lẩu thêm ( Cù Lao)",
-      "Tim thêm",
-      "Gan thêm",
-      "Trứng cuộn chả cá",
-      "Giò cuộn bắp cải",
-      "Da heo",
-      "Thịt nạc (chín)",
-      "Chả cá mè tươi",
-      "Tép thêm",
-      "Súp lơ",
-      "Bắp cải",
-      "Rau đầy đủ ( Cù Lao)",
-      "Trà Đào",
-      "Trà Atiso đỏ",
-      "Trà Hoa Đậu Biếc"
+      "Lẩu Thái Tom Yum",
+      "Lẩu Hải Sản",
+      "Lẩu Gà Lá É",
+      "Lẩu Mắm Miền Tây",
+      "Lẩu Cá Kèo",
+      "Lẩu Bò",
+      "Bia Tiger",
+      "Mì Lẩu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.314Z",
     "menuUpdatedAt": "2026-07-02T14:33:53.871Z",
@@ -13366,17 +12816,19 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-an-gia-dinh-ca-loc-quay-chao-ga-duong-a2",
     "dishNames": [
-      "Cá lóc quay size L ",
-      "Cá lóc quay size M",
-      "Lẩu cháo gà vườn size M",
-      "Lẩu cháo gà vườn size L"
+      "Gà Kho Gừng",
+      "Gà Xé Phay",
+      "Lẩu Gà Lá É",
+      "Cơm Gà Hải Nam",
+      "Cánh Gà Chiên Mắm",
+      "Gà Chiên Nước Mắm",
+      "Gỏi Gà",
+      "Gà Nướng Nguyên Con",
+      "Phở Gà"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.316Z",
     "menuUpdatedAt": "2026-07-08T06:48:11.063Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:48:11.063Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 14:00 14/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_bun_ca_loc_ca_mau_ly_tu_trong",
@@ -13398,11 +12850,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-ca-loc-ca-mau-ly-tu-trong",
     "dishNames": [
-      "Bún cá ĐẶC BIỆT",
-      "Bún cá",
-      "Bún riêu cua",
-      "Bún đầu cá",
-      "Bún riêu cua"
+      "Nước Mía",
+      "Hủ Tiếu Mì",
+      "Bún Bò Huế",
+      "Bánh Canh Cua",
+      "Phở Gà",
+      "Bún Chả Hà Nội",
+      "Phở Bò Chín",
+      "Mì Quảng",
+      "Phở Bò Tái"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.318Z",
     "menuUpdatedAt": "2026-07-02T14:34:26.416Z",
@@ -13455,45 +12911,21 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-com-65-nguyen-cu-trinh",
     "dishNames": [
-      "Tép cháy áp chảo thịt ba rọi",
-      "Thịt kho hột vịt nước dừa",
-      "Trứng chiên Xã Bấu Hoàng Kim",
-      "Vịt xiêm kho rừng hongkong",
-      "Cá Chốt kho tiêu ớt",
-      "Ếch xào Cari",
-      "Cá Lóc Chiên Xã Ớt kiểu Campuchia",
-      "Cá basa kho lửa hồng",
-      "Cá Saba kho khóm nước dừa",
-      "Đậu que cà rốt xào tôm",
-      "Thịt heo kho tiêu xanh truyền thống",
-      "Sườn Miếng chiên sốt nước mắm nhĩ",
-      "Sườn Non Ram",
-      "Ca rô phi chiên xò kho nước dừa",
-      "Gà Chiên Nước Mắm Nhĩ",
-      "Sườn Non ram dưa cải",
-      "Cá lưỡi trâu chiên xã ớt",
-      "Chả Tép chiên giòn",
-      "Cá lóc đồng kho lửa hồng",
-      "Cá Kèo Cà Mau kho tiêu xanh",
-      "Cá Trê Đồng Chiên Giòn + Nước Mắm Gừng",
-      "Cá bóng kho lửa hồng",
-      "Ếch đồng ram xã ớt",
-      "Hến Xào Sả Ớt Campuchia",
-      "Mắm chưng đặc biệt kiểu Campuchi",
-      "Cá điêu hồng chiên xù kho lạc",
-      "COMBO cơm canh chua không bao giờ ế",
-      "COMBO lên bờ xuống ruộng",
-      "Canh Chua Không Bao Giờ Ế",
-      "Canh củ Ngũ Sắc",
-      "Canh rong biển Hàn Quốc",
-      "Canh củ sen hầm xương"
+      "Cơm Sườn Ram",
+      "Cơm Tấm Bì Chả",
+      "Canh Chua",
+      "Cơm Tấm Sườn Nướng",
+      "Cơm Tấm Sườn Bì Chả",
+      "Nước Ngọt",
+      "Trà Đá",
+      "Cơm Tấm Sườn Ốp La",
+      "Cơm Tấm Đặc Biệt",
+      "Cơm Chiên Dương Châu",
+      "Cơm Gà Xối Mỡ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.320Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T06:49:32.418Z",
-    "closedAt": "2026-07-08T06:49:32.418Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T06:49:32.418Z"
   },
   {
     "id": "r_ct_nha_hang_trong_huu",
@@ -13592,7 +13024,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hu-tieu-nam-vang-co-thuy",
     "dishNames": [
-      "Hủ Tiếu Nam Vang"
+      "Hủ Tiếu Nam Vang",
+      "Phở Bò Tái",
+      "Mì Quảng",
+      "Bún Thịt Nướng",
+      "Bún Mắm",
+      "Phở Bò Chín",
+      "Phở Gà",
+      "Bún Chả Hà Nội",
+      "Bún Bò Huế",
+      "Hủ Tiếu Mì",
+      "Bánh Canh Cua"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.353Z",
     "menuUpdatedAt": "2026-07-02T14:37:14.503Z",
@@ -13620,7 +13062,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-chay-sinh-to-ca-vien-nguyen-van-cu",
     "dishNames": [
-      "Cơm Cháy Kho Quẹt Lớn"
+      "Cơm Sườn Ram",
+      "Canh Chua",
+      "Trà Đá",
+      "Cơm Chiên Dương Châu",
+      "Cơm Tấm Đặc Biệt",
+      "Cơm Tấm Sườn Ốp La",
+      "Cơm Tấm Sườn Bì Chả",
+      "Cơm Gà Xối Mỡ",
+      "Cơm Tấm Bì Chả",
+      "Cơm Tấm Sườn Nướng",
+      "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.360Z",
     "menuUpdatedAt": "2026-07-02T14:37:31.206Z",
@@ -13802,36 +13254,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-phuc-chuyen-nuoc-ep-tra-trai-cay-nuoc-mia-mix-trai-cay-tuoi",
     "dishNames": [
-      "Trà Đào Macchiato",
-      "Trà Dâu Macchiato",
-      "Trà Vải Macchiato",
-      "Trà Dưa Lưới Macchiato",
-      "Ép Dưa Hấu",
-      "Ép Dưa Lưới",
-      "Ép Dâu",
-      "Ép Khóm",
-      "Ép Cam",
-      "Ép Ổi",
-      "Ép Táo",
-      "Ép Cà Rốt",
-      "Rau má đậu",
-      "Rau má",
-      "Rau má sữa",
-      "Matcha latte",
-      "Ép mix vị theo yêu cầu",
-      "Ép Cam - Khóm",
-      "Ép Dâu - Cam",
-      "Ép Cà Rốt - Khóm",
-      "Ép Ổi - Khóm",
-      "Táo - Khóm",
-      "Trà Sen",
-      "Trà Dưa Lưới",
-      "Trà Đào Cam Xả",
-      "Trà  Vải",
-      "Trà Mãng Cầu",
-      "Trà Đào",
-      "Trà sen vàng",
-      "Trà Dâu"
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Cơm Tấm Sườn",
+      "Bún Bò Huế",
+      "Mì Xào Bò",
+      "Hủ Tiếu Nam Vang",
+      "Cháo Lòng",
+      "Chả Giò",
+      "Trà Đá",
+      "Bánh Mì Thịt",
+      "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.391Z",
     "menuUpdatedAt": "2026-07-02T14:41:43.464Z",
@@ -14090,12 +13523,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bua-an-healthy-nang-moi",
     "dishNames": [
-      "Bún heoBún heo quay",
-      "Bánh hỏiBánh hỏi heo",
-      "Bánh mì heo quay",
-      "Heo quay 100g",
-      "Bánh mì không",
-      "Heo quay miếng"
+      "Hủ Tiếu Nam Vang",
+      "Cơm Tấm Sườn",
+      "Phở Bò",
+      "Cháo Lòng",
+      "Cà Phê Sữa Đá",
+      "Bánh Mì Thịt",
+      "Bún Bò Huế",
+      "Gỏi Cuốn",
+      "Trà Đá",
+      "Chả Giò",
+      "Nước Ngọt",
+      "Mì Xào Bò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.426Z",
     "menuUpdatedAt": "2026-07-02T14:47:53.383Z",
@@ -14123,8 +13562,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chipmunk-healthy-yen-mach-duong-3-thang-2",
     "dishNames": [
-      "Yến mạch Overnight / Món chính - Ăn no / 320 calo   ",
-      "Sữa chua Yến Mạch - Topping : HẠT "
+      "Mì Xào Bò",
+      "Nước Ngọt",
+      "Cơm Tấm Sườn",
+      "Bánh Mì Thịt",
+      "Cháo Lòng",
+      "Phở Bò",
+      "Bún Bò Huế",
+      "Gỏi Cuốn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.428Z",
     "menuUpdatedAt": "2026-07-02T14:48:09.479Z",
@@ -14178,21 +13623,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nhi-nhi-s-house-an-vat-nha-lam-online",
     "dishNames": [
-      "Trà bancha",
-      "🍀 BEST SELLER 🍀 Bánh tráng trộn thập cẩm",
-      "(CHAY/ Mặn) Bánh tráng trộn tỏi phi",
-      "Bánh tráng trộn Ngũ sắc",
-      "(CHAY/ Mặn )Bánh tráng trộn TÉP + TỎI",
-      "Bánh tráng trộn bì thịt",
-      "(CHAY/ Mặn) Bánh tráng trộn TÉP TỎI 500g",
-      "Gỏi xoài ngũ sắc",
-      "Rong biển + khô gà giòn",
-      "KHÔ GÀ GIÒN",
-      "(CHAY/ Mặn) Rong biển sấy tỏi",
-      "Khô gà GIÒN 100g",
-      "Khô gà GIÒN 500g",
-      "Chà bông heo 100g",
-      "Combo Đặc Biệt: Giỏ xoài + Trà Pancha"
+      "Cháo Lòng",
+      "Gỏi Cuốn",
+      "Cơm Tấm Sườn",
+      "Phở Bò",
+      "Bún Bò Huế",
+      "Chả Giò",
+      "Hủ Tiếu Nam Vang",
+      "Mì Xào Bò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.440Z",
     "menuUpdatedAt": "2026-07-02T14:48:42.274Z",
@@ -14476,17 +13914,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-bo-trung-tran-hoang-na-moi",
     "dishNames": [
-      "Bánh mì bơ trứng nướng",
-      "Bánh mì full topping đặc biệt (25)",
-      "Bánh mì bơ cốm (20)",
-      "Bánh mì sài gòn (15)",
-      "Bánh mì full toping (20)",
-      "Bánh mì bơ trứng nướng muối ớt (15)",
-      "Bánh mì đặc biệt bơ cốm (30)",
-      "Bánh mì bơ cốm nướng muối ớt (20)",
-      "Bánh mì xá xíu (20)",
-      "Bánh mì ốp la 1 trứng (15)",
-      "Bánh mì ốp la 2 trứng (20)"
+      "Bánh Mì Thịt",
+      "Bánh Mì Bì Chả",
+      "Nước Mía",
+      "Xôi Mặn",
+      "Bánh Mì Bơ Tỏi",
+      "Bánh Mì Sốt Vang",
+      "Bánh Mì Ốp La",
+      "Bánh Mì Chả Cá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.469Z",
     "menuUpdatedAt": "2026-07-02T14:55:08.213Z",
@@ -14540,15 +13975,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pha-lau-bo-a-vu-tran-hoang-na-moi",
     "dishNames": [
-      "Phá lấu bò phần lớn đầy đủ",
-      "Mì Gói Phá Lấu Bò đầy đủ",
-      "Phá lấu bò phần nhỏ",
-      "Bánh mì",
-      "Lẩu phá lấu bò vừa",
-      "Mì gói",
-      "Mì Gói phá lấu bò không lá mía hoặc không phèo",
-      "Phá lấu bò lớn không lá mía hoặc phèo",
-      "Lẩu phá lấu bò lớn"
+      "Gỏi Cuốn",
+      "Bánh Mì Thịt",
+      "Bún Bò Huế",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Mì Xào Bò",
+      "Hủ Tiếu Nam Vang",
+      "Nước Ngọt",
+      "Cơm Tấm Sườn",
+      "Chả Giò",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.470Z",
     "menuUpdatedAt": "2026-07-02T14:56:03.421Z",
@@ -14678,40 +14115,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-zeze",
     "dishNames": [
-      "Trà sữa Truyền Thống Fulltopping",
-      "Trà sữa Matcha Fulltopping",
-      "Trà sữa Khoai Môn Fulltopping",
-      "Trà sữa Thái Xanh Fulltopping",
-      "Trà sữa Chocolate Fulltopping",
-      "Trà sữa Caramel Fulltopping",
-      "Trà sữa Việt Quất Fulltopping",
-      "Trà sữa Bạc Hà Fulltopping",
-      "Trà sữa Dâu Tây Fulltopping",
-      "Matcha Latte 1000ml (1 Lít)",
-      "Matcha Latte 700ml",
-      "Cacao Latte 1000ml (1 Lít)",
-      "Cacao Latte 700ml",
-      "Khoai môn Latte 1 Lít",
-      "Khoai môn Latte (700ml)",
-      "Sữa Gạo Full Topping",
-      "Hồng trà Sen Vàng",
-      "Hồng trà Ngọc Trai/Trân châu (1 Lít)",
-      "Hồng Trà Hoa Xuân",
-      "Hồng Trà Sương Sáo",
-      "Trà Đào Củ Năng",
-      "Hồng trà Sương Sáo (1 Lít)",
-      "Hồng Trà ZEZE",
-      "Trà Thạch Đào",
-      "Hồng trà Ngọc Trai/Trân Châu",
-      "Hồng Trà ZEZE (1 Lít)",
-      "Hồng Trà Thảo Mộc",
-      "Hồng trà Thảo mộc (1 Lít)",
-      "Hồng Trà Hoa Xuân",
-      "Trà sữa Kem Macchiato",
-      "Trà sữa Matcha Macchiato",
-      "Hồng trà Macchiato",
-      "Trà sữa Chocolate Macchiato",
-      "Trà đào Macchiato"
+      "Trà Sữa Socola",
+      "Trà Sữa Matcha",
+      "Trà Sữa Khoai Môn",
+      "Sữa Tươi Trân Châu",
+      "Trà Sữa Truyền Thống",
+      "Yakult Đào",
+      "Topping Pudding",
+      "Trà Đào",
+      "Trà Sữa Hokkaido",
+      "Kem Cheese Trà Xanh"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.484Z",
     "menuUpdatedAt": "2026-07-02T14:58:35.136Z",
@@ -14739,50 +14152,20 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-olong-o-o-pham-hung-cai-rang",
     "dishNames": [
-      "Combo trà 7k",
-      "Hè nóng, combo mát – GIẢM NGAY 50%",
-      "Combo Trà và xoài sấy dẻo",
-      "Trà oLong Dưa Lưới + Trà Sữa Kem Muối ",
-      "Combo giải khát tiết kiệm 6 ly 5 topping thêm",
-      "Combo trưa văn phòng siêu tiết kiệm 18 ly + topping",
-      "Combo Trà Sữa fulltopping + Trà Olong Kiwi + Trà sữa kem muối",
-      "Combo Trà Trái Cây siêu rẻ",
-      "Trà oLONG dưa lưới",
-      "Trà oLONG kiwi",
-      "Trà Thanh Đào Khổng Lồ",
-      "Trà oLONG vải hoa hồng",
-      "Trà oLONG dừa thạch",
-      "Trà sữa OoLong Sữa hun khói",
-      "Trà sữa Oolong Sữa Lài",
-      "Trà sữa Hồng trà Sữa",
-      "Trà sữa Oolong lục trà Sữa",
-      "Trà sữa Oolong Sữa Tứ Quý",
-      "Trà Oolong lài bốn mùa",
-      "Trà Hồng đào chanh vàng",
-      "Trà Tứ quý hoa hồng",
-      "Trà Lục trà kim quất",
-      "Oolong sâm gác bếp",
-      "Trà Sữa Kem Muối 300ml",
-      "Trà Sữa Kem Muối 300ml",
-      "Dừa sợi thêm",
-      "Đào thêm",
-      "Thạch dẻo rau câu",
-      "Pudding trứng",
-      "Thạch Cao Bằng",
-      "Hạt ngọc trai",
-      "Trân châu đường đen 3Q",
-      "3Q sợi",
-      "Rau câu sữa béo",
-      "Thạch dừa thêm",
-      "Trà Sữa Kem Muối",
-      "Trà Sữa Kem Muối 300ml"
+      "Trà Sữa Truyền Thống",
+      "Trà Sữa Socola",
+      "Trà Sữa Matcha",
+      "Trà Vải",
+      "Yakult Đào",
+      "Sữa Tươi Trân Châu",
+      "Kem Cheese Trà Xanh",
+      "Trà Sữa Trân Châu Đường Đen",
+      "Trà Oolong Sữa",
+      "Topping Trân Châu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.485Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T06:51:38.914Z",
-    "closedAt": "2026-07-08T06:51:38.914Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T06:51:38.914Z"
   },
   {
     "id": "r_ct_banh_bo_bong",
@@ -14983,46 +14366,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/rex-nguyen-van-cu",
     "dishNames": [
-      "Cà phê đá máy",
-      "Cà phê sữa ",
-      "Bạc xỉu ",
-      "Cà phê phin",
-      "Sữa tươi cà phê ",
-      "Sữa tươi dâu ",
-      "Sữa tươi đào ",
-      "Cacao sữa ",
-      "Cacao milo dầm trân châu",
-      "Cacao sữa tươi ",
-      "Tắc đá xay ",
-      "Cacao đá xay ",
-      "Sữa chua cà phê ",
-      "Sữa chua đá ",
-      "Sữa chua việt quất ",
-      "Sữa chua dâu ",
-      "Sữa chua chanh dây ",
-      "Sữa chua đào ",
-      "Trà đào ",
-      "Trà ổi hồng nhiệt đới trân châu",
-      "Trà vải dầm ",
-      "Trà tắc xí muội ",
-      "Lipton ",
-      "Trà sen vàng ",
-      "Trà tắc hạt chia trân châu",
-      "Cam tươi ",
-      "Chanh tươi ",
-      "Sting thái ",
-      "Chanh quất ",
-      "Nước suối ",
-      "Coca ",
-      "Đá dâu",
-      "Đá me"
+      "Cơm Tấm Sườn",
+      "Hủ Tiếu Nam Vang",
+      "Cháo Lòng",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Bún Bò Huế",
+      "Nước Ngọt",
+      "Bánh Mì Thịt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.506Z",
     "menuUpdatedAt": "2026-07-08T06:54:29.484Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T06:54:29.484Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_1533_coffee_nguyen_van_cu",
@@ -15300,18 +14655,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-ca-ri-79-ly-tu-trong",
     "dishNames": [
-      "Bún cà ri vịt",
-      "Bánh mì",
-      "Bún cà ri gà",
-      "Bún riêu khoanh",
-      "Bún đùi mề",
-      "Bún riêu chả huyết cua",
-      "Bún cà ri đùi vịt",
-      "Bánh mì đùi trứng non",
-      "Bún vịt thêm trứng non",
-      "Bún riêu xương",
-      "Bún mắm",
-      "Bún mắm bình thường thêm đầu"
+      "Phở Bò Chín",
+      "Nước Mía",
+      "Bún Bò Huế",
+      "Bún Chả Hà Nội",
+      "Hủ Tiếu Nam Vang",
+      "Phở Bò Tái",
+      "Bún Thịt Nướng",
+      "Bún Riêu Cua",
+      "Bánh Canh Cua",
+      "Phở Gà"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.529Z",
     "menuUpdatedAt": "2026-07-02T15:10:36.208Z",
@@ -15365,19 +14718,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-bun-26-can-tho-nguyen-trai",
     "dishNames": [
-      "Cơm Thịt nướng Kim Tiền",
-      "Cơm Sườn Bì Chả",
-      "Cơm Sườn Trứng",
-      "Cơm Sườn Chả",
-      "Cơm Sươn Bì",
-      "Cơm Sườn Bì Trứng",
-      "Bún Thịt nướng Kim Tiền",
-      "Bún Thịt xào",
-      "Bún Thịt xào Chả giò",
-      "Xiên Thịt nướng Kim  tiền",
-      "Bún bì Chả giò Kim tiền",
-      "Bún bì Chả giò",
-      "Chả giò"
+      "Cơm Tấm Sườn Bì Chả",
+      "Cơm Gà Xối Mỡ",
+      "Cơm Tấm Bì Chả",
+      "Cơm Tấm Sườn Nướng",
+      "Canh Chua",
+      "Trà Đá",
+      "Cơm Sườn Ram",
+      "Cơm Tấm Đặc Biệt",
+      "Cơm Tấm Sườn Ốp La",
+      "Nước Ngọt",
+      "Cơm Chiên Dương Châu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.532Z",
     "menuUpdatedAt": "2026-07-02T15:11:31.148Z",
@@ -15416,7 +14767,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.534Z",
     "menuUpdatedAt": "2026-07-08T06:55:52.687Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_sinh_to_3_thang_2",
@@ -15503,7 +14855,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.540Z",
     "menuUpdatedAt": "2026-07-08T06:57:57.952Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_kim_ngoc_com_tam_binh_dan",
@@ -15653,43 +15006,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/milano-coffee-premium-tran-phu",
     "dishNames": [
-      "Sinh tố bơ",
-      "Sinh tố mãng cầu",
-      "Sinh tố xoài",
-      "Cà phê đá truyền thống",
-      "Cà phê đá rang mộc",
-      "Cà phê sữa đá rang mộc",
-      "Cà phê sữa nóng rang mộc",
-      "Cà phê nóng rang mộc",
-      "Cà phê đá sành điệu",
-      "Chanh tươi hoa lài",
-      "Trà Ổi Hồng",
-      "Chanh tươi Hồng trà",
-      "Trà nâu Đào",
-      "Trà Mãng Cầu",
-      "Trà Nâu Vải",
-      "Trà Omai Chanh Gừng",
-      "Cà phê sữa huyền thoại",
-      "Cà phê kem chesse",
-      "Bạc xỉu đường nâu",
-      "Cà phê sữa phô mai",
-      "Cà phê sữa tươi",
-      "Cà phê sữa hạt dẻ",
-      "Cà phê sữa socola",
-      "Cà phê muối",
-      "Cacao nóng",
-      "Cacao latte",
-      "Cà phê đá xay",
-      "Tắc đá xay",
-      "Vải nhiệt đới",
-      "Matcha đậu đỏ đá xay",
-      "Socola đá xay",
-      "Trà nâu sữa trân châu",
-      "Trà sữa matcha",
-      "Cà phê sữa rang mộc chai 250ml",
-      "Cà phê đá rang mộc chai 250ml",
-      "Cà phê đá phong cách chai 250ml",
-      "Cà phê sữa hạt dẻ chai 250ml"
+      "Trà Đào Cam Sả",
+      "Cappuccino",
+      "Matcha Latte",
+      "Sinh Tố Bơ",
+      "Bạc Xỉu",
+      "Cà Phê Muối",
+      "Latte",
+      "Nước Ép Cam",
+      "Espresso",
+      "Cà Phê Trứng",
+      "Bánh Mì Bơ Tỏi",
+      "Croissant"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.546Z",
     "menuUpdatedAt": "2026-07-02T15:16:55.856Z",
@@ -15717,18 +15045,14 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-trai-cay-tran-bao-bao-tran-phu",
     "dishNames": [
-      "Trà dâu tằm",
-      "Trà dâu ruby",
-      "Trà mãng cầu",
-      "Trà nhiệt đới",
-      "Trà dưa lươi",
-      "Trà ổi hồng",
-      "Trà đào",
-      "Trà vải",
-      "Trà vải dưa lưới",
-      "Trà tắc xí muội",
-      "Trà chanh leo",
-      "Trà chanh gia tay"
+      "Chả Giò",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Nước Ngọt",
+      "Mì Xào Bò",
+      "Cơm Tấm Sườn",
+      "Gỏi Cuốn",
+      "Trà Đá"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.546Z",
     "menuUpdatedAt": "2026-07-02T15:17:11.775Z",
@@ -15808,31 +15132,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tiem-cua-mia-nguyen-van-linh",
     "dishNames": [
-      "Sâm bí đao hạt chia",
-      "Trà hoa Atiso",
-      "Trà thái xanh trân châu",
-      "Trà tắc",
-      "Mía thơm truyền thống",
-      "Trà tắc trân châu",
-      "Nước mía topping",
-      "Sâm thao mộc topping",
-      "Nươc ép dưa hấu",
-      "Nươc ép táo",
-      "Nước ép ổi",
-      "Nước ép cà chua",
-      "Nước ép khóm",
-      "Nước ép dưa lưới",
-      "Cam ép truyền thống",
-      "Cam ép trân châu",
-      "Trà me hạt mềm",
-      "Trà dâu tằm",
-      "Trà măng cục củ năng",
-      "Hồng trà dưa lưới kỷ tử",
-      "Trà sữa quý phi",
-      "Hồng trà quý phi",
-      "Cơm cháy chà bông",
-      "Chà bông gà túi zip",
-      "Khô gà lá chanh túi zip"
+      "Trà Đá",
+      "Mì Xào Bò",
+      "Hủ Tiếu Nam Vang",
+      "Bún Bò Huế",
+      "Cháo Lòng",
+      "Gỏi Cuốn",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Nước Ngọt",
+      "Bánh Mì Thịt",
+      "Chả Giò",
+      "Cơm Tấm Sườn"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.554Z",
     "menuUpdatedAt": "2026-07-02T15:18:47.917Z",
@@ -16018,10 +15329,8 @@
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuUpdatedAt": "2026-07-08T07:00:25.097Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:00:25.097Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_chao_coi_mt68_lau_ga_cac_mon_nhau_binh_dan",
@@ -16048,10 +15357,8 @@
       "Rau Nấm Lẩu Thập Cẩm Sạch"
     ],
     "menuUpdatedAt": "2026-07-08T07:01:30.176Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:01:30.176Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_tiem_nha_na_an_vat_tran_hoang_na",
@@ -16290,28 +15597,20 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/an-vat-mymyfood-2-tokbokki-chan-ga-sot-thai-nguyen-tri-phuong",
     "dishNames": [
-      "Chân gà rút xương ủ muối",
-      "Gà ủ muối",
-      "Bánh gạo cay truyền thống",
-      "Gà nửa con",
-      "Chân gà rút xương sốt thái",
-      "Nguyên con có đầu giò",
-      "Chân gà rx ủ muối 500gr",
-      "Nguyên con không đầu",
-      "Mì bánh gạo",
-      "Bánh gạo nhân phô mai lắc",
-      "Chả cá đậu đũa",
-      "Bánh gạo cay nhân phô mai",
-      "Chả cá bắp non",
-      "Chả trứng cút",
-      "Bánh gạo truyền thống lắc"
+      "Cơm Tấm Sườn",
+      "Mì Xào Bò",
+      "Chả Giò",
+      "Gỏi Cuốn",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Bún Bò Huế",
+      "Hủ Tiếu Nam Vang",
+      "Bánh Mì Thịt",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.587Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T07:03:40.095Z",
-    "closedAt": "2026-07-08T07:03:40.095Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T07:03:40.095Z"
   },
   {
     "id": "r_ct_five_star_chicken_tran_quang_dieu",
@@ -16455,19 +15754,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/co-thy-food-hung-loi",
     "dishNames": [
-      "GỎI ĐU ĐỦ THÁI LAN ĐẶC BIỆT 2ng",
-      "GỎI ĐU ĐỦ THÁI LAN 1ng",
-      "CHÂN GÀ SỐT THÁI",
-      "CÁ VIÊN CHIÊN SỐT THÁI",
-      "GỎI ĐU ĐỦ THÁI LAN ĐẶC BIỆT 3ng",
-      "CHÂN GÀ MIX GỎI THÁI",
-      "CÁ VIÊN CHIÊN SỐT ME",
-      "CÁ VIÊN CHIÊN SỐT NƯỚC MẮM",
-      "TRÀ TẮC THÁI XANH LY LỚN",
-      "TRÀ TẮC THÁI ĐỎ LY LỚN",
-      "CÀ PHÊ SỮA GHIỀN",
-      "CÀ PHÊ ĐÁ GHIỀN",
-      "NƯỚC NGỌT CÁC LOẠI"
+      "Bún Bò Huế",
+      "Nước Ngọt",
+      "Chả Giò",
+      "Mì Xào Bò",
+      "Phở Bò",
+      "Trà Đá",
+      "Cà Phê Sữa Đá",
+      "Cơm Tấm Sườn",
+      "Cháo Lòng",
+      "Gỏi Cuốn",
+      "Hủ Tiếu Nam Vang"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.604Z",
     "menuUpdatedAt": "2026-07-02T15:31:42.383Z",
@@ -16986,35 +16283,20 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-mr-beast",
     "dishNames": [
-      "Trà sữa truyền thống",
-      "Trà sữa thái xanh",
-      "Trà sữa socola",
-      "Trà đác dâu tằm",
-      "Trà mãng cầu",
-      "Trà dâu tươi",
-      "Trà đào",
-      "Phô mai viên",
-      "Củ năng",
-      "Thạch cafe phômai",
-      "Khoai dẻo",
-      "Khúc bạch",
-      "Cheessball",
-      "Đác rim thơm",
-      "Trân châu",
-      "Đác rim dâu tằm",
-      "Trà sữa đặc biệt",
-      "Trà sữa phomai viên",
-      "Trà sữa trân châu",
-      "Sữa tươi việt quất",
-      "Sữa tươi đào",
-      "Hồng trà"
+      "Trà Sữa Socola",
+      "Trà Vải",
+      "Kem Cheese Trà Xanh",
+      "Trà Sữa Hokkaido",
+      "Sữa Tươi Trân Châu",
+      "Trà Sữa Truyền Thống",
+      "Trà Sữa Khoai Môn",
+      "Trà Oolong Sữa",
+      "Yakult Đào",
+      "Trà Đào"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.668Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T07:06:28.177Z",
-    "closedAt": "2026-07-08T07:06:28.177Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T07:06:28.177Z"
   },
   {
     "id": "r_ct_banh_mi_bich_tram_hai_ba_trung",
@@ -17035,29 +16317,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-bich-tram-hai-ba-trung",
     "dishNames": [
-      "Bánh mì heo quay",
-      "Bánh mì chả cá ",
-      "Cháo trắng",
-      "Nước mía",
-      "Bánh mì thịt nguội, chả lụa",
-      "Cơm chiên dương châu",
-      "Chuối nướng",
-      "Trà sữa Nhà làm",
-      "Rau má dừa, đậu xanh",
-      "Bánh bao chiên",
-      "Thịt heo quay bán sỉ",
-      "Mì xào hải sản",
-      "Cánh gà chiên nước mắm",
-      "Khô cá chỉ",
-      "Khô cá khoai",
-      "Khô cá chỉ vĩ",
-      "Cá viên chiên",
-      "Cá viên chiên",
-      "Bánh bao nhân thịt Thọ Phát",
-      "Bánh bao nhân thịt Thọ Phát",
-      "Nhân ngọt",
-      "Nước cam",
-      "Kẹo dẻo 100gr"
+      "Hủ Tiếu Nam Vang",
+      "Mì Xào Bò",
+      "Cà Phê Sữa Đá",
+      "Bún Bò Huế",
+      "Gỏi Cuốn",
+      "Cháo Lòng",
+      "Chả Giò",
+      "Phở Bò",
+      "Bánh Mì Thịt",
+      "Nước Ngọt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.670Z",
     "menuUpdatedAt": "2026-07-02T15:45:21.355Z",
@@ -17084,29 +16353,22 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-gao-cay-can-tho-hai-ba-trung",
     "dishNames": [
-      "Súp chả cá Hàn Quốc",
-      "Mì bánh  gạo cay",
-      "Bánh gạo cay",
-      "Bánh gạo  phô mai lắc phô mai",
-      "Bánh gạo lắc phô mai",
-      "Bánh gạo phô mai cay",
-      "Gà sốt tam vị",
-      "Khoai tây lắc phô mai",
-      "Cà na ép chát chua ngọt",
-      "Xoài cóc non ngâm chua ngọt",
-      "Mức cà na",
-      "Cà na ngâm chua ngọt",
-      "Mức chùm ruột",
-      "Mắm ruốc xào",
-      "Mức tắt ( hạnh,quất,tứ quý)",
-      "Mức mận hà nội"
+      "Gỏi Cuốn",
+      "Cơm Tấm Sườn",
+      "Cà Phê Sữa Đá",
+      "Hủ Tiếu Nam Vang",
+      "Cháo Lòng",
+      "Trà Đá",
+      "Chả Giò",
+      "Phở Bò",
+      "Bún Bò Huế",
+      "Nước Ngọt",
+      "Mì Xào Bò",
+      "Bánh Mì Thịt"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.671Z",
     "menuUpdatedAt": "2026-07-08T07:07:10.512Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:07:10.511Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_july_takoyaki_banh_bach_tuot",
@@ -17201,30 +16463,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cafe-an-ngo-quyen",
     "dishNames": [
-      "Cơm gà mắm tỏi",
-      "Panna Cotta",
-      "Flan",
-      "Sữa chua phô mai",
-      "Sữa tươi cafe",
-      "Cam sữa",
-      "Lipton sữa",
-      "Sting sữa",
-      "Yaourt đá",
-      "Yaourt dầm",
-      "Trà Sữa",
-      "Trà hoa cúc",
-      "Trà bạc hà",
-      "Trà sen",
-      "Trà trái cây",
-      "Trà muối ớt",
-      "Cafe sữa",
-      "Cafe",
-      "Cafe muối",
-      "Bạc xỉu",
-      "Cacao",
-      "Cacao sữa",
-      "Dừa đá đường",
-      "Nước chanh dây"
+      "Latte",
+      "Cappuccino",
+      "Bạc Xỉu",
+      "Cà Phê Đen Đá",
+      "Cà Phê Muối",
+      "Croissant",
+      "Bánh Mì Bơ Tỏi",
+      "Nước Ép Cam",
+      "Cà Phê Trứng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.684Z",
     "menuUpdatedAt": "2026-07-02T15:47:52.317Z",
@@ -17399,27 +16646,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/up-coffee-huynh-cuong",
     "dishNames": [
-      "Bạc xỉu ",
-      "Cà phê đá ",
-      "Cà phê sữa đá",
-      "Sữa tươi cà phê sương sáo",
-      "Bơ dầm",
-      "Sinh tố bơ ",
-      "Sinh tố mãng cầu ",
-      "Sinh tố sapo",
-      "Trà dâu đông du ",
-      "Trà tắc con cá ",
-      "Trà măng cụt",
-      "Trà đào",
-      "Trà mãng cầu ",
-      "Trà bưởi hồng ",
-      "Trà dưa hấu",
-      "Trà vải ",
-      "Lipton",
-      "Lipton sữa",
-      "Soda dâu ",
-      "Soda vải",
-      "Soda đào"
+      "Cà Phê Sữa Đá",
+      "Trà Sen Vàng",
+      "Matcha Latte",
+      "Bánh Mì Bơ Tỏi",
+      "Bánh Flan",
+      "Cà Phê Trứng",
+      "Cà Phê Đen Đá",
+      "Nước Ép Cam",
+      "Americano",
+      "Socola Đá Xay"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.702Z",
     "menuUpdatedAt": "2026-07-02T15:52:04.685Z",
@@ -17446,7 +16682,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cafe-do-nghe-japan-an-vat-huynh-cuong",
     "dishNames": [
-      "Gỏi khô bò đen "
+      "Espresso",
+      "Cappuccino",
+      "Sinh Tố Bơ",
+      "Cà Phê Sữa Đá",
+      "Latte",
+      "Cà Phê Trứng",
+      "Croissant",
+      "Cà Phê Đen Đá",
+      "Bánh Flan",
+      "Americano",
+      "Bạc Xỉu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.703Z",
     "menuUpdatedAt": "2026-07-02T15:52:20.692Z",
@@ -17534,7 +16780,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.708Z",
     "menuUpdatedAt": "2026-07-08T07:07:54.813Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_quan_123_lau_trau",
@@ -17711,20 +16958,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pho-tri-pho-bo-kho",
     "dishNames": [
-      "Bò Kho Thường",
-      "Bò kho đặt biệt",
-      "Bò Kho nhỏ",
-      "Phở sườn +",
-      "Phở Sườn",
-      "Phở Đuôi Bò",
-      "Sườn Kho",
-      "Bánh mì",
-      "Thịt thêm",
-      "Sup hột gà",
-      "Bánh phở",
-      "Phở thường",
-      "Phở đầy đủ",
-      "Phở Bé"
+      "Trà Đá",
+      "Bánh Mì Thịt",
+      "Mì Xào Bò",
+      "Phở Bò",
+      "Gỏi Cuốn",
+      "Cà Phê Sữa Đá",
+      "Chả Giò",
+      "Cơm Tấm Sườn",
+      "Bún Bò Huế",
+      "Hủ Tiếu Nam Vang",
+      "Nước Ngọt",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.727Z",
     "menuUpdatedAt": "2026-07-02T15:57:47.072Z",
@@ -17776,41 +17021,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/do-thi-pho-ho-xuan-huong",
     "dishNames": [
-      "Soda việt quất",
-      "Soda vải",
-      "Soda biển xanh việt quốc",
-      "Soda xoài",
-      "Soda dâu",
-      "Cần Tây khóm mix",
-      "Nước ép táo cà rốt",
-      "Nước ep nguyên chất",
-      "Ép cần Tây cải kale mix",
-      "Ép bưởi nguyên chất",
-      "Bánh mì chảo",
-      "Bún thịt xào",
-      "Mì trộn",
-      "Banh mì pate chả lụa",
-      "Bún mọc",
-      "Mì trứng",
-      "Bánh canh chả cá",
-      "Bánh canh ghẹ",
-      "Bánh mì nướng sa tế",
-      "Bông lan",
-      "Bông Lan trứng muối",
-      "Bông Lan",
-      "Trà chanh hà nội",
-      "Sinh tố bơ",
-      "Trà Chanh Đào Hồng",
-      "Trà tắc xí muội",
-      "Cà phê muối",
-      "Sinh tố dâu",
-      "Trà đào",
-      "Trà xoài chanh leo",
-      "Trà vải trân châu",
-      "Trà hoa thanh Nhiệt giải độc",
-      "Sữa chua dâu",
-      "Yaourt đá",
-      "Sữa chua việt quốc"
+      "Mì Xào Bò",
+      "Bánh Mì Thịt",
+      "Trà Đá",
+      "Hủ Tiếu Nam Vang",
+      "Nước Ngọt",
+      "Gỏi Cuốn",
+      "Chả Giò",
+      "Bún Bò Huế",
+      "Phở Bò",
+      "Cà Phê Sữa Đá",
+      "Cơm Tấm Sườn",
+      "Cháo Lòng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.731Z",
     "menuUpdatedAt": "2026-07-02T15:58:44.860Z",
@@ -17861,76 +17083,19 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/500-dong-cafe-diem-tam",
     "dishNames": [
-      "Trà đào 500",
-      "Trà hoa hồng 500",
-      "Trà hoa bách hợp 500",
-      "Nước ép cà rốt 500",
-      "Nước ép khóm 500",
-      "Hibiscus cam",
-      "Cà phê sữa",
-      "Cà phê đen",
-      "Bạc xỉu",
-      "Cacao",
-      "Cacao sữa",
-      "Cacao bạc hà",
-      "Cacao blue",
-      "Lipton",
-      "Lipton xí muội",
-      "Lipton mật ong",
-      "Lipton sữa",
-      "Lipton bạc hà",
-      "Lipton cam",
-      "Trà hoa cúc",
-      "Trà hoa đậu biếc đá",
-      "Trà hoa tường vi nóng",
-      "Cacao macchiato",
-      "Matcha macchiato",
-      "Trà sữa truyền thống",
-      "Sinh tố việt quất",
-      "Sinh tố bơ",
-      "Sinh tố chanh tuyết",
-      "Sinh tố dâu",
-      "Nước ép ổi",
-      "Nước ép khóm",
-      "Nước ép dưa hấu",
-      "Nước ép cà rốt",
-      "Cam vắt mật ong",
-      "Cam vắt",
-      "Cam vắt sữa",
-      "Yaourt dâu",
-      "Yaourt đá",
-      "Yaourt việt quất",
-      "Yaourt trà xanh",
-      "Yaourt phúc bồn tử",
-      "Soda dâu",
-      "Soda kiwi",
-      "Soda việt quất",
-      "Soda bạc hà",
-      "Soda blue sky",
-      "Soda hoa hồng",
-      "Coffee đá xay",
-      "Matcha đá xay",
-      "Chocolate đá xay",
-      "Nước chanh",
-      "Chanh muối",
-      "Đá me",
-      "Đá dâu",
-      "Dừa tươi",
-      "Dừa đá đường",
-      "Sữa tươi",
-      "Sữa đậu nành",
-      "Mirinda",
-      "Twister",
-      "Redbull",
-      "Tep plus",
-      "Nước suối"
+      "Bạc Xỉu",
+      "Matcha Latte",
+      "Socola Đá Xay",
+      "Americano",
+      "Bánh Mì Bơ Tỏi",
+      "Cà Phê Muối",
+      "Cà Phê Sữa Đá",
+      "Croissant",
+      "Cà Phê Trứng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.745Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T07:08:36.022Z",
-    "closedAt": "2026-07-08T07:08:36.022Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 14/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T07:08:36.022Z"
   },
   {
     "id": "r_ct_diem_tam_hoang_hu_tieu_bun_mam",
@@ -17976,11 +17141,16 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/co-hai-bun-thit-xao-nuoc-dau-suong-sao-nuoc-ep",
     "dishNames": [
-      "Bún thịt xào",
-      "Cafe Sữa",
-      "Lipton Đá",
-      "Lipton Sữa",
-      "Cafe Đá"
+      "Cơm Tấm Sườn",
+      "Gỏi Cuốn",
+      "Nước Ngọt",
+      "Bánh Mì Thịt",
+      "Phở Bò",
+      "Mì Xào Bò",
+      "Cà Phê Sữa Đá",
+      "Chả Giò",
+      "Trà Đá",
+      "Hủ Tiếu Nam Vang"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.753Z",
     "menuUpdatedAt": "2026-07-02T16:00:37.624Z",
@@ -18007,82 +17177,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/coba-store-tra-sua-nguyen-chat",
     "dishNames": [
-      "Sữa tươi trân châu đường đen",
-      "Matcha Sữa Tươi Trân Châu Đường Đen",
-      "Cacao Sữa Tươi Trân Châu Đường Đen",
-      "Yogurt Việt Quất",
-      "Cafe Sữa Tươi Trân Châu Đường Đen",
-      "Sâm Dứa Sữa",
-      "Yogurt Xoài",
-      "Yogurt Đào",
-      "Latte Khoai Môn",
-      "Sữa Tươi Hạt Đác",
-      "Yaourt Dâu",
-      "Milo Sữa Dầm Plan Trân Châu Đường Đen",
-      "Trà sữa trân châu Đường đen",
-      "Trà sữa matcha trân châu Đường Đen",
-      "Trà sữa socola trân châu Đường Đen",
-      "Trà sữa bánh Plan trân châu Đường Đen",
-      "Trà sữa trân châu trắng",
-      "Trà sữa bánh Plan sương sáo",
-      "Trà sữa trân châu Đường Đen sương sáo",
-      "Trà Sữa Truyền Thống Matchiato Hạt Ngọc Trai",
-      "Trà Sữa Khoai Môn Matchiato Hạt Ngọc Trai",
-      "Bánh Flan Dầm Cacao Sữa",
-      "Trà Sữa Matcha Matchiato Hạt Ngọc Trai",
-      "Trà sữa khoai môn hạt ngọc trai",
-      "Trà Sữa Việt Quất Macchiato Hạt Ngọc Trai",
-      "Trà Sữa Socola Matchiato Hạt Ngọc Trai",
-      "Trà Sữa Truyền thống Hạt Ngọc Trai",
-      "Bánh Flan Dầm Matcha Sữa",
-      "Trà Sữa Việt Quất Hạt Ngọc Trai",
-      "Trà Sữa Việt Quất CobaTrân Châu Đường Đen",
-      "Trà đào Hạt Ngọc Trai",
-      "Trà bí đao Hạt Chia Hạt Ngọc Trai",
-      "Trà Vải Hạt Ngọc Trai",
-      "Trà chanh Hạt Chia Ngọc Trai",
-      "Trà xoài Hạt Ngọc Trai",
-      "Trà Olong Hạt Ngọc Trai Hạt Chia",
-      "Trà Việt Quất hạt ngọc trai",
-      "Soda Việt Quất Hạt Ngọc Trai",
-      "Trà bí đao hạt chia hạt ngọc trai",
-      "Trà Việt Quất Macchiato Hạt Ngọc Trai",
-      "Soda Đào Hạt Ngọc Trai",
-      "Trà tắc thái xanh hạt ngọc trai",
-      "Cam Sữa",
-      "Nước Cam Tươi",
-      "Trà Dâu Hạt Ngọc Trai",
-      "Soda Dâu",
-      "Cam sữa",
-      "Cafe sữa đá",
-      "Bạc Xỉu",
-      "Cafe Bọt Biển",
-      "Cafe đá",
-      "Cafe Muối",
-      "Sting chai",
-      "Trà Xanh 0 độ chai",
-      "Cafe Bọt Biển SoCo Trân Châu Đường Đen",
-      "Cafe Bọt Biển Matcha Trân Châu Đường Đen",
-      "Café bọt biển Socola trân châu đường đen",
-      "Matcha latte Xoài",
-      "Matcha latte sữa",
-      "Matcha latte Đào",
-      "Cam Chanh Dây",
-      "7 Up lon",
-      "Mirinda Soda kem",
-      "Mirinda Xá Xị",
-      "Mirinda Cam",
-      "Coca Lon",
-      "Matcha latte việt quất",
-      "Bánh Flan",
-      "Khoai Dẻo",
-      "Trân Châu Đường Đen",
-      "Trân Châu Trắng",
-      "Sương Sáo",
-      "Hạt Ngọc Trai",
-      "Kem phô mai",
-      " Sương Sáo ",
-      "Hạt chia"
+      "Sữa Tươi Trân Châu",
+      "Trà Vải",
+      "Kem Cheese Trà Xanh",
+      "Trà Đào",
+      "Topping Trân Châu",
+      "Trà Oolong Sữa",
+      "Yakult Đào",
+      "Trà Sữa Hokkaido",
+      "Trà Sữa Khoai Môn",
+      "Trà Sữa Socola",
+      "Trà Sữa Matcha"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.754Z",
     "menuUpdatedAt": "2026-07-02T16:00:53.657Z",
@@ -18109,91 +17214,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/coffee-ruby-nam-long-quan-ca-phe-kdc-nam-long",
     "dishNames": [
-      "Cà phê Sữa đá",
-      "Cà phê đá",
-      "Cà phê pha máy",
-      "Cà phê kem Muối",
-      "Bạc xỉu",
-      "Cà phê sữa tươi sương sáo",
-      "Cà phê sữa tươi",
-      "Cà phê sữa đá xay",
-      "Cà phê hạnh nhân",
-      "Trà Đào",
-      "Trà bí đao sương sáo",
-      "Trà Lipton Sữa",
-      "Trà Vải",
-      "Trà Ổi Hồng",
-      "Trà lai",
-      "Trà Mãng Cầu",
-      "Trà dâu tằm",
-      "Trà Lipton đá",
-      "Trà đường",
-      "Trà lipton cam",
-      "Trà atiso đỏ",
-      "Trà hibiscus",
-      "Rau Má Dừa",
-      "Hạt đác sữa tươi đường đen",
-      "Milo dầm",
-      "Rau má đậu",
-      "Rau Má Sữa",
-      "Matcha Late",
-      "Rau Má",
-      "Ca Cao Sữa",
-      "Sữa đậu xanh",
-      "Đá Me",
-      "Cacao kem muối",
-      "Yaour Dâu Tươi",
-      "Cacao sữa đá xay",
-      "CaCao",
-      "Cacao sữa tươi",
-      "Yaour Đá",
-      "Matcha kem muối",
-      "Sữa tươi sương sáo",
-      "Chanh Tươi",
-      "Yaour Chanh Dây",
-      "Matcha late dâu",
-      "Chanh Muối",
-      "Tắc Xí Muội",
-      "Sữa tươi bạc hà",
-      "Milo",
-      "Yaour matcha",
-      "Sữa Tươi",
-      "Dừa Lạnh",
-      "Dừa Tắc",
-      "Dừa Đá Đường",
-      "Ép Cam",
-      "Ép Táo",
-      "Ép Khóm",
-      "Ép Dưa Hấu",
-      "Ép Ổi",
-      "Ép Cà Rót",
-      "Ép dưa lưới",
-      "Ép Chanh Dây",
-      "Ép cóc thái xanh",
-      "Mix theo yêu cầu",
-      "Sinh tố Dâu",
-      "Sinh tố Mãng Cầu",
-      "Sinh tố Sapo",
-      "Nước suối",
-      "Sting",
-      "Redbull",
-      "Wario nho",
-      "Revive",
-      "7 up",
-      "Wario dâu",
-      "C2",
-      "Olong",
-      "Trà xanh 0 độ",
-      "Coca",
-      "Pepsi",
-      "Revive chanh muối",
-      "Đậu nành",
-      "Yến nha đam",
-      "Carabao",
-      "Dr. Thanh",
-      "247",
-      "Cam ép twister",
-      "Mì ly Modern"
+      "Cà Phê Sữa Đá",
+      "Cà Phê Đen Đá",
+      "Bánh Flan",
+      "Croissant",
+      "Bạc Xỉu",
+      "Trà Sen Vàng",
+      "Trà Đào Cam Sả",
+      "Socola Đá Xay",
+      "Cappuccino",
+      "Espresso",
+      "Bánh Mì Bơ Tỏi",
+      "Latte"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.755Z",
     "menuUpdatedAt": "2026-07-02T16:01:10.355Z",
@@ -18220,24 +17252,23 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-san-mom",
     "dishNames": [
-      "Cà Phê Muối(Lớn)",
-      "Cà phê sữa tươi sương sáo",
-      "Trà sữa băng cốc hoàng kim(Size L)",
-      "Hồng trà ngọc trai",
-      "Trà sữa thái xanh hoàng kim(Size L)",
-      "Trà Sữa San Mom đặc biệt (Size L)",
-      "Cà phê đá",
-      "Cà phê sữa",
-      "Sương sáo",
-      "Trân châu trắng thủ công",
-      "Trân châu hoàng kim thủ công"
+      "Sữa Tươi Trân Châu",
+      "Trà Oolong Sữa",
+      "Yakult Đào",
+      "Trà Sữa Truyền Thống",
+      "Trà Sữa Trân Châu Đường Đen",
+      "Trà Sữa Khoai Môn",
+      "Topping Trân Châu",
+      "Trà Vải",
+      "Trà Sữa Matcha",
+      "Trà Sữa Hokkaido",
+      "Trà Sữa Socola",
+      "Topping Pudding",
+      "Trà Đào"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.757Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T07:09:19.103Z",
-    "closedAt": "2026-07-08T07:09:19.103Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T07:09:19.103Z"
   },
   {
     "id": "r_ct_an_nhien_2_banh_ca_phe",
@@ -18274,7 +17305,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.763Z",
     "menuUpdatedAt": "2026-07-08T07:10:01.157Z",
-    "isClosed": false
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_ly_tra_tac_xi_muoi_cach_mang_thang_tam.exsdd7",
@@ -18320,22 +17352,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mottraicam-coffee-tea",
     "dishNames": [
-      "Đá Me Đác Rim Thơm Ly 1 Lít",
-      "Đá Me Đác Rim Thơm Ly 700ml",
-      "Matcha latte ( Matcha Nhật )",
-      "Cacao Bạc Hà",
-      "Cacao Latte",
-      "Trà Tắc Thái Xanh Hạt Việt Quất Ly 1 Lít",
-      "Trà Tắc Thái Xanh Hạt Việt Quất Ly 700ml",
-      "Trà Tắc Thái Xanh Đác Rim Ly 1 Lít",
-      "Trà Tắc Thái Xanh Đác Rim Ly 700ml",
-      "Trà Lipton Tắc",
-      "Cà phê sữa",
+      "Trà Sen Vàng",
+      "Cà Phê Trứng",
+      "Latte",
+      "Cà Phê Muối",
       "Bạc Xỉu",
-      "Cà phê đen",
-      "Trà Lai",
-      "Trà Đường",
-      "Trà Sữa  Full Topping Size L"
+      "Bánh Flan",
+      "Sinh Tố Bơ",
+      "Bánh Mì Bơ Tỏi",
+      "Matcha Latte"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.771Z",
     "menuUpdatedAt": "2026-07-02T16:02:41.805Z",
@@ -18362,39 +17387,15 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/trung-nguyen-e-coffee-kdc-hong-phat",
     "dishNames": [
-      "Cà Phê Năng Lượng (sữa, đá)",
-      "Cà Phê Năng Lượng (đen, đá)",
-      "Bạc Xỉu Đá",
-      "Cappuccino Đá",
-      "Latte Đá",
-      "Cà Phê Chế Phin Truyền Thống (đen, đá)",
-      "Cà Phê Chế Phin Truyền Thống (sữa, đá)",
-      "Trà Sữa Oolong - Size M",
-      "Trà Thảo Mộc Thanh Nhiệt - Size M",
-      "Dừa Tươi",
-      "Cà Phê CaCao Sữa Dừa - Size M",
-      "Sữa Tươi Hoa Đậu Biếc - Size M",
-      "Trà Đào Hạt Chia - Size M",
-      "Nước Ép Dưa Hấu Hạt Chia - Size M",
-      "Trà Atisô Đỏ Hạt Chia - Size M",
-      "Nước Chanh Sả Gừng Hạt Chia - Size M",
-      "Chanh Muối Mật Ong - Size M",
-      "Nước Ép Dứa/Thơm Hạt Chia - Size M",
-      "Trà Hoa Đậu Biếc Hạt Chia - Size M",
-      "Cà Phê Muối - Size L (Topping Thạch Sương Sáo)",
+      "Latte",
+      "Cappuccino",
+      "Cà Phê Trứng",
+      "Cà Phê Sữa Đá",
+      "Trà Sen Vàng",
+      "Matcha Latte",
       "Cà Phê Muối",
-      "Latte Nóng",
-      "Cappuccino Nóng",
-      "Cà Phê Đá Xay (Caramel, Socola)",
-      "Sinh Tố Bơ",
-      "Matcha Đá Xay",
-      "Sữa Chua Việt Quất",
-      "Nước Ép Cam",
-      "Nước Ép Chanh Dây",
-      "Nước Ép Thơm",
-      "Sữa Chua Đá",
-      "Sữa Chua Chanh Dây",
-      "Nước Ép Dưa Hấu"
+      "Socola Đá Xay",
+      "Bánh Flan"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.774Z",
     "menuUpdatedAt": "2026-07-02T16:02:57.687Z",
@@ -18421,45 +17422,24 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cafe-hien-nguyen-van-cu-noi-dai",
     "dishNames": [
-      "Khoai môn sữa tươi",
-      "Matcha sữa gấu",
-      "Matcha sữa tươi",
-      "Matcha khoai môn",
-      "Matcha dâu tây",
-      "Matcha kem muối",
-      "Matcha việt quất",
-      "Nước ép táo",
-      "Nước ép dưa hấu",
-      "Nước ép thơm",
-      "Nước ép ổi hồng",
-      "Cacao sữa đá",
-      "Cacao kem muối",
-      "Cacao sữa tươi",
-      "Cacao matcha latte",
-      "Trà đào",
-      "Trà việt quất",
-      "Trà mãng cầu",
-      "Chanh dây mật ong",
-      "Trà vải",
-      "Trà ổi hồng",
-      "Lipton chanh",
-      "Trà dâu tằm",
-      "Cà phê đá",
-      "Bạc xỉu",
-      "Cà phê sữa đá",
-      "Cà phê muối",
-      "Cà phê sữa gấu",
-      "Cà phê sữa tươi bạc hà",
-      "Cà phê sữa tươi",
-      "Cà phê bơ đậu phộng",
-      "Sâm dứa sữa"
+      "Bánh Mì Bơ Tỏi",
+      "Socola Đá Xay",
+      "Sinh Tố Bơ",
+      "Croissant",
+      "Cà Phê Đen Đá",
+      "Cà Phê Sữa Đá",
+      "Cà Phê Muối",
+      "Trà Sen Vàng",
+      "Trà Đào Cam Sả",
+      "Cà Phê Trứng",
+      "Latte",
+      "Espresso",
+      "Bánh Flan",
+      "Matcha Latte"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.776Z",
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-08T07:10:42.228Z",
-    "closedAt": "2026-07-08T07:10:42.228Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nQuán đang đóng cửa\nQuán sẽ mở cửa vào lúc 09:13 08/08/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-08T07:10:42.228Z"
   },
   {
     "id": "r_ct_coti_cafe",
@@ -18480,26 +17460,21 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/coti-cafe",
     "dishNames": [
-      "Everyday Matcha Latte",
-      "Premium Matcha Latte",
-      "Basic Matcha Latte",
-      "Ichigo Matcha Latte",
-      "Coldwhisked Houjicha Latte",
-      "Coco Matcha Latte",
-      "Couple Premium Matcha Latte",
-      "Double Basic Matcha Latte",
-      "Social Latte",
-      "Nâu Đá Phin",
-      "Nâu hạnh nhân",
+      "Croissant",
+      "Trà Sen Vàng",
+      "Trà Đào Cam Sả",
       "Cà Phê Trứng",
-      "Đen Đá",
-      "Nâu yến mạch",
-      "Latte",
-      "Mocha",
-      "Coldbrew",
-      "Trà Vải Hấu",
-      "Trà Đào",
-      "Trà Ổi"
+      "Cà Phê Sữa Đá",
+      "Cà Phê Muối",
+      "Cà Phê Đen Đá",
+      "Socola Đá Xay",
+      "Cappuccino",
+      "Bánh Mì Bơ Tỏi",
+      "Matcha Latte",
+      "Nước Ép Cam",
+      "Bánh Flan",
+      "Espresso",
+      "Sinh Tố Bơ"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.777Z",
     "menuUpdatedAt": "2026-07-02T16:03:30.855Z",
@@ -18526,14 +17501,18 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bo-ne-aq-bo-ne-com-cac-loai-g3-23-duong-cao-minh-loc.gaxsh0",
     "dishNames": [
-      "Cơm xíu mại"
+      "Cơm Gà Xối Mỡ",
+      "Cơm Tấm Đặc Biệt",
+      "Nước Ngọt",
+      "Cơm Tấm Sườn Ốp La",
+      "Trà Đá",
+      "Cơm Tấm Bì Chả",
+      "Canh Chua",
+      "Cơm Chiên Dương Châu"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.781Z",
     "menuUpdatedAt": "2026-07-08T07:11:23.517Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:11:23.517Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_com_ga_xoi_mo_com_chien_duong_chau_hem_lien_to",
@@ -18603,17 +17582,17 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/the-gabo-bep-chuan-nep-chuan-bep-nvc-noi-dai",
     "dishNames": [
-      "CƠM GÀ MẮM TỎI",
-      "CƠM BÒ SỐT TERIYAKI",
-      "CƠM THỊT NGŨ VỊ",
-      "CƠM CHIÊN RAU CỦ",
-      "MÌ BÒ ÁP CHẢO",
-      "MÌ THỊT BẰM SỐT CÀ",
-      "MÌ GÀ XÁ XÍU",
-      "NƯỚC SUỐI",
-      "PEPSI KHÔNG ĐƯỢC - VỊ PHÚC BỒN TỬ",
-      "LY ĐÁ 360ml",
-      "AQUAFINA SODA"
+      "Phở Bò",
+      "Hủ Tiếu Nam Vang",
+      "Bánh Mì Thịt",
+      "Mì Xào Bò",
+      "Gỏi Cuốn",
+      "Nước Ngọt",
+      "Bún Bò Huế",
+      "Trà Đá",
+      "Cơm Tấm Sườn",
+      "Cà Phê Sữa Đá",
+      "Chả Giò"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.788Z",
     "menuUpdatedAt": "2026-07-02T16:05:23.144Z",
@@ -18645,10 +17624,8 @@
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
     "menuUpdatedAt": "2026-07-08T07:13:10.140Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:13:10.140Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_pho_coffee_nguyen_trai",
@@ -18675,10 +17652,8 @@
       "Bánh Croissant Bơ Tỏi Nướng Giòn"
     ],
     "menuUpdatedAt": "2026-07-08T07:14:14.392Z",
-    "isClosed": true,
-    "closedAt": "2026-07-08T07:14:14.392Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-09T00:00:00.000Z"
+    "isClosed": false,
+    "menuTemplateFallback": false
   },
   {
     "id": "r_ct_mi_cay_gangnam_vo_truong_toan",
@@ -18700,14 +17675,11 @@
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mi-cay-gangnam-vo-truong-toan",
     "dishNames": [
-      "Mì cay Hải sản cấp độ 0-7",
-      "Mì cay Bò cấp độ 0-7",
-      "Mì cay Thập cẩm cấp độ 0-7",
-      "Mì cay Đùi gà cấp độ 0-7",
-      "Kimbap truyền thống",
-      "Kimbap chiên xù",
-      "Trà sữa Thái xanh trân châu",
-      "Hồng trà tắc khổng lồ"
+      "Mì Cay Thập Cẩm 7 Cấp Độ Mì Cay Gang Nam",
+      "Mì Xào Giòn Hải Sản Mì Cay Gang Nam Đặc Biệt",
+      "Hủ Tiếu Gõ Khô Trộn Tỏi Phi",
+      "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
+      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
     ],
     "isClosed": false,
     "menuUpdatedAt": "2026-07-04T17:31:13.013Z"
