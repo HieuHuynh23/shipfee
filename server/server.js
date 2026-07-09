@@ -4590,9 +4590,12 @@ app.post('/api/shippers/login', async (req, res) => {
  */
 app.post('/api/shippers/register', async (req, res) => {
   try {
-    const { name, phone, email, password, avatar } = req.body;
+    const { name, phone, email, password, avatar, cccd } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Thiếu thông tin đăng ký!' });
+    }
+    if (!cccd) {
+      return res.status(400).json({ success: false, error: 'Thiếu số CCCD của tài xế!' });
     }
     if (!supabase) {
       return res.status(503).json({ success: false, error: 'Hệ thống đang hoạt động ở chế độ Supabase trực tuyến nhưng chưa cấu hình thông số kết nối hoặc cấu hình bị lỗi!' });
@@ -4601,12 +4604,22 @@ app.post('/api/shippers/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Chế độ trực tuyến bắt buộc phải có Email và Mật khẩu để đăng ký!' });
     }
 
+    const cleanedCccd = cccd.trim();
+    if (cleanedCccd.length < 9 || cleanedCccd.length > 12 || !/^\d+$/.test(cleanedCccd)) {
+      return res.status(400).json({ success: false, error: 'Số CCCD không hợp lệ (phải gồm 9 đến 12 chữ số)!' });
+    }
+
     const shippers = readShippersDatabase();
     const cleanedPhone = phone.trim().replace(/\s+/g, '');
     
     // Kiểm tra trùng SĐT
     if (shippers.some(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone)) {
       return res.status(400).json({ success: false, error: 'Số điện thoại này đã được đăng ký trên hệ thống!' });
+    }
+
+    // Kiểm tra trùng CCCD
+    if (shippers.some(s => s.cccd && s.cccd.trim() === cleanedCccd)) {
+      return res.status(400).json({ success: false, error: 'Số CCCD này đã được đăng ký cho một tài khoản tài xế khác!' });
     }
 
     // Xử lý và lưu ảnh chân dung (Base64 -> PNG & Supabase Storage)
@@ -4626,7 +4639,8 @@ app.post('/api/shippers/register', async (req, res) => {
         phone: cleanedPhone,
         role: 'shipper',
         is_approved: false,
-        avatar_url: avatarUrl
+        avatar_url: avatarUrl,
+        cccd: cleanedCccd
       }
     });
 
@@ -4640,6 +4654,7 @@ app.post('/api/shippers/register', async (req, res) => {
       phone: cleanedPhone,
       name: name.trim(),
       email: email.trim(),
+      cccd: cleanedCccd,
       avatarUrl: avatarUrl,
       isApproved: false, // Mặc định chưa được duyệt
       status: 'OFFLINE',
@@ -4665,6 +4680,7 @@ app.post('/api/shippers/register', async (req, res) => {
         status: 'OFFLINE',
         total_orders: 0,
         total_earnings: 0,
+        cccd: cleanedCccd,
         acceptance_rate: 100,
         completion_rate: 100
       });
@@ -5095,6 +5111,15 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
       return res.status(400).json({ success: false, error: 'Số điện thoại này đã được đăng ký!' });
     }
 
+    // Check if CCCD already exists
+    if (cccd) {
+      const cleanedCccd = cccd.trim();
+      const existsCccd = shippers.some(s => s.cccd && s.cccd.trim() === cleanedCccd);
+      if (existsCccd) {
+        return res.status(400).json({ success: false, error: 'Số CCCD này đã được đăng ký cho một tài xế khác!' });
+      }
+    }
+
     let uuid = null;
     if (supabase && email && password) {
       // Create user on Supabase auth
@@ -5180,6 +5205,15 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
       const exists = shippers.some((s, idx) => idx !== shipperIndex && s.phone.trim().replace(/\s+/g, '') === cleanedNewPhone);
       if (exists) {
         return res.status(400).json({ success: false, error: 'Số điện thoại mới đã được sử dụng bởi tài xế khác!' });
+      }
+    }
+
+    // Nếu thay đổi hoặc cung cấp CCCD mới, kiểm tra trùng lặp với tài xế khác
+    if (cccd) {
+      const cleanedCccd = cccd.trim();
+      const existsCccd = shippers.some((s, idx) => idx !== shipperIndex && s.cccd && s.cccd.trim() === cleanedCccd);
+      if (existsCccd) {
+        return res.status(400).json({ success: false, error: 'Số CCCD mới đã được sử dụng bởi một tài xế khác!' });
       }
     }
 
