@@ -1872,10 +1872,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nhi-nhi-shop-dac-san-vung-mien-shop-online",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nhi Nhi Shop",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nhi Nhi Shop",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.723Z",
     "menuUpdatedAt": "2026-07-01T09:19:57.011Z",
     "isClosed": true,
@@ -2656,10 +2661,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-mekong",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Mékong Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Mékong",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.763Z",
     "menuUpdatedAt": "2026-07-01T09:19:55.763Z",
     "isClosed": true,
@@ -3229,10 +3240,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-bi-bun-bi-xoi-man",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Bì",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.787Z",
     "isClosed": true,
     "menuUpdatedAt": "2026-07-02T11:09:56.703Z",
@@ -3255,10 +3272,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-banh-mi-xoi-xa-xiu-nguyen-van-cu",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Bún Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Bún",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.788Z",
     "isClosed": true,
     "menuUpdatedAt": "2026-07-02T11:11:01.316Z",

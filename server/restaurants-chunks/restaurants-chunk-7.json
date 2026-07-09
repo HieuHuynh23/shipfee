@@ -2444,10 +2444,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ngoc-lan-hu-tieu",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Ngọc Lan",
+      "Hủ Tiếu Nam Vang Khô Trộn Sốt Ngọc Lan",
+      "Hủ Tiếu Hoành Thánh Xá Xíu",
+      "Xương Ống Hầm Mềm Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.769Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T21:44:38.862Z"
@@ -2540,10 +2546,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chao-ech-singapore-de-tham",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Cháo Ếch Singapore",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cháo Ếch Singapore",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.780Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T21:45:42.860Z"
@@ -3400,10 +3411,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-banh-bao-nguyen-hien",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì & Bánh Bao Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi & Bánh Bao",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.821Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:31:42.247Z"
@@ -3572,10 +3589,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ami-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Ami Cafe & Cơm Văn Phòng Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Ami Cafe & Cơm Văn Phòng",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.828Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:33:28.999Z"
@@ -3596,10 +3619,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-ngon-le-thanh-ton",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Ngon",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ngon",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.828Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:34:33.220Z"
@@ -3730,10 +3758,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/co-thuong-banh-xeo-banh-khot",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Cô Thương",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cô Thương",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.830Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:35:37.869Z"
@@ -4178,10 +4211,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-chien-thap-cam-10k",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Chiên Thập Cẩm 10K Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Chiên Thập Cẩm 10K",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.849Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:39:26.039Z"
@@ -4526,10 +4565,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bep-ngon-giao-com-van-phong",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Bếp Ngon Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Bếp Ngon",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.858Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:41:12.098Z"
@@ -4810,10 +4855,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nam-coffee-tran-van-giau",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá Nam Coffee Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa Nam Coffee",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.885Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:43:39.273Z"
@@ -4859,10 +4910,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-mam-69a",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bún Mắm 69A",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bún Mắm 69A",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.890Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:44:43.409Z"
@@ -4908,10 +4964,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-mam-com-duong-chau",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Bún Mắm & Cơm Dương Châu Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Bún Mắm & Cơm Dương Châu",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.892Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:45:47.630Z"
@@ -4966,10 +5028,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-thit-xao-ly-tu-trong",
-    "dishNames": [],
+    "dishNames": [
+      "Mì Cay Thập Cẩm 7 Cấp Độ Bún Thịt Xào",
+      "Mì Xào Giòn Hải Sản Bún Thịt Xào Đặc Biệt",
+      "Hủ Tiếu Gõ Khô Trộn Tỏi Phi",
+      "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
+      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.902Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:46:51.857Z"
@@ -5054,10 +5122,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pho-que-hai-san-dong-que",
-    "dishNames": [],
+    "dishNames": [
+      "Ốc Hương Rang Muối Ớt Cay Nồng Phố Quê",
+      "Ốc Móng Tay Xào Tỏi Hành Thơm Lừng Phố Quê",
+      "Sò Huyết Cháy Tỏi Bơ Ngọt Béo",
+      "Mực Trứng Hấp Sả Hành Gừng Tươi",
+      "Càng Ghẹ Rang Muối Cay Kéo Sợi"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.911Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:47:56.011Z"
@@ -5103,10 +5177,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-pho-phuong-quang",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.912Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:49:00.215Z"
@@ -5127,10 +5207,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-trang-cuon-nem-te-1-chau-van-liem",
-    "dishNames": [],
+    "dishNames": [
+      "Mẹt Cá Viên Chiên Thập Cẩm Sốt Mắm Bánh Tráng Cuốn Nếm Tê 1",
+      "Bánh Tráng Trộn Sa Tế Tôm Trứng Cút Bánh Tráng Cuốn Nếm Tê 1",
+      "Bánh Tráng Cuộn Bơ Hành Phi",
+      "Tokbokki Phô Mai Cay Ly Lớn",
+      "Trà Tắc Hạt Chia Giải Khát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.915Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:50:04.879Z"
@@ -5447,10 +5533,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pizza-y",
-    "dishNames": [],
+    "dishNames": [
+      "Pizza Thập Cẩm Phô Mai Mozzarella (M) Pizza Ý",
+      "Pizza Hải Sản Sốt Pesto (Size M) Pizza Ý",
+      "Mỳ Ý Sốt Bò Bằm Bolognaise",
+      "Burger Bò Phô Mai Double Cheesy",
+      "Khoai Tây Bổ Múi Bơ Tỏi (Lớn)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.925Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:51:50.845Z"
@@ -5794,10 +5886,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/five-star-ga-ran-re-tranh-banh-mi-105-cach-mang-thang-8",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Five Star Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Five Star",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.939Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:53:36.135Z"
@@ -5843,10 +5941,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-nao-bui-huu-nghia",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nào",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nào",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.946Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:54:40.983Z"
@@ -6125,10 +6228,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tho-tuyet-mi-ramen-mon-nhat",
-    "dishNames": [],
+    "dishNames": [
+      "Set Sushi Thập Cẩm Premium (10 Viên) Thỏ Tuyết",
+      "Tokbokki Phô Mai Cay Kéo Sợi Thỏ Tuyết",
+      "Kimbap Chiên Xù Giòn Rụm Lớn",
+      "Mỳ Tương Đen Jajangmyeon Đặc Trưng Thỏ Tuyết",
+      "Cơm Trộn Thịt Bò Bulgogi Trứng Lòng Đào"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.967Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-07T23:57:09.224Z"
@@ -6736,10 +6845,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/danh-bun-ca-com-suon",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Danh Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Danh",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:48.990Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:00:18.565Z"
@@ -6968,10 +7083,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hu-tieu-muc-hem-54-tran-viet-chau",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Mực Ống Tươi Sườn Heo Mực",
+      "Hủ Tiếu Mực Tôm Trứng Cút Mực",
+      "Hủ Tiếu Mực Trộn Khô Sốt Mực Đặc Biệt",
+      "Đĩa Mực Ống Tươi Nhúng Thêm",
+      "Nước Sâm Dứa Lá Nếp Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.002Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:02:06.166Z"
@@ -7271,10 +7392,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-pha-lau-hot-ga-nuong",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Phá Lấu & Hột Gà Nướng Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Phá Lấu & Hột Gà Nướng",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.016Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:03:10.419Z"
@@ -7784,10 +7911,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/lau-de-thanh-thuy",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Dê Thanh Thuý",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Dê Thanh Thuý",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.041Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:05:37.906Z"
@@ -7858,10 +7991,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/be-anh-an-vat-online",
-    "dishNames": [],
+    "dishNames": [
+      "Mẹt Cá Viên Chiên Thập Cẩm Sốt Mắm Bé Anh",
+      "Bánh Tráng Trộn Sa Tế Tôm Trứng Cút Bé Anh",
+      "Bánh Tráng Cuộn Bơ Hành Phi",
+      "Tokbokki Phô Mai Cay Ly Lớn",
+      "Trà Tắc Hạt Chia Giải Khát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.045Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:06:42.245Z"
@@ -7946,10 +8085,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hoanh-thanh-cau-cai-rang-be",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Hoành Thánh",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Hoành Thánh",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.046Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:07:47.087Z"
@@ -8043,10 +8187,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bo-ne-cho-noi",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bò Né Chợ Nổi",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bò Né Chợ Nổi",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.051Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:08:57.686Z"
@@ -8425,10 +8574,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/lau-39k-mau-than",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) 39k",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) 39k",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.067Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:11:26.912Z"
@@ -8482,10 +8637,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-toan-lau-ga-ac",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Toàn",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Toàn",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.068Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:12:31.064Z"
@@ -8825,10 +8986,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/go-moc-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Gỗ Mộc Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Gỗ Mộc Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.084Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:14:16.384Z"
@@ -9069,10 +9235,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/july-tea-tra-dao-tra-sua-hong-kong",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim JULY TEA",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo JULY TEA",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.088Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:16:03.408Z"
@@ -9434,10 +9606,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/sinh-to-van-nhi",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá Sinh Tố Vân Nhi Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa Sinh Tố Vân Nhi",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.101Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:17:50.562Z"
@@ -9617,10 +9795,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/holiday-one-sky-bar-pham-ngoc-thach",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Holiday One Sky Bar",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Holiday One Sky Bar",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.109Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:18:54.718Z"
@@ -9868,10 +10051,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/sua-chua-trai-cay-shake-share-shop-online",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Sữa Chua Trái Cây Shake & Share",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sữa Chua Trái Cây Shake & Share",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.128Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:19:59.125Z"
@@ -9927,10 +10115,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nuoc-mia-nhat-duy-huynh-cuong",
-    "dishNames": [],
+    "dishNames": [
+      "Set Sushi Thập Cẩm Premium (10 Viên) Nước Mía Nhật Duy",
+      "Tokbokki Phô Mai Cay Kéo Sợi Nước Mía Nhật Duy",
+      "Kimbap Chiên Xù Giòn Rụm Lớn",
+      "Mỳ Tương Đen Jajangmyeon Đặc Trưng Nước Mía Nhật Duy",
+      "Cơm Trộn Thịt Bò Bulgogi Trứng Lòng Đào"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.132Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:21:04.041Z"
@@ -10001,10 +10195,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nuoc-mia-mit",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nước Mía Mít",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nước Mía Mít",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.135Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:22:08.813Z"
@@ -10088,10 +10287,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/sam-dua-tra-dao",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Sâm Dừa & Trà Đào",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sâm Dừa & Trà Đào",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.141Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:23:53.962Z"
@@ -10421,10 +10625,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tiem-tra-la-mac-thien-tich",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Trà Lạ",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Trà Lạ",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.147Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:25:39.152Z"
@@ -10783,10 +10992,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/kem-truyen-thong",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Kem Truyền Thống",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Kem Truyền Thống",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.160Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:27:24.541Z"
@@ -11087,10 +11302,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-my-tra-sua-nha-lam",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Trà My",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Trà My",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.175Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:29:10.033Z"
@@ -11355,10 +11576,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/an-vat-tobi",
-    "dishNames": [],
+    "dishNames": [
+      "Mẹt Cá Viên Chiên Thập Cẩm Sốt Mắm Tobi",
+      "Bánh Tráng Trộn Sa Tế Tôm Trứng Cút Tobi",
+      "Bánh Tráng Cuộn Bơ Hành Phi",
+      "Tokbokki Phô Mai Cay Ly Lớn",
+      "Trà Tắc Hạt Chia Giải Khát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.192Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:30:57.057Z"
@@ -11488,10 +11715,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/m2t-coffee-snack",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá M2T Coffee & Snack Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa M2T Coffee & Snack",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.197Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:32:01.798Z"
@@ -11676,10 +11909,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/lau-huong-bien-68",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Hương Biển 68",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Hương Biển 68",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.208Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:33:48.743Z"
@@ -11798,10 +12037,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nha-hang-tiec-cuoi-phi-long",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nhà Hàng Tiệc Cưới Phi Long",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nhà Hàng Tiệc Cưới Phi Long",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.224Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:34:52.945Z"
@@ -11822,10 +12066,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/vong-xoay-quan-an-gia-dinh",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Vòng Xoay",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Vòng Xoay",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.232Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:36:00.855Z"
@@ -11871,10 +12120,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/a-bang-quan-nhau",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ A Bằng",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) A Bằng",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.236Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:37:05.563Z"
@@ -11895,10 +12149,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-nhau-nam-2",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nhậu Nam 2",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nhậu Nam 2",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.237Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:38:09.783Z"
@@ -11944,10 +12203,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-nhau-binh-dan-109",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nhậu Bình Dân 109",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nhậu Bình Dân 109",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.238Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:39:13.893Z"
@@ -12019,10 +12283,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-dao-dao-hoa-hai-san-nuong",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Đảo Đào Hoa",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Đảo Đào Hoa",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.243Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:40:59.017Z"
@@ -12068,10 +12338,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-thien-chi-2-com-chay",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Thiện Chí 2 Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Thiện Chí 2",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.249Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:42:03.405Z"
@@ -12117,10 +12393,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-com-hong-ngoc",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Hồng Ngọc Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Hồng Ngọc",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.253Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:43:07.489Z"
@@ -12141,10 +12423,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-com-co-sau",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cô Sáu Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cô Sáu",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.254Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:44:11.414Z"
@@ -12290,10 +12578,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/phu-quy-quan-com-pho",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Phú Quý Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Phú Quý",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.262Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:45:56.254Z"
@@ -12339,10 +12633,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/grill-suon-sua-barbecue-restaurant",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Grill Sườn Sữa",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Grill Sườn Sữa",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.268Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:47:00.081Z"
@@ -12424,10 +12723,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cha-lua-nem-nuong-8-loc",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Chả Lụa Nem Nướng 8 Lộc",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Chả Lụa Nem Nướng 8 Lộc",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.272Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:48:04.970Z"
@@ -12962,10 +13267,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/le-trang-banh-uot-nong-banh-tam-xiu-mai-bun-thit-xao",
-    "dishNames": [],
+    "dishNames": [
+      "Mì Cay Thập Cẩm 7 Cấp Độ Lê Trang",
+      "Mì Xào Giòn Hải Sản Lê Trang Đặc Biệt",
+      "Hủ Tiếu Gõ Khô Trộn Tỏi Phi",
+      "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
+      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.310Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:52:33.061Z"
@@ -13102,10 +13413,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ngoc-hoa-cafe-san-vuon",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Ngọc Hoa",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ngọc Hoa",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.325Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:54:17.359Z"
@@ -13221,10 +13537,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ut-tu-bun-rieu-bun-nuoc-leo-tra-vinh",
-    "dishNames": [],
+    "dishNames": [
+      "Bún Riêu Cua Giò Heo Ốc Út Tú Đặc Biệt",
+      "Bún Riêu Bắp Bò Chả Huế Út Tú",
+      "Bún Riêu Ốc Đậu Hũ Chiên Giòn",
+      "Khoanh Giò Heo Hầm Mềm Thêm",
+      "Trà Đá Nhài Thanh Mát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.343Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:56:02.421Z"
@@ -13320,10 +13642,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/an-gia-cafe-con-khuong",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ An Gia Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) An Gia Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.352Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:57:06.472Z"
@@ -13402,10 +13729,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dung-map-hu-tieu-nam-vang",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Dũng Mập",
+      "Hủ Tiếu Nam Vang Khô Trộn Sốt Dũng Mập",
+      "Hủ Tiếu Hoành Thánh Xá Xíu",
+      "Xương Ống Hầm Mềm Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.355Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:58:51.728Z"
@@ -13579,10 +13912,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-chay-kho-quet-68-163-nguyen-viet-hong.2jwlgx",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Cháy Khô Quẹt 68 Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Cháy Khô Quẹt 68",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.363Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T00:59:55.847Z"
@@ -13644,10 +13983,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-thang-bom-2-quan-an-gia-dinh",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Thằng Bờm 2",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Thằng Bờm 2",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.378Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:00:59.559Z"
@@ -13693,10 +14037,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/gio-bien-quan-hai-san",
-    "dishNames": [],
+    "dishNames": [
+      "Ốc Hương Rang Muối Ớt Cay Nồng Gió Biển",
+      "Ốc Móng Tay Xào Tỏi Hành Thơm Lừng Gió Biển",
+      "Sò Huyết Cháy Tỏi Bơ Ngọt Béo",
+      "Mực Trứng Hấp Sả Hành Gừng Tươi",
+      "Càng Ghẹ Rang Muối Cay Kéo Sợi"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.379Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:02:05.584Z"
@@ -13717,10 +14067,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tuong-chi-quan-tra",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Tường Chi",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Tường Chi",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.384Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:03:09.503Z"
@@ -13766,10 +14121,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-khong-ten-nuoc-ep-trai-cay",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Không Tên",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Không Tên",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.391Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:04:13.746Z"
@@ -13969,10 +14329,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/nina-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Nina Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Nina Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.400Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:05:17.975Z"
@@ -14018,10 +14383,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ve-day-quan-mau-than",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Về Đây Quán",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Về Đây Quán",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.400Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:06:22.403Z"
@@ -14042,10 +14412,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-meo-u",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Mèo Ú",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Mèo Ú",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.401Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:07:26.702Z"
@@ -14091,10 +14467,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dien-anh",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Điện Ảnh",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Điện Ảnh",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.410Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:08:30.842Z"
@@ -14140,10 +14521,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/1986-coffee",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá 1986 Coffee Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa 1986 Coffee",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.414Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:09:35.169Z"
@@ -14164,10 +14551,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-rieu-hot-vit-lon",
-    "dishNames": [],
+    "dishNames": [
+      "Bún Riêu Cua Giò Heo Ốc & Hột Vịt Lộn Đặc Biệt",
+      "Bún Riêu Bắp Bò Chả Huế & Hột Vịt Lộn",
+      "Bún Riêu Ốc Đậu Hũ Chiên Giòn",
+      "Khoanh Giò Heo Hầm Mềm Thêm",
+      "Trà Đá Nhài Thanh Mát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.418Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:10:39.400Z"
@@ -14213,10 +14606,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/chinh-banh-mi-chay",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Chính Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Chính",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.423Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:11:43.476Z"
@@ -14413,10 +14812,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-trua-79",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Trưa 79 Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Trưa 79",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.432Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:13:28.975Z"
@@ -14508,10 +14913,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/van-an-com-trua-binh-dan",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Vân An Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Vân An",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.434Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:15:14.359Z"
@@ -14727,10 +15138,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/book-coffee-39",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá Book Coffee 39 Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa Book Coffee 39",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.440Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:16:19.089Z"
@@ -14751,10 +15168,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/so-10-cafe-diem-tam-sang",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Số 10 Cafe & Điểm Tâm Sáng",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Số 10 Cafe & Điểm Tâm Sáng",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.442Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:17:23.316Z"
@@ -14800,10 +15222,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bep-me-toi-pate-trung-muoi",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bếp Mẹ Tôi",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bếp Mẹ Tôi",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.446Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:18:27.469Z"
@@ -14849,10 +15276,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-crepe-sau-rieng-tra-xanh-shop-online",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bánh Crepe Sầu Riêng",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Crepe Sầu Riêng",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.453Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:19:31.874Z"
@@ -14873,10 +15305,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-chuoi-thai-lan-shop-online",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bánh Chuối Thái Lan",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Chuối Thái Lan",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.454Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:20:35.982Z"
@@ -14922,10 +15359,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cafe-cho-o-mon-lo-3",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Chợ Ô Môn",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Chợ Ô Môn",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.456Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:21:40.408Z"
@@ -14996,10 +15438,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ngay-moi-cafe-billiards",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Ngày Mới Cafe Billiards",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ngày Mới Cafe Billiards",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.467Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:22:44.435Z"
@@ -15144,10 +15591,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/takoyaki-cho-dem-ben-ninh-kieu",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Takoyaki",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Takoyaki",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.477Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:23:48.483Z"
@@ -15277,10 +15729,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hoa-cau-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Hoa Cau Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Hoa Cau Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.481Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:24:52.999Z"
@@ -15326,10 +15783,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-ga-xoi-mo-tran-hoang-na",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Gà Xối Mỡ Da Giòn (Đùi) Xối Mỡ",
+      "Cơm Gà Hải Nam Luộc Xối Mỡ",
+      "Cơm Gà Quay Chảo Sốt Mật Ong",
+      "Cơm Gà Xé Phay Hành Tây",
+      "Canh Gà Lá Giang Lá Chanh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.487Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:25:57.194Z"
@@ -15375,10 +15838,16 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-suon-16",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Sườn 16 Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Sườn 16",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.495Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:27:00.903Z"
@@ -15399,10 +15868,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ori-food-tra-sua-an-vat",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Ori Food",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Ori Food",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.496Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:28:07.790Z"
@@ -15448,10 +15923,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hu-tieu-mi-bun-rieu-cua",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Mì & Bún Riêu Cua",
+      "Hủ Tiếu Nam Vang Khô Trộn Sốt Mì & Bún Riêu Cua",
+      "Hủ Tiếu Hoành Thánh Xá Xíu",
+      "Xương Ống Hầm Mềm Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.497Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:29:12.213Z"
@@ -15497,10 +15978,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cafe-holic",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Holic",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Holic",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.498Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:30:16.572Z"
@@ -15557,10 +16043,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/takoyaki-30-thang-4",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Takoyaki",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Takoyaki",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.501Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:31:20.911Z"
@@ -15631,10 +16122,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/cay-xanh-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Cây Xanh Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Cây Xanh Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.520Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:32:25.610Z"
@@ -15721,10 +16217,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-keo-yolo-mini-store",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bánh Kẹo Yolo Mini Store",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Kẹo Yolo Mini Store",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.524Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:34:10.249Z"
@@ -15770,10 +16271,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-bao-kim-sa",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bánh Bao Kim Sa",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Bao Kim Sa",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.527Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:35:14.949Z"
@@ -15865,10 +16371,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-mi-dem",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Mì Heo Quay Giòn Bì Đêm Đặc Biệt",
+      "Bánh Mì Xá Xíu Pâté Bơ Tươi Đêm",
+      "Bánh Mì Chả Lụa Thịt Nguội Pâté",
+      "Bánh Mì Ốp La 2 Trứng Xúc Xích",
+      "Sữa Đậu Nành Nguyên Chất Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.532Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:36:19.805Z"
@@ -15955,10 +16467,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-bo-cay-3-thang-2",
-    "dishNames": [],
+    "dishNames": [
+      "Bún Bò Huế Cay Đặc Biệt Giò Chả",
+      "Bún Bò Tái Nạm Gầu Bò Cay",
+      "Bún Bò Huế Thường (Thịt + Chả)",
+      "Đĩa Chả Cua / Chả Huế Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.536Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:37:24.270Z"
@@ -16004,10 +16522,15 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bean-cafe-duong-3-thang-2",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bean Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bean Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.537Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:38:28.419Z"
@@ -16028,10 +16551,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/trieu-quan-duong-3-thang-2",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Triêu Quán",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Triêu Quán",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.538Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:39:32.748Z"
@@ -16077,10 +16605,15 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/da-ly-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Dạ Lý Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Dạ Lý Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.541Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:40:36.920Z"
@@ -16129,10 +16662,16 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-tam-tran-phu",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Tấm Sườn Nướng Lu Cơm Tấm",
+      "Cơm Tấm Sườn Bì Chả Cơm Tấm Đặc Biệt",
+      "Cơm Tấm Ba Chỉ Heo Quay Giòn Bì",
+      "Cơm Tấm Đùi Gà Xối Mỡ",
+      "Canh Khổ Qua Nhồi Thịt Heo"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.544Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:41:40.810Z"
@@ -16269,13 +16808,18 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-con-ca-vang-cach-mang-thang-8",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Bánh Con Cá Vàng",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Bánh Con Cá Vàng",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.559Z",
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T01:42:45.000Z"
+    "menuUpdatedAt": "2026-07-09T01:34:03.204Z"
   },
   {
     "id": "r_ct_truong_hai_lo_banh_mi",
@@ -16316,10 +16860,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dieu-ngan-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Diệu Ngân Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Diệu Ngân Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.572Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:43:49.427Z"
@@ -16533,10 +17082,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-dau-mam-tom-68",
-    "dishNames": [],
+    "dishNames": [
+      "Ốc Hương Rang Muối Ớt Cay Nồng Bún Đậu Mắm Tôm 68",
+      "Ốc Móng Tay Xào Tỏi Hành Thơm Lừng Bún Đậu Mắm Tôm 68",
+      "Sò Huyết Cháy Tỏi Bơ Ngọt Béo",
+      "Mực Trứng Hấp Sả Hành Gừng Tươi",
+      "Càng Ghẹ Rang Muối Cay Kéo Sợi"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.591Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:45:36.411Z"
@@ -16580,13 +17135,19 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/mimosa-coffee",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá Mimosa Coffee Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa Mimosa Coffee",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.592Z",
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T01:46:41.105Z"
+    "menuUpdatedAt": "2026-07-09T01:34:03.589Z"
   },
   {
     "id": "r_ct_phuong_nhi_quan_an_gia_dinh",
@@ -16627,10 +17188,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/dookki-viet-nam-lau-buffet-tokpokki-vincom-xuan-khanh",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Dookki Việt Nam Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Dookki Việt Nam",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.594Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:47:45.275Z"
@@ -16650,10 +17217,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-kammui-khoai-lang-chien",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Kammui",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Kammui",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.600Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:48:50.278Z"
@@ -16721,10 +17293,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/phuc-thinh-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Phúc Thịnh Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Phúc Thịnh Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.613Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:49:54.140Z"
@@ -16744,10 +17321,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/sinh-to-trai-cay-xo",
-    "dishNames": [],
+    "dishNames": [
+      "Cà Phê Sữa Đá Sinh Tố & Trái Cây Xô Gia Truyền",
+      "Bạc Xỉu Sương Sáo Cốt Dừa Sinh Tố & Trái Cây Xô",
+      "Cà Phê Muối Kem Bông Thơm Béo",
+      "Trà Đào Cam Sả Hạt Chia",
+      "Bánh Croissant Bơ Tỏi Nướng Giòn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.618Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:50:58.480Z"
@@ -16791,10 +17374,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hu-tieu-go-ba-lang",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Nam Vang Sườn Tôm Thịt Bằm Gõ",
+      "Hủ Tiếu Nam Vang Khô Trộn Sốt Gõ",
+      "Hủ Tiếu Hoành Thánh Xá Xíu",
+      "Xương Ống Hầm Mềm Thêm",
+      "Bánh Quẩy Chiên Giòn (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.623Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:52:02.752Z"
@@ -16899,10 +17488,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/thao-thao-quan-nhau-binh-dan",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Thảo Thảo",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Thảo Thảo",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.638Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:53:06.990Z"
@@ -16979,10 +17573,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/ngoc-trang-cafe-le-hong-phong",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Ngọc Trang Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Ngọc Trang Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.651Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:54:11.255Z"
@@ -17026,10 +17625,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pho-thuy-bui-huu-nghia",
-    "dishNames": [],
+    "dishNames": [
+      "Phở Bò Thùy Đặc Biệt (Tái, Nạm, Gầu, Gân)",
+      "Phở Bò Tái Bắp Hoa Tươi Thùy",
+      "Phở Gà Ta Xé Đùi Trứng Non",
+      "Đĩa Thịt Bò Tái Thêm",
+      "Quẩy Giòn Chấm Phở (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.652Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:55:15.548Z"
@@ -17171,10 +17776,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-69-hu-tieu-muc-le-hong-phong",
-    "dishNames": [],
+    "dishNames": [
+      "Hủ Tiếu Mực Ống Tươi Sườn Heo 69",
+      "Hủ Tiếu Mực Tôm Trứng Cút 69",
+      "Hủ Tiếu Mực Trộn Khô Sốt 69 Đặc Biệt",
+      "Đĩa Mực Ống Tươi Nhúng Thêm",
+      "Nước Sâm Dứa Lá Nếp Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.664Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:57:00.925Z"
@@ -17218,10 +17829,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/rico-rica-kem-churros",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Rico Rica",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Rico Rica",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.673Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:58:05.737Z"
@@ -17241,10 +17858,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/bun-rieu-33-de-tham",
-    "dishNames": [],
+    "dishNames": [
+      "Bún Riêu Cua Giò Heo Ốc 33 Đặc Biệt",
+      "Bún Riêu Bắp Bò Chả Huế 33",
+      "Bún Riêu Ốc Đậu Hũ Chiên Giòn",
+      "Khoanh Giò Heo Hầm Mềm Thêm",
+      "Trà Đá Nhài Thanh Mát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.679Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T01:59:10.169Z"
@@ -17373,10 +17996,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/suong-sa-hot-luu-ngo-quyen",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Sương Sa Hột Lựu",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Sương Sa Hột Lựu",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.683Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:00:14.667Z"
@@ -17562,10 +18190,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/khoai-lang-lac-kammui-nguyen-an-ninh",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Khoai Lang Lắc Kammui",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Khoai Lang Lắc Kammui",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.696Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:01:59.869Z"
@@ -17706,10 +18339,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/hoan-vu-cafe",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Hoàn Vũ Cafe",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Hoàn Vũ Cafe",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.704Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:03:47.359Z"
@@ -17729,10 +18367,15 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/quan-nhau-binh-dan-tran-quang-dieu",
-    "dishNames": [],
+    "dishNames": [
+      "Bánh Xèo Miền Tây Khổng Lồ Quán Nhậu Bình Dân",
+      "Gỏi Cuốn Tôm Thịt Heo (3 cái) Quán Nhậu Bình Dân",
+      "Nem Nướng Nha Trang (Set 1 người)",
+      "Trà Đá Chanh Sả Mát Lạnh"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.705Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:04:51.598Z"
@@ -17776,10 +18419,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/po-teo-quan-lau-cua-dong",
-    "dishNames": [],
+    "dishNames": [
+      "Set Lẩu Thái Hải Sản Chua Cay (2 Người) Pồ Tèo Quán",
+      "Set Lẩu Gà Lá Giang Lá Chanh (2 Người) Pồ Tèo Quán",
+      "Ba Chỉ Bò Mỹ Cuộn Nhúng Lẩu (150g)",
+      "Đĩa Hải Sản Tổng Hợp Nhúng Kèm",
+      "Rau Nấm Lẩu Thập Cẩm Sạch"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.711Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:05:55.669Z"
@@ -17823,10 +18472,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/tra-sua-pooh",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Pooh",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Pooh",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.715Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:06:59.783Z"
@@ -17846,10 +18501,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-chay-33",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Cơm Chay 33 Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Cơm Chay 33",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.718Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:08:04.128Z"
@@ -17893,10 +18554,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/eyelash-mi-cay-an-vat",
-    "dishNames": [],
+    "dishNames": [
+      "Mì Cay Thập Cẩm 7 Cấp Độ Eyelash",
+      "Mì Xào Giòn Hải Sản Eyelash Đặc Biệt",
+      "Hủ Tiếu Gõ Khô Trộn Tỏi Phi",
+      "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
+      "Nước Sâm Lạnh Râu Ngô Đường Phèn"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.720Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:09:08.489Z"
@@ -17940,10 +18607,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/pho-hue",
-    "dishNames": [],
+    "dishNames": [
+      "Phở Bò Huệ Đặc Biệt (Tái, Nạm, Gầu, Gân)",
+      "Phở Bò Tái Bắp Hoa Tươi Huệ",
+      "Phở Gà Ta Xé Đùi Trứng Non",
+      "Đĩa Thịt Bò Tái Thêm",
+      "Quẩy Giòn Chấm Phở (2 cái)"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.721Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:10:13.287Z"
@@ -17963,10 +18636,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/com-tam-chao-long-15k",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Tấm Sườn Nướng Lu & Cháo Lòng 15k",
+      "Cơm Tấm Sườn Bì Chả & Cháo Lòng 15k Đặc Biệt",
+      "Cơm Tấm Ba Chỉ Heo Quay Giòn Bì",
+      "Cơm Tấm Đùi Gà Xối Mỡ",
+      "Canh Khổ Qua Nhồi Thịt Heo"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.724Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:11:59.176Z"
@@ -18064,10 +18743,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/phuc-hau-quan-com-binh-dan",
-    "dishNames": [],
+    "dishNames": [
+      "Cơm Chiên Dương Châu Phúc Hậu Đặc Biệt",
+      "Cơm Sườn Rim Chua Ngọt Vị Quê Phúc Hậu",
+      "Cơm Thịt Kho Tàu Trứng Cút",
+      "Cơm Bò Xào Bông Cải Xanh",
+      "Canh Chua Cá Lóc Nam Bộ"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.733Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:13:03.466Z"
@@ -18111,10 +18796,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/banh-trang-tron-sai-gon",
-    "dishNames": [],
+    "dishNames": [
+      "Mẹt Cá Viên Chiên Thập Cẩm Sốt Mắm Bánh Tráng Trộn Sài Gòn",
+      "Bánh Tráng Trộn Sa Tế Tôm Trứng Cút Bánh Tráng Trộn Sài Gòn",
+      "Bánh Tráng Cuộn Bơ Hành Phi",
+      "Tokbokki Phô Mai Cay Ly Lớn",
+      "Trà Tắc Hạt Chia Giải Khát"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.740Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:14:07.990Z"
@@ -18368,10 +19059,16 @@
       "Đang mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "menuTemplateFallback": false,
     "foodyHref": "/can-tho/che-thai-76",
-    "dishNames": [],
+    "dishNames": [
+      "Trà Sữa Trân Châu Hoàng Kim Chè Thái 76",
+      "Trà Sữa Matcha Đậu Đỏ Dẻo Chè Thái 76",
+      "Lục Trà Nhài Sữa Kem Macchiato",
+      "Trà Đào Cam Sả Tươi Mát",
+      "Thạch Trân Châu Hoàng Kim Thêm"
+    ],
     "menuProcessedAt": "2026-06-30T16:55:49.766Z",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-08T02:16:34.412Z"
