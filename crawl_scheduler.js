@@ -16,6 +16,18 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const dbHelper = require('./server/dbHelper');
+const os = require('os');
+
+function getRamUsage() {
+  const total = os.totalmem();
+  const free = os.freemem();
+  const used = total - free;
+  return used / total;
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
@@ -116,13 +128,20 @@ async function crawlMenuBatch() {
       
       const r = targets[index++];
       if (!r) continue;
+
+      // RAM Guard: Tự động tạm dừng nếu RAM hệ thống vượt quá 80%
+      while (getRamUsage() > 0.8 && !shouldStop) {
+        const pct = Math.round(getRamUsage() * 100);
+        writeLog(`⚠️ [RAM Guard] Bộ nhớ RAM hệ thống quá tải (${pct}% > 80%)! Tạm dừng cào 5 giây để hạ nhiệt...`, C.yellow);
+        await sleep(5000);
+      }
       
       stats.totalAttempted++;
       const num = `[${stats.totalAttempted}/${targets.length}]`;
       
       try {
         writeLog(`🔍 ${num} Đang cào menu: ${r.name} (ID: ${r.id})...`);
-        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}`);
+        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}?syncScrape=true`);
         
         if (result.status === 200 && result.body && result.body.data) {
           const data = result.body.data;
@@ -174,7 +193,9 @@ async function checkClosedBatch() {
   }
 
   // Giới hạn kiểm tra 50 quán/ngày để không quá tải
-  const DAILY_CHECK_LIMIT = 50;
+  // Giới hạn kiểm tra quán đóng cửa (mặc định nâng lên 1000 quán để khớp đầy đủ nhanh hơn)
+  const limitArg = process.argv.find(a => a.startsWith('--check-limit='));
+  const DAILY_CHECK_LIMIT = limitArg ? parseInt(limitArg.split('=')[1], 10) : 1000;
   const todayTargets = closedTargets.slice(0, DAILY_CHECK_LIMIT);
   writeLog(`🔄 Kiểm tra ${todayTargets.length}/${closedTargets.length} quán tạm đóng hôm nay (giới hạn ${DAILY_CHECK_LIMIT}/ngày)`);
 
@@ -192,10 +213,17 @@ async function checkClosedBatch() {
       
       const r = todayTargets[checkIndex++];
       if (!r) continue;
+
+      // RAM Guard: Tự động tạm dừng nếu RAM hệ thống vượt quá 80%
+      while (getRamUsage() > 0.8 && !shouldStop) {
+        const pct = Math.round(getRamUsage() * 100);
+        writeLog(`⚠️ [RAM Guard] Bộ nhớ RAM hệ thống quá tải (${pct}% > 80%)! Tạm dừng cào 5 giây để hạ nhiệt...`, C.yellow);
+        await sleep(5000);
+      }
       
       try {
         writeLog(`🔍 [Closed Check ${checkIndex}/${todayTargets.length}] Kiểm tra: ${r.name}...`);
-        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}`);
+        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}?syncScrape=true`);
         
         if (result.status === 200 && result.body && result.body.data) {
           const data = result.body.data;
@@ -224,8 +252,9 @@ async function checkClosedBatch() {
     activeWorkers--;
   }
 
-  // Chỉ dùng 1 worker cho việc kiểm tra để tránh rate limit
-  await checkWorker();
+  // Chạy song song nhiều worker theo CONCURRENCY để kiểm tra nhanh hơn và khớp đầy đủ hơn
+  const workers = Array.from({ length: CONCURRENCY }, () => checkWorker());
+  await Promise.all(workers);
 }
 
 // ── Main crawl batch ─────────────────────────────────────────────────────────
@@ -248,8 +277,47 @@ async function crawlBatch() {
     await checkClosedBatch();
   }
   
+  // Chạy xác thực và dọn dẹp file menu mồ côi dư thừa ngay khi hoàn tất lượt cào
+  runDataIntegrityAudit();
+
   isCrawling = false;
   printDailyReport();
+}
+
+function runDataIntegrityAudit() {
+  writeLog('🔍 [Audit] Bắt đầu tự động xác thực và dọn dẹp file menu mồ côi...', C.cyan);
+  try {
+    const allRestaurants = dbHelper.read();
+    const MENUS_DIR = path.join(__dirname, 'server', 'menus');
+    if (!fs.existsSync(MENUS_DIR)) return;
+
+    const menuFiles = fs.readdirSync(MENUS_DIR).filter(f => f.endsWith('.json'));
+    const restaurantMap = new Map();
+    allRestaurants.forEach(r => {
+      if (r && r.id) {
+        const safeId = String(r.id).replace(/[^a-zA-Z0-9_-]/g, '_');
+        restaurantMap.set(safeId, r);
+      }
+    });
+
+    let deletedOrphans = 0;
+    menuFiles.forEach(file => {
+      const safeId = file.replace('.json', '');
+      if (!restaurantMap.has(safeId)) {
+        try {
+          fs.unlinkSync(path.join(MENUS_DIR, file));
+          deletedOrphans++;
+        } catch (e) {}
+      }
+    });
+    if (deletedOrphans > 0) {
+      writeLog(`🧹 [Audit] Đã tự động dọn sạch ${deletedOrphans} file menu mồ côi dư thừa khỏi đĩa.`, C.green);
+    } else {
+      writeLog(`✨ [Audit] Không phát hiện file menu dư thừa. Hệ thống sạch sẽ!`, C.green);
+    }
+  } catch (err) {
+    writeLog(`❌ [Audit] Lỗi khi chạy xác thực toàn vẹn: ${err.message}`, C.red);
+  }
 }
 
 function printDailyReport() {
