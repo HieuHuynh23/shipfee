@@ -977,6 +977,24 @@ function renderActiveTrip() {
     advanceTripStatus();
   });
   
+  // Show / Hide navigation buttons based on coordinates availability
+  const btnNavRest = document.getElementById('btn-nav-restaurant');
+  const btnNavCust = document.getElementById('btn-nav-customer');
+  if (btnNavRest) {
+    if (activeOrder.restaurantLat && activeOrder.restaurantLon) {
+      btnNavRest.style.display = 'inline-flex';
+    } else {
+      btnNavRest.style.display = 'none';
+    }
+  }
+  if (btnNavCust) {
+    if (activeOrder.pinnedLat && activeOrder.pinnedLon) {
+      btnNavCust.style.display = 'inline-flex';
+    } else {
+      btnNavCust.style.display = 'none';
+    }
+  }
+
   initTripMap();
 }
 
@@ -2830,3 +2848,29 @@ async function requestOrderAssistance() {
   }
 }
 window.requestOrderAssistance = requestOrderAssistance;
+
+function navigateToPoint(target) {
+  if (!activeOrder) {
+    showToast('Không có đơn hàng', 'Không tìm thấy thông tin đơn hàng hoạt động.', 'warning');
+    return;
+  }
+
+  let lat, lon;
+  if (target === 'restaurant') {
+    lat = activeOrder.restaurantLat;
+    lon = activeOrder.restaurantLon;
+  } else if (target === 'customer') {
+    lat = activeOrder.pinnedLat;
+    lon = activeOrder.pinnedLon;
+  }
+
+  if (!lat || !lon) {
+    showToast('Thiếu tọa độ', 'Đơn hàng này không có sẵn tọa độ chính xác.', 'error');
+    return;
+  }
+
+  // Google Maps navigation direction universal URL scheme
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  window.open(url, '_blank');
+}
+window.navigateToPoint = navigateToPoint;
