@@ -107,6 +107,22 @@ async function initSupabaseStorage() {
   }
 }
 
+function normalizeImageUrl(url, req) {
+  if (!url) return '';
+  if (url.startsWith('http://localhost:3001')) {
+    let origin = 'https://shipfee-eo5s.onrender.com';
+    if (req) {
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+      if (host) {
+        origin = `${protocol}://${host}`;
+      }
+    }
+    return url.replace('http://localhost:3001', origin);
+  }
+  return url;
+}
+
 async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
   let avatarUrl = '';
   // 1. Lưu local filesystem (dự phòng)
@@ -116,7 +132,9 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
     const buffer = Buffer.from(base64DataClean, 'base64');
     const filePath = path.join(UPLOADS_DIR, fileName);
     fs.writeFileSync(filePath, buffer);
-    avatarUrl = `${req.protocol}://${req.get('host')}/uploads/shippers/${fileName}`;
+    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    avatarUrl = `${protocol}://${host}/uploads/shippers/${fileName}`;
   } catch (err) {
     console.error('[Avatar Local Save Error] Lỗi lưu ảnh local:', err.message);
   }
@@ -180,17 +198,18 @@ async function syncShippersFromSupabase() {
       if (idx !== -1) {
         // Cập nhật thông tin nếu có sự khác biệt
         const s = localShippers[idx];
+        const normalizedMetaAvatar = normalizeImageUrl(metadata.avatar_url || '', null);
         if (
           s.id !== u.id ||
           s.name !== (metadata.full_name || s.name) ||
           s.cccd !== (metadata.cccd || '') ||
-          s.avatarUrl !== (metadata.avatar_url || '') ||
+          s.avatarUrl !== normalizedMetaAvatar ||
           (email && s.email !== email)
         ) {
           s.id = u.id;
           s.name = metadata.full_name || s.name;
           s.cccd = metadata.cccd || '';
-          s.avatarUrl = metadata.avatar_url || '';
+          s.avatarUrl = normalizedMetaAvatar;
           if (email) s.email = email;
           changed = true;
         }
@@ -202,7 +221,7 @@ async function syncShippersFromSupabase() {
           name: metadata.full_name || 'Tài xế tự do',
           email: email || `${cleanPhone}@shipfee.vn`,
           cccd: metadata.cccd || '',
-          avatarUrl: metadata.avatar_url || '',
+          avatarUrl: normalizeImageUrl(metadata.avatar_url || '', null),
           isApproved: true, // Mặc định là true nếu đã có trên Supabase
           status: 'OFFLINE',
           lastCheckIn: null,
@@ -4048,7 +4067,7 @@ app.post('/api/orders', async (req, res) => {
 });
 
 // Helper to enrich order objects with current shipper avatar URL dynamically
-function enrichOrdersWithShipperAvatar(ordersOrOrder) {
+function enrichOrdersWithShipperAvatar(ordersOrOrder, req) {
   const shippers = readShippersDatabase();
   const enrichSingle = (o) => {
     if (!o) return o;
@@ -4057,7 +4076,7 @@ function enrichOrdersWithShipperAvatar(ordersOrOrder) {
       const cleanPhone = enriched.shipperPhone.trim().replace(/\s+/g, '');
       const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
       if (shipper) {
-        enriched.shipperAvatarUrl = shipper.avatarUrl || '';
+        enriched.shipperAvatarUrl = normalizeImageUrl(shipper.avatarUrl || '', req);
       }
     }
     return enriched;
@@ -4139,7 +4158,7 @@ app.get('/api/orders', async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(resultData) });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(resultData, req) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -4157,7 +4176,7 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(order) });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(order, req) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -4595,7 +4614,7 @@ app.post('/api/shippers/login', async (req, res) => {
     }
 
     writeShippersDatabase(shippers);
-    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: shipper.avatarUrl, isApproved: shipper.isApproved, cccd: shipper.cccd || '' } });
+    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: normalizeImageUrl(shipper.avatarUrl, req), isApproved: shipper.isApproved, cccd: shipper.cccd || '' } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -5059,7 +5078,11 @@ app.post('/api/orders/:id/decline', async (req, res) => {
 app.get('/api/shippers', (req, res) => {
   try {
     const shippers = readShippersDatabase();
-    res.json({ success: true, data: shippers });
+    const normalizedShippers = shippers.map(s => ({
+      ...s,
+      avatarUrl: normalizeImageUrl(s.avatarUrl, req)
+    }));
+    res.json({ success: true, data: normalizedShippers });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -5422,7 +5445,11 @@ app.get('/api/shippers/profile', (req, res) => {
     if (!shipper) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
     }
-    res.json({ success: true, shipper });
+    const responseShipper = {
+      ...shipper,
+      avatarUrl: normalizeImageUrl(shipper.avatarUrl, req)
+    };
+    res.json({ success: true, shipper: responseShipper });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
