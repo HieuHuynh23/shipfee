@@ -710,11 +710,11 @@
       API_BASE = API_BASE.slice(0, -1);
     }
     // Intercept fetch to support dynamic API URL
-    if (API_BASE !== 'http://localhost:3001') {
+    if (API_BASE !== '${API_BASE}') {
       const originalFetch = window.fetch;
       window.fetch = function(input, init) {
-        if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
-          input = input.replace('http://localhost:3001', API_BASE);
+        if (typeof input === 'string' && input.startsWith('${API_BASE}')) {
+          input = input.replace('${API_BASE}', API_BASE);
         }
         return originalFetch(input, init);
       };
@@ -794,7 +794,7 @@
       
       const checkStatus = async () => {
         try {
-          const response = await fetch(`http://localhost:3001/api/orders/${order.id}`);
+          const response = await fetch(`${API_BASE}/api/orders/${order.id}`);
           if (response.status === 404) {
             stopOrderPolling();
             SF.showToast('Đơn hàng không tồn tại', 'Đơn hàng không tìm thấy hoặc đã bị hủy.', 'error');
@@ -1294,7 +1294,7 @@
         const status = FLOW[i];
         try {
           if (status === 'ACCEPTED') {
-            await fetch(`http://localhost:3001/api/orders/${order.id}/accept`, {
+            await fetch(`${API_BASE}/api/orders/${order.id}/accept`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -1304,7 +1304,7 @@
               })
             });
           } else {
-            await fetch(`http://localhost:3001/api/orders/${order.id}/status`, {
+            await fetch(`${API_BASE}/api/orders/${order.id}/status`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ status })
@@ -1414,7 +1414,7 @@
       input.value = '';
 
       try {
-        const res = await fetch(`http://localhost:3001/api/orders/${order.id}/messages`, {
+        const res = await fetch(`${API_BASE}/api/orders/${order.id}/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -1710,7 +1710,7 @@
 
     async function fetchIceServers() {
       try {
-        const res = await fetch(`http://localhost:3001/api/webrtc/ice-servers`);
+        const res = await fetch(`${API_BASE}/api/webrtc/ice-servers`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data)) {
@@ -1941,7 +1941,7 @@
         peerConnection = new RTCPeerConnection(iceServersConfig);
         peerConnection.oniceconnectionstatechange = () => {
           handleIceConnectionState('Caller', startCustomerActiveSimulatedCall, () => {
-            fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+            fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -1953,7 +1953,7 @@
             console.warn('[WebRTC] Caller ICE Connection failed/disconnected, falling back to simulated call');
             SF.showToast('Kết nối thất bại', 'Không thể kết nối trực tiếp (do chặn mạng/WiFi). Chuyển sang cuộc gọi mô phỏng.', 'warning');
             
-            fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+            fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -1981,7 +1981,7 @@
         };
         peerConnection.onicecandidate = async (event) => {
           if (event.candidate) {
-            await fetch(`http://localhost:3001/api/orders/${order.id}/call/candidate`, {
+            await fetch(`${API_BASE}/api/orders/${order.id}/call/candidate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sender: 'customer', candidate: event.candidate })
@@ -1996,7 +1996,7 @@
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
 
-        const res = await fetch(`http://localhost:3001/api/orders/${order.id}/call/initiate`, {
+        const res = await fetch(`${API_BASE}/api/orders/${order.id}/call/initiate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ caller: 'customer', offer })
@@ -2018,7 +2018,7 @@
 
       try {
         const offer = { type: 'offer', sdp: 'simulated' };
-        await fetch(`http://localhost:3001/api/orders/${order.id}/call/initiate`, {
+        await fetch(`${API_BASE}/api/orders/${order.id}/call/initiate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ caller: 'customer', offer })
@@ -2032,7 +2032,7 @@
       simulatedCallTimeout = setTimeout(async () => {
         if (!callActive) return;
         try {
-          await fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+          await fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2069,7 +2069,7 @@
       return; // VoIP calling disabled
       if (callActive) return;
       try {
-        const res = await fetch(`http://localhost:3001/api/orders/${orderId}/call/poll?role=customer`);
+        const res = await fetch(`${API_BASE}/api/orders/${orderId}/call/poll?role=customer`);
         if (!res.ok) return;
         const json = await res.json();
         const callObj = json.call;
@@ -2129,7 +2129,7 @@
 
       if (!hasMicrophone) {
         try {
-          await fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+          await fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2140,7 +2140,7 @@
       }
 
       try {
-        const pollRes = await fetch(`http://localhost:3001/api/orders/${order.id}/call/poll?role=customer`);
+        const pollRes = await fetch(`${API_BASE}/api/orders/${order.id}/call/poll?role=customer`);
         const pollJson = await pollRes.json();
         const callObj = pollJson.call;
 
@@ -2157,7 +2157,7 @@
         peerConnection = new RTCPeerConnection(iceServersConfig);
         peerConnection.oniceconnectionstatechange = () => {
           handleIceConnectionState('Callee', startCustomerActiveSimulatedCall, () => {
-            fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+            fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2169,7 +2169,7 @@
             console.warn('[WebRTC] Callee ICE Connection failed/disconnected, falling back to simulated call');
             SF.showToast('Kết nối thất bại', 'Không thể kết nối trực tiếp (do chặn mạng/WiFi). Chuyển sang cuộc gọi mô phỏng.', 'warning');
             
-            fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+            fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2197,7 +2197,7 @@
         };
         peerConnection.onicecandidate = async (event) => {
           if (event.candidate) {
-            await fetch(`http://localhost:3001/api/orders/${order.id}/call/candidate`, {
+            await fetch(`${API_BASE}/api/orders/${order.id}/call/candidate`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ sender: 'customer', candidate: event.candidate })
@@ -2213,7 +2213,7 @@
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
 
-        await fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+        await fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'accept', answer })
@@ -2221,7 +2221,7 @@
       } catch (err) {
         console.error('Customer accept WebRTC failed, fallback to simulated', err);
         try {
-          await fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+          await fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'accept', answer: { type: 'answer', sdp: 'simulated' } })
@@ -2236,7 +2236,7 @@
       callActive = false;
       if (order) {
         try {
-          fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+          fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'decline' })
@@ -2253,7 +2253,7 @@
       callPollInterval = setInterval(async () => {
         if (!callActive) return;
         try {
-          const res = await fetch(`http://localhost:3001/api/orders/${order.id}/call/poll?role=customer`);
+          const res = await fetch(`${API_BASE}/api/orders/${order.id}/call/poll?role=customer`);
           if (!res.ok) return;
           const json = await res.json();
           const callObj = json.call;
@@ -2325,7 +2325,7 @@
 
       if (order && order.id) {
         try {
-          fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+          fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action: 'end' })
@@ -2389,7 +2389,7 @@
 
     window.addEventListener('pagehide', () => {
       if (callActive && order && order.id) {
-        fetch(`http://localhost:3001/api/orders/${order.id}/call/respond`, {
+        fetch(`${API_BASE}/api/orders/${order.id}/call/respond`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'end' }),
