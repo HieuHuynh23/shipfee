@@ -565,7 +565,7 @@ window.SF = {
   get RESTAURANTS() { return ACTIVE_RESTAURANTS; },
   set RESTAURANTS(val) { setRestaurants(val); },
   setRestaurants,
-  getState, saveState, getCart, getCartTotal,
+  getState, saveState, getCart, getCartTotal, updateCartItemNote,
   addToCart, removeFromCart, removeItemFromCart, clearCart,
   placeOrder, getActiveOrder, progressOrder, completeOrder, rateOrder,
   navigate, getParam,

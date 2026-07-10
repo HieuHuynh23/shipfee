@@ -417,6 +417,7 @@
                 <i class="fa-solid fa-pen-to-square"></i> Ghi chú cho món ăn này:
               </label>
               <input type="text" class="item-note-input" placeholder="Ví dụ: ít hành, không cay..." 
+                     data-cart-key="${cartKey}"
                      value="${(cart.itemNotes && cart.itemNotes[cartKey]) || ''}" 
                      onchange="updateItemNote('${cartKey}', this.value)"
                      style="width: 100%; border: 1.5px dashed var(--clr-primary); border-radius: 6px; padding: 6px 10px; font-size: 12px; outline: none; background: rgba(124, 58, 237, 0.03); color: var(--clr-text-main);">
@@ -519,6 +520,14 @@
     }
 
     async function placeOrder() {
+      // Thu thập tất cả ghi chú món ăn từ giao diện DOM trước khi đặt hàng để đảm bảo không bị sót
+      document.querySelectorAll('.item-note-input').forEach(input => {
+        const cartKey = input.getAttribute('data-cart-key');
+        if (cartKey) {
+          SF.updateCartItemNote(cartKey, input.value.trim());
+        }
+      });
+
       const state = SF.getState();
       const btn = document.getElementById('place-order-btn');
       btn.disabled = true;
