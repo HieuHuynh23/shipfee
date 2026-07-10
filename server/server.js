@@ -109,7 +109,10 @@ async function initSupabaseStorage() {
 
 function normalizeImageUrl(url, req) {
   if (!url) return '';
-  if (url.startsWith('http://localhost:3001')) {
+  const isLocal = url.startsWith('http://localhost:3001') || url.startsWith('http://127.0.0.1:3001');
+  const isRelative = url.startsWith('/uploads');
+
+  if (isLocal || isRelative) {
     let origin = 'https://shipfee-eo5s.onrender.com';
     if (req) {
       const host = req.headers['x-forwarded-host'] || req.get('host');
@@ -118,7 +121,11 @@ function normalizeImageUrl(url, req) {
         origin = `${protocol}://${host}`;
       }
     }
-    return url.replace('http://localhost:3001', origin);
+    if (isLocal) {
+      return url.replace(/^http:\/\/(localhost|127\.0\.0\.1):3001/, origin);
+    } else {
+      return `${origin}${url}`;
+    }
   }
   return url;
 }
@@ -4782,7 +4789,7 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
       }
     }
     
-    res.json({ success: true, shipper: shippers[idx] });
+    res.json({ success: true, shipper: { ...shippers[idx], avatarUrl: normalizeImageUrl(shippers[idx].avatarUrl, req) } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -4856,7 +4863,7 @@ app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
       }
     }
 
-    res.json({ success: true, shipper: shippers[idx] });
+    res.json({ success: true, shipper: { ...shippers[idx], avatarUrl: normalizeImageUrl(shippers[idx].avatarUrl, req) } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -5373,7 +5380,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
     shippers[shipperIndex] = shipper;
     writeShippersDatabase(shippers);
 
-    res.json({ success: true, shipper });
+    res.json({ success: true, shipper: { ...shipper, avatarUrl: normalizeImageUrl(shipper.avatarUrl, req) } });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
