@@ -814,18 +814,29 @@ function openJobDetail(orderId) {
       `;
       itemsContainer.appendChild(itemEl);
     });
+
+    // Render ghi chú giao hàng chung của khách hàng trực tiếp dưới danh sách món ăn
+    if (order.note && order.note.trim() && order.note !== 'undefined' && order.note !== 'null') {
+      const generalNoteEl = document.createElement('div');
+      generalNoteEl.style.marginTop = '12px';
+      generalNoteEl.style.padding = '10px';
+      generalNoteEl.style.background = 'rgba(245, 158, 11, 0.05)';
+      generalNoteEl.style.border = '1px dashed rgba(245, 158, 11, 0.25)';
+      generalNoteEl.style.borderRadius = '8px';
+      generalNoteEl.innerHTML = `
+        <span style="color: #b45309; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-note-sticky"></i> Ghi chú giao hàng của khách:
+        </span>
+        <div style="color: #78350f; font-size: 12px; margin-top: 4px; font-weight: 600; line-height: 1.4;">${order.note}</div>
+      `;
+      itemsContainer.appendChild(generalNoteEl);
+    }
   }
 
+  // Khớp an toàn với noteBox cũ nếu vẫn tồn tại trong HTML
   const noteBox = document.getElementById('job-note-box');
-  const noteText = document.getElementById('job-note-text');
-  if (noteBox && noteText) {
-    if (order.note && order.note.trim()) {
-      noteText.textContent = order.note;
-      noteBox.style.display = 'block';
-    } else {
-      noteText.textContent = '—';
-      noteBox.style.display = 'none';
-    }
+  if (noteBox) {
+    noteBox.style.display = 'none';
   }
   
   document.getElementById('order-detail-overlay').classList.add('active');
@@ -954,18 +965,29 @@ function renderActiveTrip() {
       `;
       tripItemsContainer.appendChild(itemEl);
     });
+
+    // Render ghi chú giao hàng chung của khách hàng trực tiếp dưới danh sách món ăn
+    if (activeOrder.note && activeOrder.note.trim() && activeOrder.note !== 'undefined' && activeOrder.note !== 'null') {
+      const generalNoteEl = document.createElement('div');
+      generalNoteEl.style.marginTop = '12px';
+      generalNoteEl.style.padding = '10px';
+      generalNoteEl.style.background = 'rgba(245, 158, 11, 0.05)';
+      generalNoteEl.style.border = '1px dashed rgba(245, 158, 11, 0.25)';
+      generalNoteEl.style.borderRadius = '8px';
+      generalNoteEl.innerHTML = `
+        <span style="color: #b45309; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+          <i class="fa-solid fa-note-sticky"></i> Ghi chú giao hàng của khách:
+        </span>
+        <div style="color: #78350f; font-size: 12px; margin-top: 4px; font-weight: 600; line-height: 1.4;">${activeOrder.note}</div>
+      `;
+      tripItemsContainer.appendChild(generalNoteEl);
+    }
   }
 
+  // Khớp an toàn với tripNoteBox cũ nếu vẫn tồn tại trong HTML
   const tripNoteBox = document.getElementById('trip-note-box');
-  const tripNoteText = document.getElementById('trip-note-text');
-  if (tripNoteBox && tripNoteText) {
-    if (activeOrder.note && activeOrder.note.trim()) {
-      tripNoteText.textContent = activeOrder.note;
-      tripNoteBox.style.display = 'block';
-    } else {
-      tripNoteText.textContent = '—';
-      tripNoteBox.style.display = 'none';
-    }
+  if (tripNoteBox) {
+    tripNoteBox.style.display = 'none';
   }
   
   // Set swipe track text based on status
