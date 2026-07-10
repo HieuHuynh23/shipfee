@@ -793,20 +793,20 @@ function openJobDetail(orderId) {
     itemsContainer.innerHTML = '';
     (order.items || []).forEach(item => {
       const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
-        ? ` <span style="color: #94a3b8; font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
+        ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
         : '';
       const noteHtml = (item.note && item.note.trim() && item.note !== 'undefined' && item.note !== 'null')
-        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
+        ? `<div style="color: #b45309; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.25); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
         : '';
       
       const itemEl = document.createElement('div');
-      itemEl.style.borderBottom = '1px solid #1e293b';
+      itemEl.style.borderBottom = '1px solid var(--clr-border)';
       itemEl.style.paddingBottom = '8px';
       itemEl.style.marginTop = '4px';
       itemEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
-          <span style="color:white; text-align:left;">${item.name}${optsText}</span>
-          <span style="color:var(--clr-primary); margin-left: 8px;">x${item.quantity || item.qty}</span>
+          <span style="color:var(--clr-text-primary); text-align:left;">${item.name}${optsText}</span>
+          <span style="color:var(--clr-primary); margin-left: 8px; font-weight: 700;">x${item.quantity || item.qty || 1}</span>
         </div>
         ${noteHtml}
       `;
@@ -931,20 +931,20 @@ function renderActiveTrip() {
     tripItemsContainer.innerHTML = '';
     (activeOrder.items || []).forEach(item => {
       const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
-        ? ` <span style="color: #94a3b8; font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
+        ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
         : '';
       const noteHtml = (item.note && item.note.trim() && item.note !== 'undefined' && item.note !== 'null')
-        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.1); border: 1px dashed rgba(245, 158, 11, 0.3); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
+        ? `<div style="color: #b45309; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.25); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
         : '';
       
       const itemEl = document.createElement('div');
-      itemEl.style.borderBottom = '1px solid #1e293b';
+      itemEl.style.borderBottom = '1px solid var(--clr-border)';
       itemEl.style.paddingBottom = '8px';
       itemEl.style.marginTop = '4px';
       itemEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
-          <span style="color:white; text-align:left;">${item.name}${optsText}</span>
-          <span style="color:var(--clr-primary); margin-left: 8px;">x${item.quantity || item.qty}</span>
+          <span style="color:var(--clr-text-primary); text-align:left;">${item.name}${optsText}</span>
+          <span style="color:var(--clr-primary); margin-left: 8px; font-weight: 700;">x${item.quantity || item.qty || 1}</span>
         </div>
         ${noteHtml}
       `;

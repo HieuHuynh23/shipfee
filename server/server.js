@@ -3970,8 +3970,9 @@ app.post('/api/orders', async (req, res) => {
         id: item.id,
         name: item.name,
         price: item.price,
-        quantity: item.quantity,
-        note: item.note || ''
+        quantity: item.quantity || item.qty || 1,
+        note: item.note || '',
+        selectedOptions: item.selectedOptions || []
       })) : [],
       storeTotal: typeof orderData.storeTotal === 'number' ? orderData.storeTotal : 0,
       appTotal: typeof orderData.appTotal === 'number' ? orderData.appTotal : 0,
