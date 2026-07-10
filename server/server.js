@@ -113,7 +113,7 @@ function normalizeImageUrl(url, req) {
     let origin = 'https://shipfee-eo5s.onrender.com';
     if (req) {
       const host = req.headers['x-forwarded-host'] || req.get('host');
-      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
       if (host) {
         origin = `${protocol}://${host}`;
       }
@@ -132,8 +132,8 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
     const buffer = Buffer.from(base64DataClean, 'base64');
     const filePath = path.join(UPLOADS_DIR, fileName);
     fs.writeFileSync(filePath, buffer);
-    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost:3001';
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.headers['x-forwarded-host'] || req.get('host') || 'shipfee-eo5s.onrender.com';
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
     avatarUrl = `${protocol}://${host}/uploads/shippers/${fileName}`;
   } catch (err) {
     console.error('[Avatar Local Save Error] Lỗi lưu ảnh local:', err.message);
