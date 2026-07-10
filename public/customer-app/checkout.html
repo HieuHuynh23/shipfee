@@ -412,11 +412,14 @@
             <div class="order-item-row__name">${item.name}</div>
             ${optionsHtml}
             <div class="order-item-row__qty">x${qty}</div>
-            <div style="margin-top: 6px; max-width: 95%;">
-              <input type="text" class="item-note-input" placeholder="Ghi chú món ăn (ví dụ: ít hành, không cay...)" 
+            <div style="margin-top: 8px; max-width: 95%;">
+              <label style="font-size: 11px; font-weight: 700; color: var(--clr-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+                <i class="fa-solid fa-pen-to-square"></i> Ghi chú cho món ăn này:
+              </label>
+              <input type="text" class="item-note-input" placeholder="Ví dụ: ít hành, không cay..." 
                      value="${(cart.itemNotes && cart.itemNotes[cartKey]) || ''}" 
                      onchange="updateItemNote('${cartKey}', this.value)"
-                     style="width: 100%; border: 1px dashed var(--clr-border); border-radius: 4px; padding: 4px 8px; font-size: 11px; outline: none; background: var(--clr-bg-surface-hover); color: var(--clr-text-main);">
+                     style="width: 100%; border: 1.5px dashed var(--clr-primary); border-radius: 6px; padding: 6px 10px; font-size: 12px; outline: none; background: rgba(124, 58, 237, 0.03); color: var(--clr-text-main);">
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
