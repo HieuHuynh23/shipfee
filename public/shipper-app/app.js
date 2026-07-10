@@ -791,7 +791,8 @@ function openJobDetail(orderId) {
   const itemsContainer = document.getElementById('job-items-list');
   if (itemsContainer) {
     itemsContainer.innerHTML = '';
-    (order.items || []).forEach(item => {
+    const items = order.items || [];
+    items.forEach((item, idx) => {
       const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
         ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
         : '';
@@ -800,9 +801,10 @@ function openJobDetail(orderId) {
         : '';
       
       const itemEl = document.createElement('div');
-      itemEl.style.borderBottom = '1px solid var(--clr-border)';
-      itemEl.style.paddingBottom = '8px';
-      itemEl.style.marginTop = '4px';
+      itemEl.style.padding = '8px 0';
+      if (idx < items.length - 1) {
+        itemEl.style.borderBottom = '1px solid var(--clr-border)';
+      }
       itemEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
           <span style="color:var(--clr-text-primary); text-align:left;">${item.name}${optsText}</span>
@@ -929,7 +931,8 @@ function renderActiveTrip() {
   const tripItemsContainer = document.getElementById('trip-items-list');
   if (tripItemsContainer) {
     tripItemsContainer.innerHTML = '';
-    (activeOrder.items || []).forEach(item => {
+    const items = activeOrder.items || [];
+    items.forEach((item, idx) => {
       const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
         ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
         : '';
@@ -938,9 +941,10 @@ function renderActiveTrip() {
         : '';
       
       const itemEl = document.createElement('div');
-      itemEl.style.borderBottom = '1px solid var(--clr-border)';
-      itemEl.style.paddingBottom = '8px';
-      itemEl.style.marginTop = '4px';
+      itemEl.style.padding = '8px 0';
+      if (idx < items.length - 1) {
+        itemEl.style.borderBottom = '1px solid var(--clr-border)';
+      }
       itemEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
           <span style="color:var(--clr-text-primary); text-align:left;">${item.name}${optsText}</span>
