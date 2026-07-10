@@ -15,7 +15,7 @@ window.fetch = function(input, init) {
   if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
     input = input.replace('http://localhost:3001', API_BASE);
   }
-  const token = localStorage.getItem('shipfee_jwt');
+  const token = sessionStorage.getItem('shipfee_jwt');
   if (token) {
     init = init || {};
     init.headers = init.headers || {};
@@ -57,19 +57,19 @@ window.previewDriverAvatar = previewDriverAvatar;
 function logoutApprovalPending() {
   if (supabaseClient) {
     supabaseClient.auth.signOut().then(() => {
-      localStorage.removeItem('shipfee_jwt');
-      localStorage.removeItem('shipfee_driver');
+      sessionStorage.removeItem('shipfee_jwt');
+      sessionStorage.removeItem('shipfee_driver');
       document.getElementById('approval-overlay').style.display = 'none';
       document.getElementById('login-overlay').classList.add('active');
     }).catch(() => {
-      localStorage.removeItem('shipfee_jwt');
-      localStorage.removeItem('shipfee_driver');
+      sessionStorage.removeItem('shipfee_jwt');
+      sessionStorage.removeItem('shipfee_driver');
       document.getElementById('approval-overlay').style.display = 'none';
       document.getElementById('login-overlay').classList.add('active');
     });
   } else {
-    localStorage.removeItem('shipfee_jwt');
-    localStorage.removeItem('shipfee_driver');
+    sessionStorage.removeItem('shipfee_jwt');
+    sessionStorage.removeItem('shipfee_driver');
     document.getElementById('approval-overlay').style.display = 'none';
     document.getElementById('login-overlay').classList.add('active');
   }
@@ -117,8 +117,8 @@ async function initApp() {
     document.getElementById('login-overlay').classList.remove('active');
     updateDriverHeader();
     
-    // Set UI immediately from localStorage to prevent flash of OFFLINE status
-    const savedStatus = localStorage.getItem('shipfee_driver_online') || 'true';
+    // Set UI immediately from sessionStorage to prevent flash of OFFLINE status
+    const savedStatus = sessionStorage.getItem('shipfee_driver_online') || 'true';
     isOnline = (savedStatus === 'true');
     const checkbox = document.getElementById('online-switch');
     const statusText = document.getElementById('status-text');
@@ -140,7 +140,7 @@ async function initApp() {
         const json = await res.json();
         if (json.success && json.shipper) {
           isOnline = (json.shipper.status === 'ONLINE');
-          localStorage.setItem('shipfee_driver_online', isOnline);
+          sessionStorage.setItem('shipfee_driver_online', isOnline);
           if (checkbox && statusText) {
             checkbox.checked = isOnline;
             if (isOnline) {
@@ -300,7 +300,7 @@ async function refreshDriverInfo() {
         assistanceLimitToday: res.shipper.assistanceLimitToday || 0,
         assistanceRequested: res.shipper.assistanceRequested || false
       };
-      localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      sessionStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       updateDriverHeader();
       
       // Nếu modal profile đang mở, cập nhật lại các trường trong modal
@@ -327,7 +327,7 @@ async function refreshDriverInfo() {
 
 function loadDriverInfo() {
   try {
-    const raw = localStorage.getItem('shipfee_driver');
+    const raw = sessionStorage.getItem('shipfee_driver');
     if (raw) {
       currentDriver = JSON.parse(raw);
       refreshDriverInfo(); // Tự động làm mới thông tin từ server khi khởi chạy app
@@ -361,7 +361,7 @@ async function loginDriver() {
     }
 
     const session = data.session;
-    localStorage.setItem('shipfee_jwt', session.access_token);
+    sessionStorage.setItem('shipfee_jwt', session.access_token);
 
     // Gọi API của server để đồng bộ và lấy thông tin shipper
     const response = await fetch(`${API_BASE}/api/shippers/login`, {
@@ -390,7 +390,7 @@ async function loginDriver() {
         assistanceLimitToday: result.shipper.assistanceLimitToday || 0,
         assistanceRequested: result.shipper.assistanceRequested || false
       };
-      localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      sessionStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       loadStats();
 
       document.getElementById('login-overlay').classList.remove('active');
@@ -398,7 +398,7 @@ async function loginDriver() {
       showToast('Đăng nhập thành công', `Chào mừng ${currentDriver.name} đã vào hệ thống!`, 'success');
 
       isOnline = true;
-      localStorage.setItem('shipfee_driver_online', 'true');
+      sessionStorage.setItem('shipfee_driver_online', 'true');
       const checkbox = document.getElementById('online-switch');
       const statusText = document.getElementById('status-text');
       if (checkbox && statusText) {
@@ -466,7 +466,7 @@ async function toggleOnlineStatus() {
     const result = await res.json();
     if (res.ok && result.success) {
       isOnline = nextOnline;
-      localStorage.setItem('shipfee_driver_online', isOnline);
+      sessionStorage.setItem('shipfee_driver_online', isOnline);
       if (isOnline) {
         statusText.textContent = 'Đang trong ca (Check-in)';
         statusText.className = 'status-indicator online';
@@ -2609,9 +2609,9 @@ async function logoutDriver() {
       }
     }
     
-    localStorage.removeItem('shipfee_driver');
-    localStorage.removeItem('shipfee_jwt');
-    localStorage.removeItem('shipfee_driver_online');
+    sessionStorage.removeItem('shipfee_driver');
+    sessionStorage.removeItem('shipfee_jwt');
+    sessionStorage.removeItem('shipfee_driver_online');
     
     if (supabaseClient) {
       try {
@@ -2764,6 +2764,7 @@ async function initSupabase() {
       supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey, {
         auth: {
           storageKey: 'shipfee_driver_auth_token',
+          storage: window.sessionStorage,
           persistSession: true,
           autoRefreshToken: true
         }
@@ -2773,7 +2774,7 @@ async function initSupabase() {
       // Tự động khôi phục JWT token từ storage của client
       supabaseClient.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-          localStorage.setItem('shipfee_jwt', session.access_token);
+          sessionStorage.setItem('shipfee_jwt', session.access_token);
         }
       }).catch(e => console.warn('Lỗi lấy session shipper:', e));
 
@@ -2810,7 +2811,7 @@ async function requestOrderAssistance() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('shipfee_jwt')}`
+        'Authorization': `Bearer ${sessionStorage.getItem('shipfee_jwt')}`
       },
       body: JSON.stringify({ phone: currentDriver.phone })
     }).then(r => r.json());
@@ -2819,7 +2820,7 @@ async function requestOrderAssistance() {
       showToast('Thành công', res.message, 'success');
       currentDriver.assistanceLimitToday = res.limitUsed;
       currentDriver.assistanceRequested = true;
-      localStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
+      sessionStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       
       if (res.orderId) {
         if (typeof pollJobs === 'function') pollJobs();
