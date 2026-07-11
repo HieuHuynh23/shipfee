@@ -3021,10 +3021,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.810Z",
     "menuUpdatedAt": "2026-07-09T02:40:42.238Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T02:40:42.238Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 17:00 14/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_kim_ngoc_banh_trang_tron_sai_gon_mau_than",
@@ -3489,10 +3486,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.829Z",
     "menuUpdatedAt": "2026-07-09T02:44:16.199Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T02:44:16.199Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 07:00 20/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_an_an_vat_bt",
@@ -5375,10 +5369,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.947Z",
     "menuUpdatedAt": "2026-07-09T03:00:26.270Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T03:00:26.270Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_my_y_719_ly_tu_trong",
@@ -6709,10 +6700,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.031Z",
     "menuUpdatedAt": "2026-07-09T03:12:18.538Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T03:12:18.538Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:30 14/07/2026\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_vua_kho_su_su_vo_nguyen_giap",
@@ -13652,10 +13640,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.658Z",
     "menuUpdatedAt": "2026-07-09T04:53:59.846Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T04:53:59.846Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_xoi_ga_phu_qui_nguyen_thi_minh_khai",
@@ -13940,10 +13925,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.697Z",
     "menuUpdatedAt": "2026-07-09T05:06:36.302Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T05:06:36.302Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_a_quyen_com_ga_xoi_mo",
@@ -14353,10 +14335,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.737Z",
     "menuUpdatedAt": "2026-07-09T05:17:46.561Z",
-    "isClosed": true,
-    "closedAt": "2026-07-09T05:17:46.561Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   },
   {
     "id": "r_ct_banh_uot_quang_trung",
@@ -15030,9 +15009,6 @@
     ],
     "menuUpdatedAt": "2026-07-09T10:52:28.143Z",
     "menuTemplateFallback": false,
-    "isClosed": true,
-    "closedAt": "2026-07-09T10:52:28.143Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false
   }
 ]

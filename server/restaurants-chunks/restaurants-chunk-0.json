@@ -8267,8 +8267,12 @@
       "Bánh gạo lắc phomai"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.086Z",
-    "menuUpdatedAt": "2026-07-06T04:33:57.490Z",
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-10T22:17:19.861Z",
+    "menuTemplateFallback": false,
+    "isClosed": true,
+    "closedAt": "2026-07-10T22:17:19.861Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_tra_sua_bobapop_xo_viet_nghe_tinh_can_tho",
@@ -18944,10 +18948,7 @@
       "Mì Trộn Trứng Lòng Đào Tóp Mỡ",
       "Nước Sâm Lạnh Râu Ngô Đường Phèn"
     ],
-    "isClosed": true,
-    "menuUpdatedAt": "2026-07-09T12:32:15.277Z",
-    "closedAt": "2026-07-09T12:32:15.277Z",
-    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "crawlNextAttempt": "2026-07-10T00:00:00.000Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-09T12:32:15.277Z"
   }
 ]

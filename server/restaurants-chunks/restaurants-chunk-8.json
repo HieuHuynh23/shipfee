@@ -9544,9 +9544,8 @@
       "Hoành thánh  trứng cút  chiên"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.221Z",
-    "menuUpdatedAt": "2026-07-05T15:19:24.183Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-10T20:37:17.906Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_phuong_91b_goi_cuon_chao_long",
@@ -11614,9 +11613,12 @@
       "NƯỚC ÉP XOÀI"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.462Z",
-    "menuUpdatedAt": "2026-07-05T15:21:40.917Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-10T20:40:03.849Z",
+    "isClosed": true,
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-10T20:40:03.849Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 11:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_bo_ne_3_ngon_duong_30_4",
