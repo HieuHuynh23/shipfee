@@ -2299,11 +2299,59 @@ function writeRestaurantMenu(restaurantId, menu) {
   const filePath = getMenuFilePath(restaurantId);
   try {
     fs.writeFileSync(filePath, JSON.stringify(menu || [], null, 2), 'utf8');
+    // Đồng bộ lên Supabase ở background (không await để tránh block luồng chính)
+    syncRestaurantToSupabase(restaurantId).catch(err => {
+      console.error('[Supabase Sync] Background error:', err.message);
+    });
     return true;
   } catch (err) {
     console.error(`[DB Menu] Lỗi ghi menu cho ${restaurantId}:`, err.message);
   }
   return false;
+}
+
+async function syncRestaurantToSupabase(restaurantId) {
+  if (!supabase) return;
+  try {
+    const restaurant = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
+    if (!restaurant) return;
+    
+    // Đọc menu chi tiết từ file local
+    const menuFilePath = getMenuFilePath(restaurantId);
+    let menu = [];
+    if (fs.existsSync(menuFilePath)) {
+      try {
+        const raw = fs.readFileSync(menuFilePath, 'utf8');
+        menu = JSON.parse(raw) || [];
+      } catch (e) {}
+    }
+    
+    const { error } = await supabase
+      .from('restaurants')
+      .upsert({
+        id: restaurant.id,
+        name: restaurant.name,
+        address: restaurant.address || '',
+        lat: restaurant.lat,
+        lon: restaurant.lon,
+        rating: restaurant.rating || 4.5,
+        image_url: restaurant.image_url || '',
+        is_closed: restaurant.isClosed || false,
+        closed_reason: restaurant.closedReason || '',
+        has_real_menu: restaurant.hasRealMenu || false,
+        dish_names: restaurant.dishNames || [],
+        menu: menu, // Lưu gộp menu dạng jsonb để tối ưu
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'id' });
+      
+    if (error) {
+      console.error(`[Supabase Sync] Lỗi upsert quán ${restaurantId}:`, error.message);
+    } else {
+      console.log(`[Supabase Sync] Đã đồng bộ thành công quán "${restaurant.name}" lên Supabase.`);
+    }
+  } catch (err) {
+    console.error(`[Supabase Sync] Lỗi bất ngờ khi đồng bộ quán ${restaurantId}:`, err.message);
+  }
 }
 
 /**
@@ -5697,6 +5745,84 @@ app.post('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
+});
+
+/**
+ * POST /api/admin/db/sync-to-supabase
+ * Đồng bộ hàng loạt toàn bộ quán ăn có menu thực tế lên Supabase (chạy background)
+ */
+app.post('/api/admin/db/sync-to-supabase', authenticateAdmin, (req, res) => {
+  if (!supabase) {
+    return res.status(500).json({ success: false, message: 'Supabase chưa được cấu hình trên server.' });
+  }
+
+  res.json({ success: true, message: 'Tiến trình đồng bộ hàng loạt lên Supabase đã được bắt đầu ở background.' });
+
+  // Khởi chạy tiến trình đồng bộ ngầm để tránh gateway timeout
+  (async () => {
+    console.log('[Supabase Bulk Sync] 🚀 Bắt đầu đồng bộ hàng loạt quán ăn có menu thực tế lên Supabase...');
+    try {
+      const allRestaurants = dbHelper.read();
+      const realRests = allRestaurants.filter(r => r && r.hasRealMenu === true);
+      console.log(`[Supabase Bulk Sync] Tìm thấy ${realRests.length} quán có menu thực tế cần đồng bộ.`);
+
+      let successCount = 0;
+      let errorCount = 0;
+
+      // Chia nhỏ thành các mẻ (batch) 50 quán để tối ưu đường truyền API
+      const BATCH_SIZE = 50;
+      for (let i = 0; i < realRests.length; i += BATCH_SIZE) {
+        const batch = realRests.slice(i, i + BATCH_SIZE);
+        const upsertData = [];
+
+        for (const r of batch) {
+          let menu = [];
+          const menuFilePath = getMenuFilePath(r.id);
+          if (fs.existsSync(menuFilePath)) {
+            try {
+              const raw = fs.readFileSync(menuFilePath, 'utf8');
+              menu = JSON.parse(raw) || [];
+            } catch (e) {}
+          }
+
+          upsertData.push({
+            id: r.id,
+            name: r.name,
+            address: r.address || '',
+            lat: r.lat,
+            lon: r.lon,
+            rating: r.rating || 4.5,
+            image_url: r.image_url || '',
+            is_closed: r.isClosed || false,
+            closed_reason: r.closedReason || '',
+            has_real_menu: r.hasRealMenu || false,
+            dish_names: r.dishNames || [],
+            menu: menu, // Lưu gộp menu dạng jsonb để truy cập siêu tốc
+            updated_at: new Date().toISOString()
+          });
+        }
+
+        const { error } = await supabase
+          .from('restaurants')
+          .upsert(upsertData, { onConflict: 'id' });
+
+        if (error) {
+          console.error(`[Supabase Bulk Sync] Lỗi upsert batch ${i}-${i + batch.length}:`, error.message);
+          errorCount += batch.length;
+        } else {
+          successCount += batch.length;
+          console.log(`[Supabase Bulk Sync] Đã đồng bộ thành công ${successCount}/${realRests.length} quán.`);
+        }
+
+        // Delay nhẹ để tránh bị giới hạn băng thông (rate limit)
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      console.log(`[Supabase Bulk Sync] 🏁 Hoàn tất đồng bộ! Thành công: ${successCount}, Thất bại: ${errorCount}`);
+    } catch (err) {
+      console.error('[Supabase Bulk Sync] Lỗi nghiêm trọng:', err.message);
+    }
+  })();
 });
 
 /**
