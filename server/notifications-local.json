@@ -1,5 +1,15 @@
 [
   {
+    "id": "nt-1783753544011-4800",
+    "type": "status_change",
+    "restaurantId": "r_ct_nhi_nhi_shop_dac_san_vung_mien_shop_online",
+    "restaurantName": "Nhi Nhi Shop - Đặc Sản Vùng Miền - Shop Online",
+    "title": "Quán đóng cửa",
+    "message": "Cửa hàng đã tạm đóng cửa hoặc ngưng hợp tác trên ShopeeFood (Lý do: Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.)",
+    "createdAt": 1783753544011,
+    "read": false
+  },
+  {
     "id": "nt-1783753520937-1992",
     "type": "price_change",
     "restaurantId": "r_ct_warm_coffee_mau_than",
