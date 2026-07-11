@@ -745,15 +745,25 @@
           }
         }
 
-        const closedOverlayHtml = isClosed ? `
-          <div class="closed-overlay-strip">
-            <span class="closed-overlay-strip__badge">
-              <i class="fa-solid fa-lock" style="font-size:9px;"></i> Đang đóng cửa
-            </span>
-            <span class="closed-overlay-strip__time">
-              <i class="fa-regular fa-clock"></i> ${reopenText}
-            </span>
-          </div>` : '';
+        let closedOverlayHtml = '';
+        if (isClosed) {
+          closedOverlayHtml = `
+            <div class="closed-overlay-strip">
+              <span class="closed-overlay-strip__badge">
+                <i class="fa-solid fa-lock" style="font-size:9px;"></i> Đang đóng cửa
+              </span>
+              <span class="closed-overlay-strip__time">
+                <i class="fa-regular fa-clock"></i> ${reopenText}
+              </span>
+            </div>`;
+        } else if (r.hasRealMenu !== true) {
+          closedOverlayHtml = `
+            <div class="closed-overlay-strip" style="background: rgba(245, 158, 11, 0.95);">
+              <span class="closed-overlay-strip__badge" style="color: white; border: none; font-size: 11px;">
+                <i class="fa-regular fa-clock"></i> Sẽ mở lại sớm
+              </span>
+            </div>`;
+        }
 
         const tags = Array.isArray(r.tags) ? r.tags : [];
 
@@ -763,7 +773,9 @@
             <div class="card__badge">
               ${isClosed
                 ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;">🔒 Đóng cửa</span>`
-                : tags.map(t => `<span class="badge badge--glass">${t}</span>`).join('')
+                : (r.hasRealMenu !== true)
+                  ? `<span class="badge" style="background:#F59E0B;color:white;border:none;">⏳ Sẽ mở lại sớm</span>`
+                  : tags.map(t => `<span class="badge badge--glass">${t}</span>`).join('')
               }
             </div>
             ${closedOverlayHtml}

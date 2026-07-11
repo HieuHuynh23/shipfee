@@ -688,24 +688,28 @@
       const closedBanner = document.getElementById('closed-banner');
       if (closedBanner) closedBanner.classList.remove('visible');
       
-      // Xóa badge Đóng cửa cũ nếu có
+      // Xóa badge Đóng cửa/Fallback cũ nếu có
       const tagsEl = document.getElementById('restaurant-tags');
       if (tagsEl) {
         const closedBadge = Array.from(tagsEl.children).find(el => el.textContent.includes('Đóng cửa'));
         if (closedBadge) closedBadge.remove();
+        const fallbackBadge = Array.from(tagsEl.children).find(el => el.textContent.includes('Sẽ mở lại sớm'));
+        if (fallbackBadge) fallbackBadge.remove();
       }
       
       const isRestaurantClosed = RESTAURANT.isClosed || RESTAURANT.status === 'CLOSED';
+      const isFallback = RESTAURANT.hasRealMenu !== true;
       
       const alertBanner = document.getElementById('restaurant-status-alert');
       if (alertBanner) alertBanner.style.display = 'none';
 
+      if (isFallback) {
+        renderFallbackReopenBanner();
+        return;
+      }
+
       if (isRestaurantClosed) {
-        if (alertBanner) alertBanner.style.display = 'flex';
-        renderCategoryTabs();
-        renderMenu();
-        const cartBar = document.getElementById('cart-bar');
-        if (cartBar) cartBar.style.display = 'none';
+        renderClosedBanner();
       } else {
         renderCategoryTabs();
         renderMenu();
@@ -713,6 +717,48 @@
         if (cartBar) cartBar.style.display = '';
         SF.updateCartBar();
         updateNavCartBadge();
+      }
+    }
+
+    function renderFallbackReopenBanner() {
+      // Thêm class vào header để làm xám ảnh
+      document.getElementById('restaurant-header').classList.add('is-closed');
+      // Ẩn tabs danh mục
+      document.getElementById('menu-cat-tabs').style.display = 'none';
+      // Ẩn cart bar
+      const cartBar = document.getElementById('cart-bar');
+      if (cartBar) cartBar.style.display = 'none';
+      // Ẩn menu content
+      document.getElementById('menu-content').style.display = 'none';
+      
+      const titleEl = document.getElementById('closed-restaurant-name');
+      const subtitleEl = document.querySelector('.closed-banner__subtitle');
+      const timeEl = document.getElementById('closed-banner-time');
+      
+      titleEl.textContent = RESTAURANT.name;
+      if (subtitleEl) {
+        subtitleEl.innerHTML = `
+          <div style="font-size: 40px; margin-bottom: 16px;">⏳</div>
+          <strong style="color: #F59E0B; font-size: 17px; display: block; margin-bottom: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> Cửa Hàng Đang Nâng Cấp Thực Đơn</strong>
+          Cửa hàng hiện đang tạm đóng để cập nhật dữ liệu thực đơn chính thức từ ShopeeFood.<br>
+          Chúng tôi sẽ mở lại phục vụ bạn trong thời gian sớm nhất!
+        `;
+      }
+      if (timeEl) {
+        timeEl.style.display = '';
+        timeEl.innerHTML = `<i class="fa-solid fa-clock"></i> Sẽ mở lại trong thời gian sớm nhất`;
+      }
+      
+      // Hiển thị banner
+      document.getElementById('closed-banner').classList.add('visible');
+      // Cập nhật title
+      document.title = `${RESTAURANT.name} (Tạm đóng) — ShipFee`;
+      
+      // Thêm badge "Sẽ mở lại sớm" vào header
+      const tagsEl = document.getElementById('restaurant-tags');
+      if (tagsEl) {
+        tagsEl.innerHTML = `<span class="badge" style="background:#F59E0B;color:white;border:none;margin-right:4px;">⏳ Sẽ mở lại sớm</span>`
+          + tagsEl.innerHTML;
       }
     }
 

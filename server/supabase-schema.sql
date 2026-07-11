@@ -66,3 +66,32 @@ CREATE POLICY "Allow admin write access to restaurants"
     FOR ALL 
     USING (true)
     WITH CHECK (true);
+
+-- Bảng lưu trữ thông báo biến động hệ thống (giá món, đóng cửa, mở lại)
+CREATE TABLE IF NOT EXISTS public.system_notifications (
+    id text PRIMARY KEY,
+    type text NOT NULL,
+    restaurant_id text,
+    restaurant_name text,
+    title text,
+    message text,
+    created_at bigint,
+    read boolean DEFAULT false
+);
+
+-- Bật Row Level Security (RLS)
+ALTER TABLE public.system_notifications ENABLE ROW LEVEL SECURITY;
+
+-- Tạo chính sách cho phép đọc công khai (Public Read)
+CREATE POLICY "Allow public read access to system_notifications" 
+    ON public.system_notifications 
+    FOR SELECT 
+    USING (true);
+
+-- Tạo chính sách cho phép admin/service_role thực hiện mọi quyền
+CREATE POLICY "Allow admin write access to system_notifications" 
+    ON public.system_notifications 
+    FOR ALL 
+    USING (true)
+    WITH CHECK (true);
+

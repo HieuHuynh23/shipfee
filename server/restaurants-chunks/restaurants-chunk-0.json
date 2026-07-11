@@ -3119,7 +3119,6 @@
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
-    "menuTemplateFallback": false,
     "foodyHref": "/can-tho/xoi-xa-bau-duong-3-thang-2",
     "dishNames": [
       "Xôi thập cẩm",
@@ -3158,7 +3157,7 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.783Z",
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T21:55:44.743Z"
+    "menuUpdatedAt": "2026-07-11T02:34:51.926Z"
   },
   {
     "id": "r_ct_xoi_ga_my_duc_phan_chu_trinh",
@@ -6935,8 +6934,11 @@
       "Cơm ba rọi nướng"
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.025Z",
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-07T22:06:21.612Z"
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T02:45:28.337Z",
+    "closedAt": "2026-07-11T02:45:28.337Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_quan_com_viet_ngo_si_lien",

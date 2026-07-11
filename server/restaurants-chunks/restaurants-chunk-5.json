@@ -1165,9 +1165,8 @@
       "BÒ XÀO CHUA NGỌT",
       "BÒ XÀO KHỔ QUA"
     ],
-    "menuUpdatedAt": "2026-07-08T04:14:59.889Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T06:43:07.129Z",
+    "isClosed": false
   },
   {
     "id": "r_ct_ma_bay_com_chay_kho_quet_nguyen_van_cu",
@@ -1414,9 +1413,12 @@
       "Cơm gà xối mỡ (L)",
       "Cơm gà luộc (L)"
     ],
-    "menuUpdatedAt": "2026-07-08T04:10:10.162Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T06:38:15.491Z",
+    "isClosed": true,
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T06:38:15.491Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_here_fruit_drinks_more",

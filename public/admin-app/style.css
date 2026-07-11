@@ -1256,3 +1256,24 @@ h4 { font-size: 14px; font-weight: 600; }
 .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hidden { display: none !important; }
 .cursor-pointer { cursor: pointer; }
+
+/* ── CRM SYSTEM NOTIFICATIONS PANEL ────────────────────────────────────────── */
+.notifications-panel-list table.data-table tr {
+  transition: background-color var(--duration-fast) var(--ease-spring);
+}
+
+.notifications-panel-list table.data-table tr:hover {
+  background-color: var(--zinc-800);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+}
+

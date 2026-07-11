@@ -23,6 +23,123 @@ const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 
+// ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
+const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
+
+function readNotifications() {
+  if (!fs.existsSync(NOTIFICATIONS_FILE)) return [];
+  try {
+    return JSON.parse(fs.readFileSync(NOTIFICATIONS_FILE, 'utf8')) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function writeNotifications(notifs) {
+  try {
+    fs.writeFileSync(NOTIFICATIONS_FILE, JSON.stringify(notifs || [], null, 2), 'utf8');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function syncNotificationToSupabase(notif) {
+  if (!supabase) return;
+  try {
+    const { error } = await supabase.from('system_notifications').insert([{
+      id: notif.id,
+      type: notif.type,
+      restaurant_id: notif.restaurantId,
+      restaurant_name: notif.restaurantName,
+      title: notif.title,
+      message: notif.message,
+      created_at: notif.createdAt,
+      read: notif.read
+    }]);
+    if (error) {
+      console.warn('[Supabase Sync] Không thể sync notification lên Supabase:', error.message);
+    }
+  } catch (err) {
+    console.warn('[Supabase Sync Error] Lỗi sync notification:', err.message);
+  }
+}
+
+function addNotification(type, restaurantId, restaurantName, title, message) {
+  const notifs = readNotifications();
+  const notif = {
+    id: 'nt-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000),
+    type,
+    restaurantId,
+    restaurantName,
+    title,
+    message,
+    createdAt: Date.now(),
+    read: false
+  };
+  notifs.unshift(notif);
+  if (notifs.length > 200) notifs.pop();
+  writeNotifications(notifs);
+  
+  // Đồng bộ ngầm
+  syncNotificationToSupabase(notif);
+  return notif;
+}
+
+function diffAndLogMenuChanges(restaurant, oldMenu, newMenu) {
+  if (!oldMenu || oldMenu.length === 0) return; // Không diff nếu trước đó là menu fallback
+  if (!newMenu || newMenu.length === 0) return;
+
+  const oldMap = new Map();
+  (oldMenu || []).forEach(item => {
+    if (item && item.name) {
+      oldMap.set(item.name.trim(), item);
+    }
+  });
+
+  const newMap = new Map();
+  (newMenu || []).forEach(item => {
+    if (item && item.name) {
+      newMap.set(item.name.trim(), item);
+    }
+  });
+
+  const changes = [];
+
+  // So sánh đổi giá và món mới
+  for (const [name, newItem] of newMap.entries()) {
+    const oldItem = oldMap.get(name);
+    if (oldItem) {
+      if (oldItem.inStorePrice !== newItem.inStorePrice) {
+        const diff = newItem.inStorePrice - oldItem.inStorePrice;
+        const pct = Math.round((diff / oldItem.inStorePrice) * 100);
+        changes.push(`Món "${name}" đổi giá: ${oldItem.inStorePrice.toLocaleString()}đ -> ${newItem.inStorePrice.toLocaleString()}đ (${diff > 0 ? '+' : ''}${diff.toLocaleString()}đ, ${diff > 0 ? 'tăng' : 'giảm'} ${Math.abs(pct)}%)`);
+      }
+    } else {
+      changes.push(`Món mới: "${name}" với giá ${newItem.inStorePrice.toLocaleString()}đ`);
+    }
+  }
+
+  // So sánh món bị xóa
+  for (const name of oldMap.keys()) {
+    if (!newMap.has(name)) {
+      changes.push(`Xóa món: "${name}" khỏi thực đơn`);
+    }
+  }
+
+  if (changes.length > 0) {
+    console.log(`[Diff Menu] 🔔 Phát hiện thay đổi thực đơn/giá tại "${restaurant.name}":`, changes);
+    addNotification(
+      'price_change',
+      restaurant.id,
+      restaurant.name,
+      'Cập nhật thực đơn & Giá bán',
+      changes.join('\n')
+    );
+  }
+}
+
+
 // Load environment variables
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
@@ -3368,6 +3485,14 @@ app.get('/api/restaurants', async (req, res) => {
       }
     }
 
+    // Tự động kích hoạt cào ngầm cho các quán fallback xuất hiện trong kết quả tìm kiếm của khách hàng
+    mergedResults.forEach(r => {
+      if (r && r.id && r.hasRealMenu !== true && !r.isClosed) {
+        console.log(`[Search Lazy Sync] 🚀 Tự động kích hoạt cào ngầm cho quán fallback được tìm kiếm: "${r.name}"`);
+        triggerBackgroundMenuScrape(r);
+      }
+    });
+
     const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon, !!query);
     console.log(`[Search] ✅ Trả về tổng cộng ${processedResults.length} quán ăn sau khi gộp và lọc khoảng cách.`);
     // Tìm kiếm thời gian thực: không cache vì kết quả thay đổi theo từ khóa
@@ -3408,15 +3533,17 @@ app.get('/api/restaurants', async (req, res) => {
       responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon, true);
       console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
     } else {
-      // ── LỌC QUÁN ĐÓNG CỬA ──
-      // Mặc định chỉ trả về quán đang mở (isClosed !== true)
-      // CRM Admin có thể truyền ?includeAll=true để xem toàn bộ
+      // ── LỌC QUÁN ĐÓNG CỬA & QUÁN FALLBACK ──
+      // Mặc định chỉ trả về quán đang mở và đã có thực đơn thật (hasRealMenu === true)
+      // CRM Admin có thể truyền ?includeAll=true để xem toàn bộ (bao gồm quán đóng và quán fallback)
       const includeAll = req.query.includeAll === 'true';
-      let sourceData = includeAll ? cachedRestaurants : cachedRestaurants.filter(r => !r.isClosed);
+      let sourceData = includeAll 
+        ? cachedRestaurants 
+        : cachedRestaurants.filter(r => !r.isClosed && r.hasRealMenu === true);
       responseData = processRestaurantsWithLocation(sourceData, req.query.lat, req.query.lon);
-      const totalOpen = responseData.filter(r => !r.isClosed).length;
-      const totalClosed = responseData.filter(r => r.isClosed).length;
-      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng: ${totalClosed}, includeAll: ${includeAll})`);
+      const totalOpen = responseData.filter(r => !r.isClosed && r.hasRealMenu).length;
+      const totalClosed = responseData.filter(r => r.isClosed || !r.hasRealMenu).length;
+      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở & có menu thật: ${totalOpen}, đóng/fallback: ${totalClosed}, includeAll: ${includeAll})`);
     }
 
     // ── PAGINATION ──
@@ -3512,6 +3639,10 @@ function triggerBackgroundMenuScrape(restaurant) {
     if (isClosed) {
       console.log(`[Background Scraper] 🔴 Xác nhận quán ĐÓNG CỬA: "${restaurant.name}" (${closedReason})`);
 
+      if (restaurant.isClosed !== true) {
+        addNotification('status_change', restaurant.id, restaurant.name, 'Quán đóng cửa', `Cửa hàng đã tạm đóng cửa hoặc ngưng hợp tác trên ShopeeFood (Lý do: ${closedReason})`);
+      }
+
       // Quán đóng cửa tạm thời
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -3565,6 +3696,9 @@ function triggerBackgroundMenuScrape(restaurant) {
       });
 
     } else if (menu) {
+      const oldMenu = readRestaurantMenu(restaurant.id) || [];
+      const oldClosedVal = restaurant.isClosed;
+
       writeRestaurantMenu(restaurant.id, menu);
       restaurant.menu = menu;
       restaurant.hasRealMenu = true;
@@ -3577,6 +3711,12 @@ function triggerBackgroundMenuScrape(restaurant) {
       }
       delete restaurant.menuTemplateFallback;
       console.log(`[Background Scraper] ⚡ Cập nhật menu thực tế thành công cho: "${restaurant.name}" (${menu.length} món)`);
+
+      if (oldClosedVal === true) {
+        addNotification('status_change', restaurant.id, restaurant.name, 'Quán hoạt động trở lại', 'Cửa hàng đã hoạt động trở lại trên ShopeeFood.');
+      }
+
+      diffAndLogMenuChanges(restaurant, oldMenu, menu);
 
       SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
 
@@ -3695,6 +3835,10 @@ function triggerSyncMenuScrape(restaurant) {
 
     if (isClosed) {
       console.log(`[Sync Scraper] 🔴 Xác nhận quán ĐÓNG CỬA: "${restaurant.name}"`);
+      if (restaurant.isClosed !== true) {
+        addNotification('status_change', restaurant.id, restaurant.name, 'Quán đóng cửa', `Cửa hàng đã tạm đóng cửa hoặc ngưng hợp tác trên ShopeeFood (Lý do: ${closedReason})`);
+      }
+
       restaurant.isClosed = true;
       restaurant.closedAt = new Date().toISOString();
       restaurant.closedReason = closedReason;
@@ -3731,6 +3875,9 @@ function triggerSyncMenuScrape(restaurant) {
         return false;
       });
     } else if (menu) {
+      const oldMenu = readRestaurantMenu(restaurant.id) || [];
+      const oldClosedVal = restaurant.isClosed;
+
       writeRestaurantMenu(restaurant.id, menu);
       restaurant.menu = menu;
       restaurant.hasRealMenu = true;
@@ -3741,6 +3888,13 @@ function triggerSyncMenuScrape(restaurant) {
       delete restaurant.menuTemplateFallback;
       
       console.log(`[Sync Scraper] ⚡ Cập nhật menu thực tế thành công cho: "${restaurant.name}" (${menu.length} món)`);
+      
+      if (oldClosedVal === true) {
+        addNotification('status_change', restaurant.id, restaurant.name, 'Quán hoạt động trở lại', 'Cửa hàng đã hoạt động trở lại trên ShopeeFood.');
+      }
+
+      diffAndLogMenuChanges(restaurant, oldMenu, menu);
+
       SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
       
       await updateLocalDatabase((localData) => {
@@ -3904,8 +4058,9 @@ app.get('/api/restaurants/:id', async (req, res) => {
       }
     }
 
-    // Kích hoạt cào ngầm chạy ngầm nếu chưa có menu thực tế HOẶC là menu cũ chưa có options
-    if ((!responseRestaurant.hasRealMenu || isLegacyMenu) && !responseRestaurant.isClosed) {
+    // Kích hoạt cào ngầm chạy ngầm nếu chưa có menu thực tế HOẶC là menu cũ chưa có options HOẶC forceSync=true
+    const forceSync = req.query.forceSync === 'true';
+    if (((!responseRestaurant.hasRealMenu || isLegacyMenu) && !responseRestaurant.isClosed) || forceSync) {
       if (isLegacyMenu) {
         console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Kích hoạt cào lại ngầm...`);
       }
@@ -5153,6 +5308,42 @@ app.get('/api/config', (req, res) => {
     supabaseUrl: SUPABASE_URL,
     supabaseAnonKey: SUPABASE_ANON_KEY
   });
+});
+
+// ── ADMIN SYSTEM NOTIFICATIONS ENDPOINTS ─────────────────────────────────────
+app.get('/api/admin/notifications', authenticateAdmin, (req, res) => {
+  const notifs = readNotifications();
+  res.json({ success: true, data: notifs });
+});
+
+app.post('/api/admin/notifications/:id/read', authenticateAdmin, (req, res) => {
+  const id = String(req.params.id);
+  const notifs = readNotifications();
+  const idx = notifs.findIndex(n => String(n.id) === id);
+  if (idx !== -1) {
+    notifs[idx].read = true;
+    writeNotifications(notifs);
+    
+    // Đồng bộ Supabase
+    if (supabase) {
+      supabase.from('system_notifications').update({ read: true }).eq('id', id)
+        .then(({ error }) => { if (error) console.error('[Supabase Update] Lỗi update read:', error.message); });
+    }
+    return res.json({ success: true });
+  }
+  res.status(404).json({ error: 'Không tìm thấy thông báo' });
+});
+
+app.post('/api/admin/notifications/read-all', authenticateAdmin, (req, res) => {
+  const notifs = readNotifications();
+  notifs.forEach(n => n.read = true);
+  writeNotifications(notifs);
+  
+  if (supabase) {
+    supabase.from('system_notifications').update({ read: true }).eq('read', false)
+      .then(({ error }) => { if (error) console.error('[Supabase Update] Lỗi update read-all:', error.message); });
+  }
+  res.json({ success: true });
 });
 
 /**

@@ -257,6 +257,86 @@ async function checkClosedBatch() {
   await Promise.all(workers);
 }
 
+// ── Phase 3: Sync & Price Check for existing menus ──────────────────────────
+async function syncMenuBatch() {
+  currentPhase = 'sync-check';
+  
+  const allRestaurants = dbHelper.read();
+  // Lọc ra các quán đã có thực đơn thật và đang mở cửa
+  const activeTargets = allRestaurants.filter(r => r && r.id && r.hasRealMenu === true && r.isClosed !== true);
+  
+  writeLog(`📊 [Phase 3: Đồng bộ giá] Tìm thấy ${activeTargets.length} quán đang hoạt động cần đối chiếu`, C.cyan);
+  
+  if (activeTargets.length === 0) {
+    writeLog(`✨ [Phase 3] Không có quán hoạt động nào cần đối chiếu!`, C.green);
+    return;
+  }
+
+  // Cấu hình giới hạn đồng bộ mỗi ngày (tránh rate limit)
+  const syncLimitArg = process.argv.find(a => a.startsWith('--sync-limit='));
+  const DAILY_SYNC_LIMIT = syncLimitArg ? parseInt(syncLimitArg.split('=')[1], 10) : 150;
+  
+  // Sắp xếp các quán theo thời gian menuUpdatedAt cũ nhất, hoặc chọn ngẫu nhiên để xoay vòng
+  const sortedTargets = activeTargets.sort((a, b) => {
+    const timeA = a.menuUpdatedAt ? new Date(a.menuUpdatedAt).getTime() : 0;
+    const timeB = b.menuUpdatedAt ? new Date(b.menuUpdatedAt).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  const todayTargets = sortedTargets.slice(0, DAILY_SYNC_LIMIT);
+  writeLog(`🔄 Đồng bộ & Đối chiếu ${todayTargets.length}/${activeTargets.length} quán hôm nay (giới hạn ${DAILY_SYNC_LIMIT}/ngày)`);
+
+  let syncIndex = 0;
+  
+  async function syncWorker() {
+    activeWorkers++;
+    while (syncIndex < todayTargets.length && !shouldStop) {
+      const now = new Date();
+      const hour = now.getHours();
+      if (!FORCE && (hour < 10 || hour >= 18)) {
+        shouldStop = true;
+        break;
+      }
+      
+      const r = todayTargets[syncIndex++];
+      if (!r) continue;
+
+      // RAM Guard: Tạm dừng nếu RAM > 80%
+      while (getRamUsage() > 0.8 && !shouldStop) {
+        const pct = Math.round(getRamUsage() * 100);
+        writeLog(`⚠️ [RAM Guard] Bộ nhớ RAM hệ thống quá tải (${pct}% > 80%)! Tạm dừng cào 5 giây để hạ nhiệt...`, C.yellow);
+        await sleep(5000);
+      }
+      
+      try {
+        writeLog(`🔍 [Sync Check ${syncIndex}/${todayTargets.length}] Đối chiếu giá: ${r.name}...`);
+        // Gửi tham số forceSync=true để server cào mới thay vì dùng cache
+        const result = await get(`${API_BASE}/api/restaurants/${encodeURIComponent(r.id)}?syncScrape=true&forceSync=true`);
+        
+        if (result.status === 200 && result.body && result.body.data) {
+          const data = result.body.data;
+          if (data.isClosed) {
+            writeLog(`🔴 PHÁT HIỆN ĐÓNG CỬA TRÊN SHOPEE: ${r.name}`, C.gray);
+          } else {
+            writeLog(`✅ ĐỒNG BỘ THÀNH CÔNG: ${r.name}`, C.green);
+          }
+        } else {
+          writeLog(`⬛ LỖI ĐỒNG BỘ: ${r.name} (status: ${result.status})`, C.gray);
+        }
+      } catch (err) {
+        writeLog(`⬛ LỖI ĐỒNG BỘ: ${r.name} — ${err.message}`, C.gray);
+      }
+      
+      // Delay 5s giữa mỗi lần đồng bộ để tránh rate limit ShopeeFood
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    activeWorkers--;
+  }
+
+  const workers = Array.from({ length: CONCURRENCY }, () => syncWorker());
+  await Promise.all(workers);
+}
+
 // ── Main crawl batch ─────────────────────────────────────────────────────────
 async function crawlBatch() {
   if (isCrawling) return;
@@ -275,6 +355,11 @@ async function crawlBatch() {
   // Phase 2: Kiểm tra quán tạm đóng cửa (chạy sau Phase 1 hoặc khi dùng --check-closed)
   if (!shouldStop) {
     await checkClosedBatch();
+  }
+  
+  // Phase 3: Đồng bộ & Đối chiếu giá thực đơn (Sync & Price Check)
+  if (!shouldStop && !CHECK_CLOSED_ONLY) {
+    await syncMenuBatch();
   }
   
   // Chạy xác thực và dọn dẹp file menu mồ côi dư thừa ngay khi hoàn tất lượt cào

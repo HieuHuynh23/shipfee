@@ -388,7 +388,7 @@ function renderDashboard() {
       </div>
     </div>
 
-    <div class="grid-2" style="gap: 20px;">
+    <div class="grid-2 mb-6" style="gap: 20px;">
       <div class="data-table-wrapper">
         <div class="data-table-header">
           <h3>Tài xế trực tuyến</h3>
@@ -403,6 +403,21 @@ function renderDashboard() {
           <span class="count" id="pending-orders-count">0</span>
         </div>
         <div id="pending-orders-body"></div>
+      </div>
+    </div>
+
+    <!-- Panel Biến động giá & Trạng thái hoạt động ShopeeFood -->
+    <div class="data-table-wrapper mb-6">
+      <div class="data-table-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+        <h3 style="display: flex; align-items: center; gap: 8px; font-size: 15px;">
+          <i class="fa-solid fa-bell" style="color: #f59e0b;"></i> Biến động giá & Trạng thái quán (ShopeeFood Sync)
+        </h3>
+        <button class="btn btn--ghost btn--sm text-xs" onclick="handleReadAllNotifications()" style="color: var(--text-muted);">
+          <i class="fa-solid fa-check-double"></i> Đánh dấu đã xem tất cả
+        </button>
+      </div>
+      <div id="notifications-body" style="max-height: 260px; overflow-y: auto; padding: 6px 0;">
+        <div class="empty-state" style="padding: 24px;"><p class="text-muted text-sm">Đang tải thông báo...</p></div>
       </div>
     </div>
   `;
@@ -538,6 +553,15 @@ function renderDashboardStats() {
     }
   }
   if (pendingCountEl) pendingCountEl.textContent = pendingOrders.length;
+  
+  // Nạp và hiển thị thông báo biến động ShopeeFood
+  if (typeof fetchNotifications === 'function') {
+    fetchNotifications().then(() => {
+      if (typeof renderNotificationsList === 'function') {
+        renderNotificationsList();
+      }
+    });
+  }
 }
 
 function renderRevenueChart() {
@@ -1900,3 +1924,131 @@ async function toggleMenuItemAvailability(checkbox, restaurantId, itemId) {
   }
 }
 window.toggleMenuItemAvailability = toggleMenuItemAvailability;
+
+// ── SYSTEM NOTIFICATIONS & PRICE/STATUS CHANGES CRM LOGIC ────────────────────
+let cachedNotifications = [];
+
+async function fetchNotifications() {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications`);
+    if (res.success && Array.isArray(res.data)) {
+      cachedNotifications = res.data;
+    }
+  } catch (err) {
+    console.error('[Notifications] Lỗi nạp thông báo:', err.message);
+  }
+}
+
+function renderNotificationsList() {
+  const container = document.getElementById('notifications-body');
+  if (!container) return;
+
+  if (cachedNotifications.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding: 32px;">
+        <p class="text-muted text-sm"><i class="fa-solid fa-circle-check"></i> Không có biến động giá hoặc trạng thái nào mới.</p>
+      </div>`;
+    return;
+  }
+
+  let html = `<table class="data-table"><tbody>`;
+  
+  cachedNotifications.forEach(n => {
+    const isUnread = n.read !== true;
+    const timeStr = new Date(n.createdAt).toLocaleString('vi-VN');
+    const badgeColor = n.type === 'price_change' ? '#f59e0b' : '#ef4444';
+    const badgeText = n.type === 'price_change' ? 'Biến động giá' : 'Đổi trạng thái';
+    
+    // Custom style cho chấm đỏ chưa đọc
+    const unreadDot = isUnread ? `<span class="badge__dot" style="background:#ef4444; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px; animation: pulse 1.5s infinite;"></span>` : '';
+    
+    html += `
+      <tr style="${isUnread ? 'background: rgba(245,158,11,0.02);' : ''}">
+        <td style="width: 28px; text-align: center;">
+          ${isUnread 
+            ? `<button class="btn btn--ghost btn--icon btn--sm" onclick="handleReadNotification('${n.id}', event)" title="Đánh dấu đã xem" style="color:#f59e0b;"><i class="fa-solid fa-circle-check"></i></button>`
+            : `<i class="fa-solid fa-check text-muted" style="font-size:12px;"></i>`
+          }
+        </td>
+        <td style="white-space: nowrap; width: 140px;">
+          <span class="badge" style="background: ${badgeColor}22; color: ${badgeColor}; border: 1px solid ${badgeColor}33; font-size:11px;">
+            ${badgeText}
+          </span>
+        </td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${unreadDot}
+            <strong style="color: var(--text-primary); cursor: pointer;" onclick="viewRestaurantInCRM('${n.restaurantId}', '${n.restaurantName.replace(/'/g, "\\'")}')" title="Xem quán & menu">
+              ${n.restaurantName}
+            </strong>
+          </div>
+          <div class="text-xs text-muted" style="margin-top: 4px; white-space: pre-wrap; line-height: 1.5;">${n.message}</div>
+        </td>
+        <td class="mono text-xs text-muted" style="text-align: right; white-space: nowrap; width: 150px;">
+          ${timeStr}
+        </td>
+        <td style="text-align: right; width: 80px;">
+          <button class="btn btn--secondary btn--sm" onclick="viewRestaurantInCRM('${n.restaurantId}', '${n.restaurantName.replace(/'/g, "\\'")}')" style="padding: 4px 10px; font-size: 11px;">
+            <i class="fa-solid fa-store"></i> Xem quán
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+  
+  html += `</tbody></table>`;
+  container.innerHTML = html;
+}
+
+async function handleReadNotification(id, event) {
+  if (event) event.stopPropagation();
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications/${id}/read`, { method: 'POST' });
+    if (res.success) {
+      // Cập nhật trạng thái cục bộ
+      const idx = cachedNotifications.findIndex(n => n.id === id);
+      if (idx !== -1) cachedNotifications[idx].read = true;
+      renderNotificationsList();
+      showToast('Đã đánh dấu đã xem!', 'success');
+    }
+  } catch (err) {
+    showToast('Lỗi kết nối server', 'error');
+  }
+}
+
+async function handleReadAllNotifications() {
+  try {
+    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications/read-all`, { method: 'POST' });
+    if (res.success) {
+      cachedNotifications.forEach(n => n.read = true);
+      renderNotificationsList();
+      showToast('Đã đánh dấu đã xem tất cả!', 'success');
+    }
+  } catch (err) {
+    showToast('Lỗi kết nối server', 'error');
+  }
+}
+
+function viewRestaurantInCRM(restaurantId, restaurantName) {
+  // 1. Chuyển hướng sang tab Quán ăn
+  navigateTo('restaurants');
+  
+  // 2. Chờ DOM render xong, điền tên quán vào ô lọc
+  setTimeout(() => {
+    const filterInput = document.getElementById('restaurant-filter-name');
+    if (filterInput) {
+      filterInput.value = restaurantName;
+      filterRestaurantsLocal();
+    }
+    
+    // 3. Tự động mở Modal Menu của quán ăn đó luôn để Admin xem nhanh món/giá thay đổi!
+    openRestaurantMenu(restaurantId);
+  }, 120);
+}
+
+// Đăng ký toàn cục
+window.fetchNotifications = fetchNotifications;
+window.renderNotificationsList = renderNotificationsList;
+window.handleReadNotification = handleReadNotification;
+window.handleReadAllNotifications = handleReadAllNotifications;
+window.viewRestaurantInCRM = viewRestaurantInCRM;

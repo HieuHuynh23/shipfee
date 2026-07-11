@@ -1347,9 +1347,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:03:51.951Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:30:28.910Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:30:28.910Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 14/07/2026\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_after_all_plaza_cocktail_trai_cay",
@@ -1375,9 +1378,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:04:56.725Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:31:33.960Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:31:33.960Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_am_thuc_vuon_nuong_han_quoc",
@@ -1403,9 +1409,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:06:01.099Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:32:38.965Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:32:38.965Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_tra_sua_nong_nguyen_van_cu_noi_dai",
@@ -1499,8 +1508,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "menuUpdatedAt": "2026-07-08T03:06:43.566Z",
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:33:20.460Z",
+    "menuTemplateFallback": false,
+    "isClosed": true,
+    "closedAt": "2026-07-11T05:33:20.460Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 15:00 Hôm nay\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_an_vat_mini_mi_top_mo",
@@ -1526,8 +1539,7 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "menuUpdatedAt": "2026-07-08T03:07:25.320Z",
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:34:01.534Z"
   },
   {
     "id": "r_ct_ga_nuong_nhu_y_2_duong_pham_hung",
@@ -1554,8 +1566,7 @@
       "Nước Ngọt"
     ],
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:08:07.605Z",
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:34:43.601Z"
   },
   {
     "id": "r_ct_tiem_ca_phe_the_the",
@@ -1581,9 +1592,12 @@
       "Bạc Xỉu",
       "Trà Đào Cam Sả"
     ],
-    "menuUpdatedAt": "2026-07-08T03:08:50.107Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:35:24.625Z",
+    "isClosed": true,
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:35:24.625Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_cay_sao_cafe",
@@ -1633,9 +1647,12 @@
       "Trà Sữa Matcha",
       "Trà Sữa Socola"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:09:54.699Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:36:30.147Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:36:30.147Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_sil_my_chuyen_cac_mon_bo",
@@ -1786,9 +1803,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:10:37.379Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:37:11.912Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:37:11.912Z",
+    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_banh_kem_kim_thanh",
@@ -1814,9 +1834,12 @@
       "Bún Bò Huế",
       "Nước Ngọt"
     ],
-    "isClosed": false,
-    "menuUpdatedAt": "2026-07-08T03:11:41.645Z",
-    "menuTemplateFallback": false
+    "isClosed": true,
+    "menuUpdatedAt": "2026-07-11T05:38:16.159Z",
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:38:16.159Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_chi_thien_com_phan",
@@ -16457,9 +16480,12 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-08T03:12:46.443Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:39:20.316Z",
+    "isClosed": true,
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:39:20.316Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_chua_neyvone",
@@ -16484,9 +16510,12 @@
       "Nem Nướng Nha Trang (Set 1 người)",
       "Trà Đá Chanh Sả Mát Lạnh"
     ],
-    "menuUpdatedAt": "2026-07-08T03:13:50.855Z",
-    "isClosed": false,
-    "menuTemplateFallback": false
+    "menuUpdatedAt": "2026-07-11T05:40:24.643Z",
+    "isClosed": true,
+    "menuTemplateFallback": false,
+    "closedAt": "2026-07-11T05:40:24.643Z",
+    "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
+    "crawlNextAttempt": "2026-07-12T00:00:00.000Z"
   },
   {
     "id": "r_ct_five_star_vietnam_tinh_lo_922",
