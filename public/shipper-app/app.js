@@ -2876,6 +2876,41 @@ async function requestOrderAssistance() {
 }
 window.requestOrderAssistance = requestOrderAssistance;
 
+function geocodeAddressOffline(address, name) {
+  const text = ((address || '') + ' ' + (name || '')).toLowerCase();
+  
+  // Basic Vietnamese tone removal to improve matching
+  const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+  const mappings = [
+    { keys: ['nguyen van cu'], lat: 10.0298, lon: 105.7584 },
+    { keys: ['mau than'], lat: 10.0276, lon: 105.7725 },
+    { keys: ['ba thang hai', '3 thang 2', '3/2'], lat: 10.0244, lon: 105.7676 },
+    { keys: ['30 thang 4', 'ba muoi thang tu', '30/4'], lat: 10.0165, lon: 105.7708 },
+    { keys: ['tran hung dao'], lat: 10.0381, lon: 105.7801 },
+    { keys: ['ly tu trong'], lat: 10.0354, lon: 105.7825 },
+    { keys: ['cach mang thang 8', 'cmt8'], lat: 10.0492, lon: 105.7615 },
+    { keys: ['hung vuong'], lat: 10.0415, lon: 105.7818 },
+    { keys: ['tran van hoai'], lat: 10.0261, lon: 105.7772 },
+    { keys: ['tam vu'], lat: 10.0182, lon: 105.7720 },
+    { keys: ['de tham'], lat: 10.0336, lon: 105.7828 },
+    { keys: ['quang trung'], lat: 10.0229, lon: 105.7905 },
+    { keys: ['vo van kiet'], lat: 10.0526, lon: 105.7502 },
+    { keys: ['cai rang'], lat: 9.9968, lon: 105.7505 },
+    { keys: ['o mon'], lat: 10.1205, lon: 105.6292 },
+    { keys: ['binh thuy'], lat: 10.0763, lon: 105.7289 }
+  ];
+
+  for (const mapping of mappings) {
+    if (mapping.keys.some(key => cleanText.includes(key))) {
+      return { lat: mapping.lat, lon: mapping.lon };
+    }
+  }
+
+  // Default Ninh Kieu Center
+  return { lat: 10.0345, lon: 105.7876 };
+}
+
 function navigateToPoint(target) {
   if (!activeOrder) {
     showToast('Không có đơn hàng', 'Không tìm thấy thông tin đơn hàng hoạt động.', 'warning');
@@ -2886,9 +2921,25 @@ function navigateToPoint(target) {
   if (target === 'restaurant') {
     lat = activeOrder.restaurantLat;
     lon = activeOrder.restaurantLon;
+    
+    // Offline geocode fallback if coordinates are missing/invalid
+    if (!lat || !lon || isNaN(parseFloat(lat)) || isNaN(parseFloat(lon))) {
+      const coords = geocodeAddressOffline(activeOrder.restaurantAddress || '', activeOrder.restaurantName || '');
+      lat = coords.lat;
+      lon = coords.lon;
+      console.log(`[Navigation] Geocoded restaurant address offline fallback: ${lat}, ${lon}`);
+    }
   } else if (target === 'customer') {
     lat = activeOrder.pinnedLat;
     lon = activeOrder.pinnedLon;
+    
+    // Offline geocode fallback if coordinates are missing/invalid
+    if (!lat || !lon || isNaN(parseFloat(lat)) || isNaN(parseFloat(lon))) {
+      const coords = geocodeAddressOffline(activeOrder.deliveryAddress || '', '');
+      lat = coords.lat;
+      lon = coords.lon;
+      console.log(`[Navigation] Geocoded customer address offline fallback: ${lat}, ${lon}`);
+    }
   }
 
   if (!lat || !lon) {
@@ -2896,8 +2947,9 @@ function navigateToPoint(target) {
     return;
   }
 
-  // Google Maps navigation direction universal URL scheme
-  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+  // Use Google Maps search query URL scheme (placing a pin at exact coordinates)
+  // This is 100% robust and prevents any mobile browser/app redirect confusion.
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
   window.open(url, '_blank');
 }
 window.navigateToPoint = navigateToPoint;

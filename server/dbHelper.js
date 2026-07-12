@@ -135,8 +135,8 @@ function updateRestaurant(updated) {
 }
 
 function writeAll(restaurants) {
-  if (!Array.isArray(restaurants) || restaurants.length < 300) {
-    console.error(`[dbHelper] 🛑 CẢNH BÁO AN TOÀN: Từ chối ghi đè database vì số lượng quán ăn quá thấp (${restaurants ? restaurants.length : 0} < 300). Tránh làm mất dữ liệu!`);
+  if (!Array.isArray(restaurants) || restaurants.length < 10) {
+    console.error(`[dbHelper] 🛑 CẢNH BÁO AN TOÀN: Từ chối ghi đè database vì số lượng quán ăn quá thấp (${restaurants ? restaurants.length : 0} < 10). Tránh làm mất dữ liệu!`);
     return false;
   }
   const chunks = Array.from({ length: NUM_CHUNKS }, () => []);

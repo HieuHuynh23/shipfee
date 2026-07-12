@@ -2430,7 +2430,8 @@ function writeRestaurantMenu(restaurantId, menu) {
 async function syncRestaurantToSupabase(restaurantId) {
   if (!supabase) return;
   try {
-    const restaurant = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
+    const allRests = dbHelper.read();
+    const restaurant = allRests.find(r => String(r.id) === String(restaurantId));
     if (!restaurant) return;
     
     // Đọc menu chi tiết từ file local
@@ -4162,13 +4163,23 @@ app.post('/api/orders', async (req, res) => {
     }
 
     const orderId = orderData.id || 'SPF-' + Math.floor(100000 + Math.random() * 900000);
+    
+    let restLat = orderData.restaurantLat;
+    let restLon = orderData.restaurantLon;
+    if (typeof restLat !== 'number' || typeof restLon !== 'number') {
+      const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
+      restLat = coords.lat;
+      restLon = coords.lon;
+      console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+    }
+
     const newOrder = {
       id: orderId,
       restaurantId: orderData.restaurantId || null,
       restaurantName: orderData.restaurantName || '',
       restaurantAddress: orderData.restaurantAddress || '',
-      restaurantLat: typeof orderData.restaurantLat === 'number' ? orderData.restaurantLat : null,
-      restaurantLon: typeof orderData.restaurantLon === 'number' ? orderData.restaurantLon : null,
+      restaurantLat: restLat,
+      restaurantLon: restLon,
       items: Array.isArray(orderData.items) ? orderData.items.map(item => ({
         id: item.id,
         name: item.name,
@@ -6456,6 +6467,18 @@ function runSweepIteration() {
         target.crawlNextAttempt = tomorrow.toISOString();
         target.menuUpdatedAt = new Date().toISOString();
 
+        // Lưu menu nếu cào được mặc dù quán đang đóng cửa
+        if (menu && menu.length > 0) {
+          const isFallback = !target.hasRealMenu || target.menuTemplateFallback === true;
+          if (isFallback) {
+            writeRestaurantMenu(target.id, menu);
+            target.dishNames = menu.map(m => m.name).filter(Boolean);
+            target.hasRealMenu = true;
+            delete target.menuTemplateFallback;
+            console.log(`[Sweep Worker] 🆕 Gán thực đơn cào được (${menu.length} món) cho quán đang đóng cửa: "${target.name}"`);
+          }
+        }
+
         updateLocalDatabase((dbData) => {
           const idx = dbData.findIndex(r => String(r.id) === String(target.id));
           if (idx !== -1) {
@@ -6464,6 +6487,11 @@ function runSweepIteration() {
             dbData[idx].closedReason = target.closedReason;
             dbData[idx].crawlNextAttempt = target.crawlNextAttempt;
             dbData[idx].menuUpdatedAt = target.menuUpdatedAt;
+            if (target.hasRealMenu) {
+              dbData[idx].hasRealMenu = true;
+              dbData[idx].dishNames = target.dishNames;
+              delete dbData[idx].menuTemplateFallback;
+            }
             delete dbData[idx].menu;
             return true;
           }
@@ -6480,8 +6508,9 @@ function runSweepIteration() {
         let priceUpdatedCount = 0;
         const localMenu = readRestaurantMenu(target.id) || [];
         
-        if (localMenu.length === 0) {
-          // Nếu menu local trống, gán toàn bộ menu cào được và lưu file
+        const isFallback = !target.hasRealMenu || target.menuTemplateFallback === true;
+        if (localMenu.length === 0 || isFallback) {
+          // Nếu menu local trống hoặc là menu fallback mẫu, gán toàn bộ menu cào được và lưu file
           writeRestaurantMenu(target.id, menu);
           target.dishNames = menu.map(m => m.name).filter(Boolean);
           target.hasRealMenu = true;
