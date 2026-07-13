@@ -36,8 +36,7 @@ function getBrowserPath() {
 (async () => {
   const browserPath = getBrowserPath();
   if (!browserPath) {
-    console.error('❌ Không tìm thấy trình duyệt Chrome hoặc Edge để chạy Puppeteer.');
-    process.exit(1);
+    console.log('ℹ️ Không phát hiện Chrome/Edge hệ thống. Puppeteer sẽ khởi chạy bằng Chromium tích hợp.');
   }
 
   // 1. Dọn dẹp local chunks
@@ -85,11 +84,16 @@ function getBrowserPath() {
     }
   }
 
-  const browser = await puppeteer.launch({
-    executablePath: browserPath,
+  const launchOptions = {
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
-  });
+  };
+
+  if (browserPath) {
+    launchOptions.executablePath = browserPath;
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
 
   const page = await browser.newPage();
   await page.setViewport({ width: 1280, height: 900 });

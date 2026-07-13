@@ -110,15 +110,13 @@ function extractMenuFromApiData(apiData, slug) {
 async function scrapeMenu(slug) {
   const executablePath = getBrowserPath();
   if (!executablePath) {
-    console.error('[menuScraper] ❌ Không tìm thấy Chrome hoặc Edge trên hệ thống!');
-    return [];
+    console.log('[menuScraper] ℹ️ Không phát hiện Chrome/Edge hệ thống. Puppeteer sẽ khởi chạy bằng Chromium tích hợp.');
   }
 
   const url = `https://shopeefood.vn/can-tho/${slug}`;
   console.log(`[menuScraper] 🚀 Bắt đầu cào menu quán: ${slug} (Headless: true)...`);
 
-  const browser = await puppeteer.launch({
-    executablePath: executablePath,
+  const launchOptions = {
     headless: true,
     args: [
       '--no-sandbox',
@@ -135,7 +133,13 @@ async function scrapeMenu(slug) {
       '--lang=vi-VN,vi,en-US,en',
       '--window-size=1280,900'
     ]
-  });
+  };
+
+  if (executablePath) {
+    launchOptions.executablePath = executablePath;
+  }
+
+  const browser = await puppeteer.launch(launchOptions);
 
   try {
     const page = await browser.newPage();

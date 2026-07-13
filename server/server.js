@@ -363,9 +363,7 @@ async function syncShippersFromSupabase() {
         id: u.id,
         phone: cleanPhone,
         full_name: metadata.full_name || 'Tài xế tự do',
-        is_approved: true,
         status: 'OFFLINE',
-        cccd: metadata.cccd || '',
         avatar_url: metadata.avatar_url || ''
       }).then(({ error }) => {
         if (error) console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', error.message);
