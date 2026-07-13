@@ -367,7 +367,9 @@ async function syncShippersFromSupabase() {
         status: 'OFFLINE',
         cccd: metadata.cccd || '',
         avatar_url: metadata.avatar_url || ''
-      }).catch(err => console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', err.message));
+      }).then(({ error }) => {
+        if (error) console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', error.message);
+      });
     });
 
     if (changed) {
@@ -1822,14 +1824,8 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 function triggerCrawler() {
-  console.log('[Server] Kích hoạt Crawler chạy ngầm để cập nhật dữ liệu từ Foody...');
-  exec(`node "${path.join(__dirname, 'crawler.js')}"`, (err, stdout, stderr) => {
-    if (err) {
-      console.error('[Server] ❌ Lỗi khi chạy crawler ngầm:', err.message);
-      return;
-    }
-    console.log('[Server] ✅ Crawler ngầm hoàn tất cập nhật dữ liệu!');
-  });
+  // Crawler ngầm được quản lý tập trung bởi Sweep Worker trong tiến trình chính
+  // và daemon crawl_scheduler.js bên ngoài để tối ưu hóa hiệu năng RAM trên Render.
 }
 
 function removeVietnameseTones(str) {
