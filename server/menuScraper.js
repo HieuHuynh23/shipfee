@@ -141,6 +141,15 @@ async function scrapeMenu(slug) {
 
   const browser = await puppeteer.launch(launchOptions);
 
+  let watchdog = setTimeout(async () => {
+    console.warn(`[menuScraper] 🕒 Phát hiện cào menu cho "${slug}" bị treo quá 35 giây. Đang cưỡng chế đóng trình duyệt...`);
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (e) {}
+    }
+  }, 35000);
+
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
@@ -363,17 +372,19 @@ async function scrapeMenu(slug) {
     // ── FALLBACK: DOM SCROLL & EXTRACT ──
     console.log('[menuScraper] 🔄 Đang dùng DOM Fallback để trích xuất menu...');
 
-    // Scroll adaptive để load virtualized items
+    // Scroll adaptive để load virtualized items (Giới hạn tối đa 6 giây để tránh lặp vô hạn)
     await page.evaluate(async () => {
       await new Promise((resolve) => {
         let lastHeight = document.body.scrollHeight;
         let stableCount = 0;
+        let totalAttempts = 0;
         const timer = setInterval(() => {
           window.scrollBy(0, 300);
           const newHeight = document.body.scrollHeight;
-          if (newHeight === lastHeight) {
+          totalAttempts++;
+          if (newHeight === lastHeight || totalAttempts >= 60) {
             stableCount++;
-            if (stableCount >= 12) {
+            if (stableCount >= 12 || totalAttempts >= 60) {
               clearInterval(timer);
               resolve();
             }
@@ -517,11 +528,12 @@ async function scrapeMenu(slug) {
     console.error(`[menuScraper] ❌ Thất bại khi cào menu cho "${slug}":`, err.message);
     return [];
   } finally {
+    clearTimeout(watchdog);
     if (browser) {
       try {
         await browser.close();
       } catch (closeErr) {
-        console.warn('[menuScraper] Lỗi khi đóng browser (bỏ qua):', closeErr.message);
+        // Bỏ qua lỗi đóng browser
       }
     }
   }
