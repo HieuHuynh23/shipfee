@@ -142,11 +142,19 @@ async function scrapeMenu(slug) {
   const browser = await puppeteer.launch(launchOptions);
 
   let watchdog = setTimeout(async () => {
-    console.warn(`[menuScraper] 🕒 Phát hiện cào menu cho "${slug}" bị treo quá 35 giây. Đang cưỡng chế đóng trình duyệt...`);
+    console.warn(`[menuScraper] 🕒 Phát hiện cào menu cho "${slug}" bị treo quá 35 giây. Đang cưỡng chế đóng trình duyệt bằng SIGKILL...`);
     if (browser) {
       try {
-        await browser.close();
-      } catch (e) {}
+        const proc = browser.process();
+        if (proc) {
+          proc.kill('SIGKILL');
+          console.log(`[menuScraper] ☠️ Đã gửi tín hiệu SIGKILL tới tiến trình Chromium (PID: ${proc.pid}).`);
+        } else {
+          await browser.close();
+        }
+      } catch (e) {
+        console.error('[menuScraper] Lỗi khi cưỡng chế tắt trình duyệt:', e.message);
+      }
     }
   }, 35000);
 
