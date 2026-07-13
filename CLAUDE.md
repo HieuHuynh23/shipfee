@@ -51,7 +51,7 @@ This project is indexed by GitNexus as **shipfee** (2801 symbols, 6511 relations
 | Thành phần | Nền tảng | URL Production |
 |------------|----------|----------------|
 | **Backend API** | Render | `https://shipfee-eo5s.onrender.com` |
-| **Frontend** (Customer, Shipper, CRM) | Vercel | `https://shipfee.vercel.app` |
+| **Frontend** (Customer, Shipper, CRM) | Vercel | `https://shipfee-hieuhuynh234s-projects.vercel.app` |
 | **Database** | Supabase + Local JSON chunks | `https://zegfxtprqfksvcukdfif.supabase.co` |
 
 Tất cả triển khai tự động qua **git push** lên nhánh `master` tại [github.com/HieuHuynh23/shipfee](https://github.com/HieuHuynh23/shipfee).
@@ -60,9 +60,9 @@ Tất cả triển khai tự động qua **git push** lên nhánh `master` tại
 
 | Ứng dụng | URL |
 |-----------|-----|
-| Web Khách Hàng | `https://shipfee.vercel.app/customer-app/` |
-| Web Tài Xế | `https://shipfee.vercel.app/shipper-app/` |
-| CRM Admin | `https://shipfee.vercel.app/admin-app/` |
+| Web Khách Hàng | `https://shipfee-hieuhuynh234s-projects.vercel.app/customer-app/` |
+| Web Tài Xế | `https://shipfee-hieuhuynh234s-projects.vercel.app/shipper-app/` |
+| CRM Admin | `https://shipfee-hieuhuynh234s-projects.vercel.app/admin-app/` |
 | API Status | `https://shipfee-eo5s.onrender.com/api/status` |
 
 ---

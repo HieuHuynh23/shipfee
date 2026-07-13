@@ -1807,7 +1807,6 @@ const whitelist = [
   'http://127.0.0.1:8000',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  'https://shipfee.vercel.app',
   'https://shipfee-hieuhuynh234s-projects.vercel.app'
 ];
 app.use(cors({

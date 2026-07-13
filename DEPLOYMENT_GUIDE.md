@@ -55,9 +55,9 @@ graph TD
 
 | Thành phần | URL |
 |------------|-----|
-| **Web Khách Hàng** | `https://shipfee.vercel.app/customer-app/` |
-| **Web Tài Xế** | `https://shipfee.vercel.app/shipper-app/` |
-| **CRM Admin** | `https://shipfee.vercel.app/admin-app/` |
+| **Web Khách Hàng** | `https://shipfee-hieuhuynh234s-projects.vercel.app/customer-app/` |
+| **Web Tài Xế** | `https://shipfee-hieuhuynh234s-projects.vercel.app/shipper-app/` |
+| **CRM Admin** | `https://shipfee-hieuhuynh234s-projects.vercel.app/admin-app/` |
 | **Backend API** | `https://shipfee-eo5s.onrender.com` |
 | **API Health Check** | `https://shipfee-eo5s.onrender.com/api/status` |
 
