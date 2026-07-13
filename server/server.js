@@ -1540,7 +1540,15 @@ function startTelegramPolling() {
       }
     } catch (err) {
       if (err.code !== 'ECONNRESET' && err.code !== 'ETIMEDOUT') {
-        console.error('[Telegram Polling Error]:', err.message);
+        const isConflict = err.response && err.response.status === 409;
+        if (isConflict) {
+          if (!global._hasTelegramConflictLogged) {
+            console.log('[Telegram Bot] ⚠️ Phát hiện bot Telegram đang được chạy polling song song ở nơi khác (địa phương hoặc Render). Đang chuyển sang chế độ chờ đồng bộ...');
+            global._hasTelegramConflictLogged = true;
+          }
+        } else {
+          console.error('[Telegram Polling Error]:', err.message);
+        }
       }
     }
   }, 5000);
