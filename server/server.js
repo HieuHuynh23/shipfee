@@ -2717,39 +2717,6 @@ function sanitizeLocalJsonData() {
           changed = true;
           migrationCount++;
         }
-
-        // Nếu chưa có dishNames nhưng có file menu riêng, tự cập nhật dishNames
-        if (!restaurant.dishNames) {
-          const menu = readRestaurantMenu(restaurant.id);
-          if (menu) {
-            restaurant.dishNames = menu.map(m => m.name).filter(Boolean);
-            changed = true;
-          }
-        }
-
-        // Bỏ qua quán đang đóng cửa - không gán template menu
-        if (restaurant.isClosed) return;
-
-        // Đọc thực đơn từ tệp riêng
-        let currentMenu = readRestaurantMenu(restaurant.id);
-        if (!currentMenu || currentMenu.length === 0) {
-          // Chưa có thực đơn, tạo thực đơn mẫu
-          const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-          writeRestaurantMenu(restaurant.id, templateMenu);
-          restaurant.dishNames = templateMenu.map(m => m.name).filter(Boolean);
-          restaurant.hasRealMenu = false;
-          restaurant.menuTemplateFallback = true;
-          changed = true;
-        } else if (!restaurant.hasRealMenu && restaurant.menuTemplateFallback) {
-          // Có thực đơn mẫu, cập nhật nếu có sai khác cấu trúc template
-          const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-          if (currentMenu.length !== templateMenu.length || currentMenu[0]?.name !== templateMenu[0]?.name) {
-            writeRestaurantMenu(restaurant.id, templateMenu);
-            restaurant.dishNames = templateMenu.map(m => m.name).filter(Boolean);
-            changed = true;
-            console.log(`[Sanitization] 🔄 Đã cập nhật menu giả lập chính xác cho: "${restaurant.name}"`);
-          }
-        }
       });
 
       if (changed) {
