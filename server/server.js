@@ -6622,8 +6622,12 @@ app.listen(PORT, () => {
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();
 
-  // Khởi động luồng quét tự động toàn bộ cơ sở dữ liệu làm mới thực đơn chuẩn
-  startBackgroundDatabaseSweepWorker();
+  // Khởi động luồng quét tự động toàn bộ cơ sở dữ liệu làm mới thực đơn chuẩn (chỉ chạy ở local để tránh quá tải Render)
+  if (!process.env.RENDER) {
+    startBackgroundDatabaseSweepWorker();
+  } else {
+    console.log('[Server] ℹ️ Đang chạy trên Render. Vô hiệu hóa Sweep Worker cào ngầm để tối ưu hóa CPU/RAM.');
+  }
 
   // Khởi động Telegram Polling Daemon
   startTelegramPolling();
