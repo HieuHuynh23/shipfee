@@ -2698,17 +2698,8 @@ function sanitizeLocalJsonData() {
       let changed = false;
       let migrationCount = 0;
 
-      // Lọc bỏ các quán đã đóng cửa hoàn toàn
-      const cleanData = localData.filter(restaurant => {
-        if (restaurant.isClosed) {
-          if (!hasReopenTime(restaurant.closedReason)) {
-            console.log(`[Sanitization] 🗑️ Xóa quán đóng cửa hoàn toàn khỏi database: "${restaurant.name}" (${restaurant.closedReason || 'Không rõ lý do'})`);
-            changed = true;
-            return false; // Remove
-          }
-        }
-        return true; // Keep
-      });
+      // Giữ nguyên các quán đóng cửa (không tự động xóa tránh mất mát dữ liệu gốc)
+      const cleanData = localData;
 
       cleanData.forEach(restaurant => {
         // Reset trạng thái đóng cửa nếu đã đến giờ hẹn
