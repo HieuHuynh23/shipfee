@@ -615,14 +615,14 @@
           });
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const json = await res.json();
-          if (json.data && json.data.length > 0) {
+          if (json.data) {
             ALL_DATA = json.data;
             // Cập nhật RESTAURANTS global để các trang khác dùng được
             SF.RESTAURANTS = ALL_DATA;
             const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
                              json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
             document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
-            console.log(`[Data] ${srcLabel} — ${json.total} quán`);
+            console.log(`[Data] ${srcLabel} — ${json.total || 0} quán`);
             return true;
           }
         } catch (err) {

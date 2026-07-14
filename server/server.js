@@ -3494,16 +3494,12 @@ app.get('/api/restaurants', async (req, res) => {
       console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
     } else {
       // ── LỌC QUÁN ĐÓNG CỬA ──
-      // Mặc định chỉ trả về quán đang mở (isClosed !== true)
-      // CRM Admin có thể truyền ?includeAll=true để xem toàn bộ (bao gồm cả quán đóng)
-      const includeAll = req.query.includeAll === 'true';
-      let sourceData = includeAll 
-        ? cachedRestaurants 
-        : cachedRestaurants.filter(r => !r.isClosed);
+      // Mặc định trả về toàn bộ quán (bao gồm cả quán đóng) để khách hàng có thể duyệt xem thực đơn ở chế độ chỉ đọc.
+      let sourceData = cachedRestaurants;
       responseData = processRestaurantsWithLocation(sourceData, req.query.lat, req.query.lon);
       const totalOpen = responseData.filter(r => !r.isClosed).length;
       const totalClosed = responseData.filter(r => r.isClosed).length;
-      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng/fallback: ${totalClosed}, includeAll: ${includeAll})`);
+      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng/fallback: ${totalClosed})`);
     }
 
     // ── PAGINATION ──

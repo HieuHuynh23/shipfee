@@ -703,13 +703,25 @@
       const alertBanner = document.getElementById('restaurant-status-alert');
       if (alertBanner) alertBanner.style.display = 'none';
 
-      if (isFallback) {
-        renderFallbackReopenBanner();
-        return;
-      }
-
       if (isRestaurantClosed) {
-        renderClosedBanner();
+        const isPermanent = RESTAURANT.closedReason && !hasReopenTime(RESTAURANT.closedReason);
+        if (isPermanent) {
+          renderClosedBanner();
+        } else {
+          // Hiển thị banner cảnh báo tạm đóng cửa
+          if (alertBanner) {
+            alertBanner.innerHTML = `<i class="fa-solid fa-clock"></i> <strong>Cửa hàng đang tạm đóng cửa:</strong> ${RESTAURANT.closedReason || 'Quán hiện không nhận đơn giao hàng lúc này. Vui lòng quay lại sau.'}`;
+            alertBanner.style.display = 'flex';
+          }
+          // Đánh dấu ảnh header xám nhẹ để trực quan
+          document.getElementById('restaurant-header').classList.add('is-closed');
+          
+          // Vẫn cho phép duyệt thực đơn ở chế độ chỉ đọc
+          renderCategoryTabs();
+          renderMenu();
+          const cartBar = document.getElementById('cart-bar');
+          if (cartBar) cartBar.style.display = 'none';
+        }
       } else {
         renderCategoryTabs();
         renderMenu();
