@@ -1001,24 +1001,28 @@
         const warningBanner = document.createElement('div');
         warningBanner.className = 'transparency-banner mb-md animate-fade-in';
         warningBanner.style.cssText = `
-          background: linear-gradient(135deg, #FFFDF5 0%, #FEF8E7 100%);
-          border: 1px dashed #F59E0B;
+          background: linear-gradient(135deg, #FFFDF5 0%, #FFFBEB 100%);
+          border: 1px solid #FDE68A;
           color: #92400E;
-          padding: 14px 18px;
+          padding: 16px 20px;
           border-radius: var(--radius-lg);
           display: flex;
           align-items: flex-start;
-          gap: 14px;
+          gap: 16px;
           margin: 16px;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
+          box-shadow: 0 4px 15px rgba(245, 158, 11, 0.06);
+          border-left: 5px solid #F59E0B;
         `;
         warningBanner.innerHTML = `
-          <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 800; box-shadow: 0 2px 6px rgba(245,158,11,0.3);">
-            <i class="fa-solid fa-triangle-exclamation"></i>
+          <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; box-shadow: 0 4px 10px rgba(245,158,11,0.25);">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
           </div>
           <div style="font-size: 13px; line-height: 1.6; flex: 1;">
-            <strong style="font-size: 14px; color: #78350F; display: block; margin-bottom: 2px;">⚠️ Thực Đơn Tạm Thời</strong>
-            Thực đơn này đang được cập nhật tự động từ hệ thống cửa hàng. Bạn vẫn có thể tiếp tục đặt món (Shipper tự do của ShipFee sẽ hỗ trợ mua trực tiếp tại quán và giao hàng tận nơi cho bạn!).
+            <strong style="font-size: 15px; color: #78350F; display: block; margin-bottom: 4px; font-weight: 700;">✨ Thực Đơn Gợi Ý & Dịch Vụ Mua Hộ Tiện Lợi</strong>
+            Dạ, quán ăn này đang được đồng bộ thực đơn chính thức. Để giúp bạn không lỡ bữa ngon, <strong>ShipFee vẫn hỗ trợ bạn đặt món bình thường</strong> theo thực đơn gợi ý dưới đây! 
+            <span style="display: block; margin-top: 5px; color: #B45309; font-weight: 600; font-size: 12.5px;">
+              🛵 Tài xế thân thiện của ShipFee sẽ đến trực tiếp cửa hàng để mua đúng ý và giao nhanh đến tận tay bạn!
+            </span>
           </div>
         `;
         container.appendChild(warningBanner);
