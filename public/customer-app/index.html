@@ -529,44 +529,37 @@
       loadSavedAddress();
       updateNavCartBadge();
 
-      // Hiển thị skeleton loading
-      showLoadingSkeleton();
-
-      // Thử fetch từ proxy server (ShopeeFood real-time)
-      const loaded = await loadRestaurantsFromServer(state.userLat, state.userLon);
-      if (!loaded) {
-        // Fallback về data local
-        const userLat = state.userLat || 10.0345;
-        const userLon = state.userLon || 105.7876;
-        ALL_DATA = SF.RESTAURANTS.map(r => {
-          const item = { ...r };
-          const streetCoords = localGeocode(item.address);
-          item.distanceValue = clientHaversine(userLat, userLon, streetCoords.lat, streetCoords.lon);
-          if (item.distanceValue < 1) {
-            item.distance = `${Math.round(item.distanceValue * 1000)} m`;
-          } else {
-            item.distance = `${item.distanceValue.toFixed(1)} km`;
-          }
-          const estMins = 12 + Math.round(item.distanceValue * 5);
-          item.time = `${estMins}-${estMins + 8} phút`;
-          return item;
-        });
-
-        // Filter to 3km (fallback to closest 10 if empty)
-        let filtered = ALL_DATA.filter(r => r.distanceValue <= 3.0);
-        if (filtered.length === 0) {
-          filtered = [...ALL_DATA].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
-        }
-        const openRests = filtered.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-        const closedRests = filtered.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-        ALL_DATA = [...openRests, ...closedRests];
-
+      // Paint cached/offline data immediately so the page never blocks on cold start
+      const userLat = state.userLat || 10.0345;
+      const userLon = state.userLon || 105.7876;
+      let paintedFromCache = false;
+      if (Array.isArray(SF.RESTAURANTS) && SF.RESTAURANTS.length > 0) {
+        ALL_DATA = buildLocalRestaurantList(SF.RESTAURANTS, userLat, userLon);
         serverHasMore = false;
         serverTotal = ALL_DATA.length;
-        SF.showToast('Dùng data offline', 'Server chưa chạy — hiển thị data có sẵn.', 'info');
+        renderAll();
+        paintedFromCache = true;
+      } else {
+        showLoadingSkeleton();
       }
 
-      renderAll();
+      // Refresh from API in background (short retries — don't hold the UI)
+      const loaded = await loadRestaurantsFromServer(userLat, userLon);
+      if (loaded) {
+        renderAll();
+      } else if (!paintedFromCache) {
+        ALL_DATA = buildLocalRestaurantList(
+          typeof RESTAURANTS !== 'undefined' ? RESTAURANTS : SF.RESTAURANTS,
+          userLat,
+          userLon
+        );
+        serverHasMore = false;
+        serverTotal = ALL_DATA.length;
+        SF.showToast('Dùng data offline', 'Server chưa sẵn sàng — hiển thị data có sẵn.', 'info');
+        renderAll();
+      } else {
+        SF.showToast('Đang đồng bộ', 'Máy chủ đang khởi động. Đã hiện danh sách tạm từ bộ nhớ đệm.', 'info');
+      }
 
       // Animate section elements
       document.querySelectorAll('.animate-fade-in').forEach((el) => {
@@ -600,6 +593,34 @@
     let lastQueryLat = 10.0345;
     let lastQueryLon = 105.7876;
 
+    function buildLocalRestaurantList(sourceList, userLat, userLon) {
+      const list = (Array.isArray(sourceList) ? sourceList : []).map(r => {
+        const item = { ...r };
+        const streetCoords = (typeof item.latitude === 'number' && typeof item.longitude === 'number')
+          ? { lat: item.latitude, lon: item.longitude }
+          : localGeocode(item.address);
+        item.latitude = streetCoords.lat;
+        item.longitude = streetCoords.lon;
+        item.distanceValue = clientHaversine(userLat, userLon, streetCoords.lat, streetCoords.lon);
+        if (item.distanceValue < 1) {
+          item.distance = `${Math.round(item.distanceValue * 1000)} m`;
+        } else {
+          item.distance = `${item.distanceValue.toFixed(1)} km`;
+        }
+        const estMins = 12 + Math.round(item.distanceValue * 5);
+        item.time = `${estMins}-${estMins + 8} phút`;
+        return item;
+      });
+
+      let filtered = list.filter(r => r.distanceValue <= 3.0);
+      if (filtered.length === 0) {
+        filtered = [...list].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
+      }
+      const openRests = filtered.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+      const closedRests = filtered.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+      return [...openRests, ...closedRests];
+    }
+
     function upsertIntoAllData(list) {
       const byId = new Map((ALL_DATA || []).map(r => [String(r.id), r]));
       (list || []).forEach(r => {
@@ -630,9 +651,10 @@
       lastQueryLat = queryLat;
       lastQueryLon = queryLon;
       
-      let retries = 3;
-      let delay = 3000;
-      let currentTimeout = 6000;
+      // Short retries: don't block UX for ~60s on Render 502/cold start
+      let retries = append ? 1 : 2;
+      let delay = 1000;
+      let currentTimeout = append ? 8000 : 4000;
 
       while (retries >= 0) {
         try {
@@ -640,6 +662,9 @@
             `${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}&page=${page}&limit=${SERVER_PAGE_SIZE}`,
             { signal: AbortSignal.timeout(currentTimeout) }
           );
+          if (res.status === 502 || res.status === 503) {
+            throw new Error('HTTP ' + res.status + ' (cold start)');
+          }
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const json = await res.json();
           if (json.data) {
@@ -662,17 +687,12 @@
             return true;
           }
         } catch (err) {
-          console.warn(`[Server] Lần thử kết nối thất bại (${3 - retries}/3):`, err.message);
-          if (retries === 0) {
-            SF.showToast('Ngoại tuyến', 'Không thể kết nối đến máy chủ API sau nhiều lần thử. Đang sử dụng dữ liệu offline.', 'warning');
-            break;
-          }
-          if (retries === 3 && API_BASE.includes('render.com')) {
-            SF.showToast('Khởi động Máy chủ', 'Máy chủ Render đang thức giấc (Cold Start). Vui lòng đợi trong giây lát...', 'info');
-          }
+          console.warn(`[Server] Lần thử kết nối thất bại (${2 - retries}/2):`, err.message);
+          if (retries === 0) break;
           retries--;
-          currentTimeout = 15000; // Tăng timeout cho các lần thử tiếp theo để chờ Render khởi động
+          currentTimeout = 8000;
           await new Promise(r => setTimeout(r, delay));
+          delay = 2000;
         }
       }
       return false;
