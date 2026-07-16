@@ -4407,7 +4407,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/banh-bao-tho-phat-can-tho-37-tran-van-kheo",
     "dishNames": [
       "BB HẢI SẢN CUA SÒ ĐIỆP",
@@ -4452,7 +4452,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.820Z",
     "shopeefoodSlug": "banh-bao-tho-phat-can-tho-37-tran-van-kheo",
-    "menuUpdatedAt": "2026-07-13T20:02:33.914Z"
+    "menuUpdatedAt": "2026-07-13T20:02:33.914Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_kubin_dimsum_nguyen_viet_hong",

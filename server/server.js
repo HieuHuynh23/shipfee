@@ -22,6 +22,7 @@ const { exec }    = require('child_process');
 const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
+const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -2555,24 +2556,164 @@ async function hydrateOneMenuFromSupabase(restaurantId) {
     }
     if (!data || !Array.isArray(data.menu) || data.menu.length === 0) return null;
 
+    const quality = analyzeMenuQuality(data.menu);
+    // Never persist pure template menus as if they were scraped
+    if (quality.isTemplate) {
+      const mem = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
+      if (mem) {
+        mem.hasRealMenu = false;
+        mem.menuTemplateFallback = true;
+        mem.menuQuality = quality.reason;
+      }
+      console.log(`[Menu Hydrate] ⏭️ Skip template menu từ Supabase: ${restaurantId} (${quality.reason})`);
+      return null;
+    }
+
     writeRestaurantMenu(restaurantId, data.menu);
     const mem = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
     if (mem) {
-      mem.hasRealMenu = true;
+      applyMenuFlags(mem, data.menu);
       mem.menuUpdatedAt = data.updated_at || new Date().toISOString();
-      if (Array.isArray(data.dish_names) && data.dish_names.length > 0) {
+      if (Array.isArray(data.dish_names) && data.dish_names.length > 0 && quality.isReal) {
         mem.dishNames = data.dish_names;
       } else {
         mem.dishNames = data.menu.map(m => m.name).filter(Boolean);
       }
-      delete mem.menuTemplateFallback;
     }
-    console.log(`[Menu Hydrate] ✅ Restore 1 menu từ Supabase: ${restaurantId} (${data.menu.length} món)`);
+    console.log(`[Menu Hydrate] ✅ Restore 1 menu từ Supabase: ${restaurantId} (${data.menu.length} món, ${quality.reason})`);
     return data.menu;
   } catch (err) {
     console.error(`[Menu Hydrate] Lỗi hydrateOne ${restaurantId}:`, err.message);
     return null;
   }
+}
+
+/**
+ * Reconcile hasRealMenu / menuTemplateFallback from actual menu payloads in Supabase.
+ * Promotes scraped menus wrongly marked fallback; demotes unsplash templates wrongly marked real.
+ * Light on memory: pages of 40, updates flags + writes real menus for promoted rows only.
+ */
+async function reconcileMenuFlagsFromSupabase({ maxPages = 200, pageSize = 40 } = {}) {
+  if (!supabase) {
+    console.log('[Menu Reconcile] Supabase chưa cấu hình — bỏ qua.');
+    return { promoted: 0, demoted: 0, scanned: 0 };
+  }
+
+  let promoted = 0;
+  let demoted = 0;
+  let scanned = 0;
+  let offset = 0;
+  const localUpdates = new Map(); // id -> { hasRealMenu, menuTemplateFallback, dishNames?, menu? }
+
+  for (let page = 0; page < maxPages; page++) {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('id, name, has_real_menu, menu, dish_names')
+      .range(offset, offset + pageSize - 1);
+
+    if (error) {
+      console.error('[Menu Reconcile] Query error:', error.message);
+      break;
+    }
+    if (!Array.isArray(data) || data.length === 0) break;
+
+    for (const row of data) {
+      scanned += 1;
+      const quality = analyzeMenuQuality(row.menu);
+      const markedReal = row.has_real_menu === true;
+
+      if (quality.isReal && !markedReal) {
+        promoted += 1;
+        localUpdates.set(String(row.id), {
+          hasRealMenu: true,
+          menuTemplateFallback: false,
+          dishNames: (Array.isArray(row.dish_names) && row.dish_names.length)
+            ? row.dish_names
+            : (row.menu || []).map(m => m && m.name).filter(Boolean),
+          menu: row.menu,
+          menuQuality: quality.reason
+        });
+      } else if (quality.isTemplate && markedReal) {
+        demoted += 1;
+        localUpdates.set(String(row.id), {
+          hasRealMenu: false,
+          menuTemplateFallback: true,
+          menuQuality: quality.reason
+        });
+      }
+    }
+
+    offset += pageSize;
+    if (data.length < pageSize) break;
+  }
+
+  if (localUpdates.size === 0) {
+    console.log(`[Menu Reconcile] ✅ Scanned ${scanned}. No flag changes needed.`);
+    return { promoted, demoted, scanned };
+  }
+
+  // Apply to in-memory cache + chunk DB
+  let memChanged = 0;
+  for (const r of cachedRestaurants) {
+    if (!r || !r.id) continue;
+    const u = localUpdates.get(String(r.id));
+    if (!u) continue;
+    r.hasRealMenu = u.hasRealMenu;
+    if (u.hasRealMenu) delete r.menuTemplateFallback;
+    else r.menuTemplateFallback = true;
+    if (u.dishNames) r.dishNames = u.dishNames;
+    if (u.menuQuality) r.menuQuality = u.menuQuality;
+    if (u.menu && u.hasRealMenu) {
+      // Write file without per-row Supabase sync (flags synced in batch below)
+      try {
+        if (!fs.existsSync(MENUS_DIR)) fs.mkdirSync(MENUS_DIR, { recursive: true });
+        fs.writeFileSync(getMenuFilePath(r.id), JSON.stringify(u.menu, null, 2), 'utf8');
+      } catch (_) {}
+    }
+    memChanged += 1;
+  }
+
+  await updateLocalDatabase((localData) => {
+    let changed = false;
+    for (let i = 0; i < localData.length; i++) {
+      const r = localData[i];
+      if (!r || !r.id) continue;
+      const u = localUpdates.get(String(r.id));
+      if (!u) continue;
+      const nextReal = u.hasRealMenu === true;
+      const nextFb = !nextReal;
+      if (r.hasRealMenu !== nextReal || !!r.menuTemplateFallback !== nextFb) {
+        r.hasRealMenu = nextReal;
+        if (nextReal) delete r.menuTemplateFallback;
+        else r.menuTemplateFallback = true;
+        if (u.dishNames) r.dishNames = u.dishNames;
+        delete r.menu;
+        changed = true;
+      }
+    }
+    return changed;
+  });
+
+  // Correct Supabase flags for promoted/demoted (not soft)
+  let sbUpdated = 0;
+  for (const [id, u] of localUpdates) {
+    try {
+      const payload = {
+        has_real_menu: u.hasRealMenu === true,
+        updated_at: new Date().toISOString()
+      };
+      if (u.dishNames) payload.dish_names = u.dishNames;
+      // Do not push template menus as real; for demote leave menu as-is but fix flag
+      const { error } = await supabase.from('restaurants').update(payload).eq('id', id);
+      if (!error) sbUpdated += 1;
+    } catch (e) {
+      console.warn('[Menu Reconcile] Supabase update failed', id, e.message);
+    }
+  }
+
+  searchIndex = buildSearchIndex(cachedRestaurants);
+  console.log(`[Menu Reconcile] ✅ scanned=${scanned} promoted=${promoted} demoted=${demoted} mem=${memChanged} supabase=${sbUpdated}`);
+  return { promoted, demoted, scanned, memChanged, sbUpdated };
 }
 
 /**
@@ -2620,18 +2761,28 @@ async function hydrateMenusFromSupabase() {
 
       for (const row of data) {
         if (!row || !row.id || !Array.isArray(row.menu) || row.menu.length === 0) continue;
+        const quality = analyzeMenuQuality(row.menu);
+        if (quality.isTemplate) {
+          const mem = cachedRestaurants.find(r => String(r.id) === String(row.id));
+          if (mem) {
+            mem.hasRealMenu = false;
+            mem.menuTemplateFallback = true;
+            mem.menuQuality = quality.reason;
+          }
+          continue;
+        }
+        if (!quality.isReal) continue;
         if (writeRestaurantMenu(row.id, row.menu)) {
           restored++;
           const mem = cachedRestaurants.find(r => String(r.id) === String(row.id));
           if (mem) {
-            mem.hasRealMenu = true;
+            applyMenuFlags(mem, row.menu);
             mem.menuUpdatedAt = row.updated_at || new Date().toISOString();
             if (Array.isArray(row.dish_names) && row.dish_names.length > 0) {
               mem.dishNames = row.dish_names;
             } else {
               mem.dishNames = row.menu.map(m => m.name).filter(Boolean);
             }
-            delete mem.menuTemplateFallback;
           }
         }
       }
@@ -2756,6 +2907,8 @@ async function syncRestaurantToSupabase(restaurantId) {
       } catch (e) {}
     }
     
+    const quality = analyzeMenuQuality(menu);
+    const hasReal = quality.isReal === true;
     const { error } = await supabase
       .from('restaurants')
       .upsert({
@@ -2768,7 +2921,7 @@ async function syncRestaurantToSupabase(restaurantId) {
         image_url: restaurant.image_url || '',
         is_closed: restaurant.isClosed || false,
         closed_reason: restaurant.closedReason || '',
-        has_real_menu: restaurant.hasRealMenu || false,
+        has_real_menu: hasReal,
         dish_names: restaurant.dishNames || [],
         menu: menu, // Lưu gộp menu dạng jsonb để tối ưu
         updated_at: new Date().toISOString()
@@ -4396,26 +4549,42 @@ app.get('/api/restaurants/:id', async (req, res) => {
     if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
       const fileMenu = readRestaurantMenu(responseRestaurant.id);
       if (fileMenu && fileMenu.length > 0) {
-        responseRestaurant.menu = fileMenu;
-        responseRestaurant.hasRealMenu = true;
-        responseRestaurant.menuStatus = 'ready';
+        const q = analyzeMenuQuality(fileMenu);
+        if (q.isTemplate) {
+          // Template file must not be treated as real
+          console.log(`[Details] ⚠️ Menu file của "${responseRestaurant.name}" là template (${q.reason}) — không đánh dấu real.`);
+          responseRestaurant.menu = fileMenu;
+          applyMenuFlags(responseRestaurant, fileMenu);
+          responseRestaurant.menuStatus = 'fallback';
+          if (found) applyMenuFlags(found, fileMenu);
+        } else {
+          responseRestaurant.menu = fileMenu;
+          applyMenuFlags(responseRestaurant, fileMenu);
+          responseRestaurant.menuStatus = q.isReal ? 'ready' : 'fallback';
+          if (found && q.isReal) applyMenuFlags(found, fileMenu);
+        }
       } else {
         // Fast path: restore this one restaurant from Supabase (deploy loses menus/)
         const hydrated = await hydrateOneMenuFromSupabase(responseRestaurant.id);
         if (hydrated && hydrated.length > 0) {
           responseRestaurant.menu = hydrated;
-          responseRestaurant.hasRealMenu = true;
+          applyMenuFlags(responseRestaurant, hydrated);
           responseRestaurant.menuStatus = 'ready';
-          delete responseRestaurant.menuTemplateFallback;
           source = source + '+supabase_menu';
         } else {
-          console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase.`);
+          console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase thật.`);
           responseRestaurant.menu = [];
-          responseRestaurant.hasRealMenu = originallyHadRealMenu;
+          // Keep honest flags — do not claim real without a real menu payload
+          if (!originallyHadRealMenu) {
+            responseRestaurant.hasRealMenu = false;
+            responseRestaurant.menuTemplateFallback = true;
+          }
           responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
-          delete responseRestaurant.menuTemplateFallback;
         }
       }
+    } else {
+      // Menu already embedded — still classify so template payloads cannot look "real"
+      applyMenuFlags(responseRestaurant, responseRestaurant.menu);
     }
 
     // Phát hiện và tự động cập nhật nếu là menu thực tế kiểu cũ (chưa có options)
@@ -6792,6 +6961,22 @@ app.get('/api/admin/crawl-queue', authenticateAdmin, (req, res) => {
 });
 
 /**
+ * POST /api/admin/menus/reconcile
+ * Đối chiếu menu Supabase: promote scraped thật, demote template gắn nhầm real
+ */
+app.post('/api/admin/menus/reconcile', authenticateAdmin, async (req, res) => {
+  try {
+    const result = await reconcileMenuFlagsFromSupabase({
+      maxPages: Math.min(400, parseInt(req.body?.maxPages, 10) || 250),
+      pageSize: Math.min(50, parseInt(req.body?.pageSize, 10) || 40)
+    });
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * GET /api/admin/data-stats
  * Thống kê nhanh tình trạng dữ liệu quán và menu
  */
@@ -7294,6 +7479,13 @@ app.listen(PORT, () => {
   hydrateMenusFromSupabase().catch(err => {
     console.error('[Menu Hydrate] Boot restore failed:', err.message);
   });
+
+  // After boot settles: fix hasRealMenu flags from actual Supabase menu payloads
+  setTimeout(() => {
+    reconcileMenuFlagsFromSupabase({ maxPages: 250, pageSize: 40 })
+      .then(r => console.log('[Menu Reconcile] Boot finished:', r))
+      .catch(err => console.error('[Menu Reconcile] Boot failed:', err.message));
+  }, IS_RENDER ? 45000 : 5000);
 
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();

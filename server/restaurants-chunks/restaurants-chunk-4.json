@@ -14048,7 +14048,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/thien-phat-an-vat-bui-thi-xuan.vxkjmg",
     "dishNames": [
       "Hoành Thánh Lắc Xí Muội",
@@ -14225,7 +14225,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.211Z",
     "shopeefoodSlug": "thien-phat-an-vat-bui-thi-xuan.vxkjmg",
-    "menuUpdatedAt": "2026-07-13T10:13:59.692Z"
+    "menuUpdatedAt": "2026-07-13T10:13:59.692Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_nem_nuong_co_khanh",

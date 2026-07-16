@@ -6689,7 +6689,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/bun-rieu-co-tai",
     "dishNames": [
       "Bún riêu cua full topping",
@@ -6702,7 +6702,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.872Z",
     "shopeefoodSlug": "bun-rieu-co-tai",
-    "menuUpdatedAt": "2026-07-13T12:20:12.911Z"
+    "menuUpdatedAt": "2026-07-13T12:20:12.911Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_bun_rieu_cua_15k_pham_ngu_lao",
