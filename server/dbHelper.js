@@ -60,8 +60,13 @@ function readAll() {
           if (retries === 0) {
             throw new Error(`[dbHelper] Không thể đọc hoặc parse chunk ${i} sau nhiều lần thử: ${err.message}`);
           }
-          const start = Date.now();
-          while (Date.now() - start < 100) {} // sleep 100ms
+          // Yield without burning CPU (Atomics.wait is a proper sync sleep in Node)
+          try {
+            const sab = new SharedArrayBuffer(4);
+            Atomics.wait(new Int32Array(sab), 0, 0, 100);
+          } catch (_) {
+            // Fallback: tiny delay via child_process is heavier; just retry immediately
+          }
         }
       }
       if (Array.isArray(parsed)) {
@@ -104,8 +109,10 @@ function updateRestaurant(updated) {
           if (retries === 0) {
             throw err;
           }
-          const start = Date.now();
-          while (Date.now() - start < 100) {} // sleep 100ms
+          try {
+            const sab = new SharedArrayBuffer(4);
+            Atomics.wait(new Int32Array(sab), 0, 0, 100);
+          } catch (_) {}
         }
       }
     }

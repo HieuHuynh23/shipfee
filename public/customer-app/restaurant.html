@@ -600,47 +600,48 @@
     // ── PAGE INIT ──
     document.addEventListener('DOMContentLoaded', async () => {
       SF.initNavScroll();
+      if (SF.loadPricingConfig) SF.loadPricingConfig();
       const restaurantId = SF.getParam('id');
       if (!restaurantId) { SF.navigate('./'); return; }
 
-      // 1. Thử tìm trong localStorage trước
-      RESTAURANT = SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
-      
-      if (RESTAURANT) {
-        // Render ngay lập tức (nếu đã có menu trong cache)
-        if (RESTAURANT.menu && RESTAURANT.menu.length > 0) {
-          initializePage();
-        } else {
-          showLoadingState();
-        }
+      // 1. Cache-first render, then always soft-revalidate from server
+      RESTAURANT = SF.getRestaurantById
+        ? SF.getRestaurantById(restaurantId)
+        : SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
 
-        // Nếu chưa có menu thực tế trong cache, hoặc đang dùng menu giả lập
-        if (!RESTAURANT.menu || RESTAURANT.menu.length === 0 || !RESTAURANT.hasRealMenu) {
-          console.log(`[Details] Chưa có menu hoặc thực đơn là giả lập. Đang tải tự động menu thực tế...`);
-          fetchRestaurantDetails(restaurantId).then(success => {
-            if (success) {
-              initializePage();
-              if (RESTAURANT.hasRealMenu && !RESTAURANT.menuTemplateFallback) {
-                // Chỉ hiển thị toast nếu vừa được nâng cấp lên thực đơn thật
-                SF.showToast('✨ Thực đơn chuẩn', 'Đã cập nhật thực đơn chính thức từ hệ thống!', 'success');
-              }
-            } else {
-              if (!RESTAURANT.menu || RESTAURANT.menu.length === 0) {
-                SF.showToast('Lỗi kết nối', 'Không thể tải thực đơn. Vui lòng tải lại trang.', 'error');
-              }
-            }
-          });
-        }
+      const hadCachedMenu = !!(RESTAURANT && RESTAURANT.menu && RESTAURANT.menu.length > 0);
+      if (RESTAURANT && hadCachedMenu) {
+        initializePage();
       } else {
-        // Không thấy -> Hiển thị skeleton và tải từ server
         showLoadingState();
-        const success = await fetchRestaurantDetails(restaurantId);
-        if (success) {
+      }
+
+      const prevMenuUpdatedAt = RESTAURANT && RESTAURANT.menuUpdatedAt;
+      const success = await fetchRestaurantDetails(restaurantId);
+      if (success) {
+        const nowHasMenu = !!(RESTAURANT.menu && RESTAURANT.menu.length > 0);
+        if (nowHasMenu) {
           initializePage();
+          if (!hadCachedMenu && RESTAURANT.hasRealMenu && !RESTAURANT.menuTemplateFallback) {
+            SF.showToast('Thực đơn chuẩn', 'Đã cập nhật thực đơn chính thức từ hệ thống!', 'success');
+          } else if (hadCachedMenu && RESTAURANT.menuUpdatedAt && RESTAURANT.menuUpdatedAt !== prevMenuUpdatedAt) {
+            SF.showToast('Đã cập nhật', 'Thực đơn vừa được làm mới.', 'info');
+          }
+        } else if (RESTAURANT.menuStatus === 'loading' || !RESTAURANT.hasRealMenu) {
+          showMenuLoadingEmpty();
+          // Retry once after scrape may finish
+          setTimeout(async () => {
+            const retryOk = await fetchRestaurantDetails(restaurantId);
+            if (retryOk && RESTAURANT.menu && RESTAURANT.menu.length > 0) {
+              initializePage();
+            }
+          }, 8000);
         } else {
-          SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
-          setTimeout(() => SF.navigate('./'), 2000);
+          showMenuLoadingEmpty();
         }
+      } else if (!hadCachedMenu) {
+        SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
+        setTimeout(() => SF.navigate('./'), 2000);
       }
     });
 
@@ -898,28 +899,45 @@
         </div>`;
     }
 
+    function showMenuLoadingEmpty() {
+      if (RESTAURANT) {
+        document.title = (RESTAURANT.name || 'Quán') + ' — ShipFee';
+        const nameEl = document.getElementById('restaurant-name');
+        if (nameEl) nameEl.textContent = RESTAURANT.name || 'Đang cập nhật thực đơn...';
+      }
+      const container = document.getElementById('menu-content');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="empty-state" style="padding:40px 20px;text-align:center;">
+          <div class="empty-state__icon"><i class="fa-solid fa-utensils"></i></div>
+          <div class="empty-state__title">Đang cập nhật thực đơn...</div>
+          <div class="empty-state__desc">Hệ thống đang lấy thực đơn chính thức. Vui lòng chờ trong giây lát hoặc tải lại trang.</div>
+        </div>`;
+    }
+
     async function fetchRestaurantDetails(id) {
       try {
         const state = SF.getState();
         const lat = state.userLat || 10.0345;
         const lon = state.userLon || 105.7876;
         console.log(`[Details] Đang fetch quán từ API server: ${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
-        const res = await fetch(`${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
+        const res = await fetch(`${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`, {
+          signal: AbortSignal.timeout(20000)
+        });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         
         if (json.data) {
           RESTAURANT = json.data;
-          
-          // Trộn vào danh sách local của client và lưu lại
-          const mergedList = [...SF.RESTAURANTS];
-          const idx = mergedList.findIndex(r => String(r.id) === String(RESTAURANT.id));
-          if (idx === -1) {
-            mergedList.push(RESTAURANT);
+          if (SF.upsertRestaurant) {
+            SF.upsertRestaurant(RESTAURANT);
           } else {
-            mergedList[idx] = RESTAURANT;
+            const mergedList = [...SF.RESTAURANTS];
+            const idx = mergedList.findIndex(r => String(r.id) === String(RESTAURANT.id));
+            if (idx === -1) mergedList.push(RESTAURANT);
+            else mergedList[idx] = RESTAURANT;
+            SF.RESTAURANTS = mergedList;
           }
-          SF.RESTAURANTS = mergedList;
           return true;
         }
       } catch (err) {
@@ -1135,7 +1153,9 @@
           const rowEl = document.createElement('label');
           rowEl.className = 'topping-item-row';
           
-          const optAppPrice = Math.round((opt.price * 1.28) / 100) * 100;
+          const optAppPrice = SF.calcToppingAppPrice
+            ? SF.calcToppingAppPrice(opt.price)
+            : Math.round((opt.price * 1.28) / 100) * 100;
           const priceText = opt.price > 0 ? `+${SF.formatCurrency(optAppPrice)}` : 'Miễn phí';
           
           const inputId = `opt-${groupIdx}-${optIdx}`;
@@ -1190,7 +1210,9 @@
       const selected = getSelectedToppings();
       
       selected.forEach(opt => {
-        totalPrice += Math.round((opt.price * 1.28) / 100) * 100;
+        totalPrice += SF.calcToppingAppPrice
+          ? SF.calcToppingAppPrice(opt.price)
+          : Math.round((opt.price * 1.28) / 100) * 100;
       });
       
       document.getElementById('topping-total-price').textContent = SF.formatCurrency(totalPrice);

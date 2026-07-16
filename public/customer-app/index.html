@@ -561,6 +561,8 @@
         const closedRests = filtered.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
         ALL_DATA = [...openRests, ...closedRests];
 
+        serverHasMore = false;
+        serverTotal = ALL_DATA.length;
         SF.showToast('Dùng data offline', 'Server chưa chạy — hiển thị data có sẵn.', 'info');
       }
 
@@ -574,20 +576,41 @@
                                    el.classList.contains('anim-delay-4') ? '0.4s' : '0s';
       });
 
-      // Map input syncer
+      // Map input syncer (debounced to avoid pan-on-every-keystroke jank)
       const modalAddrInput = document.getElementById('modal-address-input');
       if (modalAddrInput) {
-        modalAddrInput.addEventListener('input', (e) => {
-          const addr = e.target.value.trim();
+        const syncMapFromAddress = SF.debounce((addr) => {
           if (addr && !addr.includes('GPS') && !addr.includes('Ghim Bản Đồ')) {
             const resolved = localGeocode(addr);
-            showMapAt(resolved.lat, resolved.lon, false); // false = don't update typed input value
+            showMapAt(resolved.lat, resolved.lon, false);
           }
+        }, 350);
+        modalAddrInput.addEventListener('input', (e) => {
+          syncMapFromAddress(e.target.value.trim());
         });
       }
     });
 
-    async function loadRestaurantsFromServer(lat, lon) {
+    // Server-backed pagination state
+    let serverPage = 1;
+    const SERVER_PAGE_SIZE = 20;
+    let serverTotal = 0;
+    let serverHasMore = false;
+    let isLoadingMore = false;
+    let lastQueryLat = 10.0345;
+    let lastQueryLon = 105.7876;
+
+    function upsertIntoAllData(list) {
+      const byId = new Map((ALL_DATA || []).map(r => [String(r.id), r]));
+      (list || []).forEach(r => {
+        if (!r || !r.id) return;
+        byId.set(String(r.id), r);
+        if (SF.upsertRestaurant) SF.upsertRestaurant(r);
+      });
+      ALL_DATA = Array.from(byId.values());
+    }
+
+    async function loadRestaurantsFromServer(lat, lon, page = 1, append = false) {
       const state = SF.getState();
       let queryLat = lat !== undefined ? lat : (state.userLat || 10.0345);
       let queryLon = lon !== undefined ? lon : (state.userLon || 105.7876);
@@ -603,6 +626,9 @@
         state.userLon = 105.7876;
         SF.saveState(state);
       }
+
+      lastQueryLat = queryLat;
+      lastQueryLon = queryLon;
       
       let retries = 3;
       let delay = 3000;
@@ -610,19 +636,29 @@
 
       while (retries >= 0) {
         try {
-          const res = await fetch(`${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}`, { 
-            signal: AbortSignal.timeout(currentTimeout) 
-          });
+          const res = await fetch(
+            `${API_BASE}/api/restaurants?lat=${queryLat}&lon=${queryLon}&page=${page}&limit=${SERVER_PAGE_SIZE}`,
+            { signal: AbortSignal.timeout(currentTimeout) }
+          );
           if (!res.ok) throw new Error('HTTP ' + res.status);
           const json = await res.json();
           if (json.data) {
-            ALL_DATA = json.data;
-            // Cập nhật RESTAURANTS global để các trang khác dùng được
-            SF.RESTAURANTS = ALL_DATA;
+            if (append) {
+              upsertIntoAllData(json.data);
+            } else {
+              ALL_DATA = json.data;
+              SF.RESTAURANTS = ALL_DATA;
+            }
+            serverPage = page;
+            serverTotal = typeof json.total === 'number' ? json.total : ALL_DATA.length;
+            const limit = typeof json.limit === 'number' ? json.limit : SERVER_PAGE_SIZE;
+            serverHasMore = typeof json.hasMore === 'boolean'
+              ? json.hasMore
+              : (page * limit) < serverTotal;
             const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
                              json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
             document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
-            console.log(`[Data] ${srcLabel} — ${json.total || 0} quán`);
+            console.log(`[Data] ${srcLabel} — page ${page}/${Math.ceil(serverTotal / limit) || 1} (${json.data.length} quán, total ${serverTotal})`);
             return true;
           }
         } catch (err) {
@@ -640,6 +676,22 @@
         }
       }
       return false;
+    }
+
+    async function loadMoreFromServer() {
+      if (isLoadingMore || !serverHasMore) return false;
+      isLoadingMore = true;
+      const btn = document.getElementById('btn-load-more');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Đang tải...';
+      }
+      try {
+        const ok = await loadRestaurantsFromServer(lastQueryLat, lastQueryLon, serverPage + 1, true);
+        return ok;
+      } finally {
+        isLoadingMore = false;
+      }
     }
 
     function showLoadingSkeleton() {
@@ -685,24 +737,33 @@
     }
 
     // ── PAGINATION STATE FOR LAZY LOADING ──
-    let currentLimit = 20;
     let displayedData = [];
     let fullDataToDisplay = [];
+    let clientRenderMode = 'server'; // 'server' | 'local' (search/filter)
 
     // ── RENDER RESTAURANTS ──
-    function renderRestaurants(list, isAppend = false) {
+    function renderRestaurants(list, isAppend = false, opts = {}) {
       const container = document.getElementById('restaurant-list');
       const countEl   = document.getElementById('restaurant-count');
+      if (opts.mode) clientRenderMode = opts.mode;
 
       if (!isAppend) {
         container.innerHTML = '';
         fullDataToDisplay = list || [];
-        displayedData = fullDataToDisplay.slice(0, currentLimit);
+        displayedData = fullDataToDisplay.slice();
       } else {
-        displayedData = list || [];
+        const incoming = list || [];
+        const existingIds = new Set(displayedData.map(r => String(r.id)));
+        incoming.forEach(r => {
+          if (r && !existingIds.has(String(r.id))) {
+            displayedData.push(r);
+            existingIds.add(String(r.id));
+          }
+        });
+        fullDataToDisplay = displayedData.slice();
       }
 
-      if (fullDataToDisplay.length === 0) {
+      if (displayedData.length === 0) {
         container.innerHTML = `
           <div class="empty-state">
             <div class="empty-state__icon">🔍</div>
@@ -714,9 +775,14 @@
         return;
       }
 
-      countEl.textContent = fullDataToDisplay.length + ' quán';
+      const totalLabel = clientRenderMode === 'server' && serverTotal > displayedData.length
+        ? `${displayedData.length}/${serverTotal} quán`
+        : `${displayedData.length} quán`;
+      countEl.textContent = totalLabel;
 
-      const dataToRender = isAppend ? displayedData.slice(displayedData.length - currentLimit) : displayedData;
+      const dataToRender = isAppend
+        ? displayedData.slice(displayedData.length - (list || []).length)
+        : displayedData;
 
       dataToRender.forEach((r, i) => {
         if (!r) return;
@@ -802,7 +868,9 @@
       });
 
       removeLoadMoreBtn();
-      if (displayedData.length < fullDataToDisplay.length) {
+      const canLoadMoreServer = clientRenderMode === 'server' && serverHasMore;
+      const canLoadMoreLocal = clientRenderMode === 'local' && displayedData.length < fullDataToDisplay.length;
+      if (canLoadMoreServer || canLoadMoreLocal) {
         createLoadMoreBtn();
       }
     }
@@ -820,10 +888,29 @@
       loadMoreBtn.style.fontWeight = '600';
       loadMoreBtn.style.borderRadius = '20px';
       loadMoreBtn.textContent = 'Xem thêm cửa hàng';
-      loadMoreBtn.onclick = () => {
-        const nextLimit = displayedData.length + 20;
-        displayedData = fullDataToDisplay.slice(0, nextLimit);
-        renderRestaurants(displayedData, true);
+      loadMoreBtn.onclick = async () => {
+        if (clientRenderMode === 'server' && serverHasMore) {
+          const ok = await loadMoreFromServer();
+          if (ok) {
+            const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
+            renderRestaurants(activeOnlyList, false, { mode: 'server' });
+            // Refresh mini sections with newly loaded data
+            const openRests = activeOnlyList;
+            renderMiniCards('featured-list', [...openRests]
+              .sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.reviews || 0) - (a.reviews || 0)))
+              .slice(0, 10));
+            renderMiniCards('near-list', [...openRests]
+              .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
+              .slice(0, 10));
+          } else if (document.getElementById('btn-load-more')) {
+            document.getElementById('btn-load-more').disabled = false;
+            document.getElementById('btn-load-more').textContent = 'Xem thêm cửa hàng';
+          }
+          return;
+        }
+        // Local append for filtered/search results already held in memory
+        const nextBatch = fullDataToDisplay.slice(displayedData.length, displayedData.length + 20);
+        renderRestaurants(nextBatch, true, { mode: 'local' });
       };
       container.after(loadMoreBtn);
     }
@@ -896,13 +983,14 @@
 
         // 3. Tất Cả Cửa Hàng: Mặc định ẩn quán đóng cửa ở trang chủ (chỉ hiện quán hoạt động)
         const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
-        renderRestaurants(activeOnlyList);
+        renderRestaurants(activeOnlyList, false, { mode: 'server' });
       } catch (err) {
         console.error('[Render] Lỗi render danh sách quán:', err);
         SF.showToast('Lỗi hiển thị', 'Phát hiện dữ liệu lỗi. Đang tự động khôi phục dữ liệu...', 'warning');
         
         try {
           localStorage.removeItem('shipfee_restaurants');
+          localStorage.removeItem('shipfee_restaurants_index');
           const state = SF.getState();
           const userLat = state.userLat || 10.0345;
           const userLon = state.userLon || 105.7876;
@@ -925,7 +1013,7 @@
           const openRests = ALL_DATA.filter(r => r && !r.isClosed);
           renderMiniCards('featured-list', openRests.slice(0, 10));
           renderMiniCards('near-list', openRests.slice(0, 10));
-          renderRestaurants(openRests);
+          renderRestaurants(openRests, false, { mode: 'local' });
         } catch (recoverErr) {
           console.error('[Render] Không thể khôi phục tự động:', recoverErr);
           const container = document.getElementById('restaurant-list');
@@ -955,10 +1043,11 @@
       let filtered;
 
       if (cat === 'all') {
-        filtered = ALL_DATA;
+        filtered = (ALL_DATA || []).filter(r => r && !r.isClosed);
         titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
+        renderRestaurants(filtered, false, { mode: 'server' });
       } else {
         filtered = (ALL_DATA || []).filter(r =>
           r && (
@@ -970,8 +1059,8 @@
         titleEl.textContent = `🔎 Kết quả: ${cat}`;
         if (featuredWrap) featuredWrap.style.display = 'none';
         if (nearWrap) nearWrap.style.display = 'none';
+        renderRestaurants(filtered, false, { mode: 'local' });
       }
-      renderRestaurants(filtered);
     }
 
     // ── SEARCH ──
@@ -1031,7 +1120,16 @@
         titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
-        renderRestaurants(ALL_DATA);
+        renderRestaurants(ALL_DATA, false, { mode: 'server' });
+        return;
+      }
+
+      // Early-return BEFORE filtering to avoid O(n×dishNames) work on first keystroke / IME
+      if (query.length < 2) {
+        if (featuredWrap) featuredWrap.style.display = 'none';
+        if (nearWrap) nearWrap.style.display = 'none';
+        titleEl.textContent = `🔎 Nhập ít nhất 2 ký tự để tìm kiếm...`;
+        renderRestaurants([], false, { mode: 'local' });
         return;
       }
       
@@ -1043,7 +1141,7 @@
 
       if (tokens.length === 0) {
         titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-        renderRestaurants([]);
+        renderRestaurants([], false, { mode: 'local' });
         return;
       }
 
@@ -1069,22 +1167,13 @@
         return false;
       });
 
-      // Để tránh giật lag khi gõ và IME bị đứt, chỉ tự động tìm kiếm local khi nhập từ 2 ký tự trở lên
-      if (query.length < 2) {
-        titleEl.textContent = `🔎 Nhập ít nhất 2 ký tự để tìm kiếm...`;
-        renderRestaurants([]);
-        return;
-      }
-
       titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
       
       if (results.length > 0) {
-        // Hiển thị tất cả kết quả theo yêu cầu của user (không giới hạn 50 quán)
-        renderRestaurants(results);
+        renderRestaurants(results, false, { mode: 'local' });
       } else {
-        // Gợi ý nhấn Enter để tìm kiếm mở rộng (tránh việc tự động gọi API làm nghẽn IME tiếng Việt)
-        titleEl.innerHTML = `🔎 Không có cửa hàng ở gần phù hợp. <span style="color:var(--clr-primary);font-weight:600;cursor:pointer;" onclick="onSearchExpand('${query.replace(/'/g, "\\'")}')">Nhấn vào đây</span> hoặc <b>gõ Enter</b> để tìm trên toàn thành phố.`;
-        renderRestaurants([]);
+        titleEl.innerHTML = `🔎 Không có cửa hàng ở gần phù hợp. <span style="color:var(--clr-primary);font-weight:600;cursor:pointer;" onclick="onSearchExpand(document.getElementById('search-input').value)">Nhấn vào đây</span> hoặc <b>gõ Enter</b> để tìm trên toàn thành phố.`;
+        renderRestaurants([], false, { mode: 'local' });
       }
     }
 
@@ -1116,25 +1205,21 @@
         if (json.data && json.data.length > 0) {
           titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (${json.data.length} quán)`;
           
-          // Trộn các kết quả mới vào đầu danh sách RESTAURANTS hiện tại (đồng bộ localStorage)
-          const mergedList = [...SF.RESTAURANTS];
+          // Upsert theo id — không append vô hạn làm phình cache
           json.data.forEach(newRes => {
-            if (!mergedList.some(r => r.id === newRes.id)) {
-              mergedList.push(newRes);
-            }
+            if (SF.upsertRestaurant) SF.upsertRestaurant(newRes);
           });
-          SF.RESTAURANTS = mergedList;
+          upsertIntoAllData(json.data);
           
-          // Hiển thị tất cả kết quả theo yêu cầu của user (không giới hạn 50 quán)
-          renderRestaurants(json.data);
+          renderRestaurants(json.data, false, { mode: 'local' });
         } else {
           titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Không tìm thấy)`;
-          renderRestaurants([]);
+          renderRestaurants([], false, { mode: 'local' });
         }
       } catch (err) {
         console.warn('[Search Expand] Lỗi kết nối tìm kiếm mở rộng:', err.message);
         titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Lỗi kết nối)`;
-        renderRestaurants([]);
+        renderRestaurants([], false, { mode: 'local' });
       }
     }
     

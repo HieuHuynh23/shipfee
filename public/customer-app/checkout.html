@@ -347,6 +347,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       SF.initNavScroll();
+      if (SF.loadPricingConfig) SF.loadPricingConfig();
 
       const state = SF.getState();
       const cart  = SF.getCart();
@@ -391,16 +392,21 @@
           try {
             selectedOptions = JSON.parse(optionsStr);
             selectedOptions.forEach(opt => {
-              toppingsApp += Math.round((opt.price * 1.28) / 100) * 100;
+              toppingsApp += SF.calcToppingAppPrice
+                ? SF.calcToppingAppPrice(opt.price)
+                : Math.round((opt.price * 1.28) / 100) * 100;
             });
           } catch (e) {}
         }
 
         const itemTotalApp = (item.appPrice + toppingsApp) * qty;
+        const fmtTopping = (price) => SF.calcToppingAppPrice
+          ? SF.calcToppingAppPrice(price)
+          : Math.round((price * 1.28) / 100) * 100;
 
         const optionsHtml = selectedOptions.length > 0
           ? `<div style="font-size: 11px; color: var(--clr-text-muted); margin-top: 2px; font-weight: 500;">
-              Lựa chọn: ${selectedOptions.map(o => `${o.name} (${o.price > 0 ? '+' + SF.formatCurrency(Math.round((o.price * 1.28) / 100) * 100) : 'Miễn phí'})`).join(', ')}
+              Lựa chọn: ${selectedOptions.map(o => `${o.name} (${o.price > 0 ? '+' + SF.formatCurrency(fmtTopping(o.price)) : 'Miễn phí'})`).join(', ')}
              </div>`
           : '';
 
