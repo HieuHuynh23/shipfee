@@ -108,14 +108,59 @@ d:\FOOD DELIVERY\
 │   ├── .env                   # Environment variables (Supabase, Telegram, TURN server)
 │   └── package.json           # Dependencies: express, cors, compression, dotenv, axios, puppeteer-core, supabase
 │
-├── package.json               # Root package.json cho Render (postinstall → server/npm install)
-├── vercel.json                # Cấu hình Vercel: redirects (/ → customer-app, /shipper → shipper-app, /admin → admin-app)
+├── package.json               # Root: `npm run build` copy app → public/ (Vercel)
+├── vercel.json                # outputDirectory=public + redirects
 ├── crawl_scheduler.js         # Daemon hẹn giờ cào menu ShopeeFood (10h-18h hằng ngày)
 ├── bulk_crawl.js              # Script cào menu ShopeeFood hàng loạt (chạy thủ công)
 ├── start_server.ps1           # Launcher local: API + http-server frontend + crawl scheduler
+├── AGENTS.md / CLAUDE.md      # Rules cho agent + hướng dẫn dự án
 ├── PRICING.md                 # Tài liệu thiết kế hệ thống tính giá chi tiết
 └── DEPLOYMENT_GUIDE.md        # Hướng dẫn triển khai Render + Vercel + VPS
 ```
+
+---
+
+## Frontend Source of Truth (BẮT BUỘC khi sửa UI)
+
+| Vai trò | Thư mục | Ghi chú |
+|---------|---------|---------|
+| **Source chuẩn (sửa ở đây)** | `customer-app/`, `shipper-app/`, `admin-app/` | Code agent/dev phải edit |
+| **Output build Vercel** | `public/*` | Được **ghi đè** bởi `npm run build` |
+
+```bash
+# Luôn chạy trước khi commit frontend (đồng bộ public/ từ source)
+npm run build
+```
+
+**Quy tắc agent:**
+1. **KHÔNG** chỉ sửa `public/customer-app/` (hoặc public khác) rồi commit — lần build kế tiếp sẽ mất thay đổi.
+2. Sửa file trong `customer-app/` (hoặc shipper/admin tương ứng) → chạy `npm run build` → commit **cả** root app + `public/`.
+3. Backend chỉ sửa trong `server/` (Render Root Directory = `server`).
+
+---
+
+## Quy trình Deploy lên GitHub → Production
+
+```mermaid
+flowchart LR
+  edit["Sửa customer-app/ hoặc server/"] --> build["npm run build nếu đụng frontend"]
+  build --> commit["git commit + push branch"]
+  commit --> pr["Mở / cập nhật Pull Request"]
+  pr --> merge["Merge vào master"]
+  merge --> vercel["Vercel auto deploy frontend"]
+  merge --> render["Render auto deploy API"]
+```
+
+| Bước | Hành động | Kết quả |
+|------|-----------|---------|
+| 1 | Push branch + mở PR | Code lên GitHub, **chưa** production |
+| 2 | Merge PR vào `master` | Trigger auto-deploy |
+| 3 | Vercel Build Command | `npm run build` → serve `public/` |
+| 4 | Render | `cd server` → `npm install` → `node server.js` |
+
+> **Lưu ý:** Push lên feature branch / mở PR **không** deploy production. Chỉ **merge vào `master`** mới cập nhật `shipfee.vercel.app` và Render API.
+
+Chi tiết: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
 ---
 
@@ -169,8 +214,8 @@ d:\FOOD DELIVERY\
 ### Restaurants
 | Endpoint | Method | Mô tả |
 |----------|--------|-------|
-| `/api/restaurants` | GET | Danh sách quán (filter: `?q=`, `?lat=`, `?lon=`) |
-| `/api/restaurants/:id` | GET | Chi tiết quán + auto-scrape menu nếu cần |
+| `/api/restaurants` | GET | Danh sách quán (`?q=`, `?lat=`, `?lon=`, `?page=1&limit=20` → `hasMore`) |
+| `/api/restaurants/:id` | GET | Chi tiết + menu; ưu tiên file/`menus/` rồi hydrate Supabase; scrape queue nếu thiếu |
 
 ### Orders
 | Endpoint | Method | Mô tả |
@@ -236,10 +281,17 @@ d:\FOOD DELIVERY\
 
 ## Chạy Dự Án
 
-### Production (Online — Tự động qua Git Push)
+### Production (Online — Auto-deploy khi merge `master`)
 ```bash
-# Commit và push lên master → Render & Vercel tự động deploy
-git add . && git commit -m "message" && git push origin master
+# 1) Frontend: sửa source chuẩn rồi build
+npm run build
+
+# 2) Commit trên feature branch (khuyến nghị) → PR → merge master
+git checkout -b cursor/mo-ta-thay-doi-2feb
+git add customer-app public server AGENTS.md CLAUDE.md DEPLOYMENT_GUIDE.md
+git commit -m "feat: mô tả thay đổi"
+git push -u origin HEAD
+# → Mở PR, sau khi merge master: Vercel + Render tự deploy
 ```
 
 ### Local Development (Tùy chọn)
@@ -272,9 +324,11 @@ node crawl_scheduler.js --force
 
 ## Lưu Ý Quan Trọng
 
+- **Source frontend** = `customer-app/` / `shipper-app/` / `admin-app/` — luôn `npm run build` trước commit.
 - **Database phân mảnh** (`server/restaurants-chunks/`) là dữ liệu chính — **không xóa**.
-- **Menu riêng lẻ** (`server/menus/`) chứa menu chi tiết từng quán — tách ra để tiết kiệm RAM.
-- **Fetch Interceptor**: Cả 3 frontend app đều có interceptor tự động thay thế `localhost:3001` → Render URL khi chạy online.
-- **Auto-deploy**: Mọi thay đổi push lên `master` sẽ tự động deploy lên Render (backend) và Vercel (frontend).
-- **Render Root Directory**: `server` — Build Command: `npm install` — Start Command: `node server.js`.
-- **Crawl Scheduler**: Daemon tự động chạy ngầm 10h-18h, cào menu ShopeeFood cho các quán chưa có dữ liệu.
+- **Menu riêng lẻ** (`server/menus/`) gitignore — sau deploy hydrate từ Supabase; không ghi menu mẫu giả lên disk.
+- **Customer perf**: list `page/limit` + cache nearby 30s; client paint cache ngay; detail soft-revalidate; scrape queue concurrency 2.
+- **Auto-deploy**: chỉ khi **merge/push `master`** → Render (API) + Vercel (frontend). PR branch chưa phải production.
+- **Render Root Directory**: `server` — Build: `npm install` — Start: `node server.js`.
+- **Vercel**: Build Command `npm run build`, Output `public` (xem `vercel.json`).
+- **Crawl Scheduler**: Daemon 10h–18h; Sweep Worker **tắt trên Render** (tránh OOM).

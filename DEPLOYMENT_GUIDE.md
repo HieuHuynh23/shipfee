@@ -95,12 +95,23 @@ graph TD
 | **Branch** | `master` |
 | **Framework Preset** | Other |
 | **Root Directory** | (trống — root của repo) |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `public` |
 
-#### Cấu trúc frontend (canonical → Vercel)
+#### Cấu trúc frontend (canonical → Vercel) — QUAN TRỌNG
 
-- Source: `customer-app/`, `shipper-app/`, `admin-app/` ở root repo
-- Build: `npm run build` copy vào `public/` (outputDirectory)
-- Production domain: `https://shipfee.vercel.app`
+| Thư mục | Vai trò |
+|---------|---------|
+| `customer-app/`, `shipper-app/`, `admin-app/` | **Source chuẩn** — sửa code ở đây |
+| `public/*` | Output sau `npm run build` (bị ghi đè mỗi lần build) |
+
+```bash
+# Root package.json
+npm run build
+# = mkdir -p public && cp -r customer-app shipper-app admin-app public/
+```
+
+> Nếu chỉ commit thay đổi trong `public/` mà không cập nhật `customer-app/` (v.v.), lần deploy Vercel kế tiếp sẽ **mất** sửa đổi.
 
 #### File `vercel.json`:
 ```json
@@ -115,34 +126,45 @@ graph TD
 }
 ```
 
-### 2.4. Quy Trình Deploy Tự Động
+### 2.4. Quy Trình Deploy Tự Động (GitHub → Production)
+
+```mermaid
+flowchart TD
+  A["Sửa customer-app/ hoặc server/"] --> B["npm run build nếu đụng frontend"]
+  B --> C["Push feature branch + mở PR trên GitHub"]
+  C --> D{"Merge vào master?"}
+  D -->|Chưa| E["Chỉ lưu trên GitHub — chưa production"]
+  D -->|Có| F["Vercel deploy frontend"]
+  D -->|Có| G["Render deploy API"]
+```
 
 ```bash
-# Mọi thay đổi push lên master → tự động deploy
-git add .
-git commit -m "feat: mô tả thay đổi"
-git push origin master
-# → Render tự build lại backend (2-3 phút)
-# → Vercel tự build lại frontend (30-60 giây)
+# Quy trình khuyến nghị (agent / contributor)
+npm run build
+git checkout -b cursor/mo-ta-2feb
+git add customer-app public server
+git commit -m "feat: mô tả"
+git push -u origin HEAD
+# Mở PR → review → merge master
+# → Render tự build lại backend (2–5 phút, cold start có thể lâu hơn)
+# → Vercel tự build frontend (Build: npm run build, ~30–90 giây)
 ```
 
-### 2.5. Auto-Detect API URL (Frontend)
+| Trạng thái GitHub | Production? |
+|-------------------|-------------|
+| Push feature branch / PR mở | **Không** |
+| PR đã merge vào `master` | **Có** (auto Vercel + Render) |
+| Push thẳng `master` | **Có** (không khuyến nghị) |
 
-Tất cả 3 frontend app đều có cơ chế tự động phát hiện môi trường:
+### 2.5. API URL Frontend (Customer)
+
+Customer app dùng API production cứng khi online:
 
 ```javascript
-const defaultApiUrl = (window.location.hostname === 'localhost' || ...)
-  ? 'http://localhost:3001'           // Local development
-  : 'https://shipfee-eo5s.onrender.com';  // Production
-
-// Fetch interceptor tự động thay thế localhost → Render URL
-window.fetch = function(input, init) {
-  if (input.startsWith('http://localhost:3001')) {
-    input = input.replace('http://localhost:3001', API_BASE);
-  }
-  // ... thêm JWT Authorization header
-};
+const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
 ```
+
+Shipper/Admin có thể có interceptor JWT + thay `localhost:3001` → Render khi không chạy local. Chi tiết xem từng `app.js`.
 
 ---
 
@@ -169,12 +191,27 @@ window.fetch = function(input, init) {
 ```
 
 ### 3.2. Render: API trả về 502/503
-**Nguyên nhân**: Free tier Render spin down sau 15 phút không có request.
-**Giải pháp**: Gửi lại request, server sẽ tự khởi động lại (cold start ~30-60 giây).
+**Nguyên nhân thường gặp**:
+1. Free tier spin down sau ~15 phút không có request (cold start).
+2. Process crash / OOM — hay gặp khi Puppeteer (Chromium) chạy trong cùng dyno API.
+3. Deploy đang restart.
 
-### 3.3. Vercel: Trang trắng hoặc 404
-**Nguyên nhân**: File `vercel.json` thiếu hoặc sai cấu hình.
-**Giải pháp**: Kiểm tra `vercel.json` có đúng cấu hình redirects ở mục 2.3.
+**Giải pháp**:
+- Gửi lại request; customer app hiện paint cache ngay rồi retry ngắn.
+- Không scrape hàng loạt từ search; detail ưu tiên hydrate menu từ Supabase trước scrape.
+- Sweep Worker đã tắt trên Render; cào nặng nên chạy local/`crawl_scheduler.js`.
+- Xem **Logs** trên Render Dashboard khi 502 kéo dài.
+
+### 3.3. Vercel: Trang trắng, 404, hoặc UI không cập nhật
+**Nguyên nhân**:
+1. `vercel.json` sai / thiếu redirects.
+2. Sửa nhầm chỉ trong `public/` trong khi Build Command copy lại từ root apps.
+3. PR chưa merge `master`.
+
+**Giải pháp**:
+- Build Command = `npm run build`, Output = `public`.
+- Luôn sửa `customer-app/` (v.v.) rồi `npm run build` trước commit.
+- Kiểm tra PR đã **Merged** vào `master` và deployment Vercel Succeeded.
 
 ---
 

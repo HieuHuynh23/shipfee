@@ -2490,6 +2490,16 @@ let cachedRestaurants = [];      // Dữ liệu restaurant đầy đủ trong RA
 let searchIndex = [];            // Pre-normalized search index
 let cacheLoadedAt = 0;           // Timestamp lần load gần nhất
 
+// Declared before loadRestaurantsIntoMemory() — used during boot precompute
+const geocodeCache = new Map();
+const nearbyListCache = new Map(); // key -> { at, data }
+const NEARBY_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Puppeteer scrape kills free Render dynos — off on Render unless explicitly enabled
+const IS_RENDER = !!process.env.RENDER;
+const MENU_SCRAPE_ENABLED = process.env.ENABLE_MENU_SCRAPE === 'true'
+  || (!IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false');
+
 function buildSearchIndex(restaurants) {
   return restaurants.map((r, idx) => ({
     idx,
@@ -2510,6 +2520,11 @@ function loadRestaurantsIntoMemory() {
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
       cacheLoadedAt = Date.now();
+      try { nearbyListCache.clear(); } catch (_) {}
+      // Warm geocode for all restaurants once — list requests then only do haversine
+      try { precomputeRestaurantCoordinates(); } catch (geoErr) {
+        console.warn('[Geo] Precompute skipped at load:', geoErr.message);
+      }
       const elapsed = Date.now() - startMs;
       console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory (${elapsed}ms, index: ${searchIndex.length} entries)`);
     }
@@ -2520,6 +2535,45 @@ function loadRestaurantsIntoMemory() {
 
 // Load on startup
 loadRestaurantsIntoMemory();
+
+/**
+ * Restore a single restaurant menu from Supabase (fast path for detail views).
+ * Returns menu array or null.
+ */
+async function hydrateOneMenuFromSupabase(restaurantId) {
+  if (!supabase || !restaurantId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('id, menu, dish_names, has_real_menu, updated_at')
+      .eq('id', String(restaurantId))
+      .maybeSingle();
+
+    if (error) {
+      console.error(`[Menu Hydrate] Lỗi lấy menu ${restaurantId}:`, error.message);
+      return null;
+    }
+    if (!data || !Array.isArray(data.menu) || data.menu.length === 0) return null;
+
+    writeRestaurantMenu(restaurantId, data.menu);
+    const mem = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
+    if (mem) {
+      mem.hasRealMenu = true;
+      mem.menuUpdatedAt = data.updated_at || new Date().toISOString();
+      if (Array.isArray(data.dish_names) && data.dish_names.length > 0) {
+        mem.dishNames = data.dish_names;
+      } else {
+        mem.dishNames = data.menu.map(m => m.name).filter(Boolean);
+      }
+      delete mem.menuTemplateFallback;
+    }
+    console.log(`[Menu Hydrate] ✅ Restore 1 menu từ Supabase: ${restaurantId} (${data.menu.length} món)`);
+    return data.menu;
+  } catch (err) {
+    console.error(`[Menu Hydrate] Lỗi hydrateOne ${restaurantId}:`, err.message);
+    return null;
+  }
+}
 
 /**
  * Restore menu files from Supabase after deploy (menus/ is gitignored).
@@ -2544,6 +2598,7 @@ async function hydrateMenusFromSupabase() {
 
     let restored = 0;
     const batchSize = 50;
+    // Prioritize first batches so early customer opens hit disk sooner
     for (let i = 0; i < missing.length; i += batchSize) {
       const batch = missing.slice(i, i + batchSize);
       const ids = batch.map(r => String(r.id));
@@ -2757,7 +2812,12 @@ function getHaversineDistance(coords1, coords2) {
 }
 
 // Geocode cache - địa chỉ không thay đổi, cache kết quả
-const geocodeCache = new Map();
+function hashToUnit(str) {
+  let h = 0;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+  return (Math.abs(h) % 10000) / 10000;
+}
 
 function geocodeAddress(address, name, restaurantId) {
   // Check cache first
@@ -2789,13 +2849,15 @@ function geocodeAddress(address, name, restaurantId) {
     { keys: ['binh thuy'], lat: 10.0763, lon: 105.7289 }
   ];
 
+  // Deterministic jitter (stable across requests; no Math.random)
+  const seed = restaurantId || name || address || 'x';
+  const jitterLat = (hashToUnit(seed) - 0.5) * 0.003;
+  const jitterLon = (hashToUnit(seed + ':lon') - 0.5) * 0.003;
+
   let result;
   let matched = false;
   for (const mapping of mappings) {
     if (mapping.keys.some(key => cleanText.includes(key))) {
-      // Add a small jitter (up to ~200m) to differentiate restaurants on the same street
-      const jitterLat = (Math.random() - 0.5) * 0.003;
-      const jitterLon = (Math.random() - 0.5) * 0.003;
       result = { lat: mapping.lat + jitterLat, lon: mapping.lon + jitterLon };
       matched = true;
       break;
@@ -2804,9 +2866,7 @@ function geocodeAddress(address, name, restaurantId) {
 
   if (!matched) {
     // Default Ninh Kieu Center + jitter
-    const jitterLat = (Math.random() - 0.5) * 0.005;
-    const jitterLon = (Math.random() - 0.5) * 0.005;
-    result = { lat: 10.0345 + jitterLat, lon: 105.7876 + jitterLon };
+    result = { lat: 10.0345 + jitterLat * 1.6, lon: 105.7876 + jitterLon * 1.6 };
   }
 
   // Cache the result
@@ -2814,6 +2874,131 @@ function geocodeAddress(address, name, restaurantId) {
     geocodeCache.set(restaurantId, result);
   }
   return result;
+}
+
+function precomputeRestaurantCoordinates() {
+  const t0 = Date.now();
+  let geocoded = 0;
+  for (const r of cachedRestaurants) {
+    if (!r || !r.id) continue;
+    if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+      geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude });
+      continue;
+    }
+    const coords = geocodeAddress(r.address || '', r.name || '', r.id);
+    r.latitude = coords.lat;
+    r.longitude = coords.lon;
+    geocoded++;
+  }
+  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (geocoded ${geocoded}) in ${Date.now() - t0}ms`);
+}
+
+function normalizeUserCoords(lat, lon) {
+  let userLat = parseFloat(lat) || 10.0345;
+  let userLon = parseFloat(lon) || 105.7876;
+  const dLat = (10.0345 - userLat) * Math.PI / 180;
+  const dLon = (105.7876 - userLon) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(userLat * Math.PI / 180) * Math.cos(10.0345 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  if (6371 * c > 20) {
+    userLat = 10.0345;
+    userLon = 105.7876;
+  }
+  return { lat: userLat, lon: userLon };
+}
+
+function toListRestaurant(r, distKm) {
+  const estMins = 12 + Math.round(distKm * 5);
+  return {
+    id: r.id,
+    name: r.name,
+    category: r.category,
+    rating: r.rating,
+    reviews: r.reviews,
+    address: r.address,
+    phone: r.phone,
+    img: r.img,
+    tags: r.tags,
+    minOrder: r.minOrder,
+    isClosed: !!r.isClosed,
+    closedAt: r.closedAt || null,
+    closedReason: r.closedReason || null,
+    hasRealMenu: r.hasRealMenu === true,
+    menuTemplateFallback: r.menuTemplateFallback === true,
+    menuUpdatedAt: r.menuUpdatedAt || null,
+    latitude: r.latitude,
+    longitude: r.longitude,
+    distanceValue: distKm,
+    distance: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`,
+    time: `${estMins}-${estMins + 8} phút`,
+    dishNames: Array.isArray(r.dishNames) ? r.dishNames.slice(0, 20) : []
+  };
+}
+
+/**
+ * Fast nearby list for GET /api/restaurants (no full-object clone of 7k rows).
+ * Returns already-slim page payload + pagination meta.
+ */
+function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
+  const t0 = Date.now();
+  const user = normalizeUserCoords(lat, lon);
+  const cacheKey = `${user.lat.toFixed(3)},${user.lon.toFixed(3)}`;
+
+  let ordered;
+  const hit = nearbyListCache.get(cacheKey);
+  if (hit && (Date.now() - hit.at) < NEARBY_LIST_CACHE_TTL_MS) {
+    ordered = hit.data;
+  } else {
+    const scored = new Array(cachedRestaurants.length);
+    let n = 0;
+    for (let i = 0; i < cachedRestaurants.length; i++) {
+      const r = cachedRestaurants[i];
+      if (!r || !r.id) continue;
+      let coords;
+      if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+        coords = { lat: r.latitude, lon: r.longitude };
+      } else {
+        coords = geocodeAddress(r.address || '', r.name || '', r.id);
+        r.latitude = coords.lat;
+        r.longitude = coords.lon;
+      }
+      const distKm = getHaversineDistance(user, coords);
+      scored[n++] = { r, distKm, isClosed: !!r.isClosed };
+    }
+    scored.length = n;
+
+    let filtered = scored.filter(x => x.distKm <= 3.0);
+    if (filtered.length === 0) {
+      filtered = scored.slice().sort((a, b) => a.distKm - b.distKm).slice(0, 10);
+    }
+    const open = filtered.filter(x => !x.isClosed).sort((a, b) => a.distKm - b.distKm);
+    const closed = filtered.filter(x => x.isClosed).sort((a, b) => a.distKm - b.distKm);
+    ordered = new Array(open.length + closed.length);
+    let k = 0;
+    for (const x of open) ordered[k++] = toListRestaurant(x.r, x.distKm);
+    for (const x of closed) ordered[k++] = toListRestaurant(x.r, x.distKm);
+
+    nearbyListCache.set(cacheKey, { at: Date.now(), data: ordered });
+    if (nearbyListCache.size > 60) {
+      const oldest = nearbyListCache.keys().next().value;
+      nearbyListCache.delete(oldest);
+    }
+    console.log(`[Nearby] Built ${ordered.length} nearby for ${cacheKey} in ${Date.now() - t0}ms`);
+  }
+
+  const total = ordered.length;
+  const startIdx = (page - 1) * limit;
+  const data = ordered.slice(startIdx, startIdx + limit);
+  return {
+    data,
+    total,
+    page,
+    limit,
+    hasMore: startIdx + data.length < total,
+    tookMs: Date.now() - t0
+  };
 }
 
 function applyDistanceMarkupToMenu(restaurant, lat, lon) {
@@ -2874,69 +3059,56 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
 
 function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter = false) {
   if (!Array.isArray(localData)) return [];
-  
-  let userLat = parseFloat(lat) || 10.0345;
-  let userLon = parseFloat(lon) || 105.7876;
 
-  // Kiểm tra nếu tọa độ người dùng nằm ngoài Cần Thơ (cách trung tâm Ninh Kiều > 20km)
-  const dLat = (10.0345 - userLat) * Math.PI / 180;
-  const dLon = (105.7876 - userLon) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(userLat * Math.PI / 180) * Math.cos(10.0345 * Math.PI / 180) * 
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distFromCenter = 6371 * c; // km
+  const userCoords = normalizeUserCoords(lat, lon);
 
-  if (distFromCenter > 20) {
-    userLat = 10.0345;
-    userLon = 105.7876;
+  // Separate cache namespace from getNearbyRestaurantsPage (search / fallback only)
+  const cacheKey = skipDistanceFilter
+    ? null
+    : `proc:${userCoords.lat.toFixed(3)},${userCoords.lon.toFixed(3)}:${localData.length}`;
+  if (cacheKey) {
+    const hit = nearbyListCache.get(cacheKey);
+    if (hit && (Date.now() - hit.at) < NEARBY_LIST_CACHE_TTL_MS) {
+      return hit.data;
+    }
   }
 
-  const userCoords = { lat: userLat, lon: userLon };
-
-  const processed = localData.map(r => {
-    if (!r) return null;
-    
-    // Copy/clone to avoid mutating shared cache objects unexpectedly
-    const item = { ...r };
-    
-    // Geocode restaurant address to get lat/lon
-    const coords = geocodeAddress(item.address || '', item.name || '', item.id);
-    item.latitude = coords.lat;
-    item.longitude = coords.lon;
-    
-    // Calculate distance in km
-    const distKm = getHaversineDistance(userCoords, coords);
-    item.distanceValue = distKm;
-    
-    // Format distance string
-    if (distKm < 1) {
-      item.distance = `${Math.round(distKm * 1000)} m`;
+  const processed = [];
+  for (let i = 0; i < localData.length; i++) {
+    const r = localData[i];
+    if (!r || !r.id) continue;
+    let coords;
+    if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+      coords = { lat: r.latitude, lon: r.longitude };
     } else {
-      item.distance = `${distKm.toFixed(1)} km`;
+      coords = geocodeAddress(r.address || '', r.name || '', r.id);
+      r.latitude = coords.lat;
+      r.longitude = coords.lon;
     }
-    
-    // Update estimated delivery time based on distance (e.g. 15 mins base + 5 mins per km)
-    const estMins = 12 + Math.round(distKm * 5);
-    item.time = `${estMins}-${estMins + 8} phút`;
-    
-    return item;
-  }).filter(Boolean);
+    const distKm = getHaversineDistance(userCoords, coords);
+    processed.push(toListRestaurant(r, distKm));
+  }
 
-  // Filter: Only include restaurants within 3.0 km unless skipped
   let filteredData = processed;
   if (!skipDistanceFilter) {
     filteredData = processed.filter(r => r.distanceValue <= 3.0);
     if (filteredData.length === 0) {
-      // Fallback: if empty, return the closest 10 restaurants
       filteredData = [...processed].sort((a, b) => a.distanceValue - b.distanceValue).slice(0, 10);
     }
   }
 
-  // Sort: Open stores first, then sorted by distance value.
   const openRests = filteredData.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
   const closedRests = filteredData.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-  return [...openRests, ...closedRests];
+  const result = [...openRests, ...closedRests];
+
+  if (cacheKey) {
+    nearbyListCache.set(cacheKey, { at: Date.now(), data: result });
+    if (nearbyListCache.size > 60) {
+      const oldest = nearbyListCache.keys().next().value;
+      nearbyListCache.delete(oldest);
+    }
+  }
+  return result;
 }
 
 function sanitizeLocalJsonData() {
@@ -3700,10 +3872,20 @@ app.get('/api/restaurants', async (req, res) => {
     // Không spawn Puppeteer hàng loạt từ search — scrape chỉ khi khách mở trang detail (queue toàn cục)
 
     const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon, !!query);
-    console.log(`[Search] ✅ Trả về tổng cộng ${processedResults.length} quán ăn sau khi gộp và lọc khoảng cách.`);
+    // Cap search payload — slim objects already; avoid huge JSON that can OOM Render
+    const SEARCH_RESULT_CAP = 80;
+    const cappedResults = processedResults.length > SEARCH_RESULT_CAP
+      ? processedResults.slice(0, SEARCH_RESULT_CAP)
+      : processedResults;
+    console.log(`[Search] ✅ Trả về ${cappedResults.length}/${processedResults.length} quán (cap ${SEARCH_RESULT_CAP}).`);
     // Tìm kiếm thời gian thực: không cache vì kết quả thay đổi theo từ khóa
     res.set('Cache-Control', 'no-cache, no-store');
-    return res.json({ source: 'merged_search', data: stripMenus(processedResults), total: processedResults.length });
+    return res.json({
+      source: 'merged_search',
+      data: cappedResults,
+      total: processedResults.length,
+      hasMore: processedResults.length > cappedResults.length
+    });
   }
 
   const firstChunkPath = dbHelper.getChunkPath(0);
@@ -3731,43 +3913,27 @@ app.get('/api/restaurants', async (req, res) => {
     triggerCrawler();
   }
 
-  // 2. Trả ngay dữ liệu từ in-memory cache (Stale-While-Revalidate) — phản hồi siêu tốc <5ms
+  // 2. Fast nearby page from precomputed coords (no full-catalog clone)
   if (cachedRestaurants.length > 0) {
-    let responseData = [];
-    if (query) {
-      // Fallback search bằng fastSearch
-      responseData = processRestaurantsWithLocation(fastSearch(query), req.query.lat, req.query.lon, true);
-      console.log(`[Response Fallback] Lọc từ cache: ${responseData.length} kết quả cho "${query}"`);
-    } else {
-      // ── LỌC QUÁN ĐÓNG CỬA ──
-      // Mặc định trả về toàn bộ quán (bao gồm cả quán đóng) để khách hàng có thể duyệt xem thực đơn ở chế độ chỉ đọc.
-      let sourceData = cachedRestaurants;
-      responseData = processRestaurantsWithLocation(sourceData, req.query.lat, req.query.lon);
-      const totalOpen = responseData.filter(r => !r.isClosed).length;
-      const totalClosed = responseData.filter(r => r.isClosed).length;
-      console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng/fallback: ${totalClosed})`);
-    }
-
-    // ── PAGINATION (default page=1, limit=20 for lean customer payloads) ──
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const rawLimit = parseInt(req.query.limit, 10);
     const limit = Number.isFinite(rawLimit) && rawLimit > 0
       ? Math.min(rawLimit, 100)
       : 20;
-    const totalBeforePagination = responseData.length;
-    const startIdx = (page - 1) * limit;
-    const paginatedData = responseData.slice(startIdx, startIdx + limit);
-    const hasMore = startIdx + paginatedData.length < totalBeforePagination;
+    const nearby = getNearbyRestaurantsPage(req.query.lat, req.query.lon, page, limit);
+    const totalOpen = nearby.data.filter(r => !r.isClosed).length;
+    const totalClosed = nearby.data.length - totalOpen;
+    console.log(`[Response] ✅ Nearby page ${nearby.page}/${Math.ceil(nearby.total / nearby.limit) || 1}: ${nearby.data.length}/${nearby.total} quán in ${nearby.tookMs}ms (mở: ${totalOpen}, đóng: ${totalClosed})`);
 
-    // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
-    if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     return res.json({
-      source: query ? 'local_search_cached' : 'local_cached',
-      data: stripMenus(paginatedData),
-      total: totalBeforePagination,
-      page,
-      limit,
-      hasMore
+      source: 'local_cached',
+      data: nearby.data,
+      total: nearby.total,
+      page: nearby.page,
+      limit: nearby.limit,
+      hasMore: nearby.hasMore,
+      tookMs: nearby.tookMs
     });
   }
 
@@ -3807,6 +3973,10 @@ const menuScrapeQueuedIds = new Set();
 let menuScrapeActive = 0;
 
 function enqueueMenuScrape(restaurant) {
+  if (!MENU_SCRAPE_ENABLED) {
+    console.log(`[Scrape Queue] ⏭️ Skip "${restaurant?.name || '?'}" — scrape disabled on this host (ENABLE_MENU_SCRAPE=true to enable)`);
+    return;
+  }
   if (!restaurant || !restaurant.id) return;
   const id = String(restaurant.id);
   if (restaurant._isScraping || menuScrapeQueuedIds.has(id)) return;
@@ -4003,6 +4173,10 @@ function triggerBackgroundMenuScrape(restaurant) {
 }
 
 function triggerSyncMenuScrape(restaurant) {
+  if (!MENU_SCRAPE_ENABLED) {
+    console.log(`[Sync Scraper] ⏭️ Skip "${restaurant?.name || '?'}" — scrape disabled (ENABLE_MENU_SCRAPE=true to enable)`);
+    return Promise.resolve(null);
+  }
   if (!restaurant || !restaurant.id) return Promise.resolve(null);
   if (restaurant._isScraping) return Promise.resolve(null);
   
@@ -4213,17 +4387,31 @@ app.get('/api/restaurants/:id', async (req, res) => {
       SEARCHED_RESTAURANTS_CACHE.set(responseRestaurant.id, responseRestaurant);
     }
 
-    // Tải menu từ tệp riêng nếu chưa có trong object — KHÔNG ghi menu mẫu lên disk
+    const originallyHadRealMenu = found.hasRealMenu === true;
+
+    // Tải menu từ tệp riêng nếu chưa có — ưu tiên Supabase hydrate trước scrape
     if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
       const fileMenu = readRestaurantMenu(responseRestaurant.id);
       if (fileMenu && fileMenu.length > 0) {
         responseRestaurant.menu = fileMenu;
+        responseRestaurant.hasRealMenu = true;
+        responseRestaurant.menuStatus = 'ready';
       } else {
-        console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có file menu. Trả menu rỗng + menuStatus=loading.`);
-        responseRestaurant.menu = [];
-        responseRestaurant.hasRealMenu = false;
-        responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
-        delete responseRestaurant.menuTemplateFallback;
+        // Fast path: restore this one restaurant from Supabase (deploy loses menus/)
+        const hydrated = await hydrateOneMenuFromSupabase(responseRestaurant.id);
+        if (hydrated && hydrated.length > 0) {
+          responseRestaurant.menu = hydrated;
+          responseRestaurant.hasRealMenu = true;
+          responseRestaurant.menuStatus = 'ready';
+          delete responseRestaurant.menuTemplateFallback;
+          source = source + '+supabase_menu';
+        } else {
+          console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase.`);
+          responseRestaurant.menu = [];
+          responseRestaurant.hasRealMenu = originallyHadRealMenu;
+          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
+          delete responseRestaurant.menuTemplateFallback;
+        }
       }
     }
 
@@ -4236,9 +4424,11 @@ app.get('/api/restaurants/:id', async (req, res) => {
       }
     }
 
-    // Kích hoạt cào ngầm (qua queue) nếu chưa có menu thực tế HOẶC legacy HOẶC forceSync
+    // Chỉ scrape khi thật sự cần: chưa có menu sau hydrate, hoặc legacy, hoặc forceSync
+    // Không scrape nếu đã có menu sẵn sàng (tránh Puppeteer làm Render 502)
     const forceSync = req.query.forceSync === 'true';
-    const needsScrape = ((!responseRestaurant.hasRealMenu || isLegacyMenu || !responseRestaurant.menu || responseRestaurant.menu.length === 0) && !responseRestaurant.isClosed) || forceSync;
+    const missingMenu = !responseRestaurant.menu || responseRestaurant.menu.length === 0;
+    const needsScrape = ((!responseRestaurant.isClosed && (missingMenu || isLegacyMenu)) || forceSync);
     if (needsScrape) {
       if (isLegacyMenu) {
         console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Enqueue scrape...`);
@@ -4247,20 +4437,26 @@ app.get('/api/restaurants/:id', async (req, res) => {
       found.hasRealMenu = responseRestaurant.hasRealMenu;
       
       if (req.query.syncScrape === 'true') {
-        await triggerSyncMenuScrape(found);
-        // Load lại dữ liệu mới nhất sau khi cào đồng bộ xong
-        const updated = readRestaurantMenu(responseRestaurant.id);
-        if (updated && updated.length > 0) {
-          responseRestaurant.menu = updated;
-          responseRestaurant.hasRealMenu = true;
-          responseRestaurant.menuStatus = 'ready';
-          delete responseRestaurant.menuTemplateFallback;
+        if (MENU_SCRAPE_ENABLED) {
+          await triggerSyncMenuScrape(found);
+          const updated = readRestaurantMenu(responseRestaurant.id);
+          if (updated && updated.length > 0) {
+            responseRestaurant.menu = updated;
+            responseRestaurant.hasRealMenu = true;
+            responseRestaurant.menuStatus = 'ready';
+            delete responseRestaurant.menuTemplateFallback;
+          }
+        } else if (missingMenu) {
+          responseRestaurant.menuStatus = 'unavailable';
         }
-      } else {
+      } else if (MENU_SCRAPE_ENABLED) {
         enqueueMenuScrape(found);
-        if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
+        if (missingMenu) {
           responseRestaurant.menuStatus = 'loading';
         }
+      } else if (missingMenu) {
+        // Prefer Supabase-hydrated / local menus on Render — do not launch Chromium
+        responseRestaurant.menuStatus = 'unavailable';
       }
     } else if (responseRestaurant.menu && responseRestaurant.menu.length > 0) {
       responseRestaurant.menuStatus = 'ready';
@@ -6641,11 +6837,24 @@ app.get('/api/status', (req, res) => {
     }
   } catch {}
 
+  const mem = process.memoryUsage();
   res.json({
     status:  'online',
     version: '1.0.0',
     city:    'Cần Thơ',
     cache:   cacheInfo,
+    restaurantsInMemory: cachedRestaurants.length,
+    nearbyCacheEntries: nearbyListCache.size,
+    menuScrapeEnabled: MENU_SCRAPE_ENABLED,
+    isRender: IS_RENDER,
+    supabase: {
+      configured: !!supabase,
+      urlConfigured: !!(SUPABASE_URL && SUPABASE_URL !== 'your_supabase_url_here')
+    },
+    memory: {
+      rssMb: Math.round(mem.rss / 1024 / 1024),
+      heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024)
+    },
     endpoints: {
       restaurants:  '/api/restaurants',
       clearCache:   'POST /api/cache/clear',
@@ -7082,11 +7291,13 @@ app.listen(PORT, () => {
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();
 
+  console.log(`[Server] Menu scrape: ${MENU_SCRAPE_ENABLED ? 'ENABLED' : 'DISABLED'} (Render=${IS_RENDER}, ENABLE_MENU_SCRAPE=${process.env.ENABLE_MENU_SCRAPE || 'unset'})`);
+
   // Khởi động luồng quét tự động toàn bộ cơ sở dữ liệu làm mới thực đơn chuẩn (chỉ chạy ở local để tránh quá tải Render)
-  if (!process.env.RENDER) {
+  if (!process.env.RENDER && MENU_SCRAPE_ENABLED) {
     startBackgroundDatabaseSweepWorker();
   } else {
-    console.log('[Server] ℹ️ Đang chạy trên Render. Vô hiệu hóa Sweep Worker cào ngầm để tối ưu hóa CPU/RAM.');
+    console.log('[Server] ℹ️ Sweep Worker cào ngầm tắt (Render hoặc scrape disabled).');
   }
 
   // Khởi động Telegram Polling Daemon
