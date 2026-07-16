@@ -1483,3 +1483,33 @@ input:checked + .slider:before {
   border-radius: 3px;
   background: linear-gradient(90deg, var(--clr-danger), var(--clr-accent)) !important;
 }
+
+/* Connection status banner */
+.connection-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10050;
+  padding: 8px 14px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  pointer-events: none;
+}
+
+.connection-banner.active {
+  display: block;
+}
+
+.connection-banner--offline {
+  background: #b45309;
+  color: #fff7ed;
+}
+
+.connection-banner--online {
+  background: #047857;
+  color: #ecfdf5;
+}
