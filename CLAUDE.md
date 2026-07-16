@@ -71,7 +71,7 @@ Tất cả triển khai tự động qua **git push** lên nhánh `master` tại
 
 ```
 d:\FOOD DELIVERY\
-├── customer-app/              # Frontend Khách hàng (HTML/CSS/JS)
+├── customer-app/              # Frontend Khách hàng (canonical — https://shipfee.vercel.app/customer-app/)
 │   ├── index.html             # Trang chủ — danh sách quán ăn, chọn địa chỉ (Leaflet map)
 │   ├── restaurant.html        # Chi tiết quán ăn + thêm vào giỏ
 │   ├── checkout.html          # Xác nhận đơn hàng (Leaflet map giao hàng)
@@ -79,15 +79,20 @@ d:\FOOD DELIVERY\
 │   ├── app.js                 # State management, cart, order logic (localStorage)
 │   └── style.css              # Design system tokens + components
 │
-├── shipper-app/               # Frontend Tài xế (HTML/CSS/JS)
+├── shipper-app/               # Frontend Tài xế (canonical — https://shipfee.vercel.app/shipper-app/)
 │   ├── index.html             # Giao diện tài xế - HUD dark mode, nhận đơn, live map, chat
 │   ├── app.js                 # Logic vuốt kéo, Audio chime synth, nhắn tin, AR/CR rates, WebRTC call
 │   └── style.css              # Design system HUD dark theme, slider cảm ứng mobile-first
 │
-├── admin-app/                 # Frontend CRM Admin (HTML/CSS/JS) — SPA Router
+├── admin-app/                 # Frontend CRM Admin (canonical — https://shipfee.vercel.app/admin-app/)
 │   ├── index.html             # Bố cục SPA: sidebar + main panel
 │   ├── app.js                 # CRUD modules: Dashboard, Orders, Restaurants, Shippers, Customers, Pricing
 │   └── style.css              # Dark theme CRM dashboard
+│
+├── public/                    # Output Vercel (npm run build copy từ các app root)
+│   ├── customer-app/
+│   ├── shipper-app/
+│   └── admin-app/
 │
 ├── server/                    # Backend Node.js Express (Render — port 3001)
 │   ├── server.js              # API server chính — REST endpoints, pricing engine, order dispatch, WebRTC signaling
