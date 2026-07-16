@@ -450,7 +450,7 @@ async function sendTelegramNewOrderNotification(order) {
       `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
       `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
       `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
-      `🔗 *Mở CRM Admin:* https://shipfee-hieuhuynh234s-projects.vercel.app/admin-app/index.html\n\n` +
+      `🔗 *Mở CRM Admin:* https://shipfee.vercel.app/admin-app/index.html\n\n` +
       `Chọn thao tác nhanh dưới đây để điều phối.`;
 
     const keyboard = {
@@ -1405,7 +1405,7 @@ function startTelegramPolling() {
               `💰 *Tổng tiền món:* ${order.storeTotal.toLocaleString('vi-VN')}đ\n` +
               `💵 *Khách thanh toán:* *${order.appTotal.toLocaleString('vi-VN')}đ* (Miễn phí ship)\n` +
               `🛵 *Thu nhập tài xế:* ${order.shipperEarning.toLocaleString('vi-VN')}đ\n\n` +
-              `🔗 *Mở CRM Admin:* https://shipfee-hieuhuynh234s-projects.vercel.app/admin-app/index.html\n\n` +
+              `🔗 *Mở CRM Admin:* https://shipfee.vercel.app/admin-app/index.html\n\n` +
               `Chọn thao tác nhanh dưới đây để điều phối.`;
 
             const keyboard = {
@@ -1987,7 +1987,7 @@ const whitelist = [
   'http://127.0.0.1:8000',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  'https://shipfee-hieuhuynh234s-projects.vercel.app'
+  'https://shipfee.vercel.app'
 ];
 app.use(cors({
   origin: function (origin, callback) {
