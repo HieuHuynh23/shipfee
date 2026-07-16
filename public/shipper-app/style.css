@@ -1513,3 +1513,32 @@ input:checked + .slider:before {
   background: #047857;
   color: #ecfdf5;
 }
+
+/* Dual-order (ghép đơn) switcher */
+.active-orders-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.trip-switch-btn {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 140px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--clr-border);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--clr-text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.trip-switch-btn.active {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--clr-text-primary);
+}
