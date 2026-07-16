@@ -1988,7 +1988,8 @@ const whitelist = [
   'http://localhost:3001',
   'http://127.0.0.1:3001',
   'https://shipfee.vercel.app',
-  'https://shipfee-hieuhuynh234s-projects.vercel.app'
+  'https://shipfee-hieuhuynh234s-projects.vercel.app',
+  'https://shipfee-eo5s.onrender.com'
 ];
 app.use(cors({
   origin: function (origin, callback) {
@@ -3334,7 +3335,9 @@ const SHOPEEFOOD_HEADERS = {
 app.use(express.json());
 
 // Phục vụ frontend tĩnh từ thư mục root (canonical cho shipfee.vercel.app)
+// /app giữ tương thích cũ; /customer-app khớp path production Vercel
 app.use('/app', express.static(path.join(__dirname, '..', 'customer-app')));
+app.use('/customer-app', express.static(path.join(__dirname, '..', 'customer-app')));
 app.use('/shipper-app', express.static(path.join(__dirname, '..', 'shipper-app')));
 app.use('/admin-app', express.static(path.join(__dirname, '..', 'admin-app')));
 

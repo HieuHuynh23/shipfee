@@ -126,6 +126,38 @@ git push origin master
 # → Vercel tự build lại frontend (30-60 giây)
 ```
 
+### 2.5. Fix lỗi `DEPLOYMENT_NOT_FOUND` trên `shipfee.vercel.app`
+
+Triệu chứng: mở `https://shipfee.vercel.app` thấy **404 NOT_FOUND / DEPLOYMENT_NOT_FOUND**.
+
+Nguyên nhân thường gặp: domain ngắn `shipfee.vercel.app` chưa được gán vào Production deployment của project team (`hieuhuynh234s-projects/shipfee`). Deploy vẫn chạy (URL dạng `shipfee-xxxxx-hieuhuynh234s-projects.vercel.app`) nhưng alias chính bị orphan.
+
+**Cách 1 — Vercel Dashboard (nhanh nhất)**
+
+1. Mở [Project Domains](https://vercel.com/hieuhuynh234s-projects/shipfee/settings/domains)
+2. Add / gán domain: `shipfee.vercel.app` → Production
+3. Mở [Deployment Protection](https://vercel.com/hieuhuynh234s-projects/shipfee/settings/deployment-protection) → **tắt Vercel Authentication** cho Production (nếu đang bật sẽ bị SSO login)
+4. Deployments → mở bản Production mới nhất → **Promote to Production** (nếu cần)
+
+**Cách 2 — CLI / GitHub Actions**
+
+1. Tạo token tại https://vercel.com/account/tokens
+2. Thêm GitHub Secret `VERCEL_TOKEN` (repo → Settings → Secrets → Actions)
+3. Chạy workflow **Assign shipfee.vercel.app** (Actions → Run workflow), hoặc local:
+
+```bash
+export VERCEL_TOKEN=...
+bash scripts/assign-shipfee-domain.sh
+```
+
+**Fallback tạm (Render đang phục vụ cùng path):**
+
+| App | URL tạm |
+|-----|---------|
+| Customer | `https://shipfee-eo5s.onrender.com/customer-app/` |
+| Shipper | `https://shipfee-eo5s.onrender.com/shipper-app/` |
+| Admin | `https://shipfee-eo5s.onrender.com/admin-app/` |
+
 ### 2.5. Auto-Detect API URL (Frontend)
 
 Tất cả 3 frontend app đều có cơ chế tự động phát hiện môi trường:
