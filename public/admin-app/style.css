@@ -1288,3 +1288,36 @@ h4 { font-size: 14px; font-weight: 600; }
   }
 }
 
+
+/* ── DISPATCH / OPS UPGRADE ────────────────────────────────────────────────── */
+.dispatch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s ease;
+}
+.dispatch-row:hover { background: var(--bg-card-hover); }
+.dispatch-row.sla--ok { border-left: 3px solid var(--emerald-500); }
+.dispatch-row.sla--warn { border-left: 3px solid var(--amber); background: rgba(245,158,11,0.04); }
+.dispatch-row.sla--crit { border-left: 3px solid #ef4444; background: rgba(239,68,68,0.06); }
+.sla-timer {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--zinc-800);
+  color: var(--text-secondary);
+}
+.sla--warn .sla-timer { color: var(--amber); background: rgba(245,158,11,0.12); }
+.sla--crit .sla-timer { color: #ef4444; background: rgba(239,68,68,0.12); animation: pulse 1.5s infinite; }
+.text-right { text-align: right; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+
+@media (max-width: 768px) {
+  .dispatch-row { flex-wrap: wrap; }
+  .dispatch-row select { max-width: 100% !important; }
+}

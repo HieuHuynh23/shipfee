@@ -34,7 +34,7 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="admin-password">Mật khẩu</label>
-          <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" autocomplete="current-password">
+          <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleAdminLogin()">
         </div>
         <button class="btn btn--primary btn--full btn--lg" onclick="handleAdminLogin()" id="login-btn">
           <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
@@ -62,6 +62,12 @@
         <a class="sidebar__link active" data-page="dashboard" onclick="navigateTo('dashboard')">
           <span class="sidebar__link-icon"><i class="fa-solid fa-grid-2"></i></span>
           Dashboard
+          <span class="sidebar__link-badge" id="nav-notif-count" style="display:none;background:#f59e0b;">0</span>
+        </a>
+        <a class="sidebar__link" data-page="dispatch" onclick="navigateTo('dispatch')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-tower-broadcast"></i></span>
+          Dispatch
+          <span class="sidebar__link-badge" id="nav-pending-count" style="display:none;background:#ef4444;">0</span>
         </a>
 
         <div class="sidebar__section-label">Quản lý</div>
@@ -69,6 +75,7 @@
           <span class="sidebar__link-icon"><i class="fa-solid fa-motorcycle"></i></span>
           Tài xế
           <span class="sidebar__link-badge" id="nav-shipper-count">0</span>
+          <span class="sidebar__link-badge" id="nav-approval-count" style="display:none;background:#f59e0b;margin-left:4px;">0</span>
         </a>
         <a class="sidebar__link" data-page="restaurants" onclick="navigateTo('restaurants')">
           <span class="sidebar__link-icon"><i class="fa-solid fa-store"></i></span>
@@ -83,6 +90,10 @@
         <a class="sidebar__link" data-page="customers" onclick="navigateTo('customers')">
           <span class="sidebar__link-icon"><i class="fa-solid fa-users"></i></span>
           Khách hàng
+        </a>
+        <a class="sidebar__link" data-page="data" onclick="navigateTo('data')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-database"></i></span>
+          Dữ liệu
         </a>
 
         <div class="sidebar__section-label">Hệ thống</div>
@@ -221,6 +232,57 @@
     </div>
   </div>
 
+  <!-- Customer 360 Modal -->
+  <div class="modal-overlay" id="customer-modal">
+    <div class="modal" style="max-width: 720px;">
+      <div class="modal__header">
+        <h3 id="customer-modal-title">Khách hàng</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('customer-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body" id="customer-modal-body"></div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('customer-modal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restaurant Edit Modal -->
+  <div class="modal-overlay" id="restaurant-edit-modal">
+    <div class="modal" style="max-width: 480px;">
+      <div class="modal__header">
+        <h3 id="restaurant-edit-title">Sửa quán ăn</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('restaurant-edit-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body">
+        <input type="hidden" id="rest-edit-id">
+        <div class="form-group">
+          <label class="form-label">Tên quán</label>
+          <input type="text" class="form-input" id="rest-edit-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Địa chỉ</label>
+          <input type="text" class="form-input" id="rest-edit-address">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Danh mục</label>
+          <input type="text" class="form-input" id="rest-edit-category">
+        </div>
+        <label class="flex items-center gap-2" style="cursor:pointer;">
+          <input type="checkbox" id="rest-edit-closed">
+          <span class="text-sm">Đóng cửa (isClosed)</span>
+        </label>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('restaurant-edit-modal')">Hủy</button>
+        <button class="btn btn--primary" onclick="saveRestaurantMeta()"><i class="fa-solid fa-floppy-disk"></i> Lưu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Supabase JS Client library (Try local first, then CDNs) -->
   <script src="supabase.js"></script>
   <script>
@@ -239,6 +301,7 @@
       }
     });
   </script>
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
+  <script src="crm-upgrade.js?v=1.0"></script>
 </body>
 </html>
