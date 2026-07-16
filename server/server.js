@@ -2329,6 +2329,7 @@ function loadRestaurantsIntoMemory() {
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
       cacheLoadedAt = Date.now();
+      try { nearbyListCache.clear(); } catch (_) {}
       const elapsed = Date.now() - startMs;
       console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory (${elapsed}ms, index: ${searchIndex.length} entries)`);
     }
@@ -2339,6 +2340,45 @@ function loadRestaurantsIntoMemory() {
 
 // Load on startup
 loadRestaurantsIntoMemory();
+
+/**
+ * Restore a single restaurant menu from Supabase (fast path for detail views).
+ * Returns menu array or null.
+ */
+async function hydrateOneMenuFromSupabase(restaurantId) {
+  if (!supabase || !restaurantId) return null;
+  try {
+    const { data, error } = await supabase
+      .from('restaurants')
+      .select('id, menu, dish_names, has_real_menu, updated_at')
+      .eq('id', String(restaurantId))
+      .maybeSingle();
+
+    if (error) {
+      console.error(`[Menu Hydrate] Lỗi lấy menu ${restaurantId}:`, error.message);
+      return null;
+    }
+    if (!data || !Array.isArray(data.menu) || data.menu.length === 0) return null;
+
+    writeRestaurantMenu(restaurantId, data.menu);
+    const mem = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
+    if (mem) {
+      mem.hasRealMenu = true;
+      mem.menuUpdatedAt = data.updated_at || new Date().toISOString();
+      if (Array.isArray(data.dish_names) && data.dish_names.length > 0) {
+        mem.dishNames = data.dish_names;
+      } else {
+        mem.dishNames = data.menu.map(m => m.name).filter(Boolean);
+      }
+      delete mem.menuTemplateFallback;
+    }
+    console.log(`[Menu Hydrate] ✅ Restore 1 menu từ Supabase: ${restaurantId} (${data.menu.length} món)`);
+    return data.menu;
+  } catch (err) {
+    console.error(`[Menu Hydrate] Lỗi hydrateOne ${restaurantId}:`, err.message);
+    return null;
+  }
+}
 
 /**
  * Restore menu files from Supabase after deploy (menus/ is gitignored).
@@ -2363,6 +2403,7 @@ async function hydrateMenusFromSupabase() {
 
     let restored = 0;
     const batchSize = 50;
+    // Prioritize first batches so early customer opens hit disk sooner
     for (let i = 0; i < missing.length; i += batchSize) {
       const batch = missing.slice(i, i + batchSize);
       const ids = batch.map(r => String(r.id));
@@ -2578,6 +2619,10 @@ function getHaversineDistance(coords1, coords2) {
 // Geocode cache - địa chỉ không thay đổi, cache kết quả
 const geocodeCache = new Map();
 
+// Cache filtered/sorted nearby lists (avoid O(n) geocode+sort every list request)
+const nearbyListCache = new Map(); // key -> { at, data }
+const NEARBY_LIST_CACHE_TTL_MS = 30 * 1000;
+
 function geocodeAddress(address, name, restaurantId) {
   // Check cache first
   if (restaurantId && geocodeCache.has(restaurantId)) {
@@ -2711,16 +2756,37 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
     userLon = 105.7876;
   }
 
+  // Round coords so nearby users share the same cached list
+  const cacheKey = skipDistanceFilter
+    ? null
+    : `${userLat.toFixed(3)},${userLon.toFixed(3)}:${localData.length}`;
+  if (cacheKey) {
+    const hit = nearbyListCache.get(cacheKey);
+    if (hit && (Date.now() - hit.at) < NEARBY_LIST_CACHE_TTL_MS) {
+      return hit.data;
+    }
+  }
+
   const userCoords = { lat: userLat, lon: userLon };
 
   const processed = localData.map(r => {
     if (!r) return null;
     
-    // Copy/clone to avoid mutating shared cache objects unexpectedly
+    // Shallow clone without bloating (avoid mutating shared cache objects)
     const item = { ...r };
     
-    // Geocode restaurant address to get lat/lon
-    const coords = geocodeAddress(item.address || '', item.name || '', item.id);
+    // Prefer already-known coords; geocode is cached per restaurantId
+    let coords;
+    if (typeof item.latitude === 'number' && typeof item.longitude === 'number') {
+      coords = { lat: item.latitude, lon: item.longitude };
+    } else {
+      coords = geocodeAddress(item.address || '', item.name || '', item.id);
+      // Persist onto in-memory record so subsequent requests skip string matching
+      if (r && r.id) {
+        r.latitude = coords.lat;
+        r.longitude = coords.lon;
+      }
+    }
     item.latitude = coords.lat;
     item.longitude = coords.lon;
     
@@ -2755,7 +2821,17 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
   // Sort: Open stores first, then sorted by distance value.
   const openRests = filteredData.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
   const closedRests = filteredData.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-  return [...openRests, ...closedRests];
+  const result = [...openRests, ...closedRests];
+
+  if (cacheKey) {
+    nearbyListCache.set(cacheKey, { at: Date.now(), data: result });
+    // Bound cache size
+    if (nearbyListCache.size > 40) {
+      const oldest = nearbyListCache.keys().next().value;
+      nearbyListCache.delete(oldest);
+    }
+  }
+  return result;
 }
 
 function sanitizeLocalJsonData() {
@@ -4032,17 +4108,31 @@ app.get('/api/restaurants/:id', async (req, res) => {
       SEARCHED_RESTAURANTS_CACHE.set(responseRestaurant.id, responseRestaurant);
     }
 
-    // Tải menu từ tệp riêng nếu chưa có trong object — KHÔNG ghi menu mẫu lên disk
+    const originallyHadRealMenu = found.hasRealMenu === true;
+
+    // Tải menu từ tệp riêng nếu chưa có — ưu tiên Supabase hydrate trước scrape
     if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
       const fileMenu = readRestaurantMenu(responseRestaurant.id);
       if (fileMenu && fileMenu.length > 0) {
         responseRestaurant.menu = fileMenu;
+        responseRestaurant.hasRealMenu = true;
+        responseRestaurant.menuStatus = 'ready';
       } else {
-        console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có file menu. Trả menu rỗng + menuStatus=loading.`);
-        responseRestaurant.menu = [];
-        responseRestaurant.hasRealMenu = false;
-        responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
-        delete responseRestaurant.menuTemplateFallback;
+        // Fast path: restore this one restaurant from Supabase (deploy loses menus/)
+        const hydrated = await hydrateOneMenuFromSupabase(responseRestaurant.id);
+        if (hydrated && hydrated.length > 0) {
+          responseRestaurant.menu = hydrated;
+          responseRestaurant.hasRealMenu = true;
+          responseRestaurant.menuStatus = 'ready';
+          delete responseRestaurant.menuTemplateFallback;
+          source = source + '+supabase_menu';
+        } else {
+          console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase.`);
+          responseRestaurant.menu = [];
+          responseRestaurant.hasRealMenu = originallyHadRealMenu;
+          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
+          delete responseRestaurant.menuTemplateFallback;
+        }
       }
     }
 
@@ -4055,9 +4145,11 @@ app.get('/api/restaurants/:id', async (req, res) => {
       }
     }
 
-    // Kích hoạt cào ngầm (qua queue) nếu chưa có menu thực tế HOẶC legacy HOẶC forceSync
+    // Chỉ scrape khi thật sự cần: chưa có menu sau hydrate, hoặc legacy, hoặc forceSync
+    // Không scrape nếu đã có menu sẵn sàng (tránh Puppeteer làm Render 502)
     const forceSync = req.query.forceSync === 'true';
-    const needsScrape = ((!responseRestaurant.hasRealMenu || isLegacyMenu || !responseRestaurant.menu || responseRestaurant.menu.length === 0) && !responseRestaurant.isClosed) || forceSync;
+    const missingMenu = !responseRestaurant.menu || responseRestaurant.menu.length === 0;
+    const needsScrape = ((!responseRestaurant.isClosed && (missingMenu || isLegacyMenu)) || forceSync);
     if (needsScrape) {
       if (isLegacyMenu) {
         console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Enqueue scrape...`);
@@ -4077,7 +4169,7 @@ app.get('/api/restaurants/:id', async (req, res) => {
         }
       } else {
         enqueueMenuScrape(found);
-        if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
+        if (missingMenu) {
           responseRestaurant.menuStatus = 'loading';
         }
       }

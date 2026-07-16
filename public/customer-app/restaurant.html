@@ -604,14 +604,22 @@
       const restaurantId = SF.getParam('id');
       if (!restaurantId) { SF.navigate('./'); return; }
 
-      // 1. Cache-first render, then always soft-revalidate from server
+      // 1. Paint header from slim index immediately (don't block on menu API)
       RESTAURANT = SF.getRestaurantById
         ? SF.getRestaurantById(restaurantId)
         : SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
 
       const hadCachedMenu = !!(RESTAURANT && RESTAURANT.menu && RESTAURANT.menu.length > 0);
-      if (RESTAURANT && hadCachedMenu) {
-        initializePage();
+      if (RESTAURANT) {
+        if (hadCachedMenu) {
+          initializePage();
+        } else {
+          // Show restaurant identity instantly; only menu area waits
+          try { renderHeader(); } catch (e) {}
+          showMenuLoadingEmpty();
+          updateNavCartBadge();
+          SF.updateCartBar();
+        }
       } else {
         showLoadingState();
       }
@@ -627,19 +635,20 @@
           } else if (hadCachedMenu && RESTAURANT.menuUpdatedAt && RESTAURANT.menuUpdatedAt !== prevMenuUpdatedAt) {
             SF.showToast('Đã cập nhật', 'Thực đơn vừa được làm mới.', 'info');
           }
-        } else if (RESTAURANT.menuStatus === 'loading' || !RESTAURANT.hasRealMenu) {
-          showMenuLoadingEmpty();
-          // Retry once after scrape may finish
+        } else if (RESTAURANT.menuStatus === 'loading') {
+          if (!RESTAURANT.name) showLoadingState();
+          else showMenuLoadingEmpty();
+          // One short retry after server-side hydrate/scrape may finish
           setTimeout(async () => {
             const retryOk = await fetchRestaurantDetails(restaurantId);
             if (retryOk && RESTAURANT.menu && RESTAURANT.menu.length > 0) {
               initializePage();
             }
-          }, 8000);
+          }, 4000);
         } else {
           showMenuLoadingEmpty();
         }
-      } else if (!hadCachedMenu) {
+      } else if (!RESTAURANT) {
         SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
         setTimeout(() => SF.navigate('./'), 2000);
       }
@@ -922,7 +931,7 @@
         const lon = state.userLon || 105.7876;
         console.log(`[Details] Đang fetch quán từ API server: ${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
         const res = await fetch(`${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`, {
-          signal: AbortSignal.timeout(20000)
+          signal: AbortSignal.timeout(12000)
         });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
