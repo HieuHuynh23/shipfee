@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chrome",
+    "crawl:menus": "node crawl_restaurant_menus.js --only-fallback --open-only",
+    "crawl:menus:one": "node crawl_restaurant_menus.js --id",
+    "crawl:menus:dry": "node crawl_restaurant_menus.js --only-fallback --open-only --dry-run"
   },
   "dependencies": {
     "axios": "^1.7.2",

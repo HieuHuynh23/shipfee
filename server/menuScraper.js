@@ -65,10 +65,10 @@ function extractMenuFromApiData(apiData, slug) {
       // Thêm 28% markup cố định (làm tròn 100đ)
       const appPrice = Math.round((inStorePrice * 1.28) / 100) * 100;
 
-      // Lấy ảnh CDN chất lượng cao
+      // Lấy ảnh CDN chất lượng cao — KHÔNG thay bằng Unsplash (tránh nhầm template)
       let img = getHighQualityImg(dish.photos);
       if (!img || img.includes('placeholder') || img.startsWith('data:')) {
-        img = `https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80`;
+        img = '';
       }
 
       // Trích xuất tùy chọn topping/options nếu có
@@ -113,8 +113,11 @@ async function scrapeMenu(slug) {
     console.log('[menuScraper] ℹ️ Không phát hiện Chrome/Edge hệ thống. Puppeteer sẽ khởi chạy bằng Chromium tích hợp.');
   }
 
+  const WATCHDOG_MS = Math.max(35000, parseInt(process.env.CRAWL_TIMEOUT_MS || '60000', 10) || 60000);
+  const API_WAIT_MS = Math.min(WATCHDOG_MS - 10000, Math.max(15000, parseInt(process.env.CRAWL_API_WAIT_MS || '25000', 10) || 25000));
+
   const url = `https://shopeefood.vn/can-tho/${slug}`;
-  console.log(`[menuScraper] 🚀 Bắt đầu cào menu quán: ${slug} (Headless: true)...`);
+  console.log(`[menuScraper] 🚀 Bắt đầu cào menu quán: ${slug} (Headless: true, timeout=${WATCHDOG_MS}ms)...`);
 
   const launchOptions = {
     headless: true,
@@ -142,7 +145,8 @@ async function scrapeMenu(slug) {
   const browser = await puppeteer.launch(launchOptions);
 
   let watchdog = setTimeout(async () => {
-    console.warn(`[menuScraper] 🕒 Phát hiện cào menu cho "${slug}" bị treo quá 35 giây. Đang cưỡng chế đóng trình duyệt bằng SIGKILL...`);
+    const sec = Math.round(WATCHDOG_MS / 1000);
+    console.warn(`[menuScraper] 🕒 Phát hiện cào menu cho "${slug}" bị treo quá ${sec} giây. Đang cưỡng chế đóng trình duyệt bằng SIGKILL...`);
     if (browser) {
       try {
         const proc = browser.process();
@@ -156,7 +160,7 @@ async function scrapeMenu(slug) {
         console.error('[menuScraper] Lỗi khi cưỡng chế tắt trình duyệt:', e.message);
       }
     }
-  }, 35000);
+  }, WATCHDOG_MS);
 
   try {
     const page = await browser.newPage();
@@ -334,10 +338,10 @@ async function scrapeMenu(slug) {
       }
     });
 
-    // ── BƯỚC 5: Chờ API được bắt (tối đa 20 giây) ──
+    // ── BƯỚC 5: Chờ API được bắt ──
     const intercepted = await Promise.race([
       apiPromise,
-      new Promise(r => setTimeout(() => r(false), 20000))
+      new Promise(r => setTimeout(() => r(false), API_WAIT_MS))
     ]);
 
     // ── ƯU TIÊN: Nếu API đã bắt được menu (dù có modal đóng cửa) → trả về menu thực tế ──
