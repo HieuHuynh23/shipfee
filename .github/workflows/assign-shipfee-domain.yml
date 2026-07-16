@@ -1,0 +1,36 @@
+name: Assign shipfee.vercel.app
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'customer-app/**'
+      - 'shipper-app/**'
+      - 'admin-app/**'
+      - 'public/**'
+      - 'vercel.json'
+      - 'package.json'
+      - 'scripts/assign-shipfee-domain.sh'
+      - '.github/workflows/assign-shipfee-domain.yml'
+
+jobs:
+  assign-domain:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assign production alias
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_SCOPE: hieuhuynh234s-projects
+        run: |
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::warning::Missing repository secret VERCEL_TOKEN."
+            echo "Add it at: Settings → Secrets and variables → Actions → New repository secret"
+            echo "Token: https://vercel.com/account/tokens"
+            echo "Then re-run this workflow (Actions → Assign shipfee.vercel.app → Run workflow)."
+            exit 0
+          fi
+          bash scripts/assign-shipfee-domain.sh
