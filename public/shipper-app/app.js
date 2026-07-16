@@ -157,6 +157,17 @@ const FLOW = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
 function setConnectionStatus(online, detail) {
   const banner = document.getElementById('connection-banner');
   if (!banner) return;
+
+  // Không hiện banner trên màn đăng nhập — tránh làm lệch layout/giao diện auth
+  const loginOverlay = document.getElementById('login-overlay');
+  const onLoginScreen = !!(loginOverlay && loginOverlay.classList.contains('active'));
+  if (onLoginScreen || !currentDriver) {
+    lastKnownOnline = online;
+    banner.classList.remove('active', 'connection-banner--offline', 'connection-banner--online');
+    banner.textContent = '';
+    return;
+  }
+
   if (online) {
     if (!lastKnownOnline) {
       banner.classList.remove('active', 'connection-banner--offline');
@@ -329,7 +340,7 @@ function toggleAuthMode(e) {
     document.getElementById('login-group-email').style.display = 'flex';
     document.getElementById('login-group-password').style.display = 'flex';
     document.getElementById('login-group-avatar').style.display = 'none';
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
   }
 }
 
@@ -405,7 +416,7 @@ async function registerDriver() {
     btn.disabled = false;
     btn.innerHTML = authMode === 'register'
       ? '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản'
-      : '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+      : '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
   }
 }
 
@@ -557,7 +568,7 @@ async function loginDriver() {
     loginInFlight = false;
     if (btn && authMode === 'login') {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
     }
   }
 }
@@ -3117,7 +3128,7 @@ async function initSupabase() {
           }
         });
         console.log('[Supabase] Client initialized successfully via proxy config');
-        setConnectionStatus(true);
+        // Không gọi setConnectionStatus trên màn login
         
         // Tự động khôi phục JWT token từ storage của client
         supabaseClient.auth.getSession().then(({ data: { session } }) => {
@@ -3136,7 +3147,7 @@ async function initSupabase() {
         if (phoneGroup) phoneGroup.style.display = 'none';
         if (emailGroup) emailGroup.style.display = 'flex';
         if (passwordGroup) passwordGroup.style.display = 'flex';
-        if (loginBtn) loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+        if (loginBtn) loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
         return;
       } else {
         console.error('[Supabase] Proxy returned placeholder credentials. Supabase mode required but not configured!');
@@ -3146,12 +3157,11 @@ async function initSupabase() {
     } catch (e) {
       console.error('[Supabase] Failed to retrieve config from proxy:', e);
       if (retries === 0) {
-        setConnectionStatus(false, 'Không kết nối được máy chủ cấu hình');
-        showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API.', 'error');
+        showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API. Thử lại sau vài giây.', 'error');
         break;
       }
       if (retries === 3 && API_BASE.includes('render.com')) {
-        showToast('Khởi động Máy chủ', 'Máy chủ Render đang thức giấc, vui lòng chờ…', 'info');
+        showToast('Khởi động Máy chủ', 'Máy chủ đang thức giấc, vui lòng chờ…', 'info');
       }
       retries--;
       currentTimeout = 15000;
