@@ -387,15 +387,15 @@
         <i class="fa-solid fa-flask"></i> <span>Mô phỏng đơn</span>
       </button>
 
-      <!-- DEMO CONTROL BAR (Simulation) -->
-      <div class="demo-bar animate-fade-in" id="demo-bar-container">
+      <!-- DEMO CONTROL BAR (Simulation) — chỉ hiện trên localhost -->
+      <div class="demo-bar animate-fade-in" id="demo-bar-container" style="display:none;">
         <div class="demo-bar__header">
           <div class="demo-bar__title">
-            <i class="fa-solid fa-laptop-code"></i> Trình giả lập tiến trình
+            <i class="fa-solid fa-laptop-code"></i> Trình giả lập tiến trình (local only)
           </div>
           <button class="demo-bar__close" onclick="toggleDevTools()">✕</button>
         </div>
-        <div class="demo-bar__desc">Dành cho Tester: Click các bước để đổi trạng thái đơn hàng phía shipper.</div>
+        <div class="demo-bar__desc">Chỉ dùng khi chạy local. Production đã tắt vì API yêu cầu JWT shipper.</div>
         <div class="demo-steps">
           <button class="demo-step-btn active" id="demo-btn-PENDING" onclick="simulateStep('PENDING')">
             1. Tìm Shipper
@@ -1296,8 +1296,19 @@
       updateShipperLocationOnMap(status);
     }
 
-    // ── SIMULATE STEP ──
+    // ── SIMULATE STEP (local only — production APIs require shipper JWT) ──
+    const IS_LOCAL_DEMO = ['localhost', '127.0.0.1'].includes(location.hostname);
+    (function initDemoBarVisibility() {
+      const bar = document.getElementById('demo-bar-container');
+      if (bar && IS_LOCAL_DEMO) bar.style.display = '';
+    })();
+
     async function simulateStep(targetStatus) {
+      if (!IS_LOCAL_DEMO) {
+        SF.showToast('Demo tắt trên production', 'API trạng thái yêu cầu JWT tài xế.', 'warning');
+        return;
+      }
+
       const currentIdx = FLOW.indexOf(order.status);
       const targetIdx  = FLOW.indexOf(targetStatus);
 

@@ -7,11 +7,7 @@
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
-
-if (localStorage.getItem('shipfee_api_url')) {
-  localStorage.removeItem('shipfee_api_url');
-}
-const API_BASE = defaultApiUrl;
+let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
 
 const originalFetch = window.fetch;
 window.fetch = function(input, init) {
@@ -40,6 +36,14 @@ let adminUser = null;
 let pollTimer = null;
 let editingShipperPhone = null;
 let adminShipperAvatarBase64 = null;
+let cachedDashboard = null;
+let cachedOrderStats = null;
+let cachedCustomers = [];
+let restaurantHasMore = false;
+let restaurantTotal = 0;
+let lastPollHash = '';
+let pricingMarkupRate = 0.28;
+let orderLiveMap = null;
 
 // Cache
 let cachedShippers = [];
@@ -144,11 +148,11 @@ async function handleAdminLogin() {
       showToast('Lỗi đăng nhập hệ thống: ' + e.message, 'error');
     }
   } else {
-    // Demo admin credentials (will be replaced with Supabase Auth)
+    // Demo admin credentials — chỉ khi thiếu Supabase (mutations admin sẽ 401)
     if (email === 'admin@shipfee.vn' && password === 'admin123') {
-      adminUser = { email, name: 'Admin ShipFee', role: 'admin' };
+      adminUser = { email, name: 'Admin ShipFee', role: 'admin', demo: true };
       localStorage.setItem('shipfee_admin', JSON.stringify(adminUser));
-      showToast('Đăng nhập thành công', 'success');
+      showToast('Đăng nhập demo (không JWT) — thao tác admin cần Supabase Auth', 'warning');
       showApp();
     } else {
       showToast('Email hoặc mật khẩu không đúng', 'error');
@@ -240,27 +244,46 @@ function refreshCurrentPage() {
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   fetchAllData();
-  pollTimer = setInterval(fetchAllData, 5000);
+  pollTimer = setInterval(fetchAllData, 10000);
 }
 
 async function fetchAllData() {
   try {
-    const [shippersRes, ordersRes] = await Promise.all([
-      fetch(`${API_BASE}/api/shippers`).then(r => r.json()).catch(() => ({ data: [] })),
-      fetch(`${API_BASE}/api/orders`).then(r => r.json()).catch(() => [])
+    const hasJwt = !!localStorage.getItem('shipfee_jwt');
+    const [shippersRes, ordersRes, dashRes] = await Promise.all([
+      apiFetch('/api/shippers').catch(() => ({ data: [] })),
+      hasJwt
+        ? apiFetch('/api/admin/orders').catch(() => ({ data: [] }))
+        : fetch(`${API_BASE}/api/orders`).then(r => r.json()).catch(() => ({ data: [] })),
+      hasJwt
+        ? apiFetch('/api/admin/dashboard').catch(() => null)
+        : Promise.resolve(null)
     ]);
 
-    cachedShippers = Array.isArray(shippersRes?.data) ? shippersRes.data : [];
-    cachedOrders = Array.isArray(ordersRes) ? ordersRes : (Array.isArray(ordersRes?.data) ? ordersRes.data : []);
+    const nextShippers = Array.isArray(shippersRes?.data) ? shippersRes.data : [];
+    const nextOrders = Array.isArray(ordersRes)
+      ? ordersRes
+      : (Array.isArray(ordersRes?.data) ? ordersRes.data : []);
 
-    // Update nav badges
-    document.getElementById('nav-shipper-count').textContent = cachedShippers.length;
-    document.getElementById('nav-order-count').textContent = cachedOrders.length;
+    const hash = `${nextShippers.length}:${nextOrders.length}:${nextOrders.map(o => o.id + o.status).join(',')}`;
+    const changed = hash !== lastPollHash;
+    lastPollHash = hash;
 
-    // Refresh current page data if on relevant pages
-    if (currentPage === 'dashboard') renderDashboardStats();
-    if (currentPage === 'orders') renderOrdersTable();
-    if (currentPage === 'shippers') renderShippersTable();
+    cachedShippers = nextShippers;
+    cachedOrders = nextOrders;
+    if (dashRes?.success && dashRes.stats) cachedDashboard = dashRes.stats;
+    else if (dashRes?.success && dashRes.data) cachedDashboard = dashRes.data;
+
+    const shipperCountEl = document.getElementById('nav-shipper-count');
+    const orderCountEl = document.getElementById('nav-order-count');
+    if (shipperCountEl) shipperCountEl.textContent = cachedShippers.length;
+    if (orderCountEl) orderCountEl.textContent = cachedOrders.length;
+
+    if (changed) {
+      if (currentPage === 'dashboard') renderDashboardStats();
+      if (currentPage === 'orders') renderOrdersTable();
+      if (currentPage === 'shippers') renderShippersTable();
+    }
   } catch (e) {
     console.warn('Polling error:', e);
   }
@@ -268,11 +291,44 @@ async function fetchAllData() {
 
 // ── API HELPERS ─────────────────────────────────────────────────────────────
 async function apiFetch(path, options = {}) {
-  const url = `${API_BASE}${path}`;
+  const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const fetchOptions = { ...options, headers };
   const res = await fetch(url, fetchOptions);
-  return res.json();
+
+  if (res.status === 401) {
+    showToast('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
+    handleAdminLogout();
+    throw new Error('Unauthorized');
+  }
+
+  let data = null;
+  try {
+    data = await res.json();
+  } catch (e) {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    throw e;
+  }
+
+  if (!res.ok) {
+    const err = new Error(data?.error || data?.message || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+const fetchWithAuth = apiFetch;
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function formatCurrency(amount) {
@@ -292,6 +348,7 @@ function statusLabel(status) {
     ACCEPTED: 'Đã nhận',
     PURCHASED: 'Đã mua',
     DELIVERED: 'Hoàn thành',
+    CANCELLED: 'Đã hủy',
     ONLINE: 'Trực tuyến',
     OFFLINE: 'Ngoại tuyến'
   };
@@ -304,6 +361,7 @@ function statusBadgeClass(status) {
     ACCEPTED: 'badge--accepted',
     PURCHASED: 'badge--purchased',
     DELIVERED: 'badge--delivered',
+    CANCELLED: 'badge--closed',
     ONLINE: 'badge--online',
     OFFLINE: 'badge--offline'
   };
@@ -349,7 +407,26 @@ function toggleSidebar() {
 
 function handleGlobalSearch(query) {
   if (!query) return;
-  // Simple: redirect to relevant page based on query content
+  const q = query.toLowerCase().trim();
+  if (q.startsWith('spf-') || /^\d{5,}$/.test(q)) {
+    navigateTo('orders');
+    setTimeout(() => {
+      const el = document.getElementById('order-search');
+      if (el) { el.value = query; renderOrdersTable(); }
+    }, 50);
+  } else if (/^0\d{8,}/.test(q.replace(/\s/g, ''))) {
+    navigateTo('shippers');
+    setTimeout(() => {
+      const el = document.getElementById('shipper-search');
+      if (el) { el.value = query; renderShippersTable(); }
+    }, 50);
+  } else {
+    navigateTo('restaurants');
+    setTimeout(() => {
+      const el = document.getElementById('restaurant-search');
+      if (el) { el.value = query; restaurantSearchPage = 1; loadRestaurants(); }
+    }, 50);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -369,8 +446,8 @@ function renderDashboard() {
         <div class="chart-container__header">
           <h3>Doanh thu hôm nay</h3>
           <div class="tabs" style="margin-bottom: 0;">
-            <button class="tab active">Hôm nay</button>
-            <button class="tab">7 ngày</button>
+            <button class="tab active" onclick="switchRevenueChart(this, 'today')">Hôm nay</button>
+            <button class="tab" onclick="switchRevenueChart(this, '7d')">7 ngày</button>
           </div>
         </div>
         <div id="revenue-chart-body" style="min-height: 200px; display: flex; align-items: center; justify-content: center;">
@@ -443,10 +520,24 @@ function renderStatSkeleton(count) {
 function renderDashboardStats() {
   const onlineShippers = cachedShippers.filter(s => s.status === 'ONLINE');
   const pendingOrders = cachedOrders.filter(o => o.status === 'PENDING');
-  const activeOrders = cachedOrders.filter(o => o.status !== 'DELIVERED');
+  const activeOrders = cachedOrders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
   const completedOrders = cachedOrders.filter(o => o.status === 'DELIVERED');
-  const totalRevenue = completedOrders.reduce((sum, o) => sum + (o.appTotal || 0), 0);
-  const totalEarnings = completedOrders.reduce((sum, o) => sum + (o.shipperEarning || 0), 0);
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayTs = todayStart.getTime();
+  const todayOrders = cachedOrders.filter(o => (o.createdAt || 0) >= todayTs);
+  const todayCompleted = todayOrders.filter(o => o.status === 'DELIVERED');
+
+  const dash = cachedDashboard || {};
+  const totalOrdersToday = dash.totalOrders ?? todayOrders.length;
+  const totalRevenue = dash.totalRevenue ?? todayCompleted.reduce((sum, o) => sum + (o.appTotal || 0), 0);
+  const totalEarnings = dash.totalEarnings ?? todayCompleted.reduce((sum, o) => sum + (o.shipperEarning || 0), 0);
+  const onlineCount = dash.onlineShippers ?? onlineShippers.length;
+  const pendingCount = dash.pendingOrders ?? pendingOrders.length;
+  const completionRate = dash.completedOrdersCount != null && (dash.totalOrders || 0) > 0
+    ? Math.round((dash.completedOrdersCount / dash.totalOrders) * 100)
+    : (cachedOrders.length > 0 ? Math.round(completedOrders.length / cachedOrders.length * 100) : 0);
 
   const statsEl = document.getElementById('dashboard-stats');
   if (!statsEl) return;
@@ -458,28 +549,28 @@ function renderDashboardStats() {
           <span class="stat-card__label">Đơn hôm nay</span>
           <div class="stat-card__icon" style="background: var(--blue-dim); color: var(--blue);"><i class="fa-solid fa-receipt"></i></div>
         </div>
-        <div class="stat-card__value mono">${cachedOrders.length}</div>
+        <div class="stat-card__value mono">${totalOrdersToday}</div>
         <div class="stat-card__change up"><i class="fa-solid fa-arrow-up"></i> ${activeOrders.length} đang xử lý</div>
       </div>
     </div>
     <div class="card-shell stat-card">
       <div class="card-core">
         <div class="stat-card__header">
-          <span class="stat-card__label">Doanh thu</span>
+          <span class="stat-card__label">Doanh thu hôm nay</span>
           <div class="stat-card__icon" style="background: var(--emerald-dim); color: var(--emerald-500);"><i class="fa-solid fa-wallet"></i></div>
         </div>
         <div class="stat-card__value mono" style="font-size: 24px; color: var(--emerald-500);">${formatCurrency(totalRevenue)}</div>
-        <div class="stat-card__change up"><i class="fa-solid fa-arrow-up"></i> ${completedOrders.length} đơn hoàn thành</div>
+        <div class="stat-card__change up"><i class="fa-solid fa-arrow-up"></i> ${todayCompleted.length} đơn hoàn thành</div>
       </div>
     </div>
     <div class="card-shell stat-card">
       <div class="card-core">
         <div class="stat-card__header">
-          <span class="stat-card__label">Thu nhập shipper</span>
+          <span class="stat-card__label">Thu nhập shipper (hôm nay)</span>
           <div class="stat-card__icon" style="background: var(--amber-dim); color: var(--amber);"><i class="fa-solid fa-coins"></i></div>
         </div>
         <div class="stat-card__value mono" style="font-size: 24px;">${formatCurrency(totalEarnings)}</div>
-        <div class="stat-card__change up"><i class="fa-solid fa-motorcycle"></i> ${onlineShippers.length} online</div>
+        <div class="stat-card__change up"><i class="fa-solid fa-motorcycle"></i> ${onlineCount} online</div>
       </div>
     </div>
     <div class="card-shell stat-card">
@@ -488,7 +579,7 @@ function renderDashboardStats() {
           <span class="stat-card__label">Shipper Online</span>
           <div class="stat-card__icon" style="background: var(--emerald-dim); color: var(--emerald-500);"><i class="fa-solid fa-signal"></i></div>
         </div>
-        <div class="stat-card__value mono">${onlineShippers.length}<span style="font-size: 16px; color: var(--text-muted);">/${cachedShippers.length}</span></div>
+        <div class="stat-card__value mono">${onlineCount}<span style="font-size: 16px; color: var(--text-muted);">/${cachedShippers.length}</span></div>
       </div>
     </div>
     <div class="card-shell stat-card">
@@ -497,7 +588,7 @@ function renderDashboardStats() {
           <span class="stat-card__label">Đơn chờ nhận</span>
           <div class="stat-card__icon" style="background: var(--amber-dim); color: var(--amber);"><i class="fa-solid fa-clock"></i></div>
         </div>
-        <div class="stat-card__value mono" style="color: ${pendingOrders.length > 0 ? 'var(--amber)' : 'var(--text-primary)'};">${pendingOrders.length}</div>
+        <div class="stat-card__value mono" style="color: ${pendingCount > 0 ? 'var(--amber)' : 'var(--text-primary)'};">${pendingCount}</div>
       </div>
     </div>
     <div class="card-shell stat-card">
@@ -506,13 +597,13 @@ function renderDashboardStats() {
           <span class="stat-card__label">Tỷ lệ hoàn thành</span>
           <div class="stat-card__icon" style="background: var(--violet-dim); color: var(--violet);"><i class="fa-solid fa-chart-pie"></i></div>
         </div>
-        <div class="stat-card__value mono">${cachedOrders.length > 0 ? Math.round(completedOrders.length / cachedOrders.length * 100) : 0}<span style="font-size: 16px; color: var(--text-muted);">%</span></div>
+        <div class="stat-card__value mono">${completionRate}<span style="font-size: 16px; color: var(--text-muted);">%</span></div>
       </div>
     </div>
   `;
 
   // Revenue chart (simple bar chart with CSS)
-  renderRevenueChart();
+  renderRevenueChart(window.__revenueChartMode || 'today');
 
   // Recent orders
   renderRecentOrders();
@@ -525,9 +616,9 @@ function renderDashboardStats() {
       onlineEl.innerHTML = `<div class="empty-state" style="padding: 32px;"><p class="text-muted text-sm">Không có tài xế trực tuyến</p></div>`;
     } else {
       onlineEl.innerHTML = `<table class="data-table"><tbody>${onlineShippers.map(s => `
-        <tr onclick="editShipper('${s.phone}')" style="cursor: pointer;" title="Xem/Sửa thông tin tài xế">
-          <td style="width: 40px;"><div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px; overflow: hidden; display: flex; align-items: center; justify-content: center;">${s.avatarUrl ? `<img src="${s.avatarUrl}" style="width:100%; height:100%; object-fit:cover;">` : (s.name ? s.name.charAt(0) : '?')}</div></td>
-          <td><strong style="font-size: 13px;">${s.name || '—'}</strong><br><span class="text-muted text-xs mono">${s.phone}</span></td>
+        <tr onclick="editShipper('${escapeHtml(s.phone)}')" style="cursor: pointer;" title="Xem/Sửa thông tin tài xế">
+          <td style="width: 40px;"><div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px; overflow: hidden; display: flex; align-items: center; justify-content: center;">${s.avatarUrl ? `<img src="${escapeHtml(s.avatarUrl)}" style="width:100%; height:100%; object-fit:cover;">` : escapeHtml((s.name || '?').charAt(0))}</div></td>
+          <td><strong style="font-size: 13px;">${escapeHtml(s.name || '—')}</strong><br><span class="text-muted text-xs mono">${escapeHtml(s.phone)}</span></td>
           <td><span class="badge badge--online"><span class="badge__dot"></span> Online</span></td>
         </tr>
       `).join('')}</tbody></table>`;
@@ -543,9 +634,9 @@ function renderDashboardStats() {
       pendingEl.innerHTML = `<div class="empty-state" style="padding: 32px;"><p class="text-muted text-sm">Không có đơn chờ xử lý</p></div>`;
     } else {
       pendingEl.innerHTML = `<table class="data-table"><tbody>${pendingOrders.slice(0, 5).map(o => `
-        <tr style="cursor: pointer;" onclick="showOrderDetail('${o.id}')">
-          <td><span class="mono text-sm fw-700">${o.id}</span></td>
-          <td class="truncate" style="max-width: 150px;">${o.restaurantName || '—'}</td>
+        <tr style="cursor: pointer;" onclick="showOrderDetail('${escapeHtml(o.id)}')">
+          <td><span class="mono text-sm fw-700">${escapeHtml(o.id)}</span></td>
+          <td class="truncate" style="max-width: 150px;">${escapeHtml(o.restaurantName || '—')}</td>
           <td class="mono text-sm">${formatCurrency(o.appTotal)}</td>
           <td><span class="badge badge--pending"><span class="badge__dot"></span> Chờ</span></td>
         </tr>
@@ -564,11 +655,13 @@ function renderDashboardStats() {
   }
 }
 
-function renderRevenueChart() {
+function renderRevenueChart(mode = 'today') {
   const canvas = document.getElementById('revenue-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+
+  window.__revenueChartMode = mode;
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.parentElement.getBoundingClientRect();
@@ -576,41 +669,58 @@ function renderRevenueChart() {
   canvas.height = 200 * dpr;
   canvas.style.width = rect.width + 'px';
   canvas.style.height = '200px';
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const w = rect.width;
   const h = 200;
 
-  // Generate hourly data from orders
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const hourlyRevenue = hours.map(hr => {
-    return cachedOrders
-      .filter(o => o.status === 'DELIVERED' && new Date(o.createdAt).getHours() === hr)
-      .reduce((sum, o) => sum + (o.appTotal || 0), 0);
-  });
+  let labels = [];
+  let values = [];
 
-  const maxVal = Math.max(...hourlyRevenue, 100000);
-  const barWidth = (w - 60) / 24;
+  if (mode === '7d' && cachedOrderStats && cachedOrderStats.daily) {
+    labels = cachedOrderStats.daily.map(d => d.date);
+    values = cachedOrderStats.daily.map(d => d.revenue || 0);
+  } else if (mode === '7d') {
+    const today = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateStr = d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+      labels.push(dateStr);
+      const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+      const dayEnd = dayStart.getTime() + 86400000;
+      values.push(cachedOrders
+        .filter(o => o.status === 'DELIVERED' && o.createdAt >= dayStart.getTime() && o.createdAt < dayEnd)
+        .reduce((sum, o) => sum + (o.appTotal || 0), 0));
+    }
+  } else {
+    labels = Array.from({ length: 24 }, (_, i) => String(i));
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayTs = todayStart.getTime();
+    values = labels.map((_, hr) => {
+      return cachedOrders
+        .filter(o => o.status === 'DELIVERED' && (o.createdAt || 0) >= todayTs && new Date(o.createdAt).getHours() === hr)
+        .reduce((sum, o) => sum + (o.appTotal || 0), 0);
+    });
+  }
+
+  const maxVal = Math.max(...values, 100000);
+  const barWidth = (w - 60) / Math.max(values.length, 1);
   const chartH = h - 40;
 
-  // Clear
   ctx.clearRect(0, 0, w, h);
 
-  // Draw bars
-  hours.forEach((hr, i) => {
-    const val = hourlyRevenue[i];
+  values.forEach((val, i) => {
     const barH = (val / maxVal) * chartH;
     const x = 30 + i * barWidth + barWidth * 0.15;
     const bw = barWidth * 0.7;
     const y = chartH - barH + 10;
 
-    // Bar
     const grad = ctx.createLinearGradient(x, y, x, chartH + 10);
     grad.addColorStop(0, val > 0 ? '#10b981' : '#27272a');
     grad.addColorStop(1, val > 0 ? 'rgba(16, 185, 129, 0.2)' : '#27272a');
     ctx.fillStyle = grad;
 
-    // Rounded top
     const r = Math.min(3, bw / 2);
     ctx.beginPath();
     ctx.moveTo(x + r, y);
@@ -622,15 +732,34 @@ function renderRevenueChart() {
     ctx.quadraticCurveTo(x, y, x + r, y);
     ctx.fill();
 
-    // Hour label (every 4 hours)
-    if (hr % 4 === 0) {
+    if (mode === '7d' || i % 4 === 0) {
       ctx.fillStyle = '#71717a';
       ctx.font = '10px Geist Mono, monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(`${hr}h`, x + bw / 2, h - 5);
+      ctx.fillText(mode === '7d' ? labels[i] : (labels[i] + 'h'), x + bw / 2, h - 5);
     }
   });
 }
+
+async function switchRevenueChart(btn, mode) {
+  if (btn && btn.parentElement) {
+    btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  const header = document.querySelector('#chart-revenue h3');
+  if (header) header.textContent = mode === '7d' ? 'Doanh thu 7 ngày' : 'Doanh thu hôm nay';
+
+  if (mode === '7d' && !cachedOrderStats && localStorage.getItem('shipfee_jwt')) {
+    try {
+      const res = await apiFetch('/api/admin/orders/stats');
+      if (res.success) cachedOrderStats = res.data;
+    } catch (e) {
+      console.warn('orders/stats', e);
+    }
+  }
+  renderRevenueChart(mode);
+}
+window.switchRevenueChart = switchRevenueChart;
 
 function renderRecentOrders() {
   const el = document.getElementById('recent-orders-list');
@@ -1085,7 +1214,7 @@ async function loadRestaurants() {
   if (!tbody) return;
 
   try {
-    let url = `${API_BASE}/api/restaurants?limit=50`; // Tăng giới hạn để có thêm kết quả lọc local
+    let url = `${API_BASE}/api/restaurants?limit=50&page=${restaurantSearchPage || 1}`;
     if (query) url += `&q=${encodeURIComponent(query)}`;
 
     const res = await fetch(url).then(r => r.json());
@@ -1093,18 +1222,65 @@ async function loadRestaurants() {
 
     if (Array.isArray(res)) {
       restaurants = res;
+      restaurantHasMore = false;
+      restaurantTotal = restaurants.length;
     } else if (res?.data && Array.isArray(res.data)) {
       restaurants = res.data;
+      restaurantHasMore = !!res.hasMore;
+      restaurantTotal = res.total || restaurants.length;
     } else if (res?.restaurants && Array.isArray(res.restaurants)) {
       restaurants = res.restaurants;
+      restaurantHasMore = false;
+      restaurantTotal = restaurants.length;
     }
 
     cachedRestaurants = restaurants;
     filterRestaurantsLocal();
+    renderRestaurantPagination();
   } catch (e) {
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">Lỗi tải dữ liệu quán ăn</p></div></td></tr>`;
   }
 }
+
+function renderRestaurantPagination() {
+  let el = document.getElementById('restaurant-pagination');
+  if (!el) {
+    const wrapper = document.querySelector('#restaurants-tbody')?.closest('.data-table-wrapper');
+    if (!wrapper) return;
+    el = document.createElement('div');
+    el.id = 'restaurant-pagination';
+    el.className = 'pagination';
+    wrapper.appendChild(el);
+  }
+  const page = restaurantSearchPage || 1;
+  el.innerHTML = `
+    <button class="pagination__btn" ${page <= 1 ? 'disabled' : ''} onclick="changeRestaurantPage(${page - 1})">← Trước</button>
+    <span class="pagination__info">Trang ${page}${restaurantTotal ? ` · ${restaurantTotal} quán` : ''}</span>
+    <button class="pagination__btn" ${!restaurantHasMore ? 'disabled' : ''} onclick="changeRestaurantPage(${page + 1})">Sau →</button>
+  `;
+}
+
+function changeRestaurantPage(page) {
+  if (page < 1) return;
+  restaurantSearchPage = page;
+  loadRestaurants();
+}
+window.changeRestaurantPage = changeRestaurantPage;
+
+async function syncRestaurantPrice(restaurantId) {
+  try {
+    showToast('Đang đồng bộ giá ShopeeFood...', 'info');
+    const res = await apiFetch(`/api/admin/restaurants/${restaurantId}/sync-price`, { method: 'POST' });
+    if (res.success) {
+      showToast(res.message || 'Đã bắt đầu đồng bộ giá!', 'success');
+    } else {
+      showToast(res.error || 'Lỗi đồng bộ', 'error');
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+  }
+}
+window.syncRestaurantPrice = syncRestaurantPrice;
 
 function filterRestaurantsLocal() {
   const tbody = document.getElementById('restaurants-tbody');
@@ -1188,6 +1364,9 @@ function filterRestaurantsLocal() {
       <td style="text-align: right;">
         <button class="btn btn--ghost btn--sm" onclick="viewRestaurantMenu('${r.id}')" title="Xem/Sửa menu">
           <i class="fa-solid fa-utensils"></i>
+        </button>
+        <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${r.id}')" title="Đồng bộ giá ShopeeFood">
+          <i class="fa-solid fa-arrows-rotate"></i>
         </button>
         <button class="btn btn--ghost btn--sm" onclick="toggleRestaurantStatus('${r.id}', ${!r.isClosed})" title="${r.isClosed ? 'Mở cửa' : 'Đóng cửa'}">
           <i class="fa-solid fa-${r.isClosed ? 'lock-open' : 'lock'}"></i>
@@ -1297,8 +1476,8 @@ function handleMenuPriceInput(input, index) {
   const val = Number(input.value) || 0;
   if (currentEditingMenu[index]) {
     currentEditingMenu[index].inStorePrice = val;
-    // Tính lại giá App = giá cửa hàng * 1.28 làm tròn đến hàng trăm
-    const appPrice = Math.round(val * 1.28 / 100) * 100;
+    // Tính lại giá App theo markup config
+    const appPrice = Math.round(val * (1 + pricingMarkupRate) / 100) * 100;
     currentEditingMenu[index].appPrice = appPrice;
     
     // Cập nhật hiển thị giá app trực tiếp trên giao diện
@@ -1392,6 +1571,7 @@ function renderOrders() {
         <button class="tab" onclick="filterOrders(this, 'ACCEPTED')">Đã nhận</button>
         <button class="tab" onclick="filterOrders(this, 'PURCHASED')">Đã mua</button>
         <button class="tab" onclick="filterOrders(this, 'DELIVERED')">Hoàn thành</button>
+        <button class="tab" onclick="filterOrders(this, 'CANCELLED')">Đã hủy</button>
       </div>
     </div>
 
@@ -1480,33 +1660,78 @@ function renderOrdersTable() {
   `;
 }
 
-function showOrderDetail(orderId) {
-  const o = cachedOrders.find(ord => ord.id === orderId);
+async function showOrderDetail(orderId) {
+  let o = cachedOrders.find(ord => ord.id === orderId);
   if (!o) {
     showToast('Không tìm thấy đơn hàng', 'error');
     return;
   }
 
-  // Lọc các tài xế đang ONLINE để gán đơn chủ động
-  const onlineShippers = cachedShippers.filter(s => s.status === 'ONLINE');
-  let assignHtml = '';
-  if (o.status === 'PENDING') {
-    const optionsHtml = onlineShippers.map(s => `<option value="${s.phone}">${s.name} (${s.phone})</option>`).join('');
-    assignHtml = `
-      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; background: rgba(59, 130, 246, 0.05); padding: 12px; border-radius: 8px;">
-        <h4 class="mb-2" style="color: var(--blue); font-size:13px; font-weight:700;"><i class="fa-solid fa-motorcycle"></i> Chỉ định tài xế gán đơn</h4>
-        ${onlineShippers.length === 0 
-          ? `<div class="text-xs text-muted" style="margin-top:4px;"><i class="fa-solid fa-circle-info"></i> Không có tài xế nào đang Trực tuyến (ONLINE) lúc này.</div>`
-          : `<div class="flex gap-2" style="margin-top:6px; display:flex; gap:8px;">
-              <select id="assign-shipper-select" class="form-input" style="flex: 1; padding: 6px 12px; font-size:12px;">
-                ${optionsHtml}
-              </select>
-              <button class="btn btn--primary btn--sm" onclick="assignOrderToShipper('${o.id}')" style="padding: 6px 16px; font-size:12px;">Gán đơn</button>
-            </div>`
-        }
-      </div>
-    `;
+  // Enrich with live data when JWT available
+  let live = null;
+  if (localStorage.getItem('shipfee_jwt')) {
+    try {
+      const res = await apiFetch(`/api/admin/orders/${orderId}/live`);
+      if (res.success && res.data) {
+        live = res.data;
+        o = { ...o, ...live };
+        const idx = cachedOrders.findIndex(x => x.id === orderId);
+        if (idx !== -1) cachedOrders[idx] = { ...cachedOrders[idx], ...live };
+      }
+    } catch (e) {
+      console.warn('live order', e);
+    }
   }
+
+  const onlineShippers = cachedShippers.filter(s => s.status === 'ONLINE');
+  const optionsHtml = onlineShippers.map(s =>
+    `<option value="${escapeHtml(s.phone)}">${escapeHtml(s.name)} (${escapeHtml(s.phone)})</option>`
+  ).join('');
+
+  let opsHtml = '';
+  if (o.status === 'PENDING') {
+    opsHtml += `
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; background: rgba(59, 130, 246, 0.05); padding: 12px; border-radius: 8px;">
+        <h4 class="mb-2" style="color: var(--blue); font-size:13px; font-weight:700;"><i class="fa-solid fa-motorcycle"></i> Chỉ định tài xế</h4>
+        ${onlineShippers.length === 0
+          ? `<div class="text-xs text-muted"><i class="fa-solid fa-circle-info"></i> Không có tài xế ONLINE.</div>`
+          : `<div class="flex gap-2" style="margin-top:6px; display:flex; gap:8px;">
+              <select id="assign-shipper-select" class="form-input" style="flex: 1; padding: 6px 12px; font-size:12px;">${optionsHtml}</select>
+              <button class="btn btn--primary btn--sm" onclick="assignOrderToShipper('${escapeHtml(o.id)}')">Gán đơn</button>
+            </div>`}
+      </div>`;
+  }
+
+  if (['PENDING', 'ACCEPTED'].includes(o.status)) {
+    opsHtml += `
+      <div style="margin-top: 10px; background: rgba(16,185,129,0.05); padding: 12px; border-radius: 8px;">
+        <h4 class="mb-2" style="color: var(--emerald-500); font-size:13px; font-weight:700;"><i class="fa-solid fa-shuffle"></i> Gán lại tài xế</h4>
+        ${onlineShippers.length === 0
+          ? `<div class="text-xs text-muted">Không có tài xế ONLINE.</div>`
+          : `<div style="display:flex; gap:8px;">
+              <select id="reassign-shipper-select" class="form-input" style="flex:1; padding:6px 12px; font-size:12px;">${optionsHtml}</select>
+              <button class="btn btn--secondary btn--sm" onclick="reassignOrderShipper('${escapeHtml(o.id)}')">Reassign</button>
+            </div>`}
+      </div>`;
+  }
+
+  const nextStatus = o.status === 'ACCEPTED' ? 'PURCHASED' : (o.status === 'PURCHASED' ? 'DELIVERED' : null);
+  opsHtml += `
+    <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:8px;">
+      ${nextStatus ? `<button class="btn btn--primary btn--sm" onclick="adminAdvanceOrderStatus('${escapeHtml(o.id)}','${nextStatus}')"><i class="fa-solid fa-forward"></i> → ${statusLabel(nextStatus)}</button>` : ''}
+      ${!['DELIVERED','CANCELLED'].includes(o.status) ? `<button class="btn btn--danger btn--sm" onclick="adminCancelOrder('${escapeHtml(o.id)}')"><i class="fa-solid fa-ban"></i> Hủy đơn</button>` : ''}
+    </div>`;
+
+  const messages = (live && live.messages) || o.messages || [];
+  const messagesHtml = messages.length
+    ? messages.map(m => `
+        <div style="padding:6px 0; border-bottom:1px solid var(--border);">
+          <div class="text-xs text-muted">${escapeHtml(m.sender || m.role || '—')} · ${formatTime(m.createdAt || m.timestamp)}</div>
+          <div class="text-sm">${escapeHtml(m.text || m.message || '')}</div>
+        </div>`).join('')
+    : `<div class="text-xs text-muted">Chưa có tin nhắn</div>`;
+
+  const hasMap = (typeof o.restaurantLat === 'number' || typeof o.pinnedLat === 'number' || typeof o.shipperLat === 'number');
 
   document.getElementById('order-modal-title').textContent = `Đơn hàng ${o.id}`;
   document.getElementById('order-modal-body').innerHTML = `
@@ -1521,36 +1746,38 @@ function showOrderDetail(orderId) {
       <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;">
         <span style="font-size: 16px;">🏪</span>
         <div>
-          <div class="text-sm fw-700">${o.restaurantName || '—'}</div>
-          <div class="text-xs text-muted">${o.restaurantAddress || ''}</div>
+          <div class="text-sm fw-700">${escapeHtml(o.restaurantName || '—')}</div>
+          <div class="text-xs text-muted">${escapeHtml(o.restaurantAddress || '')}</div>
         </div>
       </div>
       <div style="display: flex; align-items: flex-start; gap: 10px;">
         <span style="font-size: 16px;">🏠</span>
         <div>
-          <div class="text-sm fw-700">${o.deliveryName || '—'}</div>
-          <div class="text-xs text-muted">${o.deliveryAddress || ''}</div>
-          <div class="mono text-xs text-muted">${o.deliveryPhone || ''}</div>
+          <div class="text-sm fw-700">${escapeHtml(o.deliveryName || '—')}</div>
+          <div class="text-xs text-muted">${escapeHtml(o.deliveryAddress || '')}</div>
+          <div class="mono text-xs text-muted">${escapeHtml(o.deliveryPhone || '')}</div>
         </div>
       </div>
     </div>
 
-    ${o.note ? `<div class="card mb-4" style="padding: 12px; background: var(--amber-dim); border-color: rgba(245,158,11,0.2);"><span class="text-sm" style="color: var(--amber);">📝 ${o.note}</span></div>` : ''}
+    ${hasMap ? `<div id="order-live-map" style="height:180px;border-radius:8px;margin-bottom:12px;border:1px solid var(--border);"></div>` : ''}
+
+    ${o.note ? `<div class="card mb-4" style="padding: 12px; background: var(--amber-dim); border-color: rgba(245,158,11,0.2);"><span class="text-sm" style="color: var(--amber);">📝 ${escapeHtml(o.note)}</span></div>` : ''}
 
     <h4 class="mb-4">Món ăn (${(o.items || []).length})</h4>
     ${(o.items || []).map(item => {
-      const noteHtml = item.note 
-        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 2px; padding: 2px 6px; background: rgba(245,158,11,0.08); border: 1px dashed rgba(245,158,11,0.2); border-radius: 4px; display: inline-block; box-sizing: border-box; width:100%;"><i class="fa-solid fa-note-sticky"></i> Ghi chú: <strong>${item.note}</strong></div>`
+      const qty = item.qty || item.quantity || 1;
+      const noteHtml = item.note
+        ? `<div style="color: #f59e0b; font-size: 11px; margin-top: 2px;"><i class="fa-solid fa-note-sticky"></i> ${escapeHtml(item.note)}</div>`
         : '';
       return `
-        <div class="menu-item" style="padding: 8px 0; border-bottom: 1px solid var(--border); display:flex; flex-direction:column;">
+        <div class="menu-item" style="padding: 8px 0; border-bottom: 1px solid var(--border);">
           <div style="display:flex; justify-content:space-between; width:100%;">
-            <div class="menu-item__name" style="font-weight:600;">${item.name || '—'} × ${item.qty || 1}</div>
-            <div class="mono text-sm fw-700">${formatCurrency((item.appPrice || 0) * (item.qty || 1))}</div>
+            <div class="menu-item__name" style="font-weight:600;">${escapeHtml(item.name || '—')} × ${qty}</div>
+            <div class="mono text-sm fw-700">${formatCurrency((item.appPrice || item.price || 0) * qty)}</div>
           </div>
           ${noteHtml}
-        </div>
-      `;
+        </div>`;
     }).join('')}
 
     <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
@@ -1568,22 +1795,25 @@ function showOrderDetail(orderId) {
       </div>
     </div>
 
-    ${assignHtml}
+    ${opsHtml}
 
     ${o.shipperName ? `
       <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
         <h4 class="mb-4">Tài xế</h4>
-        <div class="flex items-center gap-2" onclick="editShipper('${o.shipperPhone}')" style="cursor: pointer;" title="Xem/Sửa thông tin tài xế">
-          <div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
-            ${o.shipperAvatarUrl ? `<img src="${o.shipperAvatarUrl}" style="width:100%; height:100%; object-fit:cover;">` : (o.shipperName || '?').charAt(0)}
-          </div>
+        <div class="flex items-center gap-2">
+          <div class="sidebar__user-avatar" style="width: 28px; height: 28px; font-size: 11px;">${escapeHtml((o.shipperName || '?').charAt(0))}</div>
           <div>
-            <div class="text-sm fw-700">${o.shipperName}</div>
-            <div class="mono text-xs text-muted">${o.shipperPhone || ''}</div>
+            <div class="text-sm fw-700">${escapeHtml(o.shipperName)}</div>
+            <div class="mono text-xs text-muted">${escapeHtml(o.shipperPhone || '')}</div>
+            ${typeof o.shipperLat === 'number' ? `<div class="text-xs text-muted">GPS: ${o.shipperLat.toFixed(5)}, ${o.shipperLon.toFixed(5)}</div>` : ''}
           </div>
         </div>
-      </div>
-    ` : ''}
+      </div>` : ''}
+
+    <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+      <h4 class="mb-2">Chat</h4>
+      <div style="max-height:140px; overflow-y:auto;">${messagesHtml}</div>
+    </div>
 
     <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
       <h4 class="mb-4">Timeline</h4>
@@ -1608,88 +1838,187 @@ function showOrderDetail(orderId) {
           <div class="timeline__label">Giao thành công</div>
           <div class="timeline__time">${formatTime(o.deliveredAt)}</div>
         </div>
+        ${o.status === 'CANCELLED' ? `
+        <div class="timeline__item done">
+          <div class="timeline__dot"></div>
+          <div class="timeline__label">Đã hủy${o.cancelReason ? ': ' + escapeHtml(o.cancelReason) : ''}</div>
+          <div class="timeline__time">${formatTime(o.cancelledAt)}</div>
+        </div>` : ''}
       </div>
     </div>
   `;
   openModal('order-modal');
+
+  if (hasMap && typeof L !== 'undefined') {
+    setTimeout(() => initOrderLiveMap(o), 80);
+  }
 }
 
-// ── CUSTOMERS PAGE ──────────────────────────────────────────────────────────
-function renderCustomers() {
-  const body = document.getElementById('main-body');
+function initOrderLiveMap(o) {
+  const el = document.getElementById('order-live-map');
+  if (!el || typeof L === 'undefined') return;
+  if (orderLiveMap) {
+    try { orderLiveMap.remove(); } catch (e) {}
+    orderLiveMap = null;
+  }
+  const points = [];
+  if (typeof o.restaurantLat === 'number' && typeof o.restaurantLon === 'number') points.push([o.restaurantLat, o.restaurantLon]);
+  if (typeof o.pinnedLat === 'number' && typeof o.pinnedLon === 'number') points.push([o.pinnedLat, o.pinnedLon]);
+  if (typeof o.shipperLat === 'number' && typeof o.shipperLon === 'number') points.push([o.shipperLat, o.shipperLon]);
+  if (!points.length) return;
 
-  const customerMap = new Map();
-  cachedOrders.forEach(o => {
-    const phone = o.deliveryPhone || o.ordererPhone;
-    if (!phone) return;
-    if (!customerMap.has(phone)) {
-      customerMap.set(phone, {
-        name: o.deliveryName || '—',
-        phone,
-        address: o.deliveryAddress || '',
-        orders: [],
-        totalSpent: 0
-      });
+  orderLiveMap = L.map(el).setView(points[0], 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(orderLiveMap);
+  if (typeof o.restaurantLat === 'number') L.marker([o.restaurantLat, o.restaurantLon]).addTo(orderLiveMap).bindPopup('Quán');
+  if (typeof o.pinnedLat === 'number') L.marker([o.pinnedLat, o.pinnedLon]).addTo(orderLiveMap).bindPopup('Giao');
+  if (typeof o.shipperLat === 'number') L.marker([o.shipperLat, o.shipperLon]).addTo(orderLiveMap).bindPopup('Shipper');
+  if (points.length > 1) orderLiveMap.fitBounds(points, { padding: [24, 24] });
+}
+
+async function adminAdvanceOrderStatus(orderId, status) {
+  try {
+    const res = await apiFetch(`/api/admin/orders/${orderId}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status })
+    });
+    if (res.success) {
+      showToast(`Đã cập nhật → ${statusLabel(status)}`, 'success');
+      await fetchAllData();
+      showOrderDetail(orderId);
+    } else {
+      showToast(res.error || 'Lỗi cập nhật', 'error');
     }
-    const c = customerMap.get(phone);
-    c.orders.push(o);
-    c.totalSpent += (o.appTotal || 0);
-  });
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+  }
+}
 
-  const customers = Array.from(customerMap.values());
+async function adminCancelOrder(orderId) {
+  const reason = prompt('Lý do hủy đơn:', 'Admin hủy đơn') || 'Admin hủy đơn';
+  try {
+    const res = await apiFetch(`/api/admin/orders/${orderId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason })
+    });
+    if (res.success) {
+      showToast('Đã hủy đơn', 'success');
+      closeModal('order-modal');
+      fetchAllData();
+    } else {
+      showToast(res.error || 'Lỗi hủy đơn', 'error');
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+  }
+}
 
+async function reassignOrderShipper(orderId) {
+  const select = document.getElementById('reassign-shipper-select');
+  if (!select || !select.value) {
+    showToast('Chọn tài xế', 'warning');
+    return;
+  }
+  try {
+    const res = await apiFetch(`/api/admin/orders/${orderId}/reassign`, {
+      method: 'POST',
+      body: JSON.stringify({ shipperPhone: select.value })
+    });
+    if (res.success) {
+      showToast('Đã gán lại tài xế', 'success');
+      await fetchAllData();
+      showOrderDetail(orderId);
+    } else {
+      showToast(res.error || 'Lỗi reassign', 'error');
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+  }
+}
+
+window.adminAdvanceOrderStatus = adminAdvanceOrderStatus;
+window.adminCancelOrder = adminCancelOrder;
+window.reassignOrderShipper = reassignOrderShipper;
+
+// ── CUSTOMERS PAGE ──────────────────────────────────────────────────────────
+async function renderCustomers() {
+  const body = document.getElementById('main-body');
   body.innerHTML = `
-    <div class="page-section-header">
-      <h2>Khách hàng</h2>
-    </div>
-
+    <div class="page-section-header"><h2>Khách hàng</h2></div>
     <div class="toolbar">
       <div class="form-search" style="width: 280px;">
         <span class="form-search__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-        <input type="text" class="form-input" placeholder="Tìm khách hàng..." id="customer-search">
+        <input type="text" class="form-input" placeholder="Tìm khách hàng..." id="customer-search" onkeyup="filterCustomersTable()">
       </div>
-      <div class="toolbar__spacer"></div>
-      <span class="text-muted text-sm">${customers.length} khách hàng</span>
     </div>
-
     <div class="data-table-wrapper">
       <div class="data-table-header">
-        <h3>Danh sách khách hàng</h3>
-        <span class="count">${customers.length}</span>
+        <h3>Danh sách khách</h3>
+        <span class="count" id="customer-table-count">0</span>
       </div>
-      ${customers.length === 0
-        ? `<div class="empty-state"><div class="empty-state__icon"><i class="fa-solid fa-users"></i></div><h3>Chưa có khách hàng</h3><p>Khách hàng sẽ xuất hiện khi có đơn hàng</p></div>`
-        : `<table class="data-table">
-          <thead>
-            <tr>
-              <th>Khách hàng</th>
-              <th>Số điện thoại</th>
-              <th>Địa chỉ</th>
-              <th>Số đơn</th>
-              <th>Tổng chi tiêu</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${customers.map(c => `
-              <tr>
-                <td>
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <div class="sidebar__user-avatar" style="width: 32px; height: 32px; font-size: 12px; background: rgba(59, 130, 246, 0.1); color: var(--clr-primary); display:flex; align-items:center; justify-content:center; border-radius:50%;">${(c.name || '?').charAt(0)}</div>
-                    <strong>${c.name}</strong>
-                  </div>
-                </td>
-                <td><span class="mono text-sm">${c.phone}</span></td>
-                <td class="text-sm text-muted" style="max-width: 200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${c.address}</td>
-                <td><span class="mono text-sm fw-700">${c.orders.length}</span></td>
-                <td><span class="mono text-sm fw-700 text-accent">${formatCurrency(c.totalSpent)}</span></td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>`
-      }
+      <div id="customers-table-body"><div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Đang tải...</p></div></div>
     </div>
   `;
+
+  try {
+    if (localStorage.getItem('shipfee_jwt')) {
+      const res = await apiFetch('/api/admin/customers');
+      cachedCustomers = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+    } else {
+      // Fallback derive from orders
+      const customerMap = new Map();
+      cachedOrders.forEach(o => {
+        const phone = o.deliveryPhone || o.ordererPhone;
+        if (!phone) return;
+        if (!customerMap.has(phone)) {
+          customerMap.set(phone, { name: o.deliveryName || '—', phone, address: o.deliveryAddress || '', orderCount: 0, totalSpent: 0 });
+        }
+        const c = customerMap.get(phone);
+        c.orderCount += 1;
+        c.totalSpent += (o.appTotal || 0);
+      });
+      cachedCustomers = Array.from(customerMap.values());
+    }
+  } catch (e) {
+    cachedCustomers = [];
+    console.warn(e);
+  }
+  filterCustomersTable();
 }
+
+function filterCustomersTable() {
+  const el = document.getElementById('customers-table-body');
+  const countEl = document.getElementById('customer-table-count');
+  if (!el) return;
+  const q = (document.getElementById('customer-search')?.value || '').toLowerCase().trim();
+  let list = cachedCustomers || [];
+  if (q) {
+    list = list.filter(c =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.phone || '').toLowerCase().includes(q) ||
+      (c.address || '').toLowerCase().includes(q)
+    );
+  }
+  if (countEl) countEl.textContent = list.length;
+  if (list.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:32px;"><p class="text-muted text-sm">Không có khách hàng</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Khách</th><th>SĐT</th><th>Địa chỉ</th><th>Số đơn</th><th>Chi tiêu</th></tr></thead>
+      <tbody>
+        ${list.map(c => `
+          <tr>
+            <td class="text-sm fw-700">${escapeHtml(c.name || '—')}</td>
+            <td><span class="mono text-sm">${escapeHtml(c.phone || '')}</span></td>
+            <td class="text-sm text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(c.address || '')}</td>
+            <td><span class="mono text-sm fw-700">${c.orderCount || c.ordersCount || c.orders?.length || 0}</span></td>
+            <td><span class="mono text-sm fw-700 text-accent">${formatCurrency(c.totalSpent || 0)}</span></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+window.filterCustomersTable = filterCustomersTable;
 
 // ── SETTINGS PAGE ───────────────────────────────────────────────────────────
 function renderSettings() {
@@ -1707,8 +2036,24 @@ function renderSettings() {
           <input type="number" class="form-input" id="settings-markup-rate" min="0" max="100" value="28">
         </div>
         <div class="form-group">
-          <label class="form-label">Giảm giá đơn thứ 2 (%) (ví dụ: 10)</label>
+          <label class="form-label">Giảm giá đơn thứ 2 (%)</label>
           <input type="number" class="form-input" id="settings-discount-rate" min="0" max="100" value="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quãng đường miễn phí (km)</label>
+          <input type="number" class="form-input" id="settings-free-distance" min="0" step="0.1" value="1.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hệ số phụ thu khoảng cách</label>
+          <input type="number" class="form-input" id="settings-surcharge-coef" min="0" value="7000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Sàn thu nhập shipper (đ)</label>
+          <input type="number" class="form-input" id="settings-min-earning" min="0" value="15000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Giảm phụ thu món 2+ (%)</label>
+          <input type="number" class="form-input" id="settings-multi-discount" min="0" max="100" value="15">
         </div>
         <button class="btn btn--primary btn--sm" onclick="savePricingSettings()">
           <i class="fa-solid fa-floppy-disk"></i> Lưu cấu hình
@@ -1766,14 +2111,17 @@ function renderSettings() {
   `;
 
   // Tải cấu hình pricing từ API
-  fetch(`${API_BASE}/api/admin/pricing-config`)
-    .then(r => r.json())
+  apiFetch('/api/admin/pricing-config')
     .then(res => {
       if (res.success && res.data) {
-        const markupInput = document.getElementById('settings-markup-rate');
-        const discountInput = document.getElementById('settings-discount-rate');
-        if (markupInput) markupInput.value = Math.round(res.data.markupRate * 100);
-        if (discountInput) discountInput.value = Math.round(res.data.secondOrderDiscountRate * 100);
+        pricingMarkupRate = res.data.markupRate || 0.28;
+        const set = (id, val) => { const el = document.getElementById(id); if (el && val != null) el.value = val; };
+        set('settings-markup-rate', Math.round((res.data.markupRate || 0) * 100));
+        set('settings-discount-rate', Math.round((res.data.secondOrderDiscountRate || 0) * 100));
+        set('settings-free-distance', res.data.freeDistanceKm);
+        set('settings-surcharge-coef', res.data.surchargeCoefficient);
+        set('settings-min-earning', res.data.minShipperEarning);
+        set('settings-multi-discount', Math.round((res.data.multiItemDiscount || 0) * 100));
       }
     })
     .catch(err => console.error('Lỗi lấy cấu hình pricing:', err));
@@ -1832,34 +2180,41 @@ async function checkServerStatus() {
 }
 
 async function savePricingSettings() {
-  const markupInput = document.getElementById('settings-markup-rate');
-  const discountInput = document.getElementById('settings-discount-rate');
-  if (!markupInput || !discountInput) return;
+  const num = (id, div = 1) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const v = parseFloat(el.value);
+    return isNaN(v) ? null : v / div;
+  };
 
-  const markupRate = parseFloat(markupInput.value) / 100;
-  const secondOrderDiscountRate = parseFloat(discountInput.value) / 100;
+  const payload = {
+    markupRate: num('settings-markup-rate', 100),
+    secondOrderDiscountRate: num('settings-discount-rate', 100),
+    freeDistanceKm: num('settings-free-distance'),
+    surchargeCoefficient: num('settings-surcharge-coef'),
+    minShipperEarning: num('settings-min-earning'),
+    multiItemDiscount: num('settings-multi-discount', 100)
+  };
 
-  if (isNaN(markupRate) || isNaN(secondOrderDiscountRate)) {
+  if (payload.markupRate == null || payload.secondOrderDiscountRate == null) {
     showToast('Thông số không hợp lệ!', 'error');
     return;
   }
 
   try {
-    const res = await fetch(`${API_BASE}/api/admin/pricing-config`, {
+    const res = await apiFetch('/api/admin/pricing-config', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ markupRate, secondOrderDiscountRate })
-    }).then(r => r.json());
+      body: JSON.stringify(payload)
+    });
 
     if (res.success) {
-      showToast('Đã lưu cấu hình Pricing & Khuyến mãi thành công!', 'success');
+      pricingMarkupRate = payload.markupRate;
+      showToast('Đã lưu cấu hình Pricing thành công!', 'success');
     } else {
       showToast(res.error || 'Lỗi lưu cấu hình', 'error');
     }
   } catch (err) {
-    showToast('Không thể kết nối đến API Server.', 'error');
+    showToast(err.message || 'Không thể kết nối đến API Server.', 'error');
   }
 }
 
@@ -1930,7 +2285,7 @@ let cachedNotifications = [];
 
 async function fetchNotifications() {
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications`);
+    const res = await apiFetch('/api/admin/notifications');
     if (res.success && Array.isArray(res.data)) {
       cachedNotifications = res.data;
     }
@@ -2003,7 +2358,7 @@ function renderNotificationsList() {
 async function handleReadNotification(id, event) {
   if (event) event.stopPropagation();
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications/${id}/read`, { method: 'POST' });
+    const res = await apiFetch(`/api/admin/notifications/${id}/read`, { method: 'POST' });
     if (res.success) {
       // Cập nhật trạng thái cục bộ
       const idx = cachedNotifications.findIndex(n => n.id === id);
@@ -2018,7 +2373,7 @@ async function handleReadNotification(id, event) {
 
 async function handleReadAllNotifications() {
   try {
-    const res = await fetchWithAuth(`${API_BASE}/api/admin/notifications/read-all`, { method: 'POST' });
+    const res = await apiFetch('/api/admin/notifications/read-all', { method: 'POST' });
     if (res.success) {
       cachedNotifications.forEach(n => n.read = true);
       renderNotificationsList();
@@ -2042,7 +2397,7 @@ function viewRestaurantInCRM(restaurantId, restaurantName) {
     }
     
     // 3. Tự động mở Modal Menu của quán ăn đó luôn để Admin xem nhanh món/giá thay đổi!
-    openRestaurantMenu(restaurantId);
+    viewRestaurantMenu(restaurantId);
   }, 120);
 }
 

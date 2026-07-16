@@ -30,17 +30,17 @@
 
         <div class="form-group">
           <label class="form-label" for="admin-email">Email quản trị</label>
-          <input type="email" id="admin-email" class="form-input" placeholder="admin@shipfee.vn" value="admin@shipfee.vn">
+          <input type="email" id="admin-email" class="form-input" placeholder="admin@shipfee.vn" autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label" for="admin-password">Mật khẩu</label>
-          <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" value="admin123">
+          <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" autocomplete="current-password">
         </div>
         <button class="btn btn--primary btn--full btn--lg" onclick="handleAdminLogin()" id="login-btn">
           <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
         </button>
         <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; text-align: center; line-height: 1.5;">
-          Demo: admin@shipfee.vn / admin123
+          Đăng nhập bằng tài khoản Supabase Admin
         </p>
       </div>
     </div>
