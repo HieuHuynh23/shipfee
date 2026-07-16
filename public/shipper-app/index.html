@@ -16,6 +16,7 @@
 <body>
 
   <div id="toast-container" class="toast-container"></div>
+  <div id="connection-banner" class="connection-banner" role="status" aria-live="polite"></div>
 
   <!-- ── SETUP ACCOUNT OVERLAY ── -->
   <div class="overlay active" id="login-overlay">
@@ -46,11 +47,11 @@
       <div class="form-group" id="login-group-avatar" style="display: none; margin-bottom: 12px;">
         <label for="driver-avatar">Ảnh chân dung (Bắt buộc)</label>
         <div class="avatar-upload-wrapper" style="display: flex; align-items: center; gap: 12px; margin-top: 6px;">
-          <div class="avatar-preview-box" style="width: 50px; height: 50px; border-radius: 50%; background: #1e293b; border: 1.5px dashed #475569; display: flex; align-items: center; justify-content: center; overflow: hidden; color: #94a3b8;">
+          <div class="avatar-preview-box" style="width: 50px; height: 50px; border-radius: 50%; background: var(--clr-surface-card); border: 1.5px dashed var(--clr-border); display: flex; align-items: center; justify-content: center; overflow: hidden; color: var(--clr-text-muted);">
             <i class="fa-solid fa-camera" id="avatar-preview-icon" style="font-size: 16px;"></i>
             <img id="avatar-preview-img" style="display: none; width: 100%; height: 100%; object-fit: cover;">
           </div>
-          <input type="file" id="driver-avatar" accept="image/*" style="font-size: 12px; color: #cbd5e1;" onchange="previewDriverAvatar(event)">
+          <input type="file" id="driver-avatar" accept="image/*" style="font-size: 12px; color: var(--clr-text-secondary);" onchange="previewDriverAvatar(event)">
         </div>
       </div>
       <div class="form-group" id="login-group-email">
@@ -62,7 +63,7 @@
         <input type="password" id="driver-password" placeholder="Nhập mật khẩu">
       </div>
       <button class="btn btn--primary btn--full btn--lg" onclick="handleAuthAction()" id="login-btn">
-        <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase
+        <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
       </button>
       <div style="margin-top: 16px; text-align: center; font-size: 13px;">
         <span id="auth-toggle-text">Chưa có tài khoản?</span> 
@@ -145,12 +146,13 @@
   <div class="overlay" id="job-offer-overlay" onclick="event.stopPropagation()">
     <div class="modal job-modal offer-modal animate-glow">
       <div class="job-modal__header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent); display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <h4 style="color: var(--clr-danger); font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-bell fa-shake"></i> ĐƠN ĐỀ XUẤT CHO BẠN!
+        <h4 style="color: var(--clr-danger); font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;" id="offer-title">
+          <i class="fa-solid fa-bell fa-shake"></i> <span id="offer-title-text">ĐƠN ĐỀ XUẤT CHO BẠN!</span>
         </h4>
         <span class="offer-timer-badge" id="offer-timer-seconds" style="background: var(--clr-danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">30s</span>
       </div>
       <div class="job-modal__body" style="padding-top: 15px;">
+        <div id="offer-batch-banner" class="offer-batch-banner" style="display: none;"></div>
         <!-- Progress bar countdown -->
         <div class="offer-progress-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 15px;">
           <div class="offer-progress-bar" id="offer-progress-bar" style="width: 100%; height: 100%; background: var(--clr-danger); transition: width 0.1s linear;"></div>
@@ -287,31 +289,34 @@
     <!-- CONTENT AREA -->
     <main class="content">
       
-      <!-- TAB 1: NEW ORDERS -->
+      <!-- TAB 1: WAIT FOR DISPATCH (no public pool) -->
       <section id="tab-orders" class="tab-content active">
         <div class="section-title">
-          <h3>Đơn Hàng Mới Lân Cận</h3>
+          <h3>Chờ đề xuất đơn</h3>
           <span class="badge badge--primary" id="pending-count">0</span>
         </div>
         <div class="order-list" id="pending-orders-list">
           <!-- Populated by JS -->
           <div class="empty-state">
-            <i class="fa-solid fa-radar fa-spin-slow"></i>
-            <p>Đang tìm kiếm đơn hàng lân cận...</p>
+            <i class="fa-solid fa-satellite-dish fa-spin-slow"></i>
+            <p>Đang chờ hệ thống đề xuất đơn...</p>
           </div>
         </div>
       </section>
 
-      <!-- TAB 2: CURRENT TRIP -->
+      <!-- TAB 2: CURRENT TRIP (up to 2 orders) -->
       <section id="tab-trip" class="tab-content">
         <div class="section-title">
-          <h3>Chuyến Đi Hiện Tại</h3>
+          <h3>Chuyến đi đang chạy</h3>
+          <span class="badge badge--accent" id="active-orders-count" style="display:none;">0/2</span>
         </div>
+
+        <div id="active-orders-switcher" class="active-orders-switcher" style="display: none;"></div>
         
         <div id="no-active-trip" class="empty-state">
           <i class="fa-solid fa-route"></i>
-          <p>Bạn chưa nhận đơn hàng nào.</p>
-          <button class="btn btn--secondary" onclick="switchTab('orders')">Xem danh sách đơn</button>
+          <p>Bạn chưa có đơn đang chạy.</p>
+          <button class="btn btn--secondary" onclick="switchTab('orders')">Chờ đề xuất đơn</button>
         </div>
 
         <div id="active-trip-container" style="display: none;">
@@ -466,7 +471,7 @@
     <nav class="tabs-nav">
       <button class="tab-btn active" onclick="switchTab('orders')" id="nav-btn-orders">
         <i class="fa-solid fa-list-check"></i>
-        <span>Đơn mới</span>
+        <span>Chờ đơn</span>
       </button>
       <button class="tab-btn" onclick="switchTab('trip')" id="nav-btn-trip">
         <i class="fa-solid fa-route"></i>

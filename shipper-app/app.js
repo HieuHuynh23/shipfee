@@ -12,10 +12,15 @@ if (localStorage.getItem('shipfee_api_url')) {
 const API_BASE = defaultApiUrl;
 const originalFetch = window.fetch;
 window.fetch = function(input, init) {
+  let url = typeof input === 'string' ? input : (input && input.url) || '';
   if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
     input = input.replace('http://localhost:3001', API_BASE);
+    url = input;
   }
-  const token = sessionStorage.getItem('shipfee_jwt');
+
+  // Only attach JWT to ShipFee backend — never leak token to OSRM/CDN/third-parties
+  const isShipfeeApi = url.startsWith(API_BASE) || url.startsWith('/') || url.startsWith('http://localhost:3001');
+  const token = isShipfeeApi ? sessionStorage.getItem('shipfee_jwt') : null;
   if (token) {
     init = init || {};
     init.headers = init.headers || {};
@@ -29,6 +34,32 @@ window.fetch = function(input, init) {
   }
   return originalFetch(input, init);
 };
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function safeJson(response) {
+  try {
+    return await response.json();
+  } catch (e) {
+    throw new Error('Máy chủ phản hồi không hợp lệ. Vui lòng thử lại.');
+  }
+}
+
+async function apiFetch(url, options = {}, timeoutMs = 8000) {
+  const opts = { ...options };
+  if (!opts.signal && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
+    opts.signal = AbortSignal.timeout(timeoutMs);
+  }
+  return fetch(url, opts);
+}
 
 // Helper to normalize phone numbers for robust matching (removes spaces)
 function cleanPhone(p) {
@@ -79,14 +110,33 @@ window.logoutApprovalPending = logoutApprovalPending;
 // ── STATE MANAGEMENT ────────────────────────────────────────────────────────
 let supabaseClient = null;
 let currentDriver = null; // { name, phone }
-let activeOrder = null;   // current accepted order
-let pendingOrders = [];   // list of pending orders
+let activeOrder = null;   // focused active order (1 of up to 2)
+let activeOrders = [];    // up to 2 concurrent ACCEPTED/PURCHASED orders
+const MAX_ACTIVE_ORDERS = 2;
+let pendingOrders = [];   // targeted offers only (no public pool)
 let historyOrders = [];   // completed orders by this driver
 let isOnline = true;      // receiving orders
 let pollInterval = null;
 let watchPositionId = null;
 let targetedOffer = null; // current active job offer
 let offerTimerInterval = null;
+
+// In-flight / concurrency guards
+let syncInFlight = false;
+let acceptInFlight = false;
+let statusUpdateInFlight = false;
+let shiftInFlight = false;
+let chatSendInFlight = false;
+let loginInFlight = false;
+let pollFailCount = 0;
+let pollBackoffActive = false;
+let lastChatFingerprint = '';
+let mapFollowGps = true;
+let lastGpsUiUpdate = 0;
+let lastGpsIndicatorText = '';
+let lastKnownOnline = true;
+const declinedPublicOrders = new Map(); // orderId -> expiresAt
+const DECLINE_IGNORE_MS = 10 * 60 * 1000;
 
 // Performance stats (Acceptance Rate, Completion Rate)
 let stats = {
@@ -104,12 +154,97 @@ let routeLine = null;
 
 const FLOW = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
 
+function setConnectionStatus(online, detail) {
+  const banner = document.getElementById('connection-banner');
+  if (!banner) return;
+
+  // Không hiện banner trên màn đăng nhập — tránh làm lệch layout/giao diện auth
+  const loginOverlay = document.getElementById('login-overlay');
+  const onLoginScreen = !!(loginOverlay && loginOverlay.classList.contains('active'));
+  if (onLoginScreen || !currentDriver) {
+    lastKnownOnline = online;
+    banner.classList.remove('active', 'connection-banner--offline', 'connection-banner--online');
+    banner.textContent = '';
+    return;
+  }
+
+  if (online) {
+    if (!lastKnownOnline) {
+      banner.classList.remove('active', 'connection-banner--offline');
+      banner.classList.add('connection-banner--online');
+      banner.textContent = detail || 'Đã kết nối lại máy chủ';
+      banner.classList.add('active');
+      setTimeout(() => banner.classList.remove('active', 'connection-banner--online'), 2500);
+    } else {
+      banner.classList.remove('active', 'connection-banner--offline', 'connection-banner--online');
+    }
+  } else {
+    banner.classList.add('active', 'connection-banner--offline');
+    banner.classList.remove('connection-banner--online');
+    banner.textContent = detail || 'Mất kết nối — đang thử lại…';
+  }
+  lastKnownOnline = online;
+}
+
+function pruneDeclinedOrders() {
+  const now = Date.now();
+  for (const [id, expiresAt] of declinedPublicOrders) {
+    if (expiresAt <= now) declinedPublicOrders.delete(id);
+  }
+}
+
+function rememberDeclinedOrder(orderId) {
+  if (!orderId) return;
+  declinedPublicOrders.set(orderId, Date.now() + DECLINE_IGNORE_MS);
+}
+
+function getChatFingerprint(order) {
+  if (!order || !Array.isArray(order.messages) || order.messages.length === 0) return '0';
+  const last = order.messages[order.messages.length - 1];
+  return `${order.messages.length}:${last.id || ''}:${last.ts || last.createdAt || ''}:${last.text || ''}`;
+}
+
+let pollMode = 'all'; // 'all' | 'active'
+
+function schedulePolling(intervalMs) {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+  const tick = () => {
+    if (pollMode === 'active') {
+      if (!activeOrder) {
+        startPolling();
+        return;
+      }
+      syncActiveOrderOnly();
+    } else {
+      syncAllData();
+    }
+  };
+  pollInterval = setInterval(tick, intervalMs);
+}
+
 // ── DOM LOADED ──────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   await initSupabase();
   loadDriverInfo();
   loadStats();
   initApp();
+
+  window.addEventListener('online', () => {
+    setConnectionStatus(true, 'Đã có mạng trở lại');
+    if (currentDriver) {
+      pollFailCount = 0;
+      pollBackoffActive = false;
+      if (pollMode === 'active') syncActiveOrderOnly();
+      else syncAllData();
+      schedulePolling(3000);
+    }
+  });
+  window.addEventListener('offline', () => {
+    setConnectionStatus(false, 'Thiết bị mất mạng — kiểm tra kết nối');
+  });
 });
 
 async function initApp() {
@@ -135,9 +270,9 @@ async function initApp() {
     
     // Đồng bộ trạng thái ca làm việc (Check-in/Check-out) từ server bằng API profile
     try {
-      const res = await fetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`);
+      const res = await apiFetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`, {}, 10000);
       if (res.ok) {
-        const json = await res.json();
+        const json = await safeJson(res);
         if (json.success && json.shipper) {
           isOnline = (json.shipper.status === 'ONLINE');
           sessionStorage.setItem('shipfee_driver_online', isOnline);
@@ -205,7 +340,7 @@ function toggleAuthMode(e) {
     document.getElementById('login-group-email').style.display = 'flex';
     document.getElementById('login-group-password').style.display = 'flex';
     document.getElementById('login-group-avatar').style.display = 'none';
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
   }
 }
 
@@ -253,19 +388,17 @@ async function registerDriver() {
 
   try {
     // 1. Tạo tài khoản thông qua API Backend (sử dụng signUp để gửi email xác nhận)
-    const response = await fetch(`${API_BASE}/api/shippers/register`, {
+    const response = await apiFetch(`${API_BASE}/api/shippers/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64, cccd })
-    });
+    }, 20000);
 
-    const res = await response.json();
+    const res = await safeJson(response);
     if (!response.ok || !res.success) {
       showToast('Đăng ký thất bại', res.error || 'Đăng ký tài khoản thất bại.', 'error');
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản';
       return;
     }
 
@@ -276,14 +409,15 @@ async function registerDriver() {
       'success'
     );
     toggleAuthMode();
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
-    return;
   } catch (err) {
     console.error('Lỗi đăng ký tài xế:', err);
     showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ API.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = authMode === 'register'
+      ? '<i class="fa-solid fa-user-plus"></i> Đăng ký tài khoản'
+      : '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
   }
-  btn.disabled = false;
 }
 
 async function refreshDriverInfo() {
@@ -342,15 +476,23 @@ async function loginDriver() {
     showToast('Supabase chưa cấu hình', 'Hệ thống đang hoạt động ở chế độ Online bắt buộc nhưng Supabase chưa được kết nối!', 'error');
     return;
   }
+  if (loginInFlight) return;
 
   const emailInput = document.getElementById('driver-email');
   const passwordInput = document.getElementById('driver-password');
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
+  const btn = document.getElementById('login-btn');
 
   if (!email || !password) {
     showToast('Thiếu thông tin', 'Vui lòng nhập Email và Mật khẩu.', 'warning');
     return;
+  }
+
+  loginInFlight = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang đăng nhập...';
   }
 
   try {
@@ -364,13 +506,13 @@ async function loginDriver() {
     sessionStorage.setItem('shipfee_jwt', session.access_token);
 
     // Gọi API của server để đồng bộ và lấy thông tin shipper
-    const response = await fetch(`${API_BASE}/api/shippers/login`, {
+    const response = await apiFetch(`${API_BASE}/api/shippers/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ token: session.access_token })
-    });
+    }, 15000);
 
     if (response.status === 403) {
       // Tài khoản đang chờ phê duyệt
@@ -379,7 +521,7 @@ async function loginDriver() {
       return;
     }
 
-    const result = await response.json();
+    const result = await safeJson(response);
     if (response.ok && result.success) {
       currentDriver = { 
         name: result.shipper.name, 
@@ -407,13 +549,13 @@ async function loginDriver() {
         statusText.className = 'status-indicator online';
       }
 
-      fetch(`${API_BASE}/api/shippers/shift`, {
+      apiFetch(`${API_BASE}/api/shippers/shift`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ phone: currentDriver.phone, status: 'ONLINE' })
-      }).catch(err => console.warn('Lỗi tự động vào ca:', err));
+      }, 10000).catch(err => console.warn('Lỗi tự động vào ca:', err));
 
       startPolling();
     } else {
@@ -422,6 +564,12 @@ async function loginDriver() {
   } catch (err) {
     console.error('Lỗi login Supabase:', err);
     showToast('Lỗi kết nối', 'Không thể kết nối với Supabase Auth.', 'error');
+  } finally {
+    loginInFlight = false;
+    if (btn && authMode === 'login') {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
+    }
   }
 }
 
@@ -453,17 +601,24 @@ async function toggleOnlineStatus() {
   const statusString = nextOnline ? 'ONLINE' : 'OFFLINE';
   
   if (!currentDriver) return;
+  if (shiftInFlight) {
+    checkbox.checked = !nextOnline;
+    return;
+  }
+
+  shiftInFlight = true;
+  checkbox.disabled = true;
   
   try {
-    const res = await fetch(`${API_BASE}/api/shippers/shift`, {
+    const res = await apiFetch(`${API_BASE}/api/shippers/shift`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ phone: currentDriver.phone, status: statusString })
-    });
+    }, 10000);
     
-    const result = await res.json();
+    const result = await safeJson(res);
     if (res.ok && result.success) {
       isOnline = nextOnline;
       sessionStorage.setItem('shipfee_driver_online', isOnline);
@@ -492,17 +647,23 @@ async function toggleOnlineStatus() {
     // Revert checkbox state on network error
     checkbox.checked = !nextOnline;
     showToast('Lỗi kết nối', 'Không thể kết nối máy chủ để cập nhật ca.', 'error');
+  } finally {
+    shiftInFlight = false;
+    checkbox.disabled = false;
   }
 }
 
 // ── POLLING DATA ────────────────────────────────────────────────────────────
 function startPolling() {
   stopPolling();
+  pollMode = 'all';
   if (isOnline) {
     startGpsTracking();
   }
+  pollFailCount = 0;
+  pollBackoffActive = false;
   syncAllData();
-  pollInterval = setInterval(syncAllData, 3000);
+  schedulePolling(3000);
 }
 
 function stopPolling() {
@@ -510,145 +671,172 @@ function stopPolling() {
     clearInterval(pollInterval);
     pollInterval = null;
   }
-  if (!activeOrder) {
+  if (activeOrders.length === 0) {
     stopGpsTracking();
   }
 }
 
 function startActiveOrderPolling() {
-  stopPolling();
-  pollInterval = setInterval(async () => {
-    if (!activeOrder) {
-      startPolling();
-      return;
-    }
-    await syncActiveOrderOnly();
-  }, 3000);
+  // Vẫn poll toàn bộ đơn để nhận đề xuất đơn thứ 2 (ghép đơn)
+  startPolling();
 }
 
 let lastPendingLength = 0;
 
+function setActiveOrdersList(list, { announceNew = false } = {}) {
+  const prevIds = new Set(activeOrders.map(o => o.id));
+  activeOrders = Array.isArray(list) ? list.slice(0, MAX_ACTIVE_ORDERS) : [];
+
+  if (activeOrders.length === 0) {
+    activeOrder = null;
+    return { isFirstLoad: false, focusedChanged: true };
+  }
+
+  const stillFocused = activeOrder && activeOrders.some(o => o.id === activeOrder.id);
+  const newest = activeOrders[activeOrders.length - 1];
+  const prevFocusedId = activeOrder && activeOrder.id;
+  if (!stillFocused) {
+    activeOrder = newest;
+  } else {
+    activeOrder = activeOrders.find(o => o.id === activeOrder.id) || newest;
+  }
+
+  const isFirstLoad = prevIds.size === 0 && activeOrders.length > 0;
+  const newlyAdded = activeOrders.filter(o => !prevIds.has(o.id));
+  if (announceNew && newlyAdded.length > 0 && !isFirstLoad) {
+    playChimeSound();
+    showToast(
+      activeOrders.length > 1 ? 'Ghép đơn thành công! 📦' : 'Nhận đơn thành công! ⚡',
+      newlyAdded.length > 1
+        ? `Bạn vừa nhận thêm ${newlyAdded.length} đơn.`
+        : `Đơn ${newlyAdded[0].id} đã được gán cho bạn.`,
+      'success'
+    );
+  }
+  return {
+    isFirstLoad,
+    focusedChanged: prevFocusedId !== (activeOrder && activeOrder.id),
+    newlyAdded
+  };
+}
+
+function selectActiveOrder(orderId) {
+  const found = activeOrders.find(o => o.id === orderId);
+  if (!found) return;
+  activeOrder = found;
+  mapFollowGps = true;
+  renderActiveTrip();
+  maybeRefreshChat();
+}
+window.selectActiveOrder = selectActiveOrder;
+
 async function syncAllData() {
-  if (!currentDriver) return;
+  if (!currentDriver || syncInFlight) return;
+  syncInFlight = true;
   
   try {
     const url = `${API_BASE}/api/orders?shipperPhone=${encodeURIComponent(currentDriver.phone)}`;
-    const res = await fetch(url);
+    const res = await apiFetch(url, {}, 8000);
     if (!res.ok) throw new Error('API server error');
-    const result = await res.json();
+    const result = await safeJson(res);
+    
+    pollFailCount = 0;
+    setConnectionStatus(true);
+    if (pollBackoffActive) {
+      pollBackoffActive = false;
+      schedulePolling(3000);
+    }
     
     if (result.success && Array.isArray(result.data)) {
       const allOrders = result.data;
+      pruneDeclinedOrders();
       
-      pendingOrders = allOrders.filter(o => o.status === 'PENDING');
+      // Chỉ đề xuất đích danh — không còn bể đơn chung
+      pendingOrders = allOrders.filter(o =>
+        o.status === 'PENDING' &&
+        cleanPhone(o.assignedShipperPhone) === cleanPhone(currentDriver.phone) &&
+        !declinedPublicOrders.has(o.id)
+      );
       
-      // Detect targeted job offer specifically for this driver
-      const myOffer = pendingOrders.find(o => o.assignedShipperPhone && cleanPhone(o.assignedShipperPhone) === cleanPhone(currentDriver.phone));
-      handleTargetedOffer(myOffer);
-      
-      // Filter out the targeted offer from the background "Tìm Đơn" list to avoid redundancy
-      const poolOrders = pendingOrders.filter(o => !o.assignedShipperPhone || cleanPhone(o.assignedShipperPhone) !== cleanPhone(currentDriver.phone));
-      
-      // Play Synthesizer Chime if new orders appear in the public pool
-      if (isOnline && poolOrders.length > lastPendingLength) {
-        playChimeSound();
-        showToast('Có Đơn Mới! 🛵', 'Tài xế có đơn hàng mới lân cận cần xử lý.', 'success');
+      const myOffer = pendingOrders[0] || null;
+      // Chỉ hiện offer đơn thứ 2 nếu còn chỗ capacity
+      if (myOffer && activeOrders.length < MAX_ACTIVE_ORDERS) {
+        handleTargetedOffer(myOffer);
+      } else if (!myOffer) {
+        handleTargetedOffer(null);
+      } else {
+        // Đang đủ 2 đơn — đóng offer nếu có
+        handleTargetedOffer(null);
       }
-      lastPendingLength = poolOrders.length;
 
-      if (isOnline && !activeOrder) {
-        renderPendingOrders(poolOrders);
-      }
-
-      // Nếu tài xế đang xem chi tiết một đơn hàng thủ công mà đơn đó không còn PENDING nữa
-      if (activeJobId && !pendingOrders.some(o => o.id === activeJobId)) {
-        closeJobDetail();
-        showToast('Đơn hàng đã hết hạn ⏰', 'Đơn hàng này đã được tài xế khác nhận hoặc đã bị hủy.', 'info');
-      }
+      // Tab "Chờ đề xuất" — không liệt kê bể chung
+      renderPendingOrders([]);
       
       historyOrders = allOrders.filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && o.status === 'DELIVERED');
       renderHistoryAndStats();
       
-      const activeDriverOrders = allOrders.filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && o.status !== 'DELIVERED');
-      const currentActive = activeDriverOrders.length > 0 ? activeDriverOrders[activeDriverOrders.length - 1] : null;
-      
-      if (currentActive) {
-        const isNewOrStatusChanged = (!activeOrder || activeOrder.id !== currentActive.id || activeOrder.status !== currentActive.status);
-        const isFirstLoad = !activeOrder;
-        
-        // Kiểm tra tin nhắn mới từ khách hàng
-        if (activeOrder && activeOrder.id === currentActive.id) {
-          checkNewMessages(activeOrder, currentActive);
+      const activeDriverOrders = allOrders
+        .filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && (o.status === 'ACCEPTED' || o.status === 'PURCHASED'))
+        .sort((a, b) => {
+          const ta = new Date(a.acceptedAt || a.updatedAt || a.createdAt || 0).getTime();
+          const tb = new Date(b.acceptedAt || b.updatedAt || b.createdAt || 0).getTime();
+          return ta - tb;
+        });
+
+      const prevFocused = activeOrder;
+      const { isFirstLoad, focusedChanged } = setActiveOrdersList(activeDriverOrders, { announceNew: true });
+
+      if (activeOrder) {
+        if (prevFocused && prevFocused.id === activeOrder.id) {
+          checkNewMessages(prevFocused, activeOrder);
         }
-        
-        activeOrder = currentActive;
-        if (isNewOrStatusChanged) {
+        const statusChanged = !prevFocused || prevFocused.id !== activeOrder.id || prevFocused.status !== activeOrder.status;
+        if (statusChanged || focusedChanged || activeOrders.length !== (prevFocused ? 1 : 0)) {
           renderActiveTrip();
         }
         if (isFirstLoad) {
           switchTab('trip');
           startGpsTracking();
           if (typeof playChimeSound === 'function') playChimeSound();
-          showToast('Nhận đơn thành công! ⚡', 'Hệ thống đã tự động gán đơn hàng ưu tiên cho bạn.', 'success');
+          showToast('Nhận đơn thành công! ⚡', 'Hệ thống đã đề xuất và gán đơn cho bạn.', 'success');
         }
-        if (document.getElementById('chat-overlay').classList.contains('active')) {
-          renderShipperChatMessages();
-        }
-        // Thăm dò cuộc gọi đến từ khách hàng
+        maybeRefreshChat();
         checkIncomingCall(activeOrder.id);
       } else {
-        if (activeOrder) {
-          activeOrder = null;
-          stopGpsTracking();
-          renderActiveTrip();
-        }
+        renderActiveTrip();
+        if (!isOnline) stopGpsTracking();
       }
+
+      // Badge: số đề xuất đang chờ + số đơn đang chạy
+      const pendingBadge = document.getElementById('pending-count');
+      if (pendingBadge) pendingBadge.textContent = String(pendingOrders.length);
     }
   } catch (err) {
     console.error('[Shipper App] Error syncing data:', err);
+    pollFailCount++;
+    pollBackoffActive = true;
+    setConnectionStatus(false, pollFailCount > 1
+      ? `Mất kết nối — thử lại lần ${pollFailCount}…`
+      : 'Mất kết nối — đang thử lại…');
+    const backoff = Math.min(15000, 3000 * Math.pow(2, Math.min(pollFailCount - 1, 2)));
+    schedulePolling(backoff);
+  } finally {
+    syncInFlight = false;
   }
 }
 
 async function syncActiveOrderOnly() {
-  if (!activeOrder) return;
-  try {
-    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}`);
-    if (res.status === 404) {
-      showToast('Đơn hàng không tồn tại', 'Đơn hàng hiện tại không còn trên hệ thống.', 'warning');
-      activeOrder = null;
-      stopGpsTracking();
-      renderActiveTrip();
-      startPolling();
-      return;
-    }
-    if (!res.ok) return;
-    const result = await res.json();
-    if (result.success && result.data) {
-      const orderData = result.data;
-      if (orderData.status === 'DELIVERED') {
-        showToast('Đơn hàng hoàn tất', 'Đơn hàng đã được giao thành công!', 'success');
-        activeOrder = null;
-        stopGpsTracking();
-        renderActiveTrip();
-        startPolling();
-      } else {
-        const statusChanged = (orderData.status !== activeOrder.status);
-        
-        // Kiểm tra tin nhắn mới từ khách hàng
-        checkNewMessages(activeOrder, orderData);
-        
-        activeOrder = orderData;
-        if (statusChanged) {
-          renderActiveTrip();
-        }
-        if (document.getElementById('chat-overlay').classList.contains('active')) {
-          renderShipperChatMessages();
-        }
-        checkIncomingCall(activeOrder.id);
-      }
-    }
-  } catch (e) {
-    console.error('[Shipper App] Error syncing active order:', e);
+  // Fallback: luôn sync toàn bộ để hỗ trợ ghép tối đa 2 đơn + đề xuất mới
+  return syncAllData();
+}
+
+function maybeRefreshChat() {
+  const chatOverlay = document.getElementById('chat-overlay');
+  if (!chatOverlay || !chatOverlay.classList.contains('active')) return;
+  const fp = getChatFingerprint(activeOrder);
+  if (fp !== lastChatFingerprint) {
+    lastChatFingerprint = fp;
+    renderShipperChatMessages();
   }
 }
 
@@ -679,7 +867,8 @@ function switchTab(tabId) {
   if (content) content.classList.add('active');
   
   if (tabId === 'orders') {
-    renderPendingOrders(pendingOrders);
+    // Không hiển thị bể chung — chỉ trạng thái chờ đề xuất / SOS
+    renderPendingOrders([]);
   } else if (tabId === 'trip') {
     renderActiveTrip();
   } else if (tabId === 'history') {
@@ -716,10 +905,16 @@ function renderPendingOrders(orders) {
       `;
     }
 
+    const loadHint = activeOrders.length > 0
+      ? (activeOrders.some(o => o.status === 'PURCHASED')
+          ? `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn (đã lấy hàng). Hệ thống ưu tiên ghép đơn gần điểm giao khách hiện tại.`
+          : `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn. Hệ thống có thể ghép thêm đơn gần quán/điểm giao hiện tại.`)
+      : 'Hệ thống sẽ đề xuất đơn đích danh (không mở bể chung). Tối đa 2 đơn / tài xế.';
     container.innerHTML = `
       <div class="empty-state">
-        <i class="fa-solid fa-radar fa-spin-slow" style="color:var(--clr-text-muted);"></i>
-        <p>${isOnline ? 'Đang tìm kiếm đơn hàng lân cận...' : 'Vui lòng BẬT NHẬN ĐƠN để tìm đơn mới'}</p>
+        <i class="fa-solid fa-satellite-dish fa-spin-slow" style="color:var(--clr-text-muted);"></i>
+        <p>${isOnline ? 'Đang chờ hệ thống đề xuất đơn...' : 'Vui lòng BẬT NHẬN ĐƠN để nhận đề xuất'}</p>
+        <p style="font-size:11px;color:var(--clr-text-muted);margin-top:8px;max-width:280px;line-height:1.45;">${loadHint}</p>
         ${assistanceHtml}
       </div>`;
     return;
@@ -740,22 +935,22 @@ function renderPendingOrders(orders) {
 
     card.innerHTML = `
       <div class="order-card__header">
-        <span class="order-card__id">${order.id}</span>
+        <span class="order-card__id">${escapeHtml(order.id)}</span>
         <span class="order-card__time">${formatTime(order.createdAt)}</span>
       </div>
       <div class="order-card__points">
         <div class="card-point">
           <span class="card-point__icon">🏪</span>
           <div>
-            <div class="card-point__name">${order.restaurantName}</div>
-            <div class="card-point__address">${order.restaurantAddress}</div>
+            <div class="card-point__name">${escapeHtml(order.restaurantName)}</div>
+            <div class="card-point__address">${escapeHtml(order.restaurantAddress)}</div>
           </div>
         </div>
         <div class="card-point">
           <span class="card-point__icon">🏠</span>
           <div>
-            <div class="card-point__name">Khách hàng: ${order.deliveryAddress}</div>
-            <div class="card-point__address" style="color:var(--clr-accent); font-weight:600;">Món ăn: ${itemsLabel}</div>
+            <div class="card-point__name">Khách hàng: ${escapeHtml(order.deliveryAddress)}</div>
+            <div class="card-point__address" style="color:var(--clr-accent); font-weight:600;">Món ăn: ${escapeHtml(itemsLabel)}</div>
           </div>
         </div>
       </div>
@@ -794,10 +989,10 @@ function openJobDetail(orderId) {
     const items = order.items || [];
     items.forEach((item, idx) => {
       const optsText = (item.selectedOptions && item.selectedOptions.length > 0)
-        ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => o.name).join(', ')})</span>`
+        ? ` <span style="color: var(--clr-text-secondary); font-size:11px;">(${item.selectedOptions.map(o => escapeHtml(o.name)).join(', ')})</span>`
         : '';
       const noteHtml = (item.note && item.note.trim() && item.note !== 'undefined' && item.note !== 'null')
-        ? `<div style="color: #b45309; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.25); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${item.note}</strong></div>`
+        ? `<div style="color: #b45309; font-size: 11px; margin-top: 4px; padding: 4px 8px; background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.25); border-radius: 4px; display: inline-block; width: 100%; box-sizing: border-box;"><i class="fa-solid fa-note-sticky"></i> Ghi chú món: <strong>${escapeHtml(item.note)}</strong></div>`
         : '';
       
       const itemEl = document.createElement('div');
@@ -807,7 +1002,7 @@ function openJobDetail(orderId) {
       }
       itemEl.innerHTML = `
         <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:600; margin-bottom: 2px;">
-          <span style="color:var(--clr-text-primary); text-align:left;">${item.name}${optsText}</span>
+          <span style="color:var(--clr-text-primary); text-align:left;">${escapeHtml(item.name)}${optsText}</span>
           <span style="color:var(--clr-primary); margin-left: 8px; font-weight: 700;">x${item.quantity || item.qty || 1}</span>
         </div>
         ${noteHtml}
@@ -827,7 +1022,7 @@ function openJobDetail(orderId) {
         <span style="color: #b45309; font-weight: 700; font-size: 12px; display: flex; align-items: center; gap: 4px;">
           <i class="fa-solid fa-note-sticky"></i> Ghi chú giao hàng của khách:
         </span>
-        <div style="color: #78350f; font-size: 12px; margin-top: 4px; font-weight: 600; line-height: 1.4;">${order.note}</div>
+        <div style="color: #78350f; font-size: 12px; margin-top: 4px; font-weight: 600; line-height: 1.4;">${escapeHtml(order.note)}</div>
       `;
       itemsContainer.appendChild(generalNoteEl);
     }
@@ -854,13 +1049,18 @@ function closeJobDetail() {
 }
 
 function declineOrder() {
-  if (activeJobId) {
-    stats.declined++;
-    saveStats();
-    showToast('Đã từ chối đơn', `Bạn đã bỏ qua đơn hàng ${activeJobId}.`, 'info');
-    closeJobDetail();
-    syncAllData();
-  }
+  if (!activeJobId) return;
+  const declinedId = activeJobId;
+  rememberDeclinedOrder(declinedId);
+  stats.declined++;
+  saveStats();
+  showToast('Đã từ chối đơn', `Bạn đã bỏ qua đơn hàng ${declinedId}.`, 'info');
+  closeJobDetail();
+  // Remove from local pending list immediately so poll won't flash it back
+  pendingOrders = pendingOrders.filter(o => o.id !== declinedId);
+  const poolOrders = pendingOrders.filter(o => !o.assignedShipperPhone || cleanPhone(o.assignedShipperPhone) !== cleanPhone(currentDriver && currentDriver.phone));
+  lastPendingLength = poolOrders.length;
+  renderPendingOrders(poolOrders);
 }
 
 // ── ACCEPT ORDER ───────────────────────────────────────────────────────────
@@ -869,9 +1069,16 @@ async function acceptOrder(orderId) {
     document.getElementById('login-overlay').classList.add('active');
     return;
   }
+  if (acceptInFlight) return;
+  if (activeOrders.length >= MAX_ACTIVE_ORDERS) {
+    showToast('Đã đủ đơn', `Bạn đang mang tối đa ${MAX_ACTIVE_ORDERS} đơn. Hãy hoàn thành một đơn trước.`, 'warning');
+    return;
+  }
+
+  acceptInFlight = true;
   
   try {
-    const response = await fetch(`${API_BASE}/api/orders/${orderId}/accept`, {
+    const response = await apiFetch(`${API_BASE}/api/orders/${orderId}/accept`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -881,17 +1088,24 @@ async function acceptOrder(orderId) {
         shipperName: currentDriver.name,
         shipperPhone: currentDriver.phone
       })
-    });
+    }, 12000);
     
-    const result = await response.json();
+    const result = await safeJson(response);
     if (response.ok && result.success) {
       stats.accepted++;
       saveStats();
-      showToast('Đã nhận đơn!', `Bạn đã nhận đơn hàng ${orderId}.`, 'success');
-      activeOrder = result.data;
+      const nextList = [...activeOrders.filter(o => o.id !== result.data.id), result.data];
+      setActiveOrdersList(nextList);
+      mapFollowGps = true;
+      showToast(
+        nextList.length > 1 ? 'Ghép đơn thành công! 📦' : 'Đã nhận đơn!',
+        `Bạn đang chạy ${nextList.length}/${MAX_ACTIVE_ORDERS} đơn.`,
+        'success'
+      );
       switchTab('trip');
       startGpsTracking();
-      startActiveOrderPolling();
+      startPolling(); // tiếp tục nhận đề xuất đơn thứ 2 nếu còn chỗ
+      renderActiveTrip();
     } else {
       showToast('Lỗi nhận đơn', result.error || 'Không thể nhận đơn này.', 'error');
       syncAllData();
@@ -899,6 +1113,8 @@ async function acceptOrder(orderId) {
   } catch (e) {
     console.error('Lỗi nhận đơn:', e);
     showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
+  } finally {
+    acceptInFlight = false;
   }
 }
 
@@ -906,10 +1122,17 @@ async function acceptOrder(orderId) {
 function renderActiveTrip() {
   const emptyTrip = document.getElementById('no-active-trip');
   const tripContainer = document.getElementById('active-trip-container');
+  const switcher = document.getElementById('active-orders-switcher');
   
-  if (!activeOrder) {
+  if (!activeOrder || activeOrders.length === 0) {
     emptyTrip.style.display = 'flex';
     tripContainer.style.display = 'none';
+    if (switcher) {
+      switcher.style.display = 'none';
+      switcher.innerHTML = '';
+    }
+    const countBadge = document.getElementById('active-orders-count');
+    if (countBadge) countBadge.style.display = 'none';
     if (tripMap) {
       tripMap.remove();
       tripMap = null;
@@ -919,6 +1142,28 @@ function renderActiveTrip() {
   
   emptyTrip.style.display = 'none';
   tripContainer.style.display = 'block';
+
+  const countBadge = document.getElementById('active-orders-count');
+  if (countBadge) {
+    countBadge.style.display = 'inline-flex';
+    countBadge.textContent = `${activeOrders.length}/${MAX_ACTIVE_ORDERS}`;
+  }
+
+  // Switcher khi đang mang 2 đơn (ghép đơn)
+  if (switcher) {
+    if (activeOrders.length > 1) {
+      switcher.style.display = 'flex';
+      switcher.innerHTML = activeOrders.map((o, idx) => {
+        const active = activeOrder && activeOrder.id === o.id;
+        return `<button type="button" class="trip-switch-btn ${active ? 'active' : ''}" onclick="selectActiveOrder('${escapeHtml(o.id)}')">
+          Đơn ${idx + 1}: ${escapeHtml(o.id)} · ${escapeHtml(o.status)}
+        </button>`;
+      }).join('');
+    } else {
+      switcher.style.display = 'none';
+      switcher.innerHTML = '';
+    }
+  }
   
   document.getElementById('trip-order-id').textContent = activeOrder.id;
   
@@ -1037,6 +1282,13 @@ function getStatusBadgeClass(status) {
 // ── TRIP MAP & ROUTING ──────────────────────────────────────────────────────
 function initTripMap() {
   if (!activeOrder) return;
+  if (typeof L === 'undefined') {
+    const mapEl = document.getElementById('shipper-map');
+    if (mapEl) {
+      mapEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:16px;text-align:center;color:var(--clr-text-muted);font-size:13px;">Không tải được bản đồ. Dùng nút điều hướng Google Maps bên dưới.</div>`;
+    }
+    return;
+  }
   
   const restLat = activeOrder.restaurantLat || 10.0354;
   const restLon = activeOrder.restaurantLon || 105.7825;
@@ -1058,6 +1310,9 @@ function initTripMap() {
       }
       
       tripMap = L.map('shipper-map', { zoomControl: false }).setView([shipLat, shipLon], 16);
+      mapFollowGps = true;
+      tripMap.on('dragstart', () => { mapFollowGps = false; });
+      tripMap.on('zoomstart', () => { mapFollowGps = false; });
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
@@ -1121,40 +1376,60 @@ function initTripMap() {
 
 // ── ADVANCE TRIP STATUS ────────────────────────────────────────────────────
 async function advanceTripStatus() {
-  if (!activeOrder) return;
+  if (!activeOrder || statusUpdateInFlight) return;
   
   const nextStatus = activeOrder.status === 'ACCEPTED' ? 'PURCHASED' : 'DELIVERED';
+  statusUpdateInFlight = true;
   
   try {
-    const response = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/status`, {
+    const response = await apiFetch(`${API_BASE}/api/orders/${activeOrder.id}/status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ status: nextStatus })
-    });
+    }, 12000);
     
-    const result = await response.json();
+    const result = await safeJson(response);
     if (response.ok && result.success) {
       if (nextStatus === 'DELIVERED') {
         stats.completed++;
         saveStats();
-        showToast('Hoàn thành đơn hàng!', 'Bạn đã hoàn tất giao hàng.', 'success');
-        activeOrder = null;
-        stopGpsTracking();
-        renderActiveTrip();
-        startPolling();
+        const remaining = activeOrders.filter(o => o.id !== activeOrder.id);
+        setActiveOrdersList(remaining);
+        showToast(
+          'Hoàn thành đơn hàng!',
+          remaining.length > 0
+            ? `Còn ${remaining.length} đơn đang chạy. Chuyển sang đơn tiếp theo.`
+            : 'Bạn đã hoàn tất giao hàng.',
+          'success'
+        );
+        if (remaining.length > 0) {
+          mapFollowGps = true;
+          renderActiveTrip();
+          startPolling();
+        } else {
+          stopGpsTracking();
+          renderActiveTrip();
+          startPolling();
+        }
       } else {
         showToast('Đã lấy hàng!', 'Hãy chuyển đồ ăn đến khách hàng.', 'success');
+        activeOrders = activeOrders.map(o => o.id === result.data.id ? result.data : o);
         activeOrder = result.data;
         renderActiveTrip();
       }
     } else {
       showToast('Lỗi cập nhật', result.error || 'Không thể cập nhật trạng thái.', 'error');
+      // Re-init swipe so driver can retry
+      if (activeOrder) renderActiveTrip();
     }
   } catch (e) {
     console.error('Lỗi cập nhật đơn:', e);
     showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
+    if (activeOrder) renderActiveTrip();
+  } finally {
+    statusUpdateInFlight = false;
   }
 }
 
@@ -1176,38 +1451,45 @@ function startGpsTracking() {
   stopGpsTracking();
   
   if (!navigator.geolocation) {
-    document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> GPS: Thiết bị không hỗ trợ Geolocation`;
+    const gpsEl = document.getElementById('gps-indicator');
+    if (gpsEl) gpsEl.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> GPS: Thiết bị không hỗ trợ Geolocation`;
     return;
   }
   
-  document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> GPS: Đang khởi động định vị...`;
+  const gpsEl = document.getElementById('gps-indicator');
+  if (gpsEl) gpsEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> GPS: Đang khởi động định vị...`;
+  lastGpsIndicatorText = '';
+  lastGpsUiUpdate = 0;
   
   watchPositionId = navigator.geolocation.watchPosition(
     async (position) => {
-      let lat = position.coords.latitude;
-      let lon = position.coords.longitude;
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
       
-      // Kiểm tra xem vị trí có nằm ngoài Cần Thơ không (cách trung tâm Ninh Kiều > 20km)
+      // Outside service area: warn but keep real GPS (never fabricate coordinates)
       const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
-      if (distFromCenter > 20) {
-        // Tự động chuyển vị trí về Trung tâm Cần Thơ + jitter nhỏ để tránh chồng đè marker
-        const jitterLat = (Math.random() - 0.5) * 0.006;
-        const jitterLon = (Math.random() - 0.5) * 0.006;
-        lat = 10.0345 + jitterLat;
-        lon = 105.7876 + jitterLon;
-        document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-location-crosshairs fa-spin-slow"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)}) (Giả lập Cần Thơ)`;
-      } else {
-        document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-location-crosshairs fa-spin-slow"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+      const outsideArea = distFromCenter > 20;
+      const indicatorText = outsideArea
+        ? `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Ngoài khu vực Cần Thơ (${lat.toFixed(5)}, ${lon.toFixed(5)})`
+        : `<i class="fa-solid fa-location-crosshairs"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+
+      const now = Date.now();
+      // Throttle GPS UI updates to reduce jank
+      if (now - lastGpsUiUpdate >= 1500 || indicatorText !== lastGpsIndicatorText) {
+        lastGpsUiUpdate = now;
+        lastGpsIndicatorText = indicatorText;
+        const el = document.getElementById('gps-indicator');
+        if (el) el.innerHTML = indicatorText;
       }
       
       if (shipperMarker) {
         shipperMarker.setLatLng([lat, lon]);
       }
-      if (tripMap) {
-        tripMap.setView([lat, lon], 16);
+      // Only auto-follow when user hasn't panned the map
+      if (tripMap && mapFollowGps) {
+        tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
       }
       
-      const now = Date.now();
       if (now - lastGpsSendTime >= 5000) {
         lastGpsSendTime = now;
         sendLocationToServer(lat, lon);
@@ -1215,12 +1497,13 @@ function startGpsTracking() {
     },
     (error) => {
       console.warn('Geolocation error:', error);
-      document.getElementById('gps-indicator').innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color:var(--clr-danger)"></i> GPS: Không thể lấy vị trí (${error.message})`;
+      const el = document.getElementById('gps-indicator');
+      if (el) el.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color:var(--clr-danger)"></i> GPS: Không thể lấy vị trí (${escapeHtml(error.message)})`;
     },
     {
       enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 10000
+      maximumAge: 3000,
+      timeout: 15000
     }
   );
 }
@@ -1234,16 +1517,19 @@ function stopGpsTracking() {
 
 async function sendLocationToServer(lat, lon) {
   try {
-    if (activeOrder) {
-      await fetch(`${API_BASE}/api/orders/${activeOrder.id}/location`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ lat, lon })
-      });
-    } else if (isOnline && currentDriver) {
-      await fetch(`${API_BASE}/api/shippers/location`, {
+    // Cập nhật GPS cho mọi đơn đang chạy (tối đa 2)
+    if (activeOrders.length > 0) {
+      await Promise.all(activeOrders.map(order =>
+        apiFetch(`${API_BASE}/api/orders/${order.id}/location`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lon })
+        }, 8000).catch(err => console.warn(`[GPS] Lỗi gửi đơn ${order.id}:`, err.message))
+      ));
+    }
+    // Vẫn cập nhật vị trí tài xế (để dispatch chọn khoảng cách)
+    if (isOnline && currentDriver) {
+      await apiFetch(`${API_BASE}/api/shippers/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1253,7 +1539,7 @@ async function sendLocationToServer(lat, lon) {
           lat,
           lon
         })
-      });
+      }, 8000);
     }
   } catch (e) {
     console.warn('Không thể gửi GPS lên server:', e.message);
@@ -1282,6 +1568,29 @@ function handleTargetedOffer(offer) {
     document.getElementById('offer-app-total').textContent = formatCurrency(offer.appTotal);
     document.getElementById('offer-store-total').textContent = formatCurrency(offer.storeTotal);
 
+    const titleText = document.getElementById('offer-title-text');
+    const batchBanner = document.getElementById('offer-batch-banner');
+    const swipeText = document.getElementById('offer-swipe-text');
+    if (activeOrders.length === 1) {
+      const current = activeOrders[0];
+      const isPurchased = current.status === 'PURCHASED';
+      if (titleText) titleText.textContent = 'ĐƠN GHÉP GẦN TUYẾN!';
+      if (batchBanner) {
+        batchBanner.style.display = 'block';
+        batchBanner.innerHTML = isPurchased
+          ? `<i class="fa-solid fa-route"></i> Ghép đơn gần <strong>khách đang giao</strong> (${escapeHtml(current.id)}). Tối đa 2 đơn.`
+          : `<i class="fa-solid fa-link"></i> Ghép đơn gần tuyến đơn đang chạy (${escapeHtml(current.id)}). Tối đa 2 đơn.`;
+      }
+      if (swipeText) swipeText.textContent = '👉 Vuốt để nhận đơn ghép';
+    } else {
+      if (titleText) titleText.textContent = 'ĐƠN ĐỀ XUẤT CHO BẠN!';
+      if (batchBanner) {
+        batchBanner.style.display = 'none';
+        batchBanner.innerHTML = '';
+      }
+      if (swipeText) swipeText.textContent = '👉 Vuốt sang phải để nhận đơn';
+    }
+
     const noteBox = document.getElementById('offer-note-box');
     const noteText = document.getElementById('offer-note-text');
     if (noteBox && noteText) {
@@ -1306,7 +1615,13 @@ function handleTargetedOffer(offer) {
     startOfferTimer(offer.offerExpiresAt);
     
     playChimeSound();
-    showToast('Đơn Đề Xuất Mới! 🎯', 'Có đơn hàng dành riêng cho bạn! Hãy nhận ngay.', 'warning');
+    showToast(
+      activeOrders.length === 1 ? 'Đơn ghép gần tuyến! 📦' : 'Đơn Đề Xuất Mới! 🎯',
+      activeOrders.length === 1
+        ? 'Có đơn thứ 2 phù hợp tuyến đang chạy. Vuốt để nhận.'
+        : 'Có đơn hàng dành riêng cho bạn! Hãy nhận ngay.',
+      'warning'
+    );
   }
 }
 
@@ -1316,9 +1631,13 @@ function startOfferTimer(expiresAt) {
   const progressBar = document.getElementById('offer-progress-bar');
   const timerSeconds = document.getElementById('offer-timer-seconds');
   const totalDuration = 30000;
+  let endAt = Number(expiresAt);
+  if (!Number.isFinite(endAt) || endAt <= Date.now()) {
+    endAt = Date.now() + totalDuration;
+  }
 
   function updateTimer() {
-    const remaining = expiresAt - Date.now();
+    const remaining = endAt - Date.now();
     if (remaining <= 0) {
       clearOfferTimer();
       declineTargetedOffer(true);
@@ -1383,6 +1702,7 @@ function openQuickChat() {
     return;
   }
   document.getElementById('chat-overlay').classList.add('active');
+  lastChatFingerprint = getChatFingerprint(activeOrder);
   renderShipperChatMessages();
   setTimeout(() => {
     const box = document.getElementById('shipper-chat-messages-box');
@@ -1415,7 +1735,7 @@ function renderShipperChatMessages() {
     return `
       <div style="max-width: 80%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 12px; ${alignStyle} display: flex; flex-direction: column; gap: 3px;">
         <span style="font-weight: 700; opacity: 0.8; font-size: 10px;">${senderName}</span>
-        <span>${msg.text}</span>
+        <span>${escapeHtml(msg.text)}</span>
       </div>
     `;
   }).join('');
@@ -1428,9 +1748,10 @@ function renderShipperChatMessages() {
 }
 
 async function sendQuickMessage(text) {
-  if (!activeOrder) return;
+  if (!activeOrder || chatSendInFlight) return;
+  chatSendInFlight = true;
   try {
-    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
+    const res = await apiFetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1439,10 +1760,11 @@ async function sendQuickMessage(text) {
         sender: 'shipper',
         text: text
       })
-    });
-    const result = await res.json();
+    }, 10000);
+    const result = await safeJson(res);
     if (res.ok && result.success) {
       activeOrder.messages = result.messages;
+      lastChatFingerprint = getChatFingerprint(activeOrder);
       renderShipperChatMessages();
       showToast('Đã gửi tin nhắn', `Đã gửi: "${text}"`, 'success');
     } else {
@@ -1451,19 +1773,22 @@ async function sendQuickMessage(text) {
   } catch (e) {
     console.error('Lỗi gửi chat:', e);
     showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
+  } finally {
+    chatSendInFlight = false;
   }
 }
 
 async function sendShipperCustomMessage() {
   const input = document.getElementById('shipper-chat-input');
-  if (!input) return;
+  if (!input || chatSendInFlight) return;
   const text = input.value.trim();
   if (!text) return;
-  input.value = '';
-
   if (!activeOrder) return;
+
+  chatSendInFlight = true;
+  input.disabled = true;
   try {
-    const res = await fetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
+    const res = await apiFetch(`${API_BASE}/api/orders/${activeOrder.id}/messages`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -1472,10 +1797,12 @@ async function sendShipperCustomMessage() {
         sender: 'shipper',
         text: text
       })
-    });
-    const result = await res.json();
+    }, 10000);
+    const result = await safeJson(res);
     if (res.ok && result.success) {
+      input.value = '';
       activeOrder.messages = result.messages;
+      lastChatFingerprint = getChatFingerprint(activeOrder);
       renderShipperChatMessages();
     } else {
       showToast('Lỗi gửi tin nhắn', result.error || 'Không thể gửi tin nhắn.', 'error');
@@ -1483,6 +1810,10 @@ async function sendShipperCustomMessage() {
   } catch (e) {
     console.error('Lỗi gửi chat:', e);
     showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
+  } finally {
+    chatSendInFlight = false;
+    input.disabled = false;
+    input.focus();
   }
 }
 
@@ -1551,9 +1882,8 @@ function initSwipeButton(containerId, handleId, textId, onSwipeComplete) {
       handle.style.transform = `translateX(${maxDrag}px)`;
       if (text) text.style.opacity = '0';
       
-      // Remove listeners
-      handle.removeEventListener('mousedown', dragStart);
-      handle.removeEventListener('touchstart', dragStart);
+      // Full cleanup of all listeners (including window) to prevent leaks
+      if (handle._swipeCleanup) handle._swipeCleanup();
       
       setTimeout(() => {
         onSwipeComplete();
@@ -1864,8 +2194,8 @@ function showToast(title, message = '', type = 'info', duration = 3500) {
   toast.innerHTML = `
     <span class="toast__icon">${icons[type] || icons.info}</span>
     <div class="toast__text">
-      ${title ? `<div style="font-weight:700;margin-bottom:2px;">${title}</div>` : ''}
-      ${message ? `<div style="opacity:0.85;font-size:11px;">${message}</div>` : ''}
+      ${title ? `<div style="font-weight:700;margin-bottom:2px;">${escapeHtml(title)}</div>` : ''}
+      ${message ? `<div style="opacity:0.85;font-size:11px;">${escapeHtml(message)}</div>` : ''}
     </div>
     <button class="toast__close" onclick="this.parentElement.remove()">✕</button>
   `;
@@ -2718,22 +3048,18 @@ async function showDriverProfile() {
   // Gọi đồng bộ bất đồng bộ từ server để cập nhật thông tin mới nhất
   refreshDriverInfo();
 
-  // Thống kê AR/CR
-  const ar = localStorage.getItem('shipfee_ar') || '100';
-  const cr = localStorage.getItem('shipfee_cr') || '100';
-  document.getElementById('profile-ar').textContent = ar + '%';
-  document.getElementById('profile-cr').textContent = cr + '%';
+  // Thống kê AR/CR từ stats theo tài xế hiện tại
+  const totalOffers = (stats.accepted || 0) + (stats.declined || 0);
+  const arPct = totalOffers > 0 ? Math.round((stats.accepted / totalOffers) * 100) : 100;
+  const crPct = stats.accepted > 0 ? Math.round((stats.completed / stats.accepted) * 100) : 100;
+  document.getElementById('profile-ar').textContent = arPct + '%';
+  document.getElementById('profile-cr').textContent = crPct + '%';
   
-  // Tổng đơn hoàn thành và doanh thu
-  const statsStr = localStorage.getItem('shipfee_stats') || '{"totalCompleted":0,"totalEarning":0}';
-  try {
-    const stats = JSON.parse(statsStr);
-    document.getElementById('profile-total-orders').textContent = (stats.totalCompleted || 0) + ' đơn';
-    document.getElementById('profile-revenue').textContent = formatCurrency(stats.totalEarning || 0);
-  } catch (e) {
-    document.getElementById('profile-total-orders').textContent = '0 đơn';
-    document.getElementById('profile-revenue').textContent = '0đ';
-  }
+  // Tổng đơn hoàn thành và doanh thu từ lịch sử đã sync
+  let totalEarnings = 0;
+  (historyOrders || []).forEach(o => { totalEarnings += o.shipperEarning || 0; });
+  document.getElementById('profile-total-orders').textContent = (historyOrders ? historyOrders.length : 0) + ' đơn';
+  document.getElementById('profile-revenue').textContent = formatCurrency(totalEarnings);
 
   const overlay = document.getElementById('driver-profile-overlay');
   if (overlay) {
@@ -2784,39 +3110,63 @@ document.addEventListener('touchend', function (event) {
 }, { passive: false });
 
 async function initSupabase() {
-  try {
-    const res = await fetch(`${API_BASE}/api/config`).then(r => r.json());
-    if (res.supabaseUrl && res.supabaseAnonKey && res.supabaseUrl !== 'your_supabase_url_here') {
-      supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey, {
-        auth: {
-          storageKey: 'shipfee_driver_auth_token',
-          storage: window.sessionStorage,
-          persistSession: true,
-          autoRefreshToken: true
-        }
-      });
-      console.log('[Supabase] Client initialized successfully via proxy config');
-      
-      // Tự động khôi phục JWT token từ storage của client
-      supabaseClient.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          sessionStorage.setItem('shipfee_jwt', session.access_token);
-        }
-      }).catch(e => console.warn('Lỗi lấy session shipper:', e));
+  let retries = 3;
+  let delay = 3000;
+  let currentTimeout = 6000;
 
-      // Update UI: hide name/phone, show email/password
-      document.getElementById('login-group-name').style.display = 'none';
-      document.getElementById('login-group-phone').style.display = 'none';
-      document.getElementById('login-group-email').style.display = 'flex';
-      document.getElementById('login-group-password').style.display = 'flex';
-      document.getElementById('login-btn').innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập với Supabase';
-    } else {
-      console.error('[Supabase] Proxy returned placeholder credentials. Supabase mode required but not configured!');
-      showToast('Cấu hình Supabase', 'Hệ thống đang hoạt động ở chế độ bắt buộc Supabase nhưng chưa cấu hình credentials. Vui lòng cập nhật file .env!', 'error');
+  while (retries >= 0) {
+    try {
+      const res = await apiFetch(`${API_BASE}/api/config`, {}, currentTimeout);
+      const data = await safeJson(res);
+      if (data.supabaseUrl && data.supabaseAnonKey && data.supabaseUrl !== 'your_supabase_url_here') {
+        supabaseClient = supabase.createClient(data.supabaseUrl, data.supabaseAnonKey, {
+          auth: {
+            storageKey: 'shipfee_driver_auth_token',
+            storage: window.sessionStorage,
+            persistSession: true,
+            autoRefreshToken: true
+          }
+        });
+        console.log('[Supabase] Client initialized successfully via proxy config');
+        // Không gọi setConnectionStatus trên màn login
+        
+        // Tự động khôi phục JWT token từ storage của client
+        supabaseClient.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            sessionStorage.setItem('shipfee_jwt', session.access_token);
+          }
+        }).catch(e => console.warn('Lỗi lấy session shipper:', e));
+
+        // Update UI: hide name/phone, show email/password
+        const nameGroup = document.getElementById('login-group-name');
+        const phoneGroup = document.getElementById('login-group-phone');
+        const emailGroup = document.getElementById('login-group-email');
+        const passwordGroup = document.getElementById('login-group-password');
+        const loginBtn = document.getElementById('login-btn');
+        if (nameGroup) nameGroup.style.display = 'none';
+        if (phoneGroup) phoneGroup.style.display = 'none';
+        if (emailGroup) emailGroup.style.display = 'flex';
+        if (passwordGroup) passwordGroup.style.display = 'flex';
+        if (loginBtn) loginBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Đăng nhập';
+        return;
+      } else {
+        console.error('[Supabase] Proxy returned placeholder credentials. Supabase mode required but not configured!');
+        showToast('Cấu hình Supabase', 'Hệ thống đang hoạt động ở chế độ bắt buộc Supabase nhưng chưa cấu hình credentials. Vui lòng cập nhật file .env!', 'error');
+        return;
+      }
+    } catch (e) {
+      console.error('[Supabase] Failed to retrieve config from proxy:', e);
+      if (retries === 0) {
+        showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API. Thử lại sau vài giây.', 'error');
+        break;
+      }
+      if (retries === 3 && API_BASE.includes('render.com')) {
+        showToast('Khởi động Máy chủ', 'Máy chủ đang thức giấc, vui lòng chờ…', 'info');
+      }
+      retries--;
+      currentTimeout = 15000;
+      await new Promise(r => setTimeout(r, delay));
     }
-  } catch (e) {
-    console.error('[Supabase] Failed to retrieve config from proxy:', e);
-    showToast('Lỗi kết nối', 'Không thể kết nối đến máy chủ cấu hình API.', 'error');
   }
 }
 
@@ -2849,7 +3199,7 @@ async function requestOrderAssistance() {
       sessionStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
       
       if (res.orderId) {
-        if (typeof pollJobs === 'function') pollJobs();
+        syncAllData();
       } else {
         const countText = document.getElementById('assistance-used-count');
         if (countText) countText.textContent = res.limitUsed;
