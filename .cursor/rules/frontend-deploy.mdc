@@ -1,0 +1,28 @@
+---
+description: Frontend source of truth and GitHub → Vercel/Render deploy rules for ShipFee
+alwaysApply: true
+---
+
+# ShipFee — Frontend & Deploy Rules
+
+## Source of truth
+
+- Edit **`customer-app/`**, **`shipper-app/`**, **`admin-app/`** at repo root.
+- **`public/`** is Vercel build output. It is overwritten by `npm run build`.
+- After any frontend edit, run **`npm run build`** before commit so `public/` stays in sync.
+- Commit both the root app folder and the matching `public/` copy.
+
+## Deploy to production
+
+- Pushing a feature branch / opening a PR does **not** deploy production.
+- Production (Vercel + Render) updates only when changes land on **`master`** (merge PR or push).
+- Backend: edit `server/` only (Render root directory = `server`).
+- Frontend Vercel: Build Command `npm run build`, Output Directory `public`.
+
+## Customer app performance reminders
+
+- List API uses `page`/`limit`; do not load the full catalog on home.
+- Prefer Supabase menu hydrate over Puppeteer scrape on detail.
+- Do not persist fabricated template menus to `server/menus/`.
+
+See `AGENTS.md`, `CLAUDE.md`, and `DEPLOYMENT_GUIDE.md` for full detail.
