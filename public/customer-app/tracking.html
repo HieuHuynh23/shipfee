@@ -1060,6 +1060,19 @@
       }
     }
 
+    let lastSimulatedMapStatus = null;
+    let lastPopupStatus = null;
+
+    function setShipperPopup(html, statusKey, forceOpen = false) {
+      if (!shipperMarker) return;
+      shipperMarker.bindPopup(html);
+      // Only force-open when status changes — avoid reopening popup every poll tick
+      if (forceOpen || lastPopupStatus !== statusKey) {
+        shipperMarker.openPopup();
+        lastPopupStatus = statusKey;
+      }
+    }
+
     function updateShipperLocationOnMap(status) {
       if (!trackingMap || !shipperMarker) return;
 
@@ -1078,6 +1091,7 @@
           clearInterval(shipperAnimationInterval);
           shipperAnimationInterval = null;
         }
+        lastSimulatedMapStatus = null;
         const newLatLng = L.latLng(order.shipperLat, order.shipperLon);
         const oldLatLng = shipperMarker.getLatLng();
         if (oldLatLng.lat !== newLatLng.lat || oldLatLng.lng !== newLatLng.lng) {
@@ -1102,34 +1116,41 @@
         }
         
         if (status === 'ACCEPTED') {
-          shipperMarker.bindPopup('<b>Shipper:</b> Đang di chuyển đến quán...').openPopup();
+          setShipperPopup('<b>Shipper:</b> Đang di chuyển đến quán...', 'gps-ACCEPTED');
         } else if (status === 'PURCHASED') {
-          shipperMarker.bindPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...').openPopup();
+          setShipperPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...', 'gps-PURCHASED');
         } else if (status === 'DELIVERED') {
-          shipperMarker.bindPopup('<b>Shipper:</b> Đã giao hàng thành công!').openPopup();
+          setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'gps-DELIVERED');
         }
         return;
       }
 
-      // Fallback: Chạy mô phỏng khi chưa có GPS thực tế trên server
+      // Fallback simulation: only (re)start animation when status changes
+      if (lastSimulatedMapStatus === status) {
+        return;
+      }
+
       if (status === 'PENDING') {
         if (shipperAnimationInterval) {
           clearInterval(shipperAnimationInterval);
           shipperAnimationInterval = null;
         }
         shipperMarker.setLatLng([10.0345, 105.7876]);
-        shipperMarker.bindPopup('<b>Shipper tự do:</b> Đang tìm tài xế lân cận...').openPopup();
+        setShipperPopup('<b>Shipper tự do:</b> Đang tìm tài xế lân cận...', 'sim-PENDING');
+        lastSimulatedMapStatus = status;
       } else if (status === 'ACCEPTED') {
-        shipperMarker.bindPopup('<b>Shipper:</b> Đang di chuyển đến quán...').openPopup();
+        lastSimulatedMapStatus = status;
+        setShipperPopup('<b>Shipper:</b> Đang di chuyển đến quán...', 'sim-ACCEPTED');
         animateShipper(shipperToRestRoute, () => {
           shipperMarker.setLatLng([restLat, restLon]);
-          shipperMarker.bindPopup('<b>Shipper:</b> Đã đến quán, đang chuẩn bị mua hàng...').openPopup();
+          setShipperPopup('<b>Shipper:</b> Đã đến quán, đang chuẩn bị mua hàng...', 'sim-ACCEPTED-arrived', true);
         });
       } else if (status === 'PURCHASED') {
-        shipperMarker.bindPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...').openPopup();
+        lastSimulatedMapStatus = status;
+        setShipperPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...', 'sim-PURCHASED');
         animateShipper(restToDeliveryRoute, () => {
           shipperMarker.setLatLng([deliveryLat, deliveryLon]);
-          shipperMarker.bindPopup('<b>Shipper:</b> Đã đến địa điểm nhận hàng!').openPopup();
+          setShipperPopup('<b>Shipper:</b> Đã đến địa điểm nhận hàng!', 'sim-PURCHASED-arrived', true);
         });
       } else if (status === 'DELIVERED') {
         if (shipperAnimationInterval) {
@@ -1137,7 +1158,8 @@
           shipperAnimationInterval = null;
         }
         shipperMarker.setLatLng([deliveryLat, deliveryLon]);
-        shipperMarker.bindPopup('<b>Shipper:</b> Đã giao hàng thành công!').openPopup();
+        setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'sim-DELIVERED');
+        lastSimulatedMapStatus = status;
       }
     }
 
@@ -1378,14 +1400,15 @@
         return;
       }
 
+      const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
       const html = order.messages.map(msg => {
         const isMe = msg.sender === 'customer';
         const alignStyle = isMe ? 'align-self: flex-end; background: var(--clr-primary); color: white;' : 'align-self: flex-start; background: var(--clr-surface-2); color: var(--clr-text-primary);';
         const senderName = isMe ? 'Bạn' : (order.shipperName || 'Shipper');
         return `
           <div style="max-width: 80%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 12px; ${alignStyle} display: flex; flex-direction: column; gap: 3px;">
-            <span style="font-weight: 700; opacity: 0.8; font-size: 10px;">${senderName}</span>
-            <span>${msg.text}</span>
+            <span style="font-weight: 700; opacity: 0.8; font-size: 10px;">${esc(senderName)}</span>
+            <span>${esc(msg.text)}</span>
           </div>
         `;
       }).join('');

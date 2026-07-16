@@ -2340,6 +2340,73 @@ function loadRestaurantsIntoMemory() {
 // Load on startup
 loadRestaurantsIntoMemory();
 
+/**
+ * Restore menu files from Supabase after deploy (menus/ is gitignored).
+ * Runs in background so boot is not blocked.
+ */
+async function hydrateMenusFromSupabase() {
+  if (!supabase) {
+    console.log('[Menu Hydrate] Supabase chưa cấu hình — bỏ qua restore menu.');
+    return;
+  }
+  try {
+    const missing = cachedRestaurants.filter(r => {
+      if (!r || !r.id || r.hasRealMenu !== true) return false;
+      const filePath = getMenuFilePath(r.id);
+      return !fs.existsSync(filePath);
+    });
+    if (missing.length === 0) {
+      console.log('[Menu Hydrate] ✅ Tất cả quán hasRealMenu đã có file menu local.');
+      return;
+    }
+    console.log(`[Menu Hydrate] 🔄 Cần restore ${missing.length} menu từ Supabase...`);
+
+    let restored = 0;
+    const batchSize = 50;
+    for (let i = 0; i < missing.length; i += batchSize) {
+      const batch = missing.slice(i, i + batchSize);
+      const ids = batch.map(r => String(r.id));
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select('id, menu, dish_names, has_real_menu, updated_at')
+        .in('id', ids);
+
+      if (error) {
+        console.error('[Menu Hydrate] Lỗi query Supabase:', error.message);
+        continue;
+      }
+      if (!Array.isArray(data)) continue;
+
+      for (const row of data) {
+        if (!row || !row.id || !Array.isArray(row.menu) || row.menu.length === 0) continue;
+        if (writeRestaurantMenu(row.id, row.menu)) {
+          restored++;
+          const mem = cachedRestaurants.find(r => String(r.id) === String(row.id));
+          if (mem) {
+            mem.hasRealMenu = true;
+            mem.menuUpdatedAt = row.updated_at || new Date().toISOString();
+            if (Array.isArray(row.dish_names) && row.dish_names.length > 0) {
+              mem.dishNames = row.dish_names;
+            } else {
+              mem.dishNames = row.menu.map(m => m.name).filter(Boolean);
+            }
+            delete mem.menuTemplateFallback;
+          }
+        }
+      }
+    }
+
+    if (restored > 0) {
+      searchIndex = buildSearchIndex(cachedRestaurants);
+      console.log(`[Menu Hydrate] ✅ Đã restore ${restored}/${missing.length} menu từ Supabase.`);
+    } else {
+      console.log(`[Menu Hydrate] ⚠️ Không restore được menu nào (có thể chưa sync lên Supabase).`);
+    }
+  } catch (err) {
+    console.error('[Menu Hydrate] Lỗi bất ngờ:', err.message);
+  }
+}
+
 // Auto-reload when chunk files change (debounced)
 let reloadTimer = null;
 const CHUNKS_DIR = path.join(__dirname, 'restaurants-chunks');
@@ -3285,8 +3352,12 @@ async function fetchFromShopeeFood() {
 function stripMenus(restaurants) {
   if (!Array.isArray(restaurants)) return restaurants;
   return restaurants.map(r => {
-    const { menu, ...rest } = r;
-    return rest;
+    const { menu, dishNames, ...rest } = r;
+    return {
+      ...rest,
+      // Short preview for client local search; full index stays in RAM searchIndex
+      dishNames: Array.isArray(dishNames) ? dishNames.slice(0, 20) : []
+    };
   });
 }
 
@@ -3445,13 +3516,7 @@ app.get('/api/restaurants', async (req, res) => {
       }
     }
 
-    // Tự động kích hoạt cào ngầm cho các quán fallback xuất hiện trong kết quả tìm kiếm của khách hàng
-    mergedResults.forEach(r => {
-      if (r && r.id && r.hasRealMenu !== true && !r.isClosed) {
-        console.log(`[Search Lazy Sync] 🚀 Tự động kích hoạt cào ngầm cho quán fallback được tìm kiếm: "${r.name}"`);
-        triggerBackgroundMenuScrape(r);
-      }
-    });
+    // Không spawn Puppeteer hàng loạt từ search — scrape chỉ khi khách mở trang detail (queue toàn cục)
 
     const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon, !!query);
     console.log(`[Search] ✅ Trả về tổng cộng ${processedResults.length} quán ăn sau khi gộp và lọc khoảng cách.`);
@@ -3502,15 +3567,16 @@ app.get('/api/restaurants', async (req, res) => {
       console.log(`[Response] ✅ Trả ${responseData.length} quán từ memory cache (mở: ${totalOpen}, đóng/fallback: ${totalClosed})`);
     }
 
-    // ── PAGINATION ──
-    const page = parseInt(req.query.page) || 0;
-    const limit = parseInt(req.query.limit) || 0;
-    let paginatedData = responseData;
-    let totalBeforePagination = responseData.length;
-    if (limit > 0 && page > 0) {
-      const startIdx = (page - 1) * limit;
-      paginatedData = responseData.slice(startIdx, startIdx + limit);
-    }
+    // ── PAGINATION (default page=1, limit=20 for lean customer payloads) ──
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const rawLimit = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(rawLimit, 100)
+      : 20;
+    const totalBeforePagination = responseData.length;
+    const startIdx = (page - 1) * limit;
+    const paginatedData = responseData.slice(startIdx, startIdx + limit);
+    const hasMore = startIdx + paginatedData.length < totalBeforePagination;
 
     // Danh sách không tìm kiếm: cache 30s ở client, stale-while-revalidate 60s
     if (!query) res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
@@ -3518,8 +3584,9 @@ app.get('/api/restaurants', async (req, res) => {
       source: query ? 'local_search_cached' : 'local_cached',
       data: stripMenus(paginatedData),
       total: totalBeforePagination,
-      page: page || 1,
-      limit: limit || totalBeforePagination
+      page,
+      limit,
+      hasMore
     });
   }
 
@@ -3552,9 +3619,44 @@ app.get('/api/restaurants', async (req, res) => {
   res.json({ source: 'emergency', data: [], total: 0 });
 });
 
-function triggerBackgroundMenuScrape(restaurant) {
+// Global scrape queue — prevents unbounded Chromium launches from customer traffic
+const MENU_SCRAPE_CONCURRENCY = 2;
+const menuScrapeQueue = [];
+const menuScrapeQueuedIds = new Set();
+let menuScrapeActive = 0;
+
+function enqueueMenuScrape(restaurant) {
   if (!restaurant || !restaurant.id) return;
-  if (restaurant._isScraping) return;
+  const id = String(restaurant.id);
+  if (restaurant._isScraping || menuScrapeQueuedIds.has(id)) return;
+  menuScrapeQueuedIds.add(id);
+  menuScrapeQueue.push(restaurant);
+  console.log(`[Scrape Queue] ➕ Enqueued "${restaurant.name}" (queue=${menuScrapeQueue.length}, active=${menuScrapeActive})`);
+  pumpMenuScrapeQueue();
+}
+
+function pumpMenuScrapeQueue() {
+  while (menuScrapeActive < MENU_SCRAPE_CONCURRENCY && menuScrapeQueue.length > 0) {
+    const restaurant = menuScrapeQueue.shift();
+    if (!restaurant || !restaurant.id) continue;
+    const id = String(restaurant.id);
+    menuScrapeQueuedIds.delete(id);
+    menuScrapeActive++;
+    Promise.resolve()
+      .then(() => triggerBackgroundMenuScrape(restaurant))
+      .catch(err => {
+        console.error(`[Scrape Queue] Lỗi scrape "${restaurant.name}":`, err.message);
+      })
+      .finally(() => {
+        menuScrapeActive = Math.max(0, menuScrapeActive - 1);
+        pumpMenuScrapeQueue();
+      });
+  }
+}
+
+function triggerBackgroundMenuScrape(restaurant) {
+  if (!restaurant || !restaurant.id) return Promise.resolve();
+  if (restaurant._isScraping) return Promise.resolve();
   restaurant._isScraping = true;
 
   let slug = restaurant.shopeefoodSlug || restaurant.id.replace('r_ct_', '').split('?')[0].replace(/_/g, '-');
@@ -3565,7 +3667,7 @@ function triggerBackgroundMenuScrape(restaurant) {
     ? Promise.resolve(restaurant.shopeefoodSlug)
     : getShopeeFoodSlugFromFoody(slug);
 
-  resolvePromise.then(resolvedSlug => {
+  return resolvePromise.then(resolvedSlug => {
     let finalSlug = resolvedSlug;
     if (SLUG_REWRITER_MAP[finalSlug]) {
       console.log(`[Slug Rewriter] 🔄 Chuyển hướng slug chi nhánh thực tế: "${finalSlug}" → "${SLUG_REWRITER_MAP[finalSlug]}"`);
@@ -3707,48 +3809,15 @@ function triggerBackgroundMenuScrape(restaurant) {
       });
 
     } else {
-      console.warn(`[Background Scraper] ⚠️ Lỗi kỹ thuật khi cào "${restaurant.name}". Dùng menu template thay thế.`);
-      const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-      writeRestaurantMenu(restaurant.id, templateMenu);
-      restaurant.menu = templateMenu;
-      restaurant.menuTemplateFallback = true;
-      restaurant.menuUpdatedAt = new Date().toISOString();
-      
+      // Technical scrape failure — do NOT overwrite disk with fabricated template menus
+      console.warn(`[Background Scraper] ⚠️ Lỗi kỹ thuật khi cào "${restaurant.name}". Giữ nguyên menu hiện có (không ghi template).`);
+      restaurant.menuStatus = 'unavailable';
       SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-
-      updateLocalDatabase((localData) => {
-        const idx = localData.findIndex(r => String(r.id) === String(restaurant.id));
-        if (idx !== -1) {
-          localData[idx].menuTemplateFallback = true;
-          localData[idx].menuUpdatedAt = restaurant.menuUpdatedAt;
-          localData[idx].dishNames = templateMenu.map(m => m.name).filter(Boolean);
-          delete localData[idx].menu;
-          return true;
-        } else {
-          const toSave = { ...restaurant };
-          delete toSave._isScraping;
-          if (toSave.menu) {
-            toSave.dishNames = toSave.menu.map(m => m.name).filter(Boolean);
-            delete toSave.menu;
-          }
-          localData.push(toSave);
-          return true;
-        }
-      }).then(() => {
-        console.log(`[Background Scraper] 💾 Đã lưu menu template của "${restaurant.name}" vào database`);
-      }).catch(err => {
-        console.error('[Background Scraper] Lỗi khi ghi đè cập nhật restaurants-local.json:', err.message);
-      });
     }
   }).catch(err => {
     restaurant._isScraping = false;
     console.error(`[Background Scraper] Lỗi luồng cào ngầm cho "${restaurant.name}":`, err.message);
-    if (!restaurant.menu || restaurant.menu.length === 0) {
-      const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-      writeRestaurantMenu(restaurant.id, templateMenu);
-      restaurant.menu = templateMenu;
-      SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-    }
+    restaurant.menuStatus = 'unavailable';
   });
 }
 
@@ -3868,29 +3937,15 @@ function triggerSyncMenuScrape(restaurant) {
         return false;
       });
     } else {
-      console.warn(`[Sync Scraper] ⚠️ Lỗi khi cào "${restaurant.name}". Dùng menu template.`);
-      const templateMenu = generateMenuForRestaurant(restaurant.name, restaurant.id);
-      writeRestaurantMenu(restaurant.id, templateMenu);
-      restaurant.menu = templateMenu;
-      restaurant.menuTemplateFallback = true;
-      restaurant.menuUpdatedAt = new Date().toISOString();
+      console.warn(`[Sync Scraper] ⚠️ Lỗi khi cào "${restaurant.name}". Không ghi menu template giả.`);
+      restaurant.menuStatus = 'unavailable';
       SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-      
-      await updateLocalDatabase((localData) => {
-        const idx = localData.findIndex(r => String(r.id) === String(restaurant.id));
-        if (idx !== -1) {
-          localData[idx].menuTemplateFallback = true;
-          localData[idx].menuUpdatedAt = restaurant.menuUpdatedAt;
-          localData[idx].dishNames = templateMenu.map(m => m.name).filter(Boolean);
-          return true;
-        }
-        return false;
-      });
     }
     return restaurant;
   }).catch(err => {
     restaurant._isScraping = false;
     console.error(`[Sync Scraper] Lỗi luồng cào đồng bộ cho "${restaurant.name}":`, err.message);
+    restaurant.menuStatus = 'unavailable';
     return restaurant;
   });
 }
@@ -3977,31 +4032,17 @@ app.get('/api/restaurants/:id', async (req, res) => {
       SEARCHED_RESTAURANTS_CACHE.set(responseRestaurant.id, responseRestaurant);
     }
 
-    // Tải menu từ tệp riêng nếu chưa có trong object
+    // Tải menu từ tệp riêng nếu chưa có trong object — KHÔNG ghi menu mẫu lên disk
     if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
       const fileMenu = readRestaurantMenu(responseRestaurant.id);
       if (fileMenu && fileMenu.length > 0) {
         responseRestaurant.menu = fileMenu;
       } else {
-        console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có thực đơn. Tạo menu mẫu thay thế...`);
-        const templateMenu = generateMenuForRestaurant(responseRestaurant.name, responseRestaurant.id);
-        responseRestaurant.menu = templateMenu;
-        responseRestaurant.menuTemplateFallback = true;
+        console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có file menu. Trả menu rỗng + menuStatus=loading.`);
+        responseRestaurant.menu = [];
         responseRestaurant.hasRealMenu = false;
-        
-        writeRestaurantMenu(responseRestaurant.id, templateMenu);
-
-        await updateLocalDatabase((localData) => {
-          const idx = localData.findIndex(r => String(r.id) === String(responseRestaurant.id));
-          if (idx !== -1) {
-            localData[idx].menuTemplateFallback = true;
-            localData[idx].hasRealMenu = false;
-            localData[idx].dishNames = templateMenu.map(m => m.name).filter(Boolean);
-            delete localData[idx].menu;
-            return true;
-          }
-          return false;
-        });
+        responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
+        delete responseRestaurant.menuTemplateFallback;
       }
     }
 
@@ -4014,14 +4055,14 @@ app.get('/api/restaurants/:id', async (req, res) => {
       }
     }
 
-    // Kích hoạt cào ngầm chạy ngầm nếu chưa có menu thực tế HOẶC là menu cũ chưa có options HOẶC forceSync=true
+    // Kích hoạt cào ngầm (qua queue) nếu chưa có menu thực tế HOẶC legacy HOẶC forceSync
     const forceSync = req.query.forceSync === 'true';
-    if (((!responseRestaurant.hasRealMenu || isLegacyMenu) && !responseRestaurant.isClosed) || forceSync) {
+    const needsScrape = ((!responseRestaurant.hasRealMenu || isLegacyMenu || !responseRestaurant.menu || responseRestaurant.menu.length === 0) && !responseRestaurant.isClosed) || forceSync;
+    if (needsScrape) {
       if (isLegacyMenu) {
-        console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Kích hoạt cào lại ngầm...`);
+        console.log(`[Details] 🔄 Phát hiện menu cũ của "${responseRestaurant.name}" (chưa có options). Enqueue scrape...`);
       }
       found.menu = responseRestaurant.menu;
-      found.menuTemplateFallback = responseRestaurant.menuTemplateFallback;
       found.hasRealMenu = responseRestaurant.hasRealMenu;
       
       if (req.query.syncScrape === 'true') {
@@ -4031,11 +4072,17 @@ app.get('/api/restaurants/:id', async (req, res) => {
         if (updated && updated.length > 0) {
           responseRestaurant.menu = updated;
           responseRestaurant.hasRealMenu = true;
+          responseRestaurant.menuStatus = 'ready';
           delete responseRestaurant.menuTemplateFallback;
         }
       } else {
-        triggerBackgroundMenuScrape(found);
+        enqueueMenuScrape(found);
+        if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
+          responseRestaurant.menuStatus = 'loading';
+        }
       }
+    } else if (responseRestaurant.menu && responseRestaurant.menu.length > 0) {
+      responseRestaurant.menuStatus = 'ready';
     }
 
     return res.json({ source, data: applyDistanceMarkupToMenu(responseRestaurant, req.query.lat, req.query.lon) });
@@ -5272,7 +5319,11 @@ app.get('/api/shippers', (req, res) => {
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl: SUPABASE_URL,
-    supabaseAnonKey: SUPABASE_ANON_KEY
+    supabaseAnonKey: SUPABASE_ANON_KEY,
+    markupRate: pricingConfig.markupRate,
+    minShipperEarning: pricingConfig.minShipperEarning,
+    freeDistanceKm: pricingConfig.freeDistanceKm,
+    multiItemDiscount: pricingConfig.multiItemDiscount
   });
 });
 
@@ -6613,6 +6664,11 @@ app.listen(PORT, () => {
 
   // Tự động đồng bộ thông tin tài xế từ Supabase Auth online về local JSON
   syncShippersFromSupabase();
+
+  // Restore menu files lost on deploy (menus/ is gitignored)
+  hydrateMenusFromSupabase().catch(err => {
+    console.error('[Menu Hydrate] Boot restore failed:', err.message);
+  });
 
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();
