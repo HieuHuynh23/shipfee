@@ -1345,6 +1345,10 @@ function startTelegramPolling() {
               await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Không tìm thấy thông tin tài xế!' });
               continue;
             }
+            if (getShipperActiveOrderCount(matchedShipper.phone) >= MAX_ACTIVE_ORDERS_PER_SHIPPER) {
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: `Tài xế đang mang đủ ${MAX_ACTIVE_ORDERS_PER_SHIPPER} đơn!` });
+              continue;
+            }
 
             let updatedOrder = null;
             await updateOrdersDatabase((dbOrders) => {
@@ -1354,8 +1358,7 @@ function startTelegramPolling() {
                 dbOrders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
                 dbOrders[idx].shipperName = matchedShipper.name;
                 dbOrders[idx].shipperPhone = matchedShipper.phone;
-                dbOrders[idx].assignedShipperPhone = matchedShipper.phone;
-                dbOrders[idx].offerExpiresAt = null;
+                clearOrderOffer(dbOrders[idx]);
                 dbOrders[idx].acceptedAt = Date.now();
                 updatedOrder = dbOrders[idx];
               }
@@ -1670,8 +1673,9 @@ function calcAppPrice(inStorePrice) {
 // ── ONLINE SHIPPERS REAL-TIME COORDINATES & DISPATCH LOGIC ──────────────────
 const onlineShipperLocations = new Map(); // phone -> { lat, lon, lastSeen }
 const MAX_ACTIVE_ORDERS_PER_SHIPPER = 2; // tối thiểu 1, tối đa 2 đơn đang chạy
-const BATCH_COMPAT_RESTAURANT_KM = 2;    // quán gần nhau để ghép đơn
-const BATCH_COMPAT_DELIVERY_KM = 2;      // điểm giao gần nhau để ghép đơn
+const BATCH_NEAR_RESTAURANT1_KM = 2;     // ACCEPTED: quán 2 gần quán 1
+const BATCH_NEAR_CUSTOMER1_KM = 2;       // PURCHASED/ghép: quán 2 gần khách 1
+const BATCH_DELIVERY_CLUSTER_KM = 2;     // điểm giao 2 gần khách 1
 const OFFER_TTL_MS = 30000;
 
 function calcDistance(lat1, lon1, lat2, lon2) {
@@ -1704,27 +1708,102 @@ function getShipperActiveOrderCount(phone, orders = null) {
   return getShipperActiveOrders(phone, orders).length;
 }
 
-function isBatchCompatible(existingOrder, candidateOrder) {
-  if (!existingOrder || !candidateOrder) return false;
-  const restDist = calcDistance(
+/**
+ * Chấm điểm ghép đơn thứ 2 theo giai đoạn đơn đang chạy:
+ * - PURCHASED (đã lấy hàng): neo theo vị trí khách 1
+ * - ACCEPTED (chưa lấy): ưu tiên quán 2 gần quán 1, phụ là gần khách 1
+ */
+function scoreBatchCandidate(existingOrder, candidateOrder, shipperDistToNewRestaurant) {
+  const result = {
+    batchCompatible: false,
+    score: shipperDistToNewRestaurant + 8,
+    reason: 'INCOMPAT',
+    rest2ToRest1: Infinity,
+    rest2ToCust1: Infinity,
+    deliv2ToCust1: Infinity
+  };
+  if (!existingOrder || !candidateOrder) return result;
+
+  const rest2ToRest1 = calcDistance(
     existingOrder.restaurantLat, existingOrder.restaurantLon,
     candidateOrder.restaurantLat, candidateOrder.restaurantLon
   );
-  const delivDist = calcDistance(
+  const rest2ToCust1 = calcDistance(
+    existingOrder.pinnedLat, existingOrder.pinnedLon,
+    candidateOrder.restaurantLat, candidateOrder.restaurantLon
+  );
+  const deliv2ToCust1 = calcDistance(
     existingOrder.pinnedLat, existingOrder.pinnedLon,
     candidateOrder.pinnedLat, candidateOrder.pinnedLon
   );
-  return restDist <= BATCH_COMPAT_RESTAURANT_KM && delivDist <= BATCH_COMPAT_DELIVERY_KM;
+
+  result.rest2ToRest1 = rest2ToRest1;
+  result.rest2ToCust1 = rest2ToCust1;
+  result.deliv2ToCust1 = deliv2ToCust1;
+
+  if (existingOrder.status === 'PURCHASED') {
+    // Đã lấy đơn 1 → ưu tiên phát đơn 2 gần khách 1
+    const nearCust1Pickup = rest2ToCust1 <= BATCH_NEAR_CUSTOMER1_KM;
+    const nearCust1Dropoff = deliv2ToCust1 <= BATCH_DELIVERY_CLUSTER_KM;
+
+    if (nearCust1Pickup || nearCust1Dropoff) {
+      result.batchCompatible = true;
+      const anchorDist = Math.min(
+        Number.isFinite(rest2ToCust1) ? rest2ToCust1 : Infinity,
+        Number.isFinite(deliv2ToCust1) ? deliv2ToCust1 : Infinity
+      );
+      // Neo mạnh theo khách 1; GPS tới quán 2 chỉ là phụ
+      result.score = anchorDist * 0.22 + shipperDistToNewRestaurant * 0.12;
+      if (nearCust1Pickup && nearCust1Dropoff) {
+        result.score *= 0.75;
+        result.reason = 'NEAR_CUSTOMER1_BOTH';
+      } else if (nearCust1Pickup) {
+        result.reason = 'NEAR_CUSTOMER1_PICKUP';
+      } else {
+        result.reason = 'NEAR_CUSTOMER1_DROPOFF';
+      }
+    } else {
+      result.score = shipperDistToNewRestaurant + 10;
+      result.reason = 'FAR_FROM_CUSTOMER1';
+    }
+    return result;
+  }
+
+  // ACCEPTED: chưa lấy hàng → ưu tiên quán gần nhau, phụ là cụm giao gần khách 1
+  const nearRest1 = rest2ToRest1 <= BATCH_NEAR_RESTAURANT1_KM;
+  const nearCust1Dropoff = deliv2ToCust1 <= BATCH_DELIVERY_CLUSTER_KM;
+  const nearCust1Pickup = rest2ToCust1 <= BATCH_NEAR_CUSTOMER1_KM;
+
+  if (nearRest1) {
+    result.batchCompatible = true;
+    result.score = rest2ToRest1 * 0.4 + shipperDistToNewRestaurant * 0.3;
+    if (nearCust1Dropoff) {
+      result.score *= 0.7;
+      result.reason = 'NEAR_REST1_AND_CUST1';
+    } else {
+      result.reason = 'NEAR_REST1';
+    }
+  } else if (nearCust1Pickup || nearCust1Dropoff) {
+    // Vẫn cho phép ghép nếu đơn 2 nằm quanh khách 1 (lấy/giao gần điểm đến đơn 1)
+    result.batchCompatible = true;
+    const anchorDist = Math.min(
+      Number.isFinite(rest2ToCust1) ? rest2ToCust1 : Infinity,
+      Number.isFinite(deliv2ToCust1) ? deliv2ToCust1 : Infinity
+    );
+    result.score = anchorDist * 0.4 + shipperDistToNewRestaurant * 0.3;
+    result.reason = nearCust1Pickup ? 'NEAR_CUST1_PICKUP_EARLY' : 'NEAR_CUST1_DROPOFF_EARLY';
+  } else {
+    result.score = shipperDistToNewRestaurant + 8;
+    result.reason = 'INCOMPAT_BEFORE_PICKUP';
+  }
+
+  return result;
 }
 
 /**
  * Chọn tài xế phù hợp để đề xuất đơn.
  * - Capacity: 0 hoặc 1 đơn active (< MAX_ACTIVE_ORDERS_PER_SHIPPER)
- * - Ưu tiên SOS, rồi ghép đơn tương thích, rồi tài xế rảnh gần quán nhất
- * @param {number} restaurantLat
- * @param {number} restaurantLon
- * @param {string[]} declinedShippers
- * @param {object|null} candidateOrder - đơn mới (để chấm điểm ghép đơn)
+ * - Ưu tiên SOS, rồi ghép đơn (neo khách 1 khi đã lấy hàng), rồi tài xế rảnh gần quán
  */
 function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShippers = [], candidateOrder = null) {
   try {
@@ -1775,7 +1854,7 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       return assistanceShipper;
     }
 
-    // 🚴 ƯU TIÊN 2: Chấm điểm — rảnh / ghép đơn tương thích / gần quán
+    // 🚴 ƯU TIÊN 2: Chấm điểm — rảnh / ghép đơn theo giai đoạn / gần quán
     let bestShipper = null;
     let bestScore = Infinity;
 
@@ -1792,16 +1871,20 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       const distToRestaurant = calcDistance(restaurantLat, restaurantLon, loc.lat, loc.lon);
       let score = distToRestaurant;
       let batchCompatible = false;
+      let batchReason = 'IDLE';
 
       if (activeOrders.length === 1) {
-        batchCompatible = isBatchCompatible(activeOrders[0], orderHint);
+        const batch = scoreBatchCandidate(activeOrders[0], orderHint, distToRestaurant);
+        score = batch.score;
+        batchCompatible = batch.batchCompatible;
+        batchReason = batch.reason;
         if (batchCompatible) {
-          // Ưu tiên ghép đơn: giảm score mạnh để xếp trước tài xế rảnh xa hơn
-          score = distToRestaurant * 0.35;
-          console.log(`[Batch Dispatch] 📦 Ứng viên ghép đơn: ${s.name} dist=${distToRestaurant.toFixed(2)}km score=${score.toFixed(2)}`);
-        } else {
-          // Đang có 1 đơn không tương thích → ưu tiên tài xế rảnh
-          score = distToRestaurant + 8;
+          console.log(
+            `[Batch Dispatch] 📦 ${s.name} status=${activeOrders[0].status} reason=${batch.reason}` +
+            ` rest2→cust1=${Number.isFinite(batch.rest2ToCust1) ? batch.rest2ToCust1.toFixed(2) : 'n/a'}km` +
+            ` deliv2→cust1=${Number.isFinite(batch.deliv2ToCust1) ? batch.deliv2ToCust1.toFixed(2) : 'n/a'}km` +
+            ` score=${score.toFixed(2)}`
+          );
         }
       }
 
@@ -1813,13 +1896,16 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
           distance: distToRestaurant,
           activeLoad: activeOrders.length,
           batchCompatible,
+          batchReason,
           score
         };
       }
     }
 
     if (bestShipper) {
-      const tag = bestShipper.batchCompatible ? 'GHÉP ĐƠN' : (bestShipper.activeLoad === 0 ? 'ĐƠN LẺ' : 'LOAD+1');
+      const tag = bestShipper.batchCompatible
+        ? `GHÉP ĐƠN:${bestShipper.batchReason}`
+        : (bestShipper.activeLoad === 0 ? 'ĐƠN LẺ' : 'LOAD+1');
       console.log(`[Dispatch] 🎯 Chọn ${bestShipper.name} (${bestShipper.phone}) [${tag}] dist=${bestShipper.distance.toFixed(2)}km score=${bestScore.toFixed(2)}`);
     }
     return bestShipper;

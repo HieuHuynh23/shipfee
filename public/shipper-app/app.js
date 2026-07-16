@@ -895,7 +895,9 @@ function renderPendingOrders(orders) {
     }
 
     const loadHint = activeOrders.length > 0
-      ? `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn. Hệ thống có thể ghép thêm tối đa ${MAX_ACTIVE_ORDERS - activeOrders.length} đơn gần tuyến.`
+      ? (activeOrders.some(o => o.status === 'PURCHASED')
+          ? `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn (đã lấy hàng). Hệ thống ưu tiên ghép đơn gần điểm giao khách hiện tại.`
+          : `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn. Hệ thống có thể ghép thêm đơn gần quán/điểm giao hiện tại.`)
       : 'Hệ thống sẽ đề xuất đơn đích danh (không mở bể chung). Tối đa 2 đơn / tài xế.';
     container.innerHTML = `
       <div class="empty-state">
