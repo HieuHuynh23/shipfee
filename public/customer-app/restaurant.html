@@ -11,7 +11,7 @@
     /* ── PAGE-SPECIFIC ── */
     .restaurant-header {
       position: relative;
-      height: 200px;
+      height: 220px;
       background: var(--clr-surface-2);
       overflow: hidden;
     }
@@ -22,25 +22,57 @@
     }
     .restaurant-header__overlay {
       position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+      background: linear-gradient(to top, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.35) 55%, rgba(15,23,42,0.15) 100%);
     }
     .restaurant-header__info {
       position: absolute; bottom: 0; left: 0; right: 0;
-      padding: var(--space-md);
+      padding: 18px var(--space-md) var(--space-md);
       color: white;
     }
     .restaurant-header__name {
-      font-size: 18px; font-weight: 800; line-height: 1.2;
-      margin-bottom: 4px;
-      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+      font-size: 20px; font-weight: 800; line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
     .restaurant-header__meta {
-      display: flex; gap: var(--space-md); flex-wrap: wrap;
+      display: flex; gap: 8px; flex-wrap: wrap;
     }
     .restaurant-header__meta-item {
-      font-size: 12px; color: rgba(255,255,255,0.85);
-      display: flex; align-items: center; gap: 4px;
+      font-size: 12px; font-weight: 600;
+      color: rgba(255,255,255,0.92);
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.14);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
     }
+    .restaurant-header__meta-item i { font-size: 11px; opacity: 0.9; }
+
+    .menu-hint {
+      margin: 14px 16px 0;
+      padding: 12px 14px;
+      border-radius: var(--radius-lg);
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: #92400E;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.45;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .menu-hint i {
+      margin-top: 2px;
+      color: #D97706;
+      flex-shrink: 0;
+    }
+    .menu-hint--sync {
+      background: #F8FAFC;
+      border-color: var(--clr-border);
+      color: var(--clr-text-secondary);
+    }
+    .menu-hint--sync i { color: var(--clr-primary); }
 
     .menu-cat-tabs {
       display: flex;
@@ -85,46 +117,40 @@
     }
     .menu-items { display: flex; flex-direction: column; gap: var(--space-md); }
 
-    /* Cart Bar (override) */
+    /* Cart Bar — one clear CTA like Grab/Shopee */
     .cart-bar__inner {
       display: flex;
       align-items: center;
-      gap: var(--space-md);
+      gap: 12px;
       background: var(--clr-primary);
       border-radius: var(--radius-lg);
-      padding: 12px var(--space-md);
+      padding: 12px 14px;
       color: white;
       box-shadow: var(--shadow-primary);
+      cursor: pointer;
     }
     .cart-bar__left {
       display: flex;
       align-items: center;
-      gap: var(--space-sm);
+      gap: 10px;
       flex: 1;
+      min-width: 0;
     }
     .cart-bar__count-bubble {
-      width: 28px; height: 28px;
-      background: rgba(255,255,255,0.2);
+      width: 30px; height: 30px;
+      background: rgba(255,255,255,0.22);
       border-radius: var(--radius-full);
       display: flex; align-items: center; justify-content: center;
       font-size: 13px; font-weight: 800;
       flex-shrink: 0;
     }
-    .cart-bar__label { font-size: 13px; font-weight: 600; }
-    .cart-bar__price { font-size: 15px; font-weight: 800; }
+    .cart-bar__label { font-size: 13px; font-weight: 700; }
+    .cart-bar__sub { font-size: 11px; opacity: 0.85; margin-top: 1px; }
     .cart-bar__cta {
-      font-size: 13px; font-weight: 700;
+      font-size: 13px; font-weight: 800;
       background: rgba(255,255,255,0.2);
-      padding: 6px 14px; border-radius: var(--radius-full);
+      padding: 8px 14px; border-radius: var(--radius-full);
       white-space: nowrap;
-    }
-
-    .shipper-earnings-chip {
-      display: inline-flex; align-items: center; gap: 4px;
-      background: #ECFDF5; color: #065F46;
-      border: 1px solid #6EE7B7;
-      font-size: 10px; font-weight: 700;
-      padding: 2px 8px; border-radius: var(--radius-full);
     }
 
     /* ── CLOSED RESTAURANT BANNER ── */
@@ -572,21 +598,19 @@
   <!-- ── FLOATING CART BAR ── -->
   <div class="cart-bar" id="cart-bar">
     <div class="cart-bar__content">
-      <!-- Nudge message -->
-      <div id="cart-bar-nudge" style="display: none; background: #FFFBEB; border-bottom: 1px solid #FDE68A; color: #92400E; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; align-items: center; gap: 6px; justify-content: center; box-shadow: 0 -2px 5px rgba(0,0,0,0.02);">
-        <i class="fa-solid fa-lightbulb" style="color: #F59E0B;"></i>
-        <span>Thêm 1 món nữa để tự động giảm ngay 15% từ món thứ 2!</span>
+      <div id="cart-bar-nudge" style="display: none; background: #FFFBEB; border-bottom: 1px solid #FDE68A; color: #92400E; font-size: 11px; font-weight: 650; padding: 7px 12px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; align-items: center; gap: 6px; justify-content: center;">
+        <i class="fa-solid fa-tags" style="color: #F59E0B;"></i>
+        <span>Thêm 1 món nữa để giảm 15% từ món thứ 2</span>
       </div>
       <div class="cart-bar__inner" onclick="goToCheckout()">
         <div class="cart-bar__left">
           <div class="cart-bar__count-bubble" id="cart-bar-count">0</div>
           <div>
-            <div class="cart-bar__label">Xem giỏ hàng</div>
-            <div style="font-size:10px;opacity:0.8;">Tổng: <span id="cart-bar-total">0đ</span></div>
+            <div class="cart-bar__label">Giỏ hàng</div>
+            <div class="cart-bar__sub" id="cart-bar-total">0đ</div>
           </div>
         </div>
-        <div class="cart-bar__price" id="cart-bar-btn-label">0đ</div>
-        <div class="cart-bar__cta">Đặt ngay →</div>
+        <div class="cart-bar__cta"><span id="cart-bar-btn-label">0đ</span> · Tiếp tục</div>
       </div>
     </div>
   </div>
@@ -959,14 +983,18 @@
       document.getElementById('restaurant-img').src      = RESTAURANT.img;
       document.getElementById('restaurant-img').alt      = RESTAURANT.name;
       document.getElementById('restaurant-name').textContent   = RESTAURANT.name;
-      document.getElementById('restaurant-rating').textContent = `${RESTAURANT.rating} (${RESTAURANT.reviews.toLocaleString()} đánh giá)`;
+      // Compact meta: rating only (distance/time already in chips)
+      const reviews = typeof RESTAURANT.reviews === 'number' ? RESTAURANT.reviews : 0;
+      document.getElementById('restaurant-rating').textContent =
+        reviews > 0 ? `${RESTAURANT.rating} · ${reviews.toLocaleString()}` : String(RESTAURANT.rating || '—');
       document.getElementById('restaurant-distance').textContent = RESTAURANT.distance;
       document.getElementById('restaurant-time').textContent = RESTAURANT.time;
 
       const tagsEl = document.getElementById('restaurant-tags');
-      tagsEl.innerHTML = RESTAURANT.tags.map(t =>
-        `<span class="badge badge--glass" style="margin-right:4px;">${t}</span>`
-      ).join('');
+      const category = RESTAURANT.category || (Array.isArray(RESTAURANT.tags) ? RESTAURANT.tags[0] : '');
+      tagsEl.innerHTML = category
+        ? `<span class="badge badge--glass">${SF.escapeHtml ? SF.escapeHtml(category) : category}</span>`
+        : '';
     }
 
     // ── CATEGORY TABS ──
@@ -987,61 +1015,21 @@
       const container = document.getElementById('menu-content');
       container.innerHTML = '';
 
-      // Chèn promo banner nudge ở đầu menu
+      // One compact promo hint (avoid stacked marketing banners)
       const promoBanner = document.createElement('div');
-      promoBanner.className = 'transparency-banner mb-md animate-fade-in';
-      promoBanner.style.cssText = `
-        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
-        border: 1px solid #FDE68A;
-        color: #92400E;
-        padding: 12px 16px;
-        border-radius: var(--radius-lg);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 16px;
-        font-weight: 600;
-        font-size: 13px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-      `;
+      promoBanner.className = 'menu-hint animate-fade-in';
       promoBanner.innerHTML = `
-        <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px;">
-          <i class="fa-solid fa-gift"></i>
-        </div>
-        <div style="flex: 1;">
-          <strong>🔥 Ưu đãi ShipFee:</strong> Đặt từ 2 món trở lên để được tự động <strong>giảm ngay 15%</strong> cho mỗi món ăn thêm (tính từ món thứ 2)!
-        </div>
+        <i class="fa-solid fa-tags"></i>
+        <div>Đặt từ <strong>2 món</strong> để tự động giảm <strong>15%</strong> từ món thứ 2.</div>
       `;
       container.appendChild(promoBanner);
 
-      // Hiển thị thông báo nếu quán sử dụng thực đơn tạm thời (fallback) do đang trong quá trình đồng bộ dữ liệu
       if (!RESTAURANT.hasRealMenu || RESTAURANT.menuTemplateFallback) {
         const warningBanner = document.createElement('div');
-        warningBanner.className = 'transparency-banner mb-md animate-fade-in';
-        warningBanner.style.cssText = `
-          background: linear-gradient(135deg, #FFFDF5 0%, #FFFBEB 100%);
-          border: 1px solid #FDE68A;
-          color: #92400E;
-          padding: 16px 20px;
-          border-radius: var(--radius-lg);
-          display: flex;
-          align-items: flex-start;
-          gap: 16px;
-          margin: 16px;
-          box-shadow: 0 4px 15px rgba(245, 158, 11, 0.06);
-          border-left: 5px solid #F59E0B;
-        `;
+        warningBanner.className = 'menu-hint menu-hint--sync animate-fade-in';
         warningBanner.innerHTML = `
-          <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; box-shadow: 0 4px 10px rgba(245,158,11,0.25);">
-            <i class="fa-solid fa-wand-magic-sparkles"></i>
-          </div>
-          <div style="font-size: 13px; line-height: 1.6; flex: 1;">
-            <strong style="font-size: 15px; color: #78350F; display: block; margin-bottom: 4px; font-weight: 700;">✨ Thực Đơn Gợi Ý & Dịch Vụ Mua Hộ Tiện Lợi</strong>
-            Dạ, quán ăn này đang được đồng bộ thực đơn chính thức. Để giúp bạn không lỡ bữa ngon, <strong>ShipFee vẫn hỗ trợ bạn đặt món bình thường</strong> theo thực đơn gợi ý dưới đây! 
-            <span style="display: block; margin-top: 5px; color: #B45309; font-weight: 600; font-size: 12.5px;">
-              🛵 Tài xế thân thiện của ShipFee sẽ đến trực tiếp cửa hàng để mua đúng ý và giao nhanh đến tận tay bạn!
-            </span>
-          </div>
+          <i class="fa-solid fa-utensils"></i>
+          <div>Thực đơn đang đồng bộ. Bạn vẫn có thể đặt — tài xế sẽ mua hộ tại quán.</div>
         `;
         container.appendChild(warningBanner);
       }
