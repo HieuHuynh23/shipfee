@@ -364,7 +364,7 @@
       "Đối Tác"
     ],
     "minOrder": 30000,
-    "hasRealMenu": false,
+    "hasRealMenu": true,
     "isClosed": true,
     "closedAt": "2026-07-13T07:15:10.510Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
@@ -491,7 +491,6 @@
       "Pepsi Không Đường (Tiêu Chuẩn)",
       "7Up (Vừa)"
     ],
-    "menuTemplateFallback": true,
     "menuUpdatedAt": "2026-07-13T07:15:10.510Z"
   },
   {
@@ -5183,7 +5182,7 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/co-beo-banh-trang-tron",
     "dishNames": [
       "Bánh tráng trộn nhỏ",
@@ -5195,7 +5194,8 @@
     "shopeefoodSlug": "co-beo-banh-trang-tron",
     "closedAt": "2026-07-14T01:35:32.934Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "crawlNextAttempt": "2026-07-15T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-15T00:00:00.000Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_banh_mi_hiep_sanh_quang_trung",
@@ -5369,7 +5369,7 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/dac-san-ga-tre-hap-la-chanh-dong-xanh-4",
     "dishNames": [
       "GÀ TRE HẤP LÁ CHANH",
@@ -5482,7 +5482,8 @@
     "shopeefoodSlug": "dac-san-ga-tre-hap-la-chanh-dong-xanh-4",
     "closedAt": "2026-07-14T01:38:16.422Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-15T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-15T00:00:00.000Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_com_tam_suon_quay_lu_hang_duong_so_23",
@@ -7388,7 +7389,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/don-chicken-can-tho-nha-hang-ga-ran-han-quoc",
     "dishNames": [
       "Gà Gangjeong Bí Rang M ( Nữa Con )",
@@ -7518,7 +7519,8 @@
     "isClosed": true,
     "closedAt": "2026-07-14T01:57:25.672Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-15T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-15T00:00:00.000Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_ga_ran_mr_thinh",
@@ -9697,7 +9699,7 @@
       "Yêu thích"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/lau-nuong-han-quoc-se-ong",
     "dishNames": [
       "Tôm sốt tỏi HQ"
@@ -9708,7 +9710,8 @@
     "isClosed": true,
     "closedAt": "2026-07-14T02:18:31.168Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "crawlNextAttempt": "2026-07-15T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-15T00:00:00.000Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_quan_toi_bun_dau_mam_tom",
@@ -10320,7 +10323,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/home-tra-sua-an-vat-mac-thien-tich",
     "dishNames": [
       "Khoai tây chiên lắc phomai",
@@ -10487,7 +10490,8 @@
     "menuProcessedAt": "2026-06-30T16:55:49.086Z",
     "shopeefoodSlug": "home-tra-sua-an-vat-mac-thien-tich",
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-14T02:22:35.756Z"
+    "menuUpdatedAt": "2026-07-14T02:22:35.756Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_tra_sua_bobapop_xo_viet_nghe_tinh_can_tho",
@@ -13623,7 +13627,7 @@
       "Mới mở"
     ],
     "minOrder": 30000,
-    "hasRealMenu": true,
+    "hasRealMenu": false,
     "foodyHref": "/can-tho/domino-food-noodles-pham-ngu-lao",
     "dishNames": [
       "Combo 3 Hột vịt lộn - 01 Nước ngọt PepsiCo",
@@ -13741,7 +13745,8 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.190Z",
     "shopeefoodSlug": "domino-food-noodles-pham-ngu-lao",
-    "menuUpdatedAt": "2026-07-12T20:09:08.376Z"
+    "menuUpdatedAt": "2026-07-12T20:09:08.376Z",
+    "menuTemplateFallback": true
   },
   {
     "id": "r_ct_mini_quan_an_vat",
