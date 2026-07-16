@@ -146,12 +146,13 @@
   <div class="overlay" id="job-offer-overlay" onclick="event.stopPropagation()">
     <div class="modal job-modal offer-modal animate-glow">
       <div class="job-modal__header" style="border-bottom: 1px solid rgba(239, 68, 68, 0.2); background: linear-gradient(to right, rgba(239, 68, 68, 0.1), transparent); display: flex; justify-content: space-between; align-items: center; width: 100%;">
-        <h4 style="color: var(--clr-danger); font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;">
-          <i class="fa-solid fa-bell fa-shake"></i> ĐƠN ĐỀ XUẤT CHO BẠN!
+        <h4 style="color: var(--clr-danger); font-size: 16px; margin: 0; display: flex; align-items: center; gap: 8px;" id="offer-title">
+          <i class="fa-solid fa-bell fa-shake"></i> <span id="offer-title-text">ĐƠN ĐỀ XUẤT CHO BẠN!</span>
         </h4>
         <span class="offer-timer-badge" id="offer-timer-seconds" style="background: var(--clr-danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold;">30s</span>
       </div>
       <div class="job-modal__body" style="padding-top: 15px;">
+        <div id="offer-batch-banner" class="offer-batch-banner" style="display: none;"></div>
         <!-- Progress bar countdown -->
         <div class="offer-progress-container" style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-bottom: 15px;">
           <div class="offer-progress-bar" id="offer-progress-bar" style="width: 100%; height: 100%; background: var(--clr-danger); transition: width 0.1s linear;"></div>

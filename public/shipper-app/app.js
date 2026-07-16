@@ -1557,6 +1557,29 @@ function handleTargetedOffer(offer) {
     document.getElementById('offer-app-total').textContent = formatCurrency(offer.appTotal);
     document.getElementById('offer-store-total').textContent = formatCurrency(offer.storeTotal);
 
+    const titleText = document.getElementById('offer-title-text');
+    const batchBanner = document.getElementById('offer-batch-banner');
+    const swipeText = document.getElementById('offer-swipe-text');
+    if (activeOrders.length === 1) {
+      const current = activeOrders[0];
+      const isPurchased = current.status === 'PURCHASED';
+      if (titleText) titleText.textContent = 'ĐƠN GHÉP GẦN TUYẾN!';
+      if (batchBanner) {
+        batchBanner.style.display = 'block';
+        batchBanner.innerHTML = isPurchased
+          ? `<i class="fa-solid fa-route"></i> Ghép đơn gần <strong>khách đang giao</strong> (${escapeHtml(current.id)}). Tối đa 2 đơn.`
+          : `<i class="fa-solid fa-link"></i> Ghép đơn gần tuyến đơn đang chạy (${escapeHtml(current.id)}). Tối đa 2 đơn.`;
+      }
+      if (swipeText) swipeText.textContent = '👉 Vuốt để nhận đơn ghép';
+    } else {
+      if (titleText) titleText.textContent = 'ĐƠN ĐỀ XUẤT CHO BẠN!';
+      if (batchBanner) {
+        batchBanner.style.display = 'none';
+        batchBanner.innerHTML = '';
+      }
+      if (swipeText) swipeText.textContent = '👉 Vuốt sang phải để nhận đơn';
+    }
+
     const noteBox = document.getElementById('offer-note-box');
     const noteText = document.getElementById('offer-note-text');
     if (noteBox && noteText) {
@@ -1581,7 +1604,13 @@ function handleTargetedOffer(offer) {
     startOfferTimer(offer.offerExpiresAt);
     
     playChimeSound();
-    showToast('Đơn Đề Xuất Mới! 🎯', 'Có đơn hàng dành riêng cho bạn! Hãy nhận ngay.', 'warning');
+    showToast(
+      activeOrders.length === 1 ? 'Đơn ghép gần tuyến! 📦' : 'Đơn Đề Xuất Mới! 🎯',
+      activeOrders.length === 1
+        ? 'Có đơn thứ 2 phù hợp tuyến đang chạy. Vuốt để nhận.'
+        : 'Có đơn hàng dành riêng cho bạn! Hãy nhận ngay.',
+      'warning'
+    );
   }
 }
 

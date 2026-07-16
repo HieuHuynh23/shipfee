@@ -1194,8 +1194,7 @@ function startTelegramPolling() {
                 dbOrders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
                 dbOrders[idx].shipperName = matchedShipper.name;
                 dbOrders[idx].shipperPhone = matchedShipper.phone;
-                dbOrders[idx].assignedShipperPhone = matchedShipper.phone;
-                dbOrders[idx].offerExpiresAt = null;
+                clearOrderOffer(dbOrders[idx]);
                 dbOrders[idx].acceptedAt = Date.now();
                 updatedOrder = dbOrders[idx];
               }
@@ -1216,11 +1215,15 @@ function startTelegramPolling() {
                 }
               }
 
-              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, { callback_query_id: cb.id, text: 'Đã gán đơn cho tài xế!' });
+              const batchNote = nearest.batchCompatible ? `\n📦 *Ghép đơn:* ${nearest.batchReason || 'yes'}` : '';
+              await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/answerCallbackQuery`, {
+                callback_query_id: cb.id,
+                text: nearest.batchCompatible ? `Đã gán (ghép đơn) cho ${matchedShipper.name}!` : 'Đã gán đơn cho tài xế!'
+              });
               await axios.post(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/editMessageText`, {
                 chat_id: chatId,
                 message_id: msgId,
-                text: `🚴 *Đã gán đơn hàng tự động thành công!*\n\n🆔 *Đơn hàng:* \`${orderId}\`\n👤 *Tài xế:* ${matchedShipper.name} (${matchedShipper.phone})\n📍 *Khoảng cách:* ${nearest.distance.toFixed(2)} km`,
+                text: `🚴 *Đã gán đơn hàng tự động thành công!*\n\n🆔 *Đơn hàng:* \`${orderId}\`\n👤 *Tài xế:* ${matchedShipper.name} (${matchedShipper.phone})\n📍 *Khoảng cách:* ${nearest.distance.toFixed(2)} km${batchNote}`,
                 parse_mode: 'Markdown'
               });
             } else {
@@ -1928,6 +1931,77 @@ function clearOrderOffer(order) {
   order.offerExpiresAt = null;
   return order;
 }
+
+/**
+ * Quét lại đơn PENDING: offer hết hạn → tài xế kế; đơn chưa gán → thử đề xuất mới.
+ * Dùng khi poll orders hoặc khi shipper cập nhật GPS (có thể vừa online/rảnh chỗ).
+ */
+async function redispatchPendingOrders() {
+  const orders = readOrdersDatabase();
+  const now = Date.now();
+  const expiredOrders = orders.filter(o => o.status === 'PENDING' && o.assignedShipperPhone && o.offerExpiresAt && now > o.offerExpiresAt);
+  const unassignedPending = orders.filter(o => o.status === 'PENDING' && !o.assignedShipperPhone);
+  if (expiredOrders.length === 0 && unassignedPending.length === 0) return false;
+
+  let databaseChanged = false;
+  await updateOrdersDatabase((dbOrders) => {
+    for (const exp of expiredOrders) {
+      const idx = dbOrders.findIndex(o => o.id === exp.id);
+      if (idx !== -1 && dbOrders[idx].status === 'PENDING' && dbOrders[idx].assignedShipperPhone) {
+        console.log(`[Dispatch] ⏰ Đề xuất đơn ${dbOrders[idx].id} cho tài xế ${dbOrders[idx].assignedShipperPhone} đã hết hạn.`);
+
+        dbOrders[idx].declinedShippers = dbOrders[idx].declinedShippers || [];
+        const oldPhone = cleanShipperPhone(dbOrders[idx].assignedShipperPhone);
+        if (!dbOrders[idx].declinedShippers.includes(oldPhone)) {
+          dbOrders[idx].declinedShippers.push(oldPhone);
+        }
+
+        const nextNearest = findNearestAvailableShipper(
+          dbOrders[idx].restaurantLat,
+          dbOrders[idx].restaurantLon,
+          dbOrders[idx].declinedShippers,
+          dbOrders[idx]
+        );
+        if (nextNearest) {
+          assignOfferToShipper(dbOrders[idx], nextNearest);
+          console.log(`[Dispatch] 🎯 Đơn ${dbOrders[idx].id} chuyển tiếp đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
+        } else {
+          clearOrderOffer(dbOrders[idx]);
+          console.log(`[Dispatch] ⏳ Đơn ${dbOrders[idx].id} chưa có tài xế phù hợp — giữ chờ đề xuất (ẩn bể chung)`);
+        }
+        databaseChanged = true;
+      }
+    }
+
+    for (const pending of unassignedPending) {
+      const idx = dbOrders.findIndex(o => o.id === pending.id);
+      if (idx === -1 || dbOrders[idx].status !== 'PENDING' || dbOrders[idx].assignedShipperPhone) continue;
+      const nextNearest = findNearestAvailableShipper(
+        dbOrders[idx].restaurantLat,
+        dbOrders[idx].restaurantLon,
+        dbOrders[idx].declinedShippers || [],
+        dbOrders[idx]
+      );
+      if (nextNearest) {
+        if (nextNearest.isAssisted === true) {
+          dbOrders[idx].status = 'ACCEPTED';
+          dbOrders[idx].acceptedAt = Date.now();
+          dbOrders[idx].shipperPhone = cleanShipperPhone(nextNearest.phone);
+          dbOrders[idx].shipperName = nextNearest.name;
+          clearOrderOffer(dbOrders[idx]);
+          console.log(`[SOS Redispatch] ⚡ Đơn ${dbOrders[idx].id} auto-accept cho SOS ${nextNearest.name}`);
+        } else {
+          assignOfferToShipper(dbOrders[idx], nextNearest);
+          console.log(`[Dispatch] 🔁 Đơn chờ ${dbOrders[idx].id} được đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
+        }
+        databaseChanged = true;
+      }
+    }
+  });
+  return databaseChanged;
+}
+
+let lastLocationRedispatchAt = 0;
 
 // ── CONCURRENCY LIMITER & REQUEST COLLAPSING ────────────────────────────────
 class ConcurrencyLimiter {
@@ -4491,74 +4565,12 @@ app.get('/api/orders', async (req, res) => {
   try {
     const { status, shipperPhone } = req.query;
     let orders = readOrdersDatabase();
-    
-    // Redispatch: expired offers → next shipper; unassigned PENDING → try assign (no public pool)
     const now = Date.now();
-    let databaseChanged = false;
 
-    const expiredOrders = orders.filter(o => o.status === 'PENDING' && o.assignedShipperPhone && o.offerExpiresAt && now > o.offerExpiresAt);
-    const unassignedPending = orders.filter(o => o.status === 'PENDING' && !o.assignedShipperPhone);
-    
-    if (expiredOrders.length > 0 || unassignedPending.length > 0) {
-      await updateOrdersDatabase((dbOrders) => {
-        for (const exp of expiredOrders) {
-          const idx = dbOrders.findIndex(o => o.id === exp.id);
-          if (idx !== -1 && dbOrders[idx].status === 'PENDING' && dbOrders[idx].assignedShipperPhone) {
-            console.log(`[Dispatch] ⏰ Đề xuất đơn ${dbOrders[idx].id} cho tài xế ${dbOrders[idx].assignedShipperPhone} đã hết hạn.`);
-            
-            dbOrders[idx].declinedShippers = dbOrders[idx].declinedShippers || [];
-            const oldPhone = cleanShipperPhone(dbOrders[idx].assignedShipperPhone);
-            if (!dbOrders[idx].declinedShippers.includes(oldPhone)) {
-              dbOrders[idx].declinedShippers.push(oldPhone);
-            }
-            
-            const nextNearest = findNearestAvailableShipper(
-              dbOrders[idx].restaurantLat,
-              dbOrders[idx].restaurantLon,
-              dbOrders[idx].declinedShippers,
-              dbOrders[idx]
-            );
-            if (nextNearest) {
-              assignOfferToShipper(dbOrders[idx], nextNearest);
-              console.log(`[Dispatch] 🎯 Đơn ${dbOrders[idx].id} chuyển tiếp đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
-            } else {
-              clearOrderOffer(dbOrders[idx]);
-              console.log(`[Dispatch] ⏳ Đơn ${dbOrders[idx].id} chưa có tài xế phù hợp — giữ chờ đề xuất (ẩn bể chung)`);
-            }
-            databaseChanged = true;
-          }
-        }
-
-        // Gán lại các đơn PENDING chưa có offer (sau khi có tài xế mới online / còn chỗ)
-        for (const pending of unassignedPending) {
-          const idx = dbOrders.findIndex(o => o.id === pending.id);
-          if (idx === -1 || dbOrders[idx].status !== 'PENDING' || dbOrders[idx].assignedShipperPhone) continue;
-          const nextNearest = findNearestAvailableShipper(
-            dbOrders[idx].restaurantLat,
-            dbOrders[idx].restaurantLon,
-            dbOrders[idx].declinedShippers || [],
-            dbOrders[idx]
-          );
-          if (nextNearest) {
-            if (nextNearest.isAssisted === true) {
-              // SOS: auto-accept luôn
-              dbOrders[idx].status = 'ACCEPTED';
-              dbOrders[idx].acceptedAt = Date.now();
-              dbOrders[idx].shipperPhone = cleanShipperPhone(nextNearest.phone);
-              dbOrders[idx].shipperName = nextNearest.name;
-              clearOrderOffer(dbOrders[idx]);
-              console.log(`[SOS Redispatch] ⚡ Đơn ${dbOrders[idx].id} auto-accept cho SOS ${nextNearest.name}`);
-            } else {
-              assignOfferToShipper(dbOrders[idx], nextNearest);
-              console.log(`[Dispatch] 🔁 Đơn chờ ${dbOrders[idx].id} được đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
-            }
-            databaseChanged = true;
-          }
-        }
-      });
-      if (databaseChanged) {
-        orders = readOrdersDatabase();
-      }
+    // Redispatch: expired offers → next shipper; unassigned PENDING → try assign (no public pool)
+    const changed = await redispatchPendingOrders();
+    if (changed) {
+      orders = readOrdersDatabase();
     }
 
     // Now filter orders
@@ -5261,6 +5273,13 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
     });
 
     res.json({ success: true });
+
+    // Khi có GPS mới, thử phát lại các đơn đang chờ (throttle 8s)
+    const now = Date.now();
+    if (now - lastLocationRedispatchAt >= 8000) {
+      lastLocationRedispatchAt = now;
+      redispatchPendingOrders().catch(err => console.warn('[Dispatch] Redispatch sau GPS lỗi:', err.message));
+    }
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

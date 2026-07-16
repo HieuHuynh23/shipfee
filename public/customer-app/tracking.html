@@ -416,7 +416,7 @@
       <div class="action-prompt animate-fade-in" id="action-prompt">
         <div class="action-prompt__icon"><i class="fa-solid fa-radar" id="prompt-icon"></i></div>
         <div>
-          <div class="action-prompt__title" id="prompt-title">Đang phát tín hiệu đến shipper lân cận</div>
+          <div class="action-prompt__title" id="prompt-title">Đang đề xuất tài xế phù hợp</div>
           <div class="action-prompt__desc" id="prompt-desc">Hệ thống đang tìm kiếm tài xế phù hợp trong khu vực của bạn. Vui lòng chờ trong giây lát.</div>
         </div>
       </div>
@@ -715,7 +715,7 @@
     let currentRating = 5;
 
     const STATUS_CONFIG = {
-      PENDING:   { label: 'Đang tìm shipper', badge: 'Đang tìm shipper', progress: 10, eta: '~20', etaText: 'Đang tìm tài xế gần bạn...', promptIcon: 'fa-radar', promptTitle: 'Đang phát tín hiệu đến shipper lân cận', promptDesc: 'Hệ thống đang tìm kiếm tài xế phù hợp trong khu vực. Vui lòng chờ trong giây lát.' },
+      PENDING:   { label: 'Đang tìm shipper', badge: 'Đang tìm shipper', progress: 10, eta: '~20', etaText: 'Đang tìm tài xế phù hợp...', promptIcon: 'fa-radar', promptTitle: 'Đang đề xuất tài xế phù hợp', promptDesc: 'Hệ thống đang chọn tài xế gần nhất / phù hợp tuyến. Vui lòng chờ trong giây lát.' },
       ACCEPTED:  { label: 'Shipper đã nhận',  badge: 'Shipper đang đến',  progress: 35, eta: '15',  etaText: 'Tài xế đang di chuyển đến quán...', promptIcon: 'fa-motorcycle', promptTitle: 'Tài xế đã nhận đơn và đang đi lấy hàng', promptDesc: 'Tài xế đang trên đường đến quán để mua món ăn của bạn. Họ sẽ thanh toán đúng giá gốc tại quán.' },
       PURCHASED: { label: 'Đang giao hàng',  badge: 'Đang giao đến bạn', progress: 70, eta: '8',   etaText: 'Tài xế đang trên đường đến bạn...', promptIcon: 'fa-bag-shopping', promptTitle: 'Shipper đã mua hàng & đang giao đến bạn', promptDesc: 'Tài xế đã ứng tiền mua đúng giá gốc tại quán. Họ đang di chuyển đến địa chỉ của bạn. Chuẩn bị tiền mặt!' },
       DELIVERED: { label: 'Đã giao xong',    badge: 'Giao thành công',   progress: 100, eta: '0',  etaText: 'Đã giao hàng thành công! 🎉',     promptIcon: 'fa-circle-check', promptTitle: 'Đơn hàng đã được giao thành công!', promptDesc: 'Cảm ơn bạn đã sử dụng ShipFee. Tài xế đã hoàn thành nhiệm vụ xuất sắc!' }
