@@ -977,8 +977,9 @@ h4 { font-size: 14px; font-weight: 600; }
 }
 
 .pagination__btn {
-  width: 32px;
+  min-width: 32px;
   height: 32px;
+  padding: 0 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -994,10 +995,20 @@ h4 { font-size: 14px; font-weight: 600; }
 }
 
 .pagination__btn:hover { background: var(--bg-card-hover); }
+.pagination__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 .pagination__btn.active {
   background: var(--emerald-dim);
   color: var(--emerald-500);
   border-color: rgba(16, 185, 129, 0.2);
+}
+.pagination__info {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 8px;
+  font-family: 'Geist Mono', monospace;
 }
 
 /* ── ORDER TIMELINE ────────────────────────────────────────────────────────── */
