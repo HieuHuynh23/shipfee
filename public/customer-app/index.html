@@ -248,9 +248,6 @@
         <span class="nav__logo-text">ShipFee</span>
       </a>
       <div class="nav__actions">
-        <button class="nav__icon-btn" onclick="configureApiUrl()" title="Cấu hình API" id="nav-settings-btn">
-          <i class="fa-solid fa-gear"></i>
-        </button>
         <button class="nav__icon-btn" onclick="document.getElementById('search-input').focus()" title="Tìm kiếm" id="nav-search-btn">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
@@ -268,23 +265,20 @@
   <!-- ── PAGE WRAPPER ── -->
   <div class="page-wrapper">
 
-    <!-- HERO SECTION -->
+    <!-- HERO SECTION — brand + address + search only -->
     <section class="hero">
-      <div class="hero__tag">
-        <span class="animate-pulse" style="width:8px;height:8px;background:#4ADE80;border-radius:50%;display:inline-block;"></span>
-        Đang hoạt động · 3 shipper lân cận
-      </div>
-      <h1 class="hero__title animate-fade-in">
-        Đặt đồ ăn <br><span>tiện lợi</span> & nhanh
+      <p class="hero__brand animate-fade-in">ShipFee</p>
+      <h1 class="hero__title animate-fade-in anim-delay-1">
+        Đồ ăn quanh bạn,<br><span>giao nhanh</span>
       </h1>
-      <p class="hero__subtitle animate-fade-in anim-delay-1">
-        Giao hàng siêu tốc tận tay — kết nối trực tiếp với tài xế lân cận. Ăn ngon nóng hổi, thanh toán tiền mặt an toàn.
+      <p class="hero__subtitle animate-fade-in anim-delay-2">
+        Chọn địa chỉ, tìm quán yêu thích và đặt món trong vài chạm.
       </p>
 
       <!-- Address Selector -->
       <div class="address-row animate-fade-in anim-delay-2" onclick="promptAddress()">
         <i class="fa-solid fa-location-dot address-row__icon"></i>
-        <span class="address-row__text" id="hero-address-text">Nhập địa chỉ giao hàng của bạn...</span>
+        <span class="address-row__text" id="hero-address-text">Nhập địa chỉ giao hàng...</span>
         <i class="fa-solid fa-chevron-right address-row__chevron"></i>
       </div>
 
@@ -292,73 +286,47 @@
       <div class="hero-search-wrap animate-fade-in anim-delay-3">
         <div class="search-bar">
           <input type="text" id="search-input" class="search-bar__input"
-            placeholder="Tìm món ăn, quán ăn..."
+            placeholder="Tìm quán, món ăn..."
             oninput="onSearch(this.value)"
             onkeydown="if(event.key === 'Enter') onSearchExpand(this.value)"
             autocomplete="off">
-          <i class="fa-solid fa-magnifying-glass search-bar__icon" 
-            onclick="onSearchExpand(document.getElementById('search-input').value)" 
-            style="cursor:pointer;" title="Tìm kiếm toàn thành phố"></i>
-        </div>
-      </div>
-
-      <div class="hero__stats animate-fade-in anim-delay-4">
-        <div class="hero__stat">
-          <div class="hero__stat-value">100%</div>
-          <div class="hero__stat-label">Minh bạch giá</div>
-        </div>
-        <div class="hero__stat" style="border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;">
-          <div class="hero__stat-value">15-30'</div>
-          <div class="hero__stat-label">Thời gian giao</div>
-        </div>
-        <div class="hero__stat" style="border-left:1px solid rgba(255,255,255,0.1);padding-left:16px;">
-          <div class="hero__stat-value">0đ</div>
-          <div class="hero__stat-label">Phí nền tảng</div>
+          <i class="fa-solid fa-magnifying-glass search-bar__icon"
+            onclick="onSearchExpand(document.getElementById('search-input').value)"
+            style="cursor:pointer;" title="Tìm kiếm"></i>
         </div>
       </div>
     </section>
 
-    <!-- PROMO BANNER -->
-    <section class="section" style="padding-bottom:0;">
-      <div class="promo-banner animate-fade-in" onclick="SF.showToast('Ưu đãi đặt nhiều', 'Tự động giảm 15% cho mỗi món ăn thêm từ món thứ 2!', 'success')" style="background: linear-gradient(135deg, #10B981, #059669);">
-        <div>
-          <div class="promo-banner__text">🔥 ƯU ĐÃI ĐẶT NHIỀU - TỰ ĐỘNG GIẢM GIÁ<br><span style="font-weight:400;opacity:0.85;">Đặt từ 2 món: <strong>Giảm ngay 15%</strong> cho mỗi món ăn thêm từ món thứ 2!</span></div>
-        </div>
-        <div class="promo-banner__tag" style="background: rgba(255,255,255,0.25); border-color: rgba(255,255,255,0.3);">Xem menu</div>
+    <!-- Soft benefit strip (replaces heavy promo + fake stats) -->
+    <section class="section benefit-strip-wrap" style="padding-bottom:0;">
+      <div class="benefit-strip animate-fade-in">
+        <span class="benefit-strip__item"><i class="fa-solid fa-motorcycle"></i> Giao nhanh</span>
+        <span class="benefit-strip__dot"></span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-tags"></i> Giảm khi đặt từ 2 món</span>
+        <span class="benefit-strip__dot"></span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-wallet"></i> Thanh toán tiền mặt</span>
       </div>
     </section>
 
     <!-- CATEGORY FILTER -->
     <section class="section" style="padding-bottom:0;">
       <div class="category-scroll" id="category-row">
-        <button class="chip active" onclick="filterCategory('all', this)">
-          🍽️ Tất cả
-        </button>
-        <button class="chip" onclick="filterCategory('Hủ Tiếu', this)">
-          🍜 Hủ Tiếu
-        </button>
-        <button class="chip" onclick="filterCategory('Bún Bò', this)">
-          🥣 Bún Bò
-        </button>
-        <button class="chip" onclick="filterCategory('Bánh Mì', this)">
-          🥖 Bánh Mì
-        </button>
-        <button class="chip" onclick="filterCategory('Cơm', this)">
-          🍚 Cơm
-        </button>
-        <button class="chip" onclick="filterCategory('Đồ Uống', this)">
-          🧋 Đồ Uống
-        </button>
+        <button class="chip active" onclick="filterCategory('all', this)">Tất cả</button>
+        <button class="chip" onclick="filterCategory('Hủ Tiếu', this)">Hủ Tiếu</button>
+        <button class="chip" onclick="filterCategory('Bún Bò', this)">Bún Bò</button>
+        <button class="chip" onclick="filterCategory('Bánh Mì', this)">Bánh Mì</button>
+        <button class="chip" onclick="filterCategory('Cơm', this)">Cơm</button>
+        <button class="chip" onclick="filterCategory('Đồ Uống', this)">Đồ Uống</button>
       </div>
     </section>
 
     <!-- RESTAURANT LIST -->
     <section class="section" id="restaurants-section">
       <!-- Featured Section (New) -->
-      <div id="featured-section-wrap" class="animate-fade-in" style="margin-bottom: 25px;">
+      <div id="featured-section-wrap" class="animate-fade-in" style="margin-bottom: 22px;">
         <div class="section-header" style="margin-bottom: 12px;">
-          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-fire" style="color:#ef4444;"></i> Quán Nổi Bật
+          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary);">
+            Quán nổi bật
           </h3>
         </div>
         <div class="horizontal-scroll" id="featured-list">
@@ -366,11 +334,10 @@
         </div>
       </div>
 
-      <!-- Near Me Section (New) -->
-      <div id="near-section-wrap" class="animate-fade-in" style="margin-bottom: 25px;">
+      <div id="near-section-wrap" class="animate-fade-in" style="margin-bottom: 22px;">
         <div class="section-header" style="margin-bottom: 12px;">
-          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary); display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-location-crosshairs" style="color:#f97316;"></i> Gần Bạn Nhất
+          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary);">
+            Gần bạn
           </h3>
         </div>
         <div class="horizontal-scroll" id="near-list">
@@ -379,18 +346,8 @@
       </div>
 
       <div class="section-header">
-        <h2 class="section-title" id="restaurant-section-title">🔥 Tất Cả Cửa Hàng</h2>
+        <h2 class="section-title" id="restaurant-section-title">Tất cả cửa hàng</h2>
         <span class="section-link" id="restaurant-count"></span>
-      </div>
-
-      <!-- Delivery Callout -->
-      <div class="transparency-banner mb-md animate-fade-in" style="background: linear-gradient(135deg, #ECFDF5, #D1FAE5); border-color: #A7F3D0; color: #065F46;">
-        <div class="transparency-banner__icon" style="background: #34D399; color: white;">
-          <i class="fa-solid fa-truck-fast"></i>
-        </div>
-        <div class="transparency-banner__text">
-          <strong>Giao hàng nhanh chóng:</strong> Đặt món tiện lợi, kết nối trực tiếp với hàng ngàn shipper tự do tại Cần Thơ.
-        </div>
       </div>
 
       <div class="restaurant-grid" id="restaurant-list">
@@ -401,28 +358,28 @@
     <!-- HOW IT WORKS -->
     <section class="section">
       <div class="how-it-works">
-        <div class="how-it-works__title">⚡ Mô hình hoạt động</div>
-        <div class="how-it-works__sub">Nhanh chóng, tiện lợi và an tâm</div>
+        <div class="how-it-works__title">Cách đặt hàng</div>
+        <div class="how-it-works__sub">Ba bước đơn giản</div>
 
         <div class="how-step">
           <div class="how-step__num">1</div>
           <div>
-            <div class="how-step__title">Bạn chọn món & đặt hàng</div>
-            <div class="how-step__desc">Giá hiển thị là giá cuối cùng bạn trả (COD). Không phí dịch vụ, không phụ phí ẩn.</div>
+            <div class="how-step__title">Chọn quán và món</div>
+            <div class="how-step__desc">Giá trên app là giá bạn thanh toán khi nhận hàng.</div>
           </div>
         </div>
         <div class="how-step">
           <div class="how-step__num">2</div>
           <div>
-            <div class="how-step__title">Shipper nhận đơn & giao hàng</div>
-            <div class="how-step__desc">Tài xế tự do lân cận sẽ nhận món ăn tại quán và nhanh chóng giao đến địa chỉ của bạn.</div>
+            <div class="how-step__title">Tài xế nhận đơn</div>
+            <div class="how-step__desc">Shipper gần bạn mua món tại quán và giao đến địa chỉ đã chọn.</div>
           </div>
         </div>
         <div class="how-step" style="margin-bottom:0;">
           <div class="how-step__num">3</div>
           <div>
-            <div class="how-step__title">Nhận hàng & thanh toán (COD)</div>
-            <div class="how-step__desc">Bạn nhận món ăn nóng hổi từ tay tài xế, kiểm tra chất lượng và thanh toán tiền mặt trực tiếp.</div>
+            <div class="how-step__title">Nhận hàng & trả tiền mặt</div>
+            <div class="how-step__desc">Kiểm tra món rồi thanh toán COD trực tiếp cho tài xế.</div>
           </div>
         </div>
       </div>
@@ -430,9 +387,8 @@
 
     <!-- FOOTER -->
     <footer class="footer">
-      <strong>ShipFee</strong> — Đặt món nhanh chóng, giao hàng siêu tốc<br>
-      Kết nối trực tiếp tài xế lân cận · Thanh toán COD an toàn<br>
-      <span style="opacity:0.4;">© 2026 ShipFee. Thiết kế với ❤️ tại Việt Nam.</span>
+      <strong>ShipFee</strong> · Giao đồ ăn Cần Thơ<br>
+      <span style="opacity:0.45;">© 2026 ShipFee</span>
     </footer>
   </div>
 
@@ -440,7 +396,7 @@
   <div class="overlay" id="address-overlay" onclick="closeAddressModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal__handle"></div>
-      <h3 class="modal__title">📍 Địa chỉ giao hàng</h3>
+      <h3 class="modal__title">Địa chỉ giao hàng</h3>
       
       <!-- HÌNH THỨC ĐẶT HÀNG (BẮT BUỘC CHỌN) -->
       <div class="form-group" style="margin-bottom: 15px;">
@@ -682,7 +638,7 @@
               : (page * limit) < serverTotal;
             const srcLabel = json.source === 'shopeefood' ? '🔴 Dữ liệu trực tuyến' :
                              json.source === 'cache'      ? '⚡ Cache server'       : '💾 Data local';
-            document.getElementById('restaurant-section-title').textContent = `🔥 Tất Cả Cửa Hàng`;
+            document.getElementById('restaurant-section-title').textContent = `Tất cả cửa hàng`;
             console.log(`[Data] ${srcLabel} — page ${page}/${Math.ceil(serverTotal / limit) || 1} (${json.data.length} quán, total ${serverTotal})`);
             return true;
           }
@@ -1064,7 +1020,7 @@
 
       if (cat === 'all') {
         filtered = (ALL_DATA || []).filter(r => r && !r.isClosed);
-        titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
+        titleEl.textContent = 'Tất cả cửa hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
         renderRestaurants(filtered, false, { mode: 'server' });
@@ -1137,7 +1093,7 @@
       }
 
       if (!query) {
-        titleEl.textContent = '🔥 Tất Cả Cửa Hàng';
+        titleEl.textContent = 'Tất cả cửa hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
         renderRestaurants(ALL_DATA, false, { mode: 'server' });
