@@ -2584,6 +2584,11 @@ async function hydrateMenusFromSupabase() {
     console.log('[Menu Hydrate] Supabase chưa cấu hình — bỏ qua restore menu.');
     return;
   }
+  // Bulk restore pulls full menu JSON — OOM risk on Render free. Detail uses hydrateOneMenuFromSupabase.
+  if (IS_RENDER && process.env.ENABLE_BULK_MENU_HYDRATE !== 'true') {
+    console.log('[Menu Hydrate] ⏭️ Skip bulk restore on Render (on-demand hydrateOne only). Set ENABLE_BULK_MENU_HYDRATE=true to force.');
+    return;
+  }
   try {
     const missing = cachedRestaurants.filter(r => {
       if (!r || !r.id || r.hasRealMenu !== true) return false;
@@ -2597,7 +2602,7 @@ async function hydrateMenusFromSupabase() {
     console.log(`[Menu Hydrate] 🔄 Cần restore ${missing.length} menu từ Supabase...`);
 
     let restored = 0;
-    const batchSize = 50;
+    const batchSize = IS_RENDER ? 10 : 50;
     // Prioritize first batches so early customer opens hit disk sooner
     for (let i = 0; i < missing.length; i += batchSize) {
       const batch = missing.slice(i, i + batchSize);
@@ -2643,10 +2648,11 @@ async function hydrateMenusFromSupabase() {
   }
 }
 
-// Auto-reload when chunk files change (debounced)
+// Auto-reload when chunk files change (debounced).
+// Disabled on Render — boot sanitize/hydrate writes trigger reload storms + OOM on free dynos.
 let reloadTimer = null;
 const CHUNKS_DIR = path.join(__dirname, 'restaurants-chunks');
-if (fs.existsSync(CHUNKS_DIR)) {
+if (fs.existsSync(CHUNKS_DIR) && !IS_RENDER) {
   fs.watch(CHUNKS_DIR, () => {
     if (reloadTimer) clearTimeout(reloadTimer);
     reloadTimer = setTimeout(() => {
@@ -2656,6 +2662,8 @@ if (fs.existsSync(CHUNKS_DIR)) {
       console.log('[Cache] 🧹 SEARCHED_RESTAURANTS_CACHE cleared to prevent stale fallback menus.');
     }, 1000);
   });
+} else if (IS_RENDER) {
+  console.log('[Cache] ℹ️ Chunk file watcher disabled on Render to avoid reload/OOM loops.');
 }
 
 /**
@@ -2938,21 +2946,20 @@ function toListRestaurant(r, distKm) {
 }
 
 /**
- * Fast nearby list for GET /api/restaurants (no full-object clone of 7k rows).
- * Returns already-slim page payload + pagination meta.
+ * Fast nearby list for GET /api/restaurants.
+ * Cache stores light {idx, distKm, isClosed} rows — materialize only the page.
  */
 function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
   const t0 = Date.now();
   const user = normalizeUserCoords(lat, lon);
   const cacheKey = `${user.lat.toFixed(3)},${user.lon.toFixed(3)}`;
 
-  let ordered;
+  let ordered; // Array<{idx, distKm, isClosed}>
   const hit = nearbyListCache.get(cacheKey);
   if (hit && (Date.now() - hit.at) < NEARBY_LIST_CACHE_TTL_MS) {
     ordered = hit.data;
   } else {
-    const scored = new Array(cachedRestaurants.length);
-    let n = 0;
+    const scored = [];
     for (let i = 0; i < cachedRestaurants.length; i++) {
       const r = cachedRestaurants[i];
       if (!r || !r.id) continue;
@@ -2964,10 +2971,8 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
         r.latitude = coords.lat;
         r.longitude = coords.lon;
       }
-      const distKm = getHaversineDistance(user, coords);
-      scored[n++] = { r, distKm, isClosed: !!r.isClosed };
+      scored.push({ idx: i, distKm: getHaversineDistance(user, coords), isClosed: !!r.isClosed });
     }
-    scored.length = n;
 
     let filtered = scored.filter(x => x.distKm <= 3.0);
     if (filtered.length === 0) {
@@ -2975,13 +2980,10 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
     }
     const open = filtered.filter(x => !x.isClosed).sort((a, b) => a.distKm - b.distKm);
     const closed = filtered.filter(x => x.isClosed).sort((a, b) => a.distKm - b.distKm);
-    ordered = new Array(open.length + closed.length);
-    let k = 0;
-    for (const x of open) ordered[k++] = toListRestaurant(x.r, x.distKm);
-    for (const x of closed) ordered[k++] = toListRestaurant(x.r, x.distKm);
+    ordered = open.concat(closed);
 
     nearbyListCache.set(cacheKey, { at: Date.now(), data: ordered });
-    if (nearbyListCache.size > 60) {
+    if (nearbyListCache.size > 20) {
       const oldest = nearbyListCache.keys().next().value;
       nearbyListCache.delete(oldest);
     }
@@ -2990,13 +2992,14 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
 
   const total = ordered.length;
   const startIdx = (page - 1) * limit;
-  const data = ordered.slice(startIdx, startIdx + limit);
+  const pageRows = ordered.slice(startIdx, startIdx + limit);
+  const data = pageRows.map(x => toListRestaurant(cachedRestaurants[x.idx], x.distKm)).filter(Boolean);
   return {
     data,
     total,
     page,
     limit,
-    hasMore: startIdx + data.length < total,
+    hasMore: startIdx + pageRows.length < total,
     tookMs: Date.now() - t0
   };
 }
@@ -7277,13 +7280,17 @@ app.listen(PORT, () => {
     }
   }
 
-  // Tự động quét và làm sạch dữ liệu trong file local JSON tránh menu sai lệch do lỗi cũ
-  sanitizeLocalJsonData();
+  // Sanitize rewrites all chunks + can OOM free Render — skip on Render (in-memory coords already warm)
+  if (!IS_RENDER) {
+    sanitizeLocalJsonData();
+  } else {
+    console.log('[Sanitization] ⏭️ Skip chunk rewrite on Render (memory safety).');
+  }
 
   // Tự động đồng bộ thông tin tài xế từ Supabase Auth online về local JSON
   syncShippersFromSupabase();
 
-  // Restore menu files lost on deploy (menus/ is gitignored)
+  // Restore menu files lost on deploy (menus/ is gitignored) — bulk skipped on Render by default
   hydrateMenusFromSupabase().catch(err => {
     console.error('[Menu Hydrate] Boot restore failed:', err.message);
   });
