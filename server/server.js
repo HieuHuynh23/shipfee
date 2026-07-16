@@ -1987,7 +1987,8 @@ const whitelist = [
   'http://127.0.0.1:8000',
   'http://localhost:3001',
   'http://127.0.0.1:3001',
-  'https://shipfee.vercel.app'
+  'https://shipfee.vercel.app',
+  'https://shipfee-hieuhuynh234s-projects.vercel.app'
 ];
 app.use(cors({
   origin: function (origin, callback) {
@@ -3303,7 +3304,7 @@ async function fetchAndParseFromFoody(q = '') {
 
 // ── CONFIG ──────────────────────────────────────────────────────────────────
 const CACHE_FILE     = path.join(__dirname, 'cache.json');
-const FALLBACK_FILE  = path.join(__dirname, '..', 'public', 'customer-app', 'restaurants-data.js');
+const FALLBACK_FILE  = path.join(__dirname, '..', 'customer-app', 'restaurants-data.js');
 const CACHE_DURATION = 10 * 60 * 1000; // 10 phút
 
 // Cần Thơ city ID trên ShopeeFood = 59
@@ -3332,10 +3333,10 @@ const SHOPEEFOOD_HEADERS = {
 // Đã xử lý tập trung ở cấu hình CORS phía trên đầu file
 app.use(express.json());
 
-// Phục vụ thư mục customer-app tĩnh (để không cần mở file:// trực tiếp)
-app.use('/app', express.static(path.join(__dirname, '..', 'public', 'customer-app')));
-app.use('/shipper-app', express.static(path.join(__dirname, '..', 'public', 'shipper-app')));
-app.use('/admin-app', express.static(path.join(__dirname, '..', 'public', 'admin-app')));
+// Phục vụ frontend tĩnh từ thư mục root (canonical cho shipfee.vercel.app)
+app.use('/app', express.static(path.join(__dirname, '..', 'customer-app')));
+app.use('/shipper-app', express.static(path.join(__dirname, '..', 'shipper-app')));
+app.use('/admin-app', express.static(path.join(__dirname, '..', 'admin-app')));
 
 // ── CACHE HELPERS ────────────────────────────────────────────────────────────
 function readCache() {

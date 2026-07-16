@@ -96,10 +96,17 @@ graph TD
 | **Framework Preset** | Other |
 | **Root Directory** | (trống — root của repo) |
 
+#### Cấu trúc frontend (canonical → Vercel)
+
+- Source: `customer-app/`, `shipper-app/`, `admin-app/` ở root repo
+- Build: `npm run build` copy vào `public/` (outputDirectory)
+- Production domain: `https://shipfee.vercel.app`
+
 #### File `vercel.json`:
 ```json
 {
   "cleanUrls": false,
+  "outputDirectory": "public",
   "redirects": [
     { "source": "/", "destination": "/customer-app/", "permanent": false },
     { "source": "/shipper", "destination": "/shipper-app/", "permanent": false },

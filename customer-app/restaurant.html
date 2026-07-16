@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Menu Quán — ShipFee</title>
+  <meta name="description" content="Xem thực đơn và đặt món trực tuyến từ quán ăn yêu thích tại Cần Thơ. Giao hàng nhanh chóng.">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    /* ── PAGE-SPECIFIC ── */
+    .restaurant-header {
+      position: relative;
+      height: 200px;
+      background: var(--clr-surface-2);
+      overflow: hidden;
+    }
+    .restaurant-header__img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform var(--transition-slow);
+    }
+    .restaurant-header__overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 60%, transparent 100%);
+    }
+    .restaurant-header__info {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: var(--space-md);
+      color: white;
+    }
+    .restaurant-header__name {
+      font-size: 18px; font-weight: 800; line-height: 1.2;
+      margin-bottom: 4px;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    .restaurant-header__meta {
+      display: flex; gap: var(--space-md); flex-wrap: wrap;
+    }
+    .restaurant-header__meta-item {
+      font-size: 12px; color: rgba(255,255,255,0.85);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    .menu-cat-tabs {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      background: var(--clr-surface);
+      border-bottom: 2px solid var(--clr-border);
+      scrollbar-width: none;
+      position: sticky;
+      top: var(--nav-h);
+      z-index: 50;
+    }
+    .menu-cat-tabs::-webkit-scrollbar { display: none; }
+    .menu-cat-tab {
+      padding: 12px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--clr-text-muted);
+      white-space: nowrap;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all var(--transition-fast);
+      flex-shrink: 0;
+    }
+    .menu-cat-tab:hover { color: var(--clr-primary); }
+    .menu-cat-tab.active {
+      color: var(--clr-primary);
+      border-bottom-color: var(--clr-primary);
+      font-weight: 700;
+    }
+
+    .menu-section { padding: var(--space-md); }
+    .menu-section-title {
+      font-size: 13px; font-weight: 800;
+      color: var(--clr-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: var(--space-md);
+      padding-bottom: var(--space-sm);
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .menu-items { display: flex; flex-direction: column; gap: var(--space-md); }
+
+    /* Cart Bar (override) */
+    .cart-bar__inner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      background: var(--clr-primary);
+      border-radius: var(--radius-lg);
+      padding: 12px var(--space-md);
+      color: white;
+      box-shadow: var(--shadow-primary);
+    }
+    .cart-bar__left {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      flex: 1;
+    }
+    .cart-bar__count-bubble {
+      width: 28px; height: 28px;
+      background: rgba(255,255,255,0.2);
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .cart-bar__label { font-size: 13px; font-weight: 600; }
+    .cart-bar__price { font-size: 15px; font-weight: 800; }
+    .cart-bar__cta {
+      font-size: 13px; font-weight: 700;
+      background: rgba(255,255,255,0.2);
+      padding: 6px 14px; border-radius: var(--radius-full);
+      white-space: nowrap;
+    }
+
+    .shipper-earnings-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #ECFDF5; color: #065F46;
+      border: 1px solid #6EE7B7;
+      font-size: 10px; font-weight: 700;
+      padding: 2px 8px; border-radius: var(--radius-full);
+    }
+
+    /* ── CLOSED RESTAURANT BANNER ── */
+    .closed-banner {
+      display: none;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .closed-banner.visible { display: block; }
+    .closed-banner__overlay {
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") repeat;
+    }
+    .closed-banner__content {
+      position: relative;
+      padding: 32px 20px;
+      text-align: center;
+    }
+    .closed-banner__icon {
+      width: 72px; height: 72px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 2px solid rgba(239, 68, 68, 0.4);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 28px;
+      animation: pulse-closed 2s ease-in-out infinite;
+    }
+    @keyframes pulse-closed {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.3); }
+      50% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+    }
+    .closed-banner__badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px; border-radius: 20px;
+      margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .closed-banner__title {
+      font-size: 20px; font-weight: 800;
+      color: #f1f5f9;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+    .closed-banner__subtitle {
+      font-size: 13px; color: #94a3b8;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .closed-banner__time {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 10px 20px;
+      color: #cbd5e1;
+      font-size: 12px;
+    }
+    .closed-banner__actions {
+      margin-top: 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .closed-banner__btn-primary {
+      background: var(--clr-primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      padding: 14px 20px;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .closed-banner__btn-primary:active { transform: scale(0.97); }
+    .closed-banner__btn-secondary {
+      background: rgba(255,255,255,0.06);
+      color: #94a3b8;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-lg);
+      padding: 12px 20px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    /* ── TOPPING MODAL STYLES ── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1000;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      transition: opacity 0.3s ease;
+    }
+    
+    .topping-modal-card {
+      background: var(--clr-surface);
+      width: 100%;
+      max-width: 500px;
+      border-radius: 28px 28px 0 0;
+      box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+      overflow: hidden;
+      animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-bottom: none;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .topping-modal-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--clr-border);
+      position: relative;
+    }
+    
+    .topping-modal-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    
+    .topping-modal-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--clr-text);
+      line-height: 1.3;
+    }
+    
+    .topping-modal-close {
+      background: rgba(0, 0, 0, 0.05);
+      border: none;
+      color: var(--clr-text-muted);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .topping-modal-close:hover {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+    }
+    
+    .topping-modal-desc {
+      font-size: 13px;
+      color: var(--clr-text-muted);
+      line-height: 1.5;
+    }
+    
+    .topping-modal-body {
+      padding: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    .topping-group {
+      padding: 20px;
+      border-bottom: 1px solid var(--clr-border);
+    }
+    .topping-group:last-child {
+      border-bottom: none;
+    }
+    
+    .topping-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    
+    .topping-group-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--clr-text);
+    }
+    
+    .topping-group-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .topping-group-badge.required {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    .topping-group-badge.optional {
+      background: rgba(100, 116, 139, 0.08);
+      color: var(--clr-text-muted);
+      border: 1px solid rgba(100, 116, 139, 0.15);
+    }
+    
+    .topping-item-row {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      cursor: pointer;
+      user-select: none;
+      border-bottom: 1px dashed rgba(0, 0, 0, 0.03);
+    }
+    .topping-item-row:last-child {
+      border-bottom: none;
+    }
+    
+    .topping-item-input {
+      display: none;
+    }
+    
+    .topping-item-control {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #cbd5e1;
+      margin-right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    
+    .topping-item-control.radio {
+      border-radius: 50%;
+    }
+    .topping-item-control.radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: white;
+      border-radius: 50%;
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+    
+    .topping-item-control.checkbox {
+      border-radius: 6px;
+    }
+    .topping-item-control.checkbox::after {
+      content: '\f00c';
+      font-family: 'Font Awesome 6 Free';
+      font-weight: 900;
+      color: white;
+      font-size: 10px;
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+    
+    .topping-item-input:checked + .topping-item-control {
+      background: var(--clr-primary);
+      border-color: var(--clr-primary);
+      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+    }
+    .topping-item-input:checked + .topping-item-control::after {
+      transform: scale(1);
+    }
+    
+    .topping-item-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--clr-text);
+      flex: 1;
+    }
+    
+    .topping-item-price {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--clr-text-muted);
+    }
+    .topping-item-input:checked ~ .topping-item-price {
+      color: var(--clr-primary);
+    }
+    
+    .topping-modal-footer {
+      padding: 16px 20px 24px;
+      border-top: 1px solid var(--clr-border);
+      background: var(--clr-surface);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .topping-modal-price-col {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    
+    .topping-modal-price-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--clr-text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .topping-modal-price {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--clr-primary);
+    }
+    
+    .topping-modal-btn {
+      background: var(--clr-primary);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: var(--radius-lg);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: var(--shadow-primary);
+      transition: all 0.2s;
+    }
+    .topping-modal-btn:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ── NAVIGATION ── -->
+  <nav class="nav" id="main-nav">
+    <div class="nav__inner">
+      <a href="./" class="nav__back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Trang chủ
+      </a>
+      <div class="nav__actions">
+        <button class="nav__icon-btn" onclick="goToCheckout()" title="Xem giỏ hàng" id="nav-cart-btn">
+          <i class="fa-solid fa-bag-shopping"></i>
+          <span class="nav__badge hidden" id="nav-cart-badge">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── TOAST CONTAINER ── -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ── PAGE WRAPPER ── -->
+  <div class="page-wrapper">
+
+    <!-- Restaurant Header / Banner -->
+    <div class="restaurant-header" id="restaurant-header">
+      <img id="restaurant-img" src="" alt="" class="restaurant-header__img">
+      <div class="restaurant-header__overlay"></div>
+      <div class="restaurant-header__info">
+        <div id="restaurant-tags" class="mb-xs"></div>
+        <h1 class="restaurant-header__name" id="restaurant-name">Đang tải...</h1>
+        <div class="restaurant-header__meta">
+          <span class="restaurant-header__meta-item">
+            <i class="fa-solid fa-star" style="color:#FCD34D;"></i>
+            <span id="restaurant-rating">—</span>
+          </span>
+          <span class="restaurant-header__meta-item">
+            <i class="fa-solid fa-location-dot"></i>
+            <span id="restaurant-distance">—</span>
+          </span>
+          <span class="restaurant-header__meta-item">
+            <i class="fa-solid fa-clock"></i>
+            <span id="restaurant-time">—</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- Category Tabs -->
+    <div class="menu-cat-tabs" id="menu-cat-tabs">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- ── CLOSED RESTAURANT BANNER ── -->
+    <div class="closed-banner" id="closed-banner">
+      <div class="closed-banner__overlay"></div>
+      <div class="closed-banner__content">
+        <div class="closed-banner__icon">🔒</div>
+        <div class="closed-banner__badge">
+          <i class="fa-solid fa-circle" style="font-size:7px; color:#ef4444;"></i>
+          Đang đóng cửa
+        </div>
+        <div class="closed-banner__title" id="closed-restaurant-name">Quán đang đóng cửa</div>
+        <div class="closed-banner__subtitle">
+          Quán hiện không nhận đơn giao hàng.<br>
+          Vui lòng quay lại vào giờ làm việc hoặc chọn quán khác.
+        </div>
+        <div class="closed-banner__time" id="closed-banner-time">
+          <i class="fa-regular fa-clock"></i>
+          <span>Hãy thử lại vào ngày mai hoặc kiểm tra giờ mở cửa</span>
+        </div>
+        <div class="closed-banner__actions">
+          <a href="./" class="closed-banner__btn-primary">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            Tìm quán khác đang mở
+          </a>
+          <button class="closed-banner__btn-secondary" onclick="window.history.back()">
+            <i class="fa-solid fa-arrow-left"></i>
+            Quay lại
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Restaurant Status Alert Banner -->
+    <div id="restaurant-status-alert" style="display: none; background: #fee2e2; border-left: 4px solid #ef4444; color: #991b1b; padding: 12px 16px; margin: 12px; border-radius: var(--radius-md); font-size: 13px; font-weight: 600; align-items: center; gap: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <i class="fa-solid fa-circle-exclamation" style="font-size: 16px;"></i>
+      <span>Quán hiện đang TẠM ĐÓNG CỬA. Bạn chỉ có thể xem thực đơn và không thể đặt hàng lúc này.</span>
+    </div>
+
+    <!-- Menu Sections -->
+    <div id="menu-content" class="pb-cart">
+      <!-- Populated by JS -->
+    </div>
+
+  </div><!-- /page-wrapper -->
+
+  <!-- ── FLOATING CART BAR ── -->
+  <div class="cart-bar" id="cart-bar">
+    <div class="cart-bar__content">
+      <!-- Nudge message -->
+      <div id="cart-bar-nudge" style="display: none; background: #FFFBEB; border-bottom: 1px solid #FDE68A; color: #92400E; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: var(--radius-lg) var(--radius-lg) 0 0; align-items: center; gap: 6px; justify-content: center; box-shadow: 0 -2px 5px rgba(0,0,0,0.02);">
+        <i class="fa-solid fa-lightbulb" style="color: #F59E0B;"></i>
+        <span>Thêm 1 món nữa để tự động giảm ngay 15% từ món thứ 2!</span>
+      </div>
+      <div class="cart-bar__inner" onclick="goToCheckout()">
+        <div class="cart-bar__left">
+          <div class="cart-bar__count-bubble" id="cart-bar-count">0</div>
+          <div>
+            <div class="cart-bar__label">Xem giỏ hàng</div>
+            <div style="font-size:10px;opacity:0.8;">Tổng: <span id="cart-bar-total">0đ</span></div>
+          </div>
+        </div>
+        <div class="cart-bar__price" id="cart-bar-btn-label">0đ</div>
+        <div class="cart-bar__cta">Đặt ngay →</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="restaurants-data.js"></script>
+  <script src="app.js"></script>
+  <script>
+    let RESTAURANT = null;
+    const API_BASE  = SF.API_BASE;
+
+    // ── PAGE INIT ──
+    document.addEventListener('DOMContentLoaded', async () => {
+      SF.initNavScroll();
+      if (SF.loadPricingConfig) SF.loadPricingConfig();
+      const restaurantId = SF.getParam('id');
+      if (!restaurantId) { SF.navigate('./'); return; }
+
+      // 1. Cache-first render, then always soft-revalidate from server
+      RESTAURANT = SF.getRestaurantById
+        ? SF.getRestaurantById(restaurantId)
+        : SF.RESTAURANTS.find(r => String(r.id) === String(restaurantId));
+
+      const hadCachedMenu = !!(RESTAURANT && RESTAURANT.menu && RESTAURANT.menu.length > 0);
+      if (RESTAURANT && hadCachedMenu) {
+        initializePage();
+      } else {
+        showLoadingState();
+      }
+
+      const prevMenuUpdatedAt = RESTAURANT && RESTAURANT.menuUpdatedAt;
+      const success = await fetchRestaurantDetails(restaurantId);
+      if (success) {
+        const nowHasMenu = !!(RESTAURANT.menu && RESTAURANT.menu.length > 0);
+        if (nowHasMenu) {
+          initializePage();
+          if (!hadCachedMenu && RESTAURANT.hasRealMenu && !RESTAURANT.menuTemplateFallback) {
+            SF.showToast('Thực đơn chuẩn', 'Đã cập nhật thực đơn chính thức từ hệ thống!', 'success');
+          } else if (hadCachedMenu && RESTAURANT.menuUpdatedAt && RESTAURANT.menuUpdatedAt !== prevMenuUpdatedAt) {
+            SF.showToast('Đã cập nhật', 'Thực đơn vừa được làm mới.', 'info');
+          }
+        } else if (RESTAURANT.menuStatus === 'loading' || !RESTAURANT.hasRealMenu) {
+          showMenuLoadingEmpty();
+          // Retry once after scrape may finish
+          setTimeout(async () => {
+            const retryOk = await fetchRestaurantDetails(restaurantId);
+            if (retryOk && RESTAURANT.menu && RESTAURANT.menu.length > 0) {
+              initializePage();
+            }
+          }, 8000);
+        } else {
+          showMenuLoadingEmpty();
+        }
+      } else if (!hadCachedMenu) {
+        SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
+        setTimeout(() => SF.navigate('./'), 2000);
+      }
+    });
+
+    function hasReopenTime(reason) {
+      if (!reason) return false;
+      const lower = reason.toLowerCase();
+      
+      const permanentKeywords = [
+        'ngưng hoạt động',
+        'không tồn tại',
+        'địa điểm này chưa có',
+        'bài viết không tồn tại',
+        'chưa có dịch vụ',
+        'tạm ngưng dịch vụ trực tuyến',
+        'tạm ngưng hoạt động'
+      ];
+      if (permanentKeywords.some(kw => lower.includes(kw))) {
+        return false;
+      }
+
+      const tempKeywords = [
+        'ngày mai',
+        'hôm sau',
+        'giờ làm việc',
+        'trở lại sau',
+        'quay lại',
+        'hẹn đơn',
+        'mở cửa',
+        'ngoài giờ',
+        'khung giờ'
+      ];
+      
+      const timePattern = /\d{1,2}[:h]\d{2}/;
+      
+      return tempKeywords.some(kw => lower.includes(kw)) || timePattern.test(lower);
+    }
+
+    function initializePage() {
+      renderHeader();
+      
+      // Khôi phục trạng thái giao diện mặc định
+      document.getElementById('restaurant-header').classList.remove('is-closed');
+      document.getElementById('menu-cat-tabs').style.display = '';
+      document.getElementById('menu-content').style.display = '';
+      const closedBanner = document.getElementById('closed-banner');
+      if (closedBanner) closedBanner.classList.remove('visible');
+      
+      // Xóa badge Đóng cửa/Fallback cũ nếu có
+      const tagsEl = document.getElementById('restaurant-tags');
+      if (tagsEl) {
+        const closedBadge = Array.from(tagsEl.children).find(el => el.textContent.includes('Đóng cửa'));
+        if (closedBadge) closedBadge.remove();
+        const fallbackBadge = Array.from(tagsEl.children).find(el => el.textContent.includes('Sẽ mở lại sớm'));
+        if (fallbackBadge) fallbackBadge.remove();
+      }
+      
+      const isRestaurantClosed = RESTAURANT.isClosed || RESTAURANT.status === 'CLOSED';
+      const isFallback = RESTAURANT.hasRealMenu !== true;
+      
+      const alertBanner = document.getElementById('restaurant-status-alert');
+      if (alertBanner) alertBanner.style.display = 'none';
+
+      if (isRestaurantClosed) {
+        const isPermanent = RESTAURANT.closedReason && !hasReopenTime(RESTAURANT.closedReason);
+        if (isPermanent) {
+          renderClosedBanner();
+        } else {
+          // Hiển thị banner cảnh báo tạm đóng cửa
+          if (alertBanner) {
+            alertBanner.innerHTML = `<i class="fa-solid fa-clock"></i> <strong>Cửa hàng đang tạm đóng cửa:</strong> ${RESTAURANT.closedReason || 'Quán hiện không nhận đơn giao hàng lúc này. Vui lòng quay lại sau.'}`;
+            alertBanner.style.display = 'flex';
+          }
+          // Đánh dấu ảnh header xám nhẹ để trực quan
+          document.getElementById('restaurant-header').classList.add('is-closed');
+          
+          // Vẫn cho phép duyệt thực đơn ở chế độ chỉ đọc
+          renderCategoryTabs();
+          renderMenu();
+          const cartBar = document.getElementById('cart-bar');
+          if (cartBar) cartBar.style.display = 'none';
+        }
+      } else {
+        renderCategoryTabs();
+        renderMenu();
+        const cartBar = document.getElementById('cart-bar');
+        if (cartBar) cartBar.style.display = '';
+        SF.updateCartBar();
+        updateNavCartBadge();
+      }
+    }
+
+    function renderFallbackReopenBanner() {
+      // Thêm class vào header để làm xám ảnh
+      document.getElementById('restaurant-header').classList.add('is-closed');
+      // Ẩn tabs danh mục
+      document.getElementById('menu-cat-tabs').style.display = 'none';
+      // Ẩn cart bar
+      const cartBar = document.getElementById('cart-bar');
+      if (cartBar) cartBar.style.display = 'none';
+      // Ẩn menu content
+      document.getElementById('menu-content').style.display = 'none';
+      
+      const titleEl = document.getElementById('closed-restaurant-name');
+      const subtitleEl = document.querySelector('.closed-banner__subtitle');
+      const timeEl = document.getElementById('closed-banner-time');
+      
+      titleEl.textContent = RESTAURANT.name;
+      if (subtitleEl) {
+        subtitleEl.innerHTML = `
+          <div style="font-size: 40px; margin-bottom: 16px;">⏳</div>
+          <strong style="color: #F59E0B; font-size: 17px; display: block; margin-bottom: 8px;"><i class="fa-solid fa-triangle-exclamation"></i> Cửa Hàng Đang Nâng Cấp Thực Đơn</strong>
+          Cửa hàng hiện đang tạm đóng để cập nhật dữ liệu thực đơn chính thức từ ShopeeFood.<br>
+          Chúng tôi sẽ mở lại phục vụ bạn trong thời gian sớm nhất!
+        `;
+      }
+      if (timeEl) {
+        timeEl.style.display = '';
+        timeEl.innerHTML = `<i class="fa-solid fa-clock"></i> Sẽ mở lại trong thời gian sớm nhất`;
+      }
+      
+      // Hiển thị banner
+      document.getElementById('closed-banner').classList.add('visible');
+      // Cập nhật title
+      document.title = `${RESTAURANT.name} (Tạm đóng) — ShipFee`;
+      
+      // Thêm badge "Sẽ mở lại sớm" vào header
+      const tagsEl = document.getElementById('restaurant-tags');
+      if (tagsEl) {
+        tagsEl.innerHTML = `<span class="badge" style="background:#F59E0B;color:white;border:none;margin-right:4px;">⏳ Sẽ mở lại sớm</span>`
+          + tagsEl.innerHTML;
+      }
+    }
+
+    function renderClosedBanner() {
+      // Thêm class vào header để làm xám ảnh
+      document.getElementById('restaurant-header').classList.add('is-closed');
+      // Ẩn tabs danh mục
+      document.getElementById('menu-cat-tabs').style.display = 'none';
+      // Ẩn cart bar
+      const cartBar = document.getElementById('cart-bar');
+      if (cartBar) cartBar.style.display = 'none';
+      // Ẩn menu content
+      document.getElementById('menu-content').style.display = 'none';
+      
+      const titleEl = document.getElementById('closed-restaurant-name');
+      const subtitleEl = document.querySelector('.closed-banner__subtitle');
+      const timeEl = document.getElementById('closed-banner-time');
+      
+      const isPermanent = RESTAURANT.closedReason && !hasReopenTime(RESTAURANT.closedReason);
+      
+      if (isPermanent) {
+        titleEl.textContent = RESTAURANT.name + ' đã ngưng hoạt động';
+        if (subtitleEl) {
+          subtitleEl.innerHTML = `Cửa hàng này hiện đã ngừng hợp tác hoặc tạm ngưng hoạt động trực tuyến hoàn toàn.<br>Quý khách vui lòng chọn quán ăn khác.`;
+        }
+        if (timeEl) timeEl.style.display = 'none';
+      } else {
+        titleEl.textContent = RESTAURANT.name + ' đang tạm đóng cửa';
+        if (subtitleEl) {
+          subtitleEl.innerHTML = `Quán hiện không nhận đơn giao hàng lúc này.<br>Vui lòng quay lại vào giờ làm việc hoặc chọn quán khác.`;
+        }
+        if (timeEl) {
+          timeEl.style.display = '';
+          
+          let timeContent = 'Hãy thử lại vào ngày mai hoặc kiểm tra giờ mở cửa';
+          
+          // Ưu tiên trích xuất thời gian mở lại cụ thể từ closedReason (ví dụ: "sau 08:30 Ngày mai", "sau 11:00 Hôm nay")
+          let extractedTime = null;
+          if (RESTAURANT.closedReason) {
+            const reasonCleaned = RESTAURANT.closedReason.replace(/ShopeeFood/gi, 'ShipFee');
+            const matchTime = reasonCleaned.match(/(?:sau|vào|lúc)\s+(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay|thứ\s+\d)?)/i)
+              || reasonCleaned.match(/(\d{1,2}:\d{2}\s+(?:ngày mai|hôm nay))/i)
+              || reasonCleaned.match(/(\d{1,2}:\d{2})/i);
+            
+            if (matchTime) {
+              extractedTime = matchTime[0].trim();
+              extractedTime = extractedTime.charAt(0).toUpperCase() + extractedTime.slice(1);
+            }
+          }
+
+          if (extractedTime) {
+            timeContent = `Dự kiến nhận đơn lại: ${extractedTime}`;
+          } else if (RESTAURANT.closedAt) {
+            const closedTime = new Date(RESTAURANT.closedAt);
+            const reopenTime = new Date(closedTime.getTime() + 8 * 60 * 60 * 1000);
+            const now = new Date();
+            const diffMs = reopenTime - now;
+            
+            if (diffMs > 0) {
+              const diffH = Math.floor(diffMs / 3600000);
+              const diffM = Math.floor((diffMs % 3600000) / 60000);
+              if (diffH > 0) timeContent = `Dự kiến mở lại sau ~${diffH} giờ${diffM > 0 ? ' ' + diffM + ' phút' : ''}`;
+              else timeContent = `Dự kiến mở lại sau ~${diffM} phút`;
+            } else {
+              timeContent = 'Quán có thể đã mở cửa — hãy thử lại';
+            }
+          }
+          
+          timeEl.innerHTML = `<i class="fa-regular fa-clock"></i><span>${timeContent}</span>`;
+        }
+      }
+      
+      // Hiển thị lý do đóng cửa chi tiết từ cửa hàng nếu có (ở phía dưới banner)
+      if (RESTAURANT.closedReason && !isPermanent) {
+        if (subtitleEl) {
+          // Làm sạch closed reason: loại bỏ các ký tự thừa như "x", "ShopeeFood Thông báo", "Ok", v.v.
+          const rawLines = RESTAURANT.closedReason.split('\n').map(l => l.trim());
+          const cleanLines = rawLines.filter(line => {
+            const l = line.toLowerCase();
+            if (l === 'x' || l === '✕' || l === 'close') return false;
+            if (l.includes('thông báo') || l.includes('thong bao')) return false;
+            if (l === 'ok' || l === 'đồng ý' || l === 'dong y' || l === 'xác nhận' || l === 'xac nhan') return false;
+            if (l.includes('ngoài giờ phục vụ') || l.includes('ngoai gio phuc vu')) return false;
+            return line.length > 0;
+          });
+          const cleanReason = cleanLines.join('\n');
+          
+          if (cleanReason.trim()) {
+            subtitleEl.innerHTML += `<br><br><span style="display:inline-block; font-weight:700; color:#fca5a5; margin-bottom:8px; font-size:13px;"><i class="fa-solid fa-circle-exclamation"></i> THÔNG BÁO CHI TIẾT:</span><br>`
+              + `<span style="font-size:14px; color:#cbd5e1; font-weight:600; line-height:1.6; background:rgba(255,255,255,0.06); padding:12px 18px; border-radius:12px; display:inline-block; border:1px solid rgba(255,255,255,0.08); text-align:left; max-width:90%;">${cleanReason.replace(/\n/g, '<br>')}</span>`;
+          }
+        }
+      }
+
+      // Hiển thị banner
+      document.getElementById('closed-banner').classList.add('visible');
+      // Cập nhật title
+      document.title = `${RESTAURANT.name} (Đóng cửa) — ShipFee`;
+      // Thêm badge đóng cửa vào header
+      const tagsEl = document.getElementById('restaurant-tags');
+      if (tagsEl) {
+        tagsEl.innerHTML = `<span class="badge" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.4);margin-right:4px;">🔒 Đóng cửa</span>`
+          + tagsEl.innerHTML;
+      }
+    }
+
+    function showLoadingState() {
+      document.title = 'Đang tải thông tin quán... — ShipFee';
+      document.getElementById('restaurant-name').textContent = 'Đang tải dữ liệu quán...';
+      
+      const container = document.getElementById('menu-content');
+      container.innerHTML = `
+        <div class="menu-section" style="pointer-events:none; opacity:0.6;">
+          <div class="menu-section-title">Đang tải món ăn...</div>
+          <div class="menu-items">
+            ${Array(3).fill(`
+              <div class="food-item" style="border-color:var(--clr-border);">
+                <div style="width:72px;height:72px;background:var(--clr-surface-2);border-radius:var(--radius-md);animation:shimmer 1.5s infinite;"></div>
+                <div class="food-item__info">
+                  <div style="height:14px;width:60%;background:var(--clr-border);border-radius:4px;margin-bottom:8px;animation:shimmer 1.5s infinite;"></div>
+                  <div style="height:10px;width:40%;background:var(--clr-border);border-radius:4px;animation:shimmer 1.5s infinite;"></div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    function showMenuLoadingEmpty() {
+      if (RESTAURANT) {
+        document.title = (RESTAURANT.name || 'Quán') + ' — ShipFee';
+        const nameEl = document.getElementById('restaurant-name');
+        if (nameEl) nameEl.textContent = RESTAURANT.name || 'Đang cập nhật thực đơn...';
+      }
+      const container = document.getElementById('menu-content');
+      if (!container) return;
+      container.innerHTML = `
+        <div class="empty-state" style="padding:40px 20px;text-align:center;">
+          <div class="empty-state__icon"><i class="fa-solid fa-utensils"></i></div>
+          <div class="empty-state__title">Đang cập nhật thực đơn...</div>
+          <div class="empty-state__desc">Hệ thống đang lấy thực đơn chính thức. Vui lòng chờ trong giây lát hoặc tải lại trang.</div>
+        </div>`;
+    }
+
+    async function fetchRestaurantDetails(id) {
+      try {
+        const state = SF.getState();
+        const lat = state.userLat || 10.0345;
+        const lon = state.userLon || 105.7876;
+        console.log(`[Details] Đang fetch quán từ API server: ${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`);
+        const res = await fetch(`${API_BASE}/api/restaurants/${id}?lat=${lat}&lon=${lon}`, {
+          signal: AbortSignal.timeout(20000)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const json = await res.json();
+        
+        if (json.data) {
+          RESTAURANT = json.data;
+          if (SF.upsertRestaurant) {
+            SF.upsertRestaurant(RESTAURANT);
+          } else {
+            const mergedList = [...SF.RESTAURANTS];
+            const idx = mergedList.findIndex(r => String(r.id) === String(RESTAURANT.id));
+            if (idx === -1) mergedList.push(RESTAURANT);
+            else mergedList[idx] = RESTAURANT;
+            SF.RESTAURANTS = mergedList;
+          }
+          return true;
+        }
+      } catch (err) {
+        console.error('[Details] Lỗi tải chi tiết quán:', err.message);
+      }
+      return false;
+    }
+
+    function updateNavCartBadge() {
+      const { itemCount } = SF.getCartTotal();
+      const badge = document.getElementById('nav-cart-badge');
+      if (itemCount > 0) { badge.textContent = itemCount; badge.classList.remove('hidden'); }
+      else badge.classList.add('hidden');
+    }
+
+    // ── RENDER HEADER ──
+    function renderHeader() {
+      document.title = RESTAURANT.name + ' — ShipFee';
+      document.getElementById('restaurant-img').src      = RESTAURANT.img;
+      document.getElementById('restaurant-img').alt      = RESTAURANT.name;
+      document.getElementById('restaurant-name').textContent   = RESTAURANT.name;
+      document.getElementById('restaurant-rating').textContent = `${RESTAURANT.rating} (${RESTAURANT.reviews.toLocaleString()} đánh giá)`;
+      document.getElementById('restaurant-distance').textContent = RESTAURANT.distance;
+      document.getElementById('restaurant-time').textContent = RESTAURANT.time;
+
+      const tagsEl = document.getElementById('restaurant-tags');
+      tagsEl.innerHTML = RESTAURANT.tags.map(t =>
+        `<span class="badge badge--glass" style="margin-right:4px;">${t}</span>`
+      ).join('');
+    }
+
+    // ── CATEGORY TABS ──
+    function renderCategoryTabs() {
+      const menuList = RESTAURANT.menu || [];
+      const cats = [...new Set(menuList.map(m => m.category || 'Thực đơn'))];
+      const tabsEl = document.getElementById('menu-cat-tabs');
+      tabsEl.innerHTML = cats.map((cat, i) =>
+        `<button class="menu-cat-tab ${i === 0 ? 'active' : ''}"
+          onclick="scrollToCategory('${cat}', this)">${cat}</button>`
+      ).join('');
+    }
+
+    // ── RENDER MENU ──
+    function renderMenu() {
+      const menuList = RESTAURANT.menu || [];
+      const cats = [...new Set(menuList.map(m => m.category || 'Thực đơn'))];
+      const container = document.getElementById('menu-content');
+      container.innerHTML = '';
+
+      // Chèn promo banner nudge ở đầu menu
+      const promoBanner = document.createElement('div');
+      promoBanner.className = 'transparency-banner mb-md animate-fade-in';
+      promoBanner.style.cssText = `
+        background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+        border: 1px solid #FDE68A;
+        color: #92400E;
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 16px;
+        font-weight: 600;
+        font-size: 13px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      `;
+      promoBanner.innerHTML = `
+        <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 12px;">
+          <i class="fa-solid fa-gift"></i>
+        </div>
+        <div style="flex: 1;">
+          <strong>🔥 Ưu đãi ShipFee:</strong> Đặt từ 2 món trở lên để được tự động <strong>giảm ngay 15%</strong> cho mỗi món ăn thêm (tính từ món thứ 2)!
+        </div>
+      `;
+      container.appendChild(promoBanner);
+
+      // Hiển thị thông báo nếu quán sử dụng thực đơn tạm thời (fallback) do đang trong quá trình đồng bộ dữ liệu
+      if (!RESTAURANT.hasRealMenu || RESTAURANT.menuTemplateFallback) {
+        const warningBanner = document.createElement('div');
+        warningBanner.className = 'transparency-banner mb-md animate-fade-in';
+        warningBanner.style.cssText = `
+          background: linear-gradient(135deg, #FFFDF5 0%, #FFFBEB 100%);
+          border: 1px solid #FDE68A;
+          color: #92400E;
+          padding: 16px 20px;
+          border-radius: var(--radius-lg);
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          margin: 16px;
+          box-shadow: 0 4px 15px rgba(245, 158, 11, 0.06);
+          border-left: 5px solid #F59E0B;
+        `;
+        warningBanner.innerHTML = `
+          <div style="background: linear-gradient(135deg, #F59E0B, #D97706); color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; box-shadow: 0 4px 10px rgba(245,158,11,0.25);">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+          </div>
+          <div style="font-size: 13px; line-height: 1.6; flex: 1;">
+            <strong style="font-size: 15px; color: #78350F; display: block; margin-bottom: 4px; font-weight: 700;">✨ Thực Đơn Gợi Ý & Dịch Vụ Mua Hộ Tiện Lợi</strong>
+            Dạ, quán ăn này đang được đồng bộ thực đơn chính thức. Để giúp bạn không lỡ bữa ngon, <strong>ShipFee vẫn hỗ trợ bạn đặt món bình thường</strong> theo thực đơn gợi ý dưới đây! 
+            <span style="display: block; margin-top: 5px; color: #B45309; font-weight: 600; font-size: 12.5px;">
+              🛵 Tài xế thân thiện của ShipFee sẽ đến trực tiếp cửa hàng để mua đúng ý và giao nhanh đến tận tay bạn!
+            </span>
+          </div>
+        `;
+        container.appendChild(warningBanner);
+      }
+
+      cats.forEach(cat => {
+        const items = menuList.filter(m => (m.category || 'Thực đơn') === cat);
+        const sec = document.createElement('div');
+        sec.className = 'menu-section';
+        sec.dataset.category = cat;
+        sec.innerHTML = `<div class="menu-section-title">${cat}</div><div class="menu-items" id="cat-${cat.replace(/\s/g,'_')}"></div>`;
+        container.appendChild(sec);
+
+        const itemsEl = sec.querySelector('.menu-items');
+        items.forEach(item => {
+          const el = renderFoodItem(item);
+          itemsEl.appendChild(el);
+        });
+      });
+    }
+
+    function renderFoodItem(item) {
+      const cart = SF.getCart();
+      let qty = 0;
+      if (cart.restaurantId === RESTAURANT.id) {
+        Object.entries(cart.items).forEach(([key, q]) => {
+          if (key === item.id || key.startsWith(item.id + '::')) {
+            qty += q;
+          }
+        });
+      }
+      const isRestaurantClosed = RESTAURANT.isClosed || RESTAURANT.status === 'CLOSED';
+      const isAvailable = item.isAvailable !== false && item.available !== false;
+
+      const el = document.createElement('div');
+      el.className = 'food-item animate-fade-in' 
+        + (qty > 0 ? ' selected' : '')
+        + (!isAvailable || isRestaurantClosed ? ' is-out-of-stock' : '');
+      el.id = 'food-item-' + item.id;
+      
+      let qtyControlHtml = '';
+      if (isRestaurantClosed) {
+        qtyControlHtml = `<div class="qty-control disabled" style="background:#ef4444; width: auto; padding: 6px 12px; border-radius: 20px;"><span class="out-of-stock-text" style="color:white; font-size:10px; font-weight:700; letter-spacing:0.5px;">TẠM ĐÓNG</span></div>`;
+      } else if (!isAvailable) {
+        qtyControlHtml = `<div class="qty-control disabled"><span class="out-of-stock-text">HẾT MÓN</span></div>`;
+      } else {
+        qtyControlHtml = `
+        <div class="qty-control" id="qty-control-${item.id}">
+          ${qty === 0 ? `
+            <button class="qty-btn qty-btn--plus" onclick="addItem('${item.id}')">
+              <i class="fa-solid fa-plus"></i>
+            </button>` : `
+            <button class="qty-btn qty-btn--minus" onclick="removeItem('${item.id}')">
+              <i class="fa-solid fa-minus"></i>
+            </button>
+            <span class="qty-value">${qty}</span>
+            <button class="qty-btn qty-btn--plus" onclick="addItem('${item.id}')">
+              <i class="fa-solid fa-plus"></i>
+            </button>`}
+        </div>`;
+      }
+
+      el.innerHTML = `
+        <img src="${item.img}" alt="${item.name}" class="food-item__img" loading="lazy">
+        <div class="food-item__info">
+          <div class="food-item__name">${item.name}</div>
+          <div class="food-item__desc">${item.desc}</div>
+          <div class="food-item__price-row">
+            <span class="food-item__price">${SF.formatCurrency(item.appPrice)}</span>
+            ${!isAvailable ? `<span class="out-of-stock-badge"><i class="fa-solid fa-circle-minus"></i> Tạm hết</span>` : ''}
+          </div>
+        </div>
+        ${qtyControlHtml}`;
+      return el;
+    }
+
+    // ── CART ACTIONS ──
+    let CURRENT_TOPPING_ITEM = null;
+
+    function openToppingModal(item) {
+      CURRENT_TOPPING_ITEM = item;
+      document.getElementById('topping-title').textContent = item.name;
+      document.getElementById('topping-desc').textContent = item.desc;
+      
+      const container = document.getElementById('topping-groups-container');
+      container.innerHTML = '';
+      
+      (item.options || []).forEach((group, groupIdx) => {
+        const groupEl = document.createElement('div');
+        groupEl.className = 'topping-group animate-fade-in';
+        
+        const isRequired = group.mandatory === true || group.mandatory === 1;
+        const badgeText = isRequired ? 'Bắt buộc' : 'Tùy chọn';
+        const badgeClass = isRequired ? 'required' : 'optional';
+        
+        groupEl.innerHTML = `
+          <div class="topping-group-header">
+            <h4 class="topping-group-title">${group.name}</h4>
+            <span class="topping-group-badge ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="topping-items-list" id="topping-group-${groupIdx}"></div>
+        `;
+        
+        container.appendChild(groupEl);
+        
+        const listEl = groupEl.querySelector('.topping-items-list');
+        const inputType = (group.max_select === 1 && group.min_select === 1) ? 'radio' : 'checkbox';
+        
+        (group.items || []).forEach((opt, optIdx) => {
+          const rowEl = document.createElement('label');
+          rowEl.className = 'topping-item-row';
+          
+          const optAppPrice = SF.calcToppingAppPrice
+            ? SF.calcToppingAppPrice(opt.price)
+            : Math.round((opt.price * 1.28) / 100) * 100;
+          const priceText = opt.price > 0 ? `+${SF.formatCurrency(optAppPrice)}` : 'Miễn phí';
+          
+          const inputId = `opt-${groupIdx}-${optIdx}`;
+          const isChecked = (inputType === 'radio' && isRequired && optIdx === 0) ? 'checked' : '';
+          
+          rowEl.innerHTML = `
+            <input type="${inputType}" 
+                   name="group-${groupIdx}" 
+                   id="${inputId}" 
+                   class="topping-item-input" 
+                   value="${optIdx}" 
+                   data-group-idx="${groupIdx}" 
+                   data-name="${opt.name}" 
+                   data-price="${opt.price}"
+                   onchange="updateToppingModalPrice()"
+                   ${isChecked}>
+            <div class="topping-item-control ${inputType}"></div>
+            <span class="topping-item-name">${opt.name}</span>
+            <span class="topping-item-price">${priceText}</span>
+          `;
+          
+          listEl.appendChild(rowEl);
+        });
+      });
+      
+      document.getElementById('topping-modal').style.display = 'flex';
+      updateToppingModalPrice();
+    }
+
+    function closeToppingModal() {
+      document.getElementById('topping-modal').style.display = 'none';
+      CURRENT_TOPPING_ITEM = null;
+    }
+
+    function getSelectedToppings() {
+      const selected = [];
+      if (!CURRENT_TOPPING_ITEM) return selected;
+      
+      const inputs = document.querySelectorAll('.topping-item-input:checked');
+      inputs.forEach(input => {
+        const name = input.dataset.name;
+        const price = parseInt(input.dataset.price);
+        selected.push({ name, price });
+      });
+      return selected;
+    }
+
+    function updateToppingModalPrice() {
+      if (!CURRENT_TOPPING_ITEM) return;
+      
+      let totalPrice = CURRENT_TOPPING_ITEM.appPrice;
+      const selected = getSelectedToppings();
+      
+      selected.forEach(opt => {
+        totalPrice += SF.calcToppingAppPrice
+          ? SF.calcToppingAppPrice(opt.price)
+          : Math.round((opt.price * 1.28) / 100) * 100;
+      });
+      
+      document.getElementById('topping-total-price').textContent = SF.formatCurrency(totalPrice);
+    }
+
+    function submitToppings() {
+      if (!CURRENT_TOPPING_ITEM) return;
+      
+      let isValid = true;
+      let missingGroupName = '';
+      
+      (CURRENT_TOPPING_ITEM.options || []).forEach((group, groupIdx) => {
+        const isRequired = group.mandatory === true || group.mandatory === 1;
+        if (isRequired) {
+          const checked = document.querySelectorAll(`input[name="group-${groupIdx}"]:checked`);
+          if (checked.length < (group.min_select || 1)) {
+            isValid = false;
+            missingGroupName = group.name;
+          }
+        }
+      });
+      
+      if (!isValid) {
+        SF.showToast('Thiếu lựa chọn', `Vui lòng chọn đầy đủ các tùy chọn bắt buộc: ${missingGroupName}`, 'warning');
+        return;
+      }
+      
+      const selected = getSelectedToppings();
+      SF.addToCart(RESTAURANT.id, CURRENT_TOPPING_ITEM.id, selected);
+      
+      refreshFoodItem(CURRENT_TOPPING_ITEM.id);
+      SF.updateCartBar();
+      updateNavCartBadge();
+      closeToppingModal();
+      
+      SF.showToast('Đã thêm món', 'Món ăn đã được thêm vào giỏ hàng.', 'success');
+    }
+
+    function addItem(itemId) {
+      const item = (RESTAURANT.menu || []).find(m => m.id === itemId);
+      if (item && item.options && item.options.length > 0) {
+        openToppingModal(item);
+        return;
+      }
+      SF.addToCart(RESTAURANT.id, itemId);
+      refreshFoodItem(itemId);
+      SF.updateCartBar();
+      updateNavCartBadge();
+
+      // Pop animation
+      const btn = document.querySelector(`#food-item-${itemId} .qty-btn--plus`);
+      if (btn) { btn.style.transform = 'scale(1.25)'; setTimeout(() => btn.style.transform = '', 200); }
+    }
+
+    function removeItem(itemId) {
+      SF.removeFromCart(itemId);
+      refreshFoodItem(itemId);
+      SF.updateCartBar();
+      updateNavCartBadge();
+    }
+
+    function refreshFoodItem(itemId) {
+      const menuList = RESTAURANT.menu || [];
+      const item = menuList.find(m => m.id === itemId);
+      if (!item) return;
+      const oldEl = document.getElementById('food-item-' + itemId);
+      if (!oldEl) return;
+      const newEl = renderFoodItem(item);
+      oldEl.replaceWith(newEl);
+    }
+
+    // ── CATEGORY SCROLL ──
+    function scrollToCategory(cat, btn) {
+      document.querySelectorAll('.menu-cat-tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      const sec = document.querySelector(`[data-category="${cat}"]`);
+      if (sec) {
+        const offset = sec.getBoundingClientRect().top + window.scrollY - 120;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      }
+    }
+
+    // ── GO TO CHECKOUT ──
+    function goToCheckout() {
+      const { itemCount } = SF.getCartTotal();
+      if (itemCount === 0) {
+        SF.showToast('Giỏ hàng trống', 'Vui lòng thêm ít nhất 1 món.', 'warning');
+        return;
+      }
+      const state = SF.getState();
+      if (!state.deliveryAddress) {
+        SF.showToast('Cần địa chỉ giao hàng', 'Vui lòng nhập địa chỉ trước khi đặt hàng.', 'warning');
+        setTimeout(() => SF.navigate('./'), 1200);
+        return;
+      }
+      SF.navigate('checkout.html');
+    }
+
+    window.addItem = addItem;
+    window.removeItem = removeItem;
+    window.scrollToCategory = scrollToCategory;
+    window.goToCheckout = goToCheckout;
+  </script>
+  <!-- ── TOPPING SELECTION MODAL ── -->
+  <div class="modal-backdrop" id="topping-modal" style="display:none;">
+    <div class="topping-modal-card animate-slide-up">
+      <div class="topping-modal-header">
+        <div class="topping-modal-title-row">
+          <h3 class="topping-modal-title" id="topping-title">Tên món ăn</h3>
+          <button class="topping-modal-close" onclick="closeToppingModal()">&times;</button>
+        </div>
+        <p class="topping-modal-desc" id="topping-desc">Mô tả món ăn</p>
+      </div>
+      
+      <div class="topping-modal-body" id="topping-groups-container">
+        <!-- Các nhóm option sẽ được render động ở đây -->
+      </div>
+      
+      <div class="topping-modal-footer">
+        <div class="topping-modal-price-col">
+          <span class="topping-modal-price-label">Tổng tiền món:</span>
+          <span class="topping-modal-price" id="topping-total-price">0đ</span>
+        </div>
+        <button class="topping-modal-btn" id="topping-submit-btn" onclick="submitToppings()">Thêm vào giỏ</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Expose closeToppingModal, updateToppingModalPrice, submitToppings to window scope
+    window.closeToppingModal = closeToppingModal;
+    window.updateToppingModalPrice = updateToppingModalPrice;
+    window.submitToppings = submitToppings;
+  </script>
+</body>
+</html>
+
+
