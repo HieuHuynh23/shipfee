@@ -3664,7 +3664,9 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js', window.location.href).href;
-    navigator.serviceWorker.register(swUrl).catch(() => {});
+    const swUrl = new URL('sw.js?v=2.5', window.location.href).href;
+    navigator.serviceWorker.register(swUrl).then((reg) => {
+      if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
+    }).catch(() => {});
   });
 }
