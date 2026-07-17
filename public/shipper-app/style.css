@@ -82,30 +82,44 @@ body {
 .nav__logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
+.nav__logo-mark,
 .nav__logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 16px;
-  box-shadow: 0 4px 10px var(--clr-primary-glow);
+  display: block;
   flex-shrink: 0;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.28);
 }
 
 .nav__logo-text {
   font-size: 18px;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.nav__logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+
+.modal__brand .nav__logo-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+}
+
+.modal__brand .nav__logo-text {
+  font-size: 26px;
 }
 
 /* ── HEADER ────────────────────────────────────────────────────────────── */

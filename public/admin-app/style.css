@@ -156,10 +156,24 @@ h4 { font-size: 14px; font-weight: 600; }
   color: var(--emerald-500);
 }
 
+.sidebar__brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
 .sidebar__brand-text {
   font-size: 18px;
   font-weight: 800;
   letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .sidebar__brand-badge {
@@ -877,22 +891,28 @@ h4 { font-size: 14px; font-weight: 600; }
   margin-bottom: 32px;
 }
 
+.login-brand__mark,
 .login-brand__icon {
   width: 56px;
   height: 56px;
-  background: var(--emerald-dim);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: var(--radius-lg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24px;
+  border-radius: 14px;
+  display: block;
   margin: 0 auto 16px;
+  object-fit: contain;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
 }
 
 .login-brand h2 {
   font-size: 24px;
   margin-bottom: 6px;
+}
+
+.login-brand__wordmark {
+  background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
 }
 
 .login-brand p {

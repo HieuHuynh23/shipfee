@@ -290,30 +290,35 @@ ul, ol {
 .nav__logo {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
+  gap: 10px;
+  text-decoration: none;
 }
 
+.nav__logo-mark,
 .nav__logo-icon {
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
   border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 16px;
-  box-shadow: var(--shadow-primary);
+  display: block;
   flex-shrink: 0;
+  object-fit: contain;
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.28);
 }
 
 .nav__logo-text {
   font-size: 18px;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--clr-primary), var(--clr-accent));
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #FB923C 0%, #F97316 55%, #EA580C 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+}
+
+.nav__logo-img {
+  height: 36px;
+  width: auto;
+  display: block;
 }
 
 .nav__actions {
@@ -396,13 +401,31 @@ ul, ol {
 }
 
 .hero__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--space-sm);
+  line-height: 1;
+}
+
+.hero__brand-mark {
+  width: clamp(40px, 10vw, 52px);
+  height: clamp(40px, 10vw, 52px);
+  border-radius: 12px;
+  display: block;
+  flex-shrink: 0;
+  box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+}
+
+.hero__brand-text {
   font-size: clamp(28px, 8vw, 40px);
   font-weight: 900;
   letter-spacing: -0.03em;
-  color: white;
-  line-height: 1;
-  margin-bottom: var(--space-sm);
-  text-shadow: 0 2px 24px rgba(239,68,68,0.35);
+  background: linear-gradient(180deg, #FDBA74 0%, #FB923C 40%, #F97316 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 16px rgba(249, 115, 22, 0.35));
 }
 
 .hero__title {
