@@ -415,8 +415,8 @@
       <div class="modal__handle"></div>
       <div class="modal__header">
         <h3 class="modal__title">Địa chỉ giao hàng</h3>
-        <button type="button" class="modal__close" onclick="closeAddressModal()" aria-label="Đóng">
-          <i class="fa-solid fa-xmark"></i>
+        <button type="button" class="modal__close" id="btn-close-address-modal" onclick="closeAddressModal()" aria-label="Đóng">
+          <span class="modal__close-icon" aria-hidden="true">✕</span>
         </button>
       </div>
       
@@ -1478,7 +1478,8 @@
     }
 
     function closeAddressModal(e) {
-      // Nút X / gọi trực tiếp: luôn đóng. Click nền overlay: chỉ đóng khi đúng target nền.
+      // Click nền mờ: chỉ đóng khi đúng target là overlay.
+      // Nút ✕ gọi closeAddressModal() không truyền event → luôn đóng.
       if (e && e.target && e.target !== document.getElementById('address-overlay')) {
         return;
       }
