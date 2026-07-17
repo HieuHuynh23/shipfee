@@ -3446,9 +3446,15 @@ let crmSupportPollTimer = null;
 function updateCrmSupportOrderTag() {
   const tag = document.getElementById('crm-support-order-tag');
   const btn = document.getElementById('crm-support-link-order-btn');
-  if (btn) btn.classList.toggle('is-on', !!crmSupportLinkOrder && !!activeOrder);
+  const linked = !!crmSupportLinkOrder && !!activeOrder;
+  if (btn) {
+    btn.classList.toggle('is-on', linked);
+    btn.textContent = linked
+      ? `Đang gắn: ${activeOrder.id}`
+      : (activeOrder ? 'Gắn đơn đang chạy' : 'Gắn đơn (chưa có chuyến)');
+  }
   if (!tag) return;
-  if (crmSupportLinkOrder && activeOrder) {
+  if (linked) {
     tag.style.display = 'inline-flex';
     tag.textContent = `Đơn ${activeOrder.id}`;
   } else if (crmSupportThread?.orderId) {
@@ -3502,7 +3508,7 @@ function renderCrmSupportMessages(thread) {
 
   const messages = (thread && Array.isArray(thread.messages)) ? thread.messages : [];
   if (!messages.length) {
-    box.innerHTML = `<div class="crm-support-empty">Chưa có tin nhắn. Viết tin bên dưới để nhờ CRM hỗ trợ.</div>`;
+    box.innerHTML = `<div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`;
     return;
   }
 
@@ -3536,8 +3542,14 @@ async function loadCrmSupportThread() {
       renderCrmSupportMessages(data.data || null);
       return data.data || null;
     }
+    const statusEl = document.getElementById('crm-support-status');
+    if (statusEl && res.status === 401) {
+      statusEl.textContent = 'Phiên đăng nhập hết hạn — đăng nhập lại';
+    }
   } catch (e) {
     console.warn('[CRM Support] load failed:', e?.message || e);
+    const statusEl = document.getElementById('crm-support-status');
+    if (statusEl) statusEl.textContent = 'Không tải được chat CRM — kiểm tra mạng';
   }
   return null;
 }
@@ -3619,6 +3631,7 @@ function stopCrmSupportPolling() {
 
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('crm-support-input');
+  const panel = document.getElementById('crm-support-panel');
   if (input) {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -3626,7 +3639,39 @@ document.addEventListener('DOMContentLoaded', () => {
         sendCrmSupportMessage();
       }
     });
+
+    let crmKbHandler = null;
+    function unbindCrmKeyboard() {
+      if (crmKbHandler && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', crmKbHandler);
+        window.visualViewport.removeEventListener('scroll', crmKbHandler);
+      }
+      crmKbHandler = null;
+      if (panel) {
+        panel.classList.remove('is-kb-open');
+        panel.style.paddingBottom = '';
+      }
+    }
+    function bindCrmKeyboard() {
+      if (!window.visualViewport || !panel) return;
+      unbindCrmKeyboard();
+      panel.classList.add('is-kb-open');
+      crmKbHandler = () => {
+        const vv = window.visualViewport;
+        const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        panel.style.paddingBottom = occluded > 0
+          ? `calc(16px + ${occluded}px)`
+          : '';
+        input.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      };
+      window.visualViewport.addEventListener('resize', crmKbHandler);
+      window.visualViewport.addEventListener('scroll', crmKbHandler);
+      crmKbHandler();
+    }
+    input.addEventListener('focus', bindCrmKeyboard);
+    input.addEventListener('blur', () => setTimeout(unbindCrmKeyboard, 180));
   }
+  updateCrmSupportOrderTag();
 });
 
 function geocodeAddressOffline(address, name) {
@@ -3839,7 +3884,7 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=2.6', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2.7', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

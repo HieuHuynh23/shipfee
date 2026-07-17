@@ -5223,12 +5223,13 @@ app.post('/api/shippers/support/messages', authenticateShipper, async (req, res)
       `${shipper.name || phone}: ${cleanedText.slice(0, 160)}${linkedOrderId ? `\nĐơn: ${linkedOrderId}` : ''}`
     );
 
-    if (isEmergency && telegramBot && typeof telegramBot.sendSosNotification === 'function') {
-      telegramBot.sendSosNotification({
+    if (telegramBot && typeof telegramBot.sendShipperSupportNotification === 'function') {
+      telegramBot.sendShipperSupportNotification({
         ...shipper,
         supportMessage: cleanedText,
-        supportOrderId: linkedOrderId
-      }).catch(e => console.error('[Telegram] shipper support:', e.message));
+        supportOrderId: linkedOrderId,
+        supportPriority: isEmergency ? 'emergency' : 'normal'
+      }).catch(e => console.error('[Telegram] shipper support chat:', e.message));
     }
 
     res.json({ success: true, data: updated });

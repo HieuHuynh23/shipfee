@@ -200,7 +200,7 @@ function showApp() {
   const params = new URLSearchParams(window.location.search);
   const deepPage = params.get('page');
   const deepQ = params.get('q');
-  const validPages = ['dashboard', 'shippers', 'restaurants', 'orders', 'fleet', 'customers', 'settings'];
+  const validPages = ['dashboard', 'shippers', 'restaurants', 'orders', 'fleet', 'customers', 'analytics', 'support', 'settings'];
 
   if (deepPage && validPages.includes(deepPage)) {
     navigateTo(deepPage);
@@ -3241,11 +3241,23 @@ function renderNotificationsList() {
       price_change: { color: '#f59e0b', text: 'Biến động giá' },
       status_change: { color: '#ef4444', text: 'Đổi trạng thái' },
       sla_breach: { color: '#ef4444', text: 'SLA breach' },
-      order_cancelled: { color: '#71717a', text: 'Đơn hủy' }
+      order_cancelled: { color: '#71717a', text: 'Đơn hủy' },
+      shipper_support: { color: '#059669', text: 'Chat tài xế' },
+      shipper_emergency: { color: '#dc2626', text: 'Shipper khẩn cấp' },
+      order_new: { color: '#3b82f6', text: 'Đơn mới' }
     };
     const badge = badgeMap[n.type] || badgeMap.status_change;
     const badgeColor = badge.color;
     const badgeText = badge.text;
+    const isShipperSupport = n.type === 'shipper_support' || n.type === 'shipper_emergency';
+    const safeId = String(n.restaurantId || '').replace(/'/g, "\\'");
+    const safeName = String(n.restaurantName || '').replace(/'/g, "\\'");
+    const openAction = isShipperSupport
+      ? `openShipperSupportFromNotif('${safeId}')`
+      : `viewRestaurantInCRM('${safeId}', '${safeName}')`;
+    const openLabel = isShipperSupport
+      ? `<i class="fa-solid fa-headset"></i> Mở chat`
+      : `<i class="fa-solid fa-store"></i> Xem quán`;
     
     // Custom style cho chấm đỏ chưa đọc
     const unreadDot = isUnread ? `<span class="badge__dot" style="background:#ef4444; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px; animation: pulse 1.5s infinite;"></span>` : '';
@@ -3266,7 +3278,7 @@ function renderNotificationsList() {
         <td>
           <div style="display: flex; align-items: center; gap: 8px;">
             ${unreadDot}
-            <strong style="color: var(--text-primary); cursor: pointer;" onclick="viewRestaurantInCRM('${n.restaurantId}', '${n.restaurantName.replace(/'/g, "\\'")}')" title="Xem quán & menu">
+            <strong style="color: var(--text-primary); cursor: pointer;" onclick="${openAction}" title="${isShipperSupport ? 'Mở chat tài xế' : 'Xem quán & menu'}">
               ${n.restaurantName}
             </strong>
           </div>
@@ -3276,8 +3288,8 @@ function renderNotificationsList() {
           ${timeStr}
         </td>
         <td style="text-align: right; width: 80px;">
-          <button class="btn btn--secondary btn--sm" onclick="viewRestaurantInCRM('${n.restaurantId}', '${n.restaurantName.replace(/'/g, "\\'")}')" style="padding: 4px 10px; font-size: 11px;">
-            <i class="fa-solid fa-store"></i> Xem quán
+          <button class="btn btn--secondary btn--sm" onclick="${openAction}" style="padding: 4px 10px; font-size: 11px;">
+            ${openLabel}
           </button>
         </td>
       </tr>
@@ -3334,9 +3346,19 @@ function viewRestaurantInCRM(restaurantId, restaurantName) {
   }, 120);
 }
 
+function openShipperSupportFromNotif(shipperPhone) {
+  try {
+    window.__shipperSupportFilter = 'open';
+    window.__focusShipperSupportPhone = String(shipperPhone || '').trim();
+  } catch (_) {}
+  navigateTo('support');
+  showToast('Đang mở chat tài xế…', 'info');
+}
+
 // Đăng ký toàn cục
 window.fetchNotifications = fetchNotifications;
 window.renderNotificationsList = renderNotificationsList;
 window.handleReadNotification = handleReadNotification;
 window.handleReadAllNotifications = handleReadAllNotifications;
 window.viewRestaurantInCRM = viewRestaurantInCRM;
+window.openShipperSupportFromNotif = openShipperSupportFromNotif;
