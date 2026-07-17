@@ -10,8 +10,12 @@ const API_BASE = `https://api.telegram.org/bot`;
 let deps = {};
 let telegramOffset = 0;
 let periodicTimer = null;
-let pollTimer = null;
+let pollLoopActive = false;
 let isPolling = false;
+let lastPollAt = 0;
+let lastPollError = null;
+let lastUpdateAt = 0;
+let pollSuccessCount = 0;
 const slaTelegramNotified = new Map();
 
 function crmLink(page, q) {
@@ -28,6 +32,14 @@ function normalizeCommandText(raw) {
     .replace(/^\/([a-z0-9_]+)@[a-z0-9_]+/, '/$1');
 }
 
+/** Markdown legacy dễ vỡ với _ trong tên/URL — luôn gửi plain text ổn định */
+function markdownToPlain(text) {
+  return String(text || '')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1\n$2')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1');
+}
+
 function getTelegramConfig() {
   const cfg = deps.getPricingConfig()?.telegramConfig || {};
   return {
@@ -42,38 +54,57 @@ function getTelegramConfig() {
   };
 }
 
+function allowedChatIds() {
+  return String(deps.TELEGRAM_CHAT_ID || '')
+    .split(/[\s,]+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
 function isConfigured() {
-  return !!(deps.TELEGRAM_BOT_TOKEN && deps.TELEGRAM_CHAT_ID);
+  return !!(deps.TELEGRAM_BOT_TOKEN && allowedChatIds().length);
 }
 
 function isAuthorizedChat(chatId) {
-  return isConfigured() && String(chatId) === String(deps.TELEGRAM_CHAT_ID);
+  if (!deps.TELEGRAM_BOT_TOKEN) return false;
+  const id = String(chatId);
+  return allowedChatIds().some(allowed => allowed === id);
+}
+
+function getStatus() {
+  return {
+    tokenConfigured: !!deps.TELEGRAM_BOT_TOKEN,
+    chatConfigured: allowedChatIds().length > 0,
+    allowedChatCount: allowedChatIds().length,
+    pollingActive: pollLoopActive,
+    isPollingTick: isPolling,
+    lastPollAt,
+    lastUpdateAt,
+    pollSuccessCount,
+    lastPollError,
+    offset: telegramOffset
+  };
 }
 
 async function tgPost(method, body) {
-  try {
-    await axios.post(`${API_BASE}${deps.TELEGRAM_BOT_TOKEN}/${method}`, body, { timeout: 20000 });
-  } catch (err) {
-    // Markdown legacy hay lỗi với _, *, ` — thử gửi lại plain text
-    if (method === 'sendMessage' || method === 'editMessageText') {
-      const desc = err.response?.data?.description || '';
-      if (body.parse_mode && /parse|markdown|entities/i.test(desc)) {
-        const retry = { ...body };
-        delete retry.parse_mode;
-        await axios.post(`${API_BASE}${deps.TELEGRAM_BOT_TOKEN}/${method}`, retry, { timeout: 20000 });
-        return;
-      }
+  const payload = { ...body };
+  // Tránh lỗi parse Markdown (underscore, v.v.) — gửi plain text
+  if ((method === 'sendMessage' || method === 'editMessageText') && payload.text) {
+    if (payload.parse_mode) {
+      payload.text = markdownToPlain(payload.text);
+      delete payload.parse_mode;
     }
-    throw err;
   }
+  await axios.post(`${API_BASE}${deps.TELEGRAM_BOT_TOKEN}/${method}`, payload, { timeout: 20000 });
 }
 
-async function sendMessage(text, keyboard) {
-  if (!isConfigured()) return;
+async function sendMessage(text, keyboard, chatId = null) {
+  if (!deps.TELEGRAM_BOT_TOKEN) return;
+  const target = chatId || allowedChatIds()[0];
+  if (!target) return;
   const payload = {
-    chat_id: deps.TELEGRAM_CHAT_ID,
-    text,
-    parse_mode: 'Markdown'
+    chat_id: target,
+    text: markdownToPlain(text)
   };
   if (keyboard) payload.reply_markup = keyboard;
   await tgPost('sendMessage', payload);
@@ -752,12 +783,26 @@ async function processUpdates(updates) {
           const chatId = msg.chat.id;
 
           if (!isAuthorizedChat(chatId)) {
-            if (!global._telegramUnauthorizedLogged) {
-              console.log(`[Telegram Bot] Bỏ qua chat không được phép: ${chatId} (cần TELEGRAM_CHAT_ID=${deps.TELEGRAM_CHAT_ID})`);
-              global._telegramUnauthorizedLogged = true;
+            console.log(`[Telegram Bot] Chat không được phép: ${chatId} (allowed: ${allowedChatIds().join(',') || 'none'}) text=${text}`);
+            if (text.startsWith('/')) {
+              try {
+                await axios.post(`${API_BASE}${deps.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                  chat_id: chatId,
+                  text:
+                    `ShipFee Bot: chat này chưa được phép điều khiển CRM.\n\n` +
+                    `Chat ID của bạn: ${chatId}\n` +
+                    `TELEGRAM_CHAT_ID đang cấu hình: ${deps.TELEGRAM_CHAT_ID || '(trống)'}\n\n` +
+                    `→ Gõ lệnh trong đúng nhóm admin, hoặc thêm Chat ID trên vào env Render (có thể nhiều ID, cách nhau bằng dấu phẩy).`
+                }, { timeout: 15000 });
+              } catch (e) {
+                console.error('[Telegram Bot] Không gửi được cảnh báo unauthorized:', e.response?.data || e.message);
+              }
             }
             continue;
           }
+
+          console.log(`[Telegram Bot] Lệnh nhận: ${text} từ chat ${chatId}`);
+          lastUpdateAt = Date.now();
 
           if (text === '/crm' || text === '/stats' || text === '/start') {
             const report = generateCRMReportMessage();
@@ -1074,15 +1119,19 @@ async function processUpdates(updates) {
 }
 
 async function pollOnce() {
-  if (isPolling || !deps.TELEGRAM_BOT_TOKEN) return;
+  if (!deps.TELEGRAM_BOT_TOKEN) return;
   isPolling = true;
+  lastPollAt = Date.now();
   try {
     const response = await axios.get(`${API_BASE}${deps.TELEGRAM_BOT_TOKEN}/getUpdates`, {
       params: { offset: telegramOffset, timeout: 25 },
       timeout: 35000
     });
     const updates = response.data?.result || [];
+    pollSuccessCount += 1;
+    lastPollError = null;
     if (updates.length > 0) {
+      console.log(`[Telegram Bot] Nhận ${updates.length} update(s)`);
       await processUpdates(updates);
     }
     if (global._hasTelegramConflictLogged) {
@@ -1090,21 +1139,31 @@ async function pollOnce() {
       global._hasTelegramConflictLogged = false;
     }
   } catch (err) {
+    const desc = err.response?.data?.description || err.message;
+    lastPollError = desc;
     if (err.code !== 'ECONNRESET' && err.code !== 'ETIMEDOUT' && err.code !== 'ECONNABORTED') {
       const isConflict = err.response && err.response.status === 409;
       if (isConflict) {
         if (!global._hasTelegramConflictLogged) {
-          console.log('[Telegram Bot] ⚠️ Bot đang poll song song ở nơi khác. Chờ đồng bộ...');
+          console.log('[Telegram Bot] ⚠️ Bot đang poll song song ở nơi khác (local/Render). Chờ đồng bộ...');
           global._hasTelegramConflictLogged = true;
         }
-        // Tránh spam 409 — chờ lâu hơn trước khi thử lại
-        await new Promise(r => setTimeout(r, 15000));
+        await new Promise(r => setTimeout(r, 20000));
       } else {
-        console.error('[Telegram Polling Error]:', err.response?.data?.description || err.message);
+        console.error('[Telegram Polling Error]:', desc);
       }
     }
   } finally {
     isPolling = false;
+  }
+}
+
+async function runPollLoop() {
+  while (pollLoopActive) {
+    await pollOnce();
+    if (!pollLoopActive) break;
+    // Nghỉ ngắn giữa các long-poll; nếu 409 thì pollOnce đã chờ thêm
+    await new Promise(r => setTimeout(r, 500));
   }
 }
 
@@ -1113,19 +1172,18 @@ function startPolling() {
     console.log('[Telegram Bot] TELEGRAM_BOT_TOKEN chưa cấu hình, bỏ qua polling.');
     return;
   }
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+  if (pollLoopActive) {
+    console.log('[Telegram Bot] Poll loop đã chạy, bỏ qua start trùng.');
+    return;
   }
-  console.log('[Telegram Bot] Khởi chạy Telegram Polling Daemon (sequential)...');
+  pollLoopActive = true;
+  console.log('[Telegram Bot] Khởi chạy Telegram Polling Daemon (recursive loop)...');
   console.log(`[Telegram Bot] TELEGRAM_CHAT_ID=${deps.TELEGRAM_CHAT_ID || '(chưa set)'}`);
   restartPeriodicReport();
-
-  // Không chồng long-poll: chỉ gọi pollOnce khi vòng trước đã xong
-  pollTimer = setInterval(() => {
-    pollOnce().catch(e => console.error('[Telegram Polling Error]:', e.message));
-  }, 1000);
-  pollOnce().catch(() => {});
+  runPollLoop().catch(e => {
+    pollLoopActive = false;
+    console.error('[Telegram Bot] Poll loop dừng vì lỗi:', e.message);
+  });
 }
 
 module.exports = function createTelegramBot(depsIn) {
@@ -1141,6 +1199,7 @@ module.exports = function createTelegramBot(depsIn) {
     checkAndNotifySla,
     restartPeriodicReport,
     startPolling,
+    getStatus,
     crmLink
   };
 };

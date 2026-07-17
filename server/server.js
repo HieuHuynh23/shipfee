@@ -7222,6 +7222,11 @@ app.get('/api/status', (req, res) => {
       configured: !!supabase,
       urlConfigured: !!(SUPABASE_URL && SUPABASE_URL !== 'your_supabase_url_here')
     },
+    telegram: {
+      tokenConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
+      chatConfigured: !!process.env.TELEGRAM_CHAT_ID,
+      ...(telegramBot && typeof telegramBot.getStatus === 'function' ? telegramBot.getStatus() : { pollingActive: false })
+    },
     memory: {
       rssMb: Math.round(mem.rss / 1024 / 1024),
       heapUsedMb: Math.round(mem.heapUsed / 1024 / 1024)
@@ -7683,6 +7688,13 @@ app.listen(PORT, () => {
   }
 
   // Khởi động Telegram Polling Daemon
-  initTelegramBot();
-  if (telegramBot) telegramBot.startPolling();
+  try {
+    initTelegramBot();
+    if (telegramBot) {
+      telegramBot.startPolling();
+      console.log('[Telegram Bot] Status:', JSON.stringify(telegramBot.getStatus()));
+    }
+  } catch (e) {
+    console.error('[Telegram Bot] Không khởi động được bot:', e.message, e.stack);
+  }
 });
