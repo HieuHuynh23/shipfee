@@ -417,6 +417,9 @@
                   <i class="fa-solid fa-phone"></i> Gọi điện thoại cho khách
                 </button>
               </div>
+              <button type="button" class="btn btn--secondary crm-incident-btn" onclick="reportTripIncident()">
+                <i class="fa-solid fa-headset"></i> Báo sự cố / Nhờ CRM hỗ trợ
+              </button>
             </div>
           </div>
         </div>
@@ -460,6 +463,23 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="crm-support-panel" id="crm-support-panel">
+          <div class="crm-support-panel__head">
+            <span class="crm-support-panel__icon"><i class="fa-solid fa-headset"></i></span>
+            <div>
+              <h4>Hỗ trợ từ CRM ShipFee</h4>
+              <p>Đồng bộ với hệ thống quản trị — duyệt tài khoản, ưu tiên đơn, xử lý sự cố.</p>
+            </div>
+          </div>
+          <ul class="crm-support-list">
+            <li><i class="fa-solid fa-user-check"></i> Duyệt / kích hoạt tài khoản tài xế</li>
+            <li><i class="fa-solid fa-bolt"></i> Gán đơn ưu tiên khi bạn yêu cầu hỗ trợ tìm đơn</li>
+            <li><i class="fa-solid fa-map-location-dot"></i> Theo dõi Live Ops &amp; Fleet Map</li>
+            <li><i class="fa-solid fa-chart-line"></i> Theo dõi AR/CR &amp; thu nhập trên CRM</li>
+          </ul>
+          <p class="crm-support-panel__note">Khi cần hỗ trợ tìm đơn: mở tab <strong>Chờ đề xuất đơn</strong> → bật nhận đơn → nhấn <strong>Yêu cầu CRM hỗ trợ</strong> (tối đa 3 lần/ngày).</p>
         </div>
 
         <div class="section-title" style="margin-top: var(--space-lg);">
@@ -561,71 +581,49 @@
 
   <!-- ── DRIVER PROFILE OVERLAY ── -->
   <div class="overlay" id="driver-profile-overlay" style="display: none;">
-    <div class="modal" id="driver-profile-modal" style="max-width: 380px; padding: 24px; border-radius: 16px; background: #0f172a; border: 1.5px solid #1e293b; color: white; display: flex; flex-direction: column;">
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 12px; margin-bottom: 16px;">
-        <h3 style="margin: 0; font-size: 18px; color: var(--clr-primary);"><i class="fa-solid fa-id-card"></i> Hồ sơ Tài xế</h3>
-        <button onclick="closeDriverProfile()" style="background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 18px;"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal profile-modal" id="driver-profile-modal">
+      <div class="profile-modal__head">
+        <h3><i class="fa-solid fa-id-card"></i> Hồ sơ Tài xế</h3>
+        <button type="button" class="profile-modal__close" onclick="closeDriverProfile()" aria-label="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
-      <div style="display: flex; justify-content: center; margin-bottom: 16px;">
-        <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 2px solid var(--clr-primary); background: #1e293b; display: flex; align-items: center; justify-content: center;">
-          <img id="profile-avatar-img" src="" alt="Avatar" style="width: 100%; height: 100%; object-fit: cover; display: none;">
-          <i class="fa-solid fa-user-tie" id="profile-avatar-placeholder" style="font-size: 32px; color: #64748b;"></i>
+      <div class="profile-modal__avatar-wrap">
+        <div class="profile-modal__avatar">
+          <img id="profile-avatar-img" src="" alt="Avatar" style="display: none;">
+          <i class="fa-solid fa-user-tie" id="profile-avatar-placeholder"></i>
         </div>
+        <span class="status-chip status-chip--ok" id="profile-approval-chip">Đã duyệt CRM</span>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 12px; font-size: 13px;">
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Họ và Tên:</span>
-          <span id="profile-name" style="font-weight: 700;">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Số điện thoại:</span>
-          <span id="profile-phone" style="font-weight: 700;">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Số CCCD:</span>
-          <span id="profile-cccd" style="font-weight: 700;">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Email liên kết:</span>
-          <span id="profile-email" style="font-weight: 700;">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Trạng thái ca:</span>
-          <span id="profile-status" style="font-weight: 700;">-</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Tỷ lệ nhận đơn (AR):</span>
-          <span id="profile-ar" style="font-weight: 700; color: #10b981;">100%</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Tỷ lệ hoàn thành (CR):</span>
-          <span id="profile-cr" style="font-weight: 700; color: #10b981;">100%</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #1e293b; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Tổng đơn giao:</span>
-          <span id="profile-total-orders" style="font-weight: 700; color: #3b82f6;">0 đơn</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding-bottom: 8px;">
-          <span style="color: #94a3b8;">Doanh thu tích lũy:</span>
-          <span id="profile-revenue" style="font-weight: 700; color: #eab308;">0đ</span>
-        </div>
+      <div class="profile-modal__rows">
+        <div class="profile-row"><span>Họ và Tên</span><strong id="profile-name">-</strong></div>
+        <div class="profile-row"><span>Số điện thoại</span><strong id="profile-phone">-</strong></div>
+        <div class="profile-row"><span>Số CCCD</span><strong id="profile-cccd">-</strong></div>
+        <div class="profile-row"><span>Email liên kết</span><strong id="profile-email">-</strong></div>
+        <div class="profile-row"><span>Trạng thái ca</span><strong id="profile-status">-</strong></div>
+        <div class="profile-row"><span>Tỷ lệ nhận đơn (AR)</span><strong id="profile-ar" class="text-ok">100%</strong></div>
+        <div class="profile-row"><span>Tỷ lệ hoàn thành (CR)</span><strong id="profile-cr" class="text-ok">100%</strong></div>
+        <div class="profile-row"><span>Tổng đơn giao</span><strong id="profile-total-orders" class="text-info">0 đơn</strong></div>
+        <div class="profile-row profile-row--last"><span>Doanh thu tích lũy</span><strong id="profile-revenue" class="text-accent">0đ</strong></div>
       </div>
-      <button onclick="closeDriverProfile()" style="width: 100%; margin-top: 20px; padding: 10px; background: #1e293b; border: 1px solid #334155; border-radius: 8px; color: white; cursor: pointer; font-size: 13px; font-weight: 600;">Đóng</button>
+      <p class="profile-modal__crm-note"><i class="fa-solid fa-headset"></i> AR/CR &amp; duyệt tài khoản được quản lý trên <strong>CRM ShipFee</strong>.</p>
+      <button type="button" class="btn btn--secondary btn--full" onclick="closeDriverProfile()">Đóng</button>
     </div>
   </div>
 
   <!-- ── APPROVAL PENDING OVERLAY ── -->
   <div class="overlay" id="approval-overlay" style="display: none;">
-    <div class="modal card-shell" style="max-width: 380px; text-align: center; padding: 28px; background: #0f172a; border: 1.5px solid #1e293b; border-radius: 16px; color: white;">
-      <div style="font-size: 48px; color: #eab308; margin-bottom: 16px;">
-        <i class="fa-solid fa-clock-rotate-left fa-spin-pulse"></i>
-      </div>
-      <h3 style="margin: 0 0 10px 0; font-size: 18px; color: #eab308;">Tài khoản chờ phê duyệt</h3>
-      <p style="font-size: 13px; color: #94a3b8; line-height: 1.6; margin: 0 0 24px 0;">
-        Tài khoản của bạn đã được đăng ký và xác thực email thành công! Tuy nhiên, bạn cần đợi Admin CRM duyệt kích hoạt tài khoản thì mới có thể bắt đầu làm việc.
-      </p>
-      <button class="btn btn--danger btn--full" onclick="logoutApprovalPending()" style="background: #ef4444; border: none; padding: 12px; border-radius: 8px; font-weight: 600; color: white; cursor: pointer;">
-        <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất tài khoản
+    <div class="modal approval-modal">
+      <div class="approval-modal__badge"><i class="fa-solid fa-clock-rotate-left"></i></div>
+      <h3>Chờ CRM phê duyệt</h3>
+      <p>Tài khoản đã đăng ký thành công. Admin CRM cần <strong>Duyệt</strong> trên hệ thống quản trị trước khi bạn nhận đơn.</p>
+      <ul class="approval-steps">
+        <li><i class="fa-solid fa-check"></i> Đăng ký &amp; xác thực email</li>
+        <li class="is-active"><i class="fa-solid fa-spinner fa-spin"></i> CRM duyệt hồ sơ (CCCD, ảnh)</li>
+        <li><i class="fa-regular fa-circle"></i> Bật nhận đơn &amp; bắt đầu chạy</li>
+      </ul>
+      <button type="button" class="btn btn--primary btn--full" onclick="logoutApprovalPending()">
+        <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
       </button>
     </div>
   </div>

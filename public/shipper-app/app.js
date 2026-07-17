@@ -890,18 +890,27 @@ function renderPendingOrders(orders) {
     if (isOnline && currentDriver) {
       const usedToday = currentDriver.assistanceLimitToday || 0;
       const isRequested = currentDriver.assistanceRequested === true;
-      
+      const remaining = Math.max(0, 3 - usedToday);
       assistanceHtml = `
-        <div id="assistance-container" style="margin-top: 15px; text-align: center; width: 100%;">
-          <button class="btn" id="btn-request-assistance" onclick="requestOrderAssistance()" 
-            ${isRequested ? 'disabled' : ''} 
-            style="background: ${isRequested ? '#4b5563' : '#dc2626'}; color: white; padding: 10px 18px; font-weight: 700; border-radius: 8px; border: none; font-size: 13px; cursor: ${isRequested ? 'not-allowed' : 'pointer'}; display: inline-flex; align-items: center; gap: 6px;">
-            <i class="fa-solid ${isRequested ? 'fa-hourglass-half' : 'fa-circle-question'}"></i> 
-            ${isRequested ? 'Đang chờ gán đơn ưu tiên...' : '🆘 Yêu cầu Hỗ trợ Tìm đơn'}
+        <div class="crm-assist-card ${isRequested ? 'is-waiting' : ''}" id="assistance-container">
+          <div class="crm-assist-card__head">
+            <span class="crm-assist-card__icon"><i class="fa-solid fa-headset"></i></span>
+            <div>
+              <h4>Hỗ trợ tìm đơn từ CRM</h4>
+              <p>CRM ShipFee ưu tiên gán đơn gần bạn (Live Ops). Dùng khi lâu không nhận đề xuất.</p>
+            </div>
+          </div>
+          <div class="crm-assist-card__meta">
+            <span class="status-chip ${isRequested ? 'status-chip--wait' : (remaining === 0 ? 'status-chip--danger' : 'status-chip--ok')}">
+              ${isRequested ? 'Đang chờ CRM' : (remaining === 0 ? 'Hết lượt hôm nay' : 'Sẵn sàng')}
+            </span>
+            <span>Đã dùng <strong id="assistance-used-count">${usedToday}</strong>/3 · còn <strong>${remaining}</strong></span>
+          </div>
+          <button type="button" class="btn ${isRequested ? 'btn--secondary' : 'btn--primary'}" id="btn-request-assistance"
+            onclick="requestOrderAssistance()" ${isRequested || remaining === 0 ? 'disabled' : ''}>
+            <i class="fa-solid ${isRequested ? 'fa-hourglass-half' : 'fa-bolt'}"></i>
+            ${isRequested ? 'CRM đang ưu tiên gán đơn...' : 'Yêu cầu CRM hỗ trợ tìm đơn'}
           </button>
-          <p style="font-size: 11px; color: var(--clr-text-muted); margin-top: 6px; margin-bottom: 0;">
-            Lưu ý: Chỉ hỗ trợ tối đa 3 lần/ngày. Đã dùng: <strong id="assistance-used-count">${usedToday}</strong>/3
-          </p>
         </div>
       `;
     }
@@ -910,7 +919,7 @@ function renderPendingOrders(orders) {
       ? (activeOrders.some(o => o.status === 'PURCHASED')
           ? `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn (đã lấy hàng). Hệ thống ưu tiên ghép đơn gần điểm giao khách hiện tại.`
           : `Bạn đang chạy ${activeOrders.length}/${MAX_ACTIVE_ORDERS} đơn. Hệ thống có thể ghép thêm đơn gần quán/điểm giao hiện tại.`)
-      : 'Hệ thống sẽ đề xuất đơn đích danh (không mở bể chung). Tối đa 2 đơn / tài xế.';
+      : 'Hệ thống đề xuất đơn đích danh (không bể chung). Tối đa 2 đơn / tài xế — đồng bộ với CRM Live Ops.';
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-satellite-dish fa-spin-slow" style="color:var(--clr-text-muted);"></i>
@@ -3168,7 +3177,7 @@ async function requestOrderAssistance() {
   const btn = document.getElementById('btn-request-assistance');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang yêu cầu...';
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi tới CRM...';
   }
 
   try {
@@ -3182,26 +3191,21 @@ async function requestOrderAssistance() {
     }).then(r => r.json());
 
     if (res.success) {
-      showToast('Thành công', res.message, 'success');
+      showToast('CRM đã nhận yêu cầu', res.message || 'Hệ thống đang ưu tiên gán đơn cho bạn.', 'success');
       currentDriver.assistanceLimitToday = res.limitUsed;
       currentDriver.assistanceRequested = true;
       sessionStorage.setItem('shipfee_driver', JSON.stringify(currentDriver));
-      
+
       if (res.orderId) {
         syncAllData();
       } else {
-        const countText = document.getElementById('assistance-used-count');
-        if (countText) countText.textContent = res.limitUsed;
-        if (btn) {
-          btn.innerHTML = '<i class="fa-solid fa-hourglass-half"></i> Đang chờ gán đơn ưu tiên...';
-          btn.style.background = '#4b5563';
-        }
+        renderPendingOrders([]);
       }
     } else {
       showToast('Thất bại', res.error || 'Yêu cầu hỗ trợ thất bại.', 'error');
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-circle-question"></i> 🆘 Yêu cầu Hỗ trợ Tìm đơn';
+        btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Yêu cầu CRM hỗ trợ tìm đơn';
       }
     }
   } catch (err) {
@@ -3209,11 +3213,33 @@ async function requestOrderAssistance() {
     showToast('Lỗi kết nối', 'Không thể kết nối với server.', 'error');
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-circle-question"></i> 🆘 Yêu cầu Hỗ trợ Tìm đơn';
+      btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Yêu cầu CRM hỗ trợ tìm đơn';
     }
   }
 }
 window.requestOrderAssistance = requestOrderAssistance;
+
+function reportTripIncident() {
+  if (!activeOrder) {
+    showToast('Chưa có chuyến đi', 'Chỉ báo sự cố khi đang chạy đơn.', 'warning');
+    return;
+  }
+  const tip =
+    `Đơn ${activeOrder.id} đang ${activeOrder.status}.\n\n` +
+    'CRM Live Ops có thể theo dõi đơn này (gán lại tài xế / hủy / chat).\n' +
+    'Bạn nên: (1) nhắn tin hoặc gọi khách, (2) giữ app mở để CRM thấy vị trí GPS.\n\n' +
+    'Tiếp tục mở chat với khách?';
+  if (confirm(tip)) {
+    openQuickChat();
+  } else {
+    showToast(
+      'Đã ghi nhận',
+      'Ops CRM theo dõi đơn trên Live Ops. Giữ ca online và cập nhật trạng thái đúng.',
+      'info'
+    );
+  }
+}
+window.reportTripIncident = reportTripIncident;
 
 function geocodeAddressOffline(address, name) {
   const text = ((address || '') + ' ' + (name || '')).toLowerCase();
