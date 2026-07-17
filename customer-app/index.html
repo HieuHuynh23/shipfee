@@ -413,7 +413,12 @@
   <div class="overlay" id="address-overlay" onclick="closeAddressModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal__handle"></div>
-      <h3 class="modal__title">Địa chỉ giao hàng</h3>
+      <div class="modal__header">
+        <h3 class="modal__title">Địa chỉ giao hàng</h3>
+        <button type="button" class="modal__close" onclick="closeAddressModal()" aria-label="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
       
       <!-- HÌNH THỨC ĐẶT HÀNG (BẮT BUỘC CHỌN) -->
       <div class="form-group" style="margin-bottom: 15px;">
@@ -1473,9 +1478,12 @@
     }
 
     function closeAddressModal(e) {
-      if (e.target === document.getElementById('address-overlay')) {
-        document.getElementById('address-overlay').classList.remove('active');
+      // Nút X / gọi trực tiếp: luôn đóng. Click nền overlay: chỉ đóng khi đúng target nền.
+      if (e && e.target && e.target !== document.getElementById('address-overlay')) {
+        return;
       }
+      const overlay = document.getElementById('address-overlay');
+      if (overlay) overlay.classList.remove('active');
     }
 
     async function detectUserLocation() {
