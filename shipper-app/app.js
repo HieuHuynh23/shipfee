@@ -1182,11 +1182,29 @@ function renderActiveTrip() {
   statusBadge.className = 'trip-card__status badge ' + getStatusBadgeClass(activeOrder.status);
   
   document.getElementById('trip-restaurant-name').textContent = activeOrder.restaurantName;
-  document.getElementById('trip-restaurant-address').textContent = activeOrder.restaurantAddress;
+  const restAddrEl = document.getElementById('trip-restaurant-address');
+  const restLatNum = parseFloat(activeOrder.restaurantLat);
+  const restLonNum = parseFloat(activeOrder.restaurantLon);
+  const restTrusted = isTrustedRestaurantCoordsSource(activeOrder.restaurantCoordsSource)
+    && Number.isFinite(restLatNum) && Number.isFinite(restLonNum);
+  if (restAddrEl) {
+    restAddrEl.textContent = restTrusted
+      ? `${activeOrder.restaurantAddress || 'Quán'} · GPS (${restLatNum.toFixed(4)}, ${restLonNum.toFixed(4)})`
+      : (activeOrder.restaurantAddress || '—');
+  }
   
   const clientName = activeOrder.isRelative ? `👤 ${activeOrder.deliveryName} (Người thân)` : activeOrder.deliveryName || 'Khách hàng';
   document.getElementById('trip-customer-name').textContent = clientName;
-  document.getElementById('trip-customer-address').textContent = activeOrder.deliveryAddress;
+  const custAddrEl = document.getElementById('trip-customer-address');
+  const pinLat = parseFloat(activeOrder.pinnedLat);
+  const pinLon = parseFloat(activeOrder.pinnedLon);
+  if (custAddrEl) {
+    if (Number.isFinite(pinLat) && Number.isFinite(pinLon)) {
+      custAddrEl.textContent = `Vị trí Ghim Bản Đồ (${pinLat.toFixed(4)}, ${pinLon.toFixed(4)})`;
+    } else {
+      custAddrEl.textContent = activeOrder.deliveryAddress || '—';
+    }
+  }
   document.getElementById('trip-customer-phone').textContent = `SĐT: ${activeOrder.deliveryPhone}`;
   
   document.getElementById('trip-store-total').textContent = formatCurrency(activeOrder.storeTotal);
@@ -1270,6 +1288,17 @@ function renderActiveTrip() {
     const hasCustCoords = Number.isFinite(parseFloat(activeOrder.pinnedLat)) && Number.isFinite(parseFloat(activeOrder.pinnedLon));
     const hasCustAddress = !!activeOrder.deliveryAddress;
     btnNavCust.style.display = (hasCustCoords || hasCustAddress) ? 'inline-flex' : 'none';
+  }
+
+  // Prefetch Foody GPS quán (nền) để nút chỉ đường mở Maps bằng lat,lon giống pin khách
+  if (activeOrder.restaurantId && !isTrustedRestaurantCoordsSource(activeOrder.restaurantCoordsSource)) {
+    resolveRestaurantNavCoords(activeOrder).then((resolved) => {
+      if (!resolved?.trusted || !activeOrder) return;
+      const el = document.getElementById('trip-restaurant-address');
+      if (el) {
+        el.textContent = `${activeOrder.restaurantAddress || 'Quán'} · GPS (${resolved.lat.toFixed(4)}, ${resolved.lon.toFixed(4)})`;
+      }
+    }).catch(() => {});
   }
 
   initTripMap();
@@ -3367,10 +3396,9 @@ function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) 
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const text = (label || '').trim();
 
-  // Quán: dùng chuỗi địa chỉ đầy đủ (số nhà + đường) — không dùng GPS heuristic đường phố
+  // Chỉ dùng chuỗi địa chỉ khi chưa có GPS tin cậy (Foody/manual / pin khách)
   if (preferLabel && text) {
     const q = encodeURIComponent(text);
-    // dir + destination text giúp ghim đúng listing/số nhà; two-wheeler phù hợp tài xế VN
     return `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=two-wheeler&dir_action=navigate`;
   }
   if (hasCoords) {
@@ -3382,7 +3410,61 @@ function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) 
   return null;
 }
 
-function navigateToPoint(target) {
+function isTrustedRestaurantCoordsSource(source) {
+  const s = String(source || '').toLowerCase();
+  return s === 'foody' || s === 'manual';
+}
+
+async function resolveRestaurantNavCoords(order) {
+  if (!order) return { lat: null, lon: null, source: null, trusted: false };
+
+  if (isTrustedRestaurantCoordsSource(order.restaurantCoordsSource)) {
+    const lat = parseCoord(order.restaurantLat);
+    const lon = parseCoord(order.restaurantLon);
+    if (lat != null && lon != null) {
+      return { lat, lon, source: order.restaurantCoordsSource, trusted: true };
+    }
+  }
+
+  const rid = order.restaurantId;
+  if (!rid) {
+    return {
+      lat: parseCoord(order.restaurantLat),
+      lon: parseCoord(order.restaurantLon),
+      source: order.restaurantCoordsSource || 'heuristic',
+      trusted: false
+    };
+  }
+
+  try {
+    const res = await apiFetch(`${API_BASE}/api/restaurants/${encodeURIComponent(rid)}/location`);
+    if (res && res.ok) {
+      const data = await res.json();
+      if (data && data.success && Number.isFinite(data.latitude) && Number.isFinite(data.longitude)) {
+        order.restaurantLat = data.latitude;
+        order.restaurantLon = data.longitude;
+        order.restaurantCoordsSource = data.coordsSource || order.restaurantCoordsSource;
+        return {
+          lat: data.latitude,
+          lon: data.longitude,
+          source: data.coordsSource,
+          trusted: !!data.trusted || isTrustedRestaurantCoordsSource(data.coordsSource)
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('[Navigation] Restaurant location fetch failed:', err?.message || err);
+  }
+
+  return {
+    lat: parseCoord(order.restaurantLat),
+    lon: parseCoord(order.restaurantLon),
+    source: order.restaurantCoordsSource || 'heuristic',
+    trusted: false
+  };
+}
+
+async function navigateToPoint(target) {
   if (!activeOrder) {
     showToast('Không có đơn hàng', 'Không tìm thấy thông tin đơn hàng hoạt động.', 'warning');
     return;
@@ -3394,22 +3476,24 @@ function navigateToPoint(target) {
   let preferLabel = false;
 
   if (target === 'restaurant') {
-    // Ưu tiên chuỗi "Tên, số nhà + đường, quận, TP, Việt Nam" giống cách Google hiểu địa chỉ VN.
-    // Không dùng restaurantLat/Lon heuristic (thường chỉ ra giữa đường, lệch số nhà).
     label = formatRestaurantMapsDestination(
       activeOrder.restaurantName,
       activeOrder.restaurantAddress
     );
-    preferLabel = !!label;
 
-    lat = parseCoord(activeOrder.restaurantLat);
-    lon = parseCoord(activeOrder.restaurantLon);
+    // Giống điểm giao khách: dùng GPS ghim chính xác khi có (Foody place:location).
+    // Heuristic đường phố / text-only Maps dễ lệch số nhà → chỉ fallback khi chưa có GPS tin cậy.
+    showToast('Đang lấy vị trí quán', 'Đang lấy GPS chính xác từ Foody…', 'info');
+    const resolved = await resolveRestaurantNavCoords(activeOrder);
+    lat = resolved.lat;
+    lon = resolved.lon;
 
-    if (!preferLabel && (lat == null || lon == null)) {
-      const coords = geocodeAddressOffline(activeOrder.restaurantAddress || '', activeOrder.restaurantName || '');
-      lat = coords.lat;
-      lon = coords.lon;
-      console.log(`[Navigation] Geocoded restaurant offline fallback: ${lat}, ${lon}`);
+    if (resolved.trusted && lat != null && lon != null) {
+      preferLabel = false;
+      console.log(`[Navigation] Trusted restaurant GPS (${resolved.source}): ${lat}, ${lon}`);
+    } else {
+      preferLabel = !!label;
+      console.log('[Navigation] No trusted restaurant GPS — using address text for Maps');
     }
   } else if (target === 'customer') {
     // Điểm giao: ưu tiên pin GPS của khách (chính xác)
