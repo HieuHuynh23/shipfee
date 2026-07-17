@@ -3704,22 +3704,38 @@ function getRestaurantChangeSummaries(limit = 50) {
 const BULK_SYNC_CONCURRENCY = 2;
 let bulkSyncJob = null;
 
-async function runBulkRestaurantSync(restaurants) {
-  bulkSyncJob = {
-    running: true,
-    total: restaurants.length,
-    completed: 0,
-    failed: 0,
-    current: null,
-    startedAt: Date.now(),
-    finishedAt: null,
-    errors: []
-  };
+async function runBulkRestaurantSync(restaurants, startIdx = 0) {
+  const isResume = startIdx > 0 && bulkSyncJob && bulkSyncJob.restaurants;
 
-  let cursor = 0;
+  if (!isResume) {
+    bulkSyncJob = {
+      running: true,
+      paused: false,
+      pauseRequested: false,
+      total: restaurants.length,
+      completed: 0,
+      failed: 0,
+      skipped: 0,
+      current: null,
+      startedAt: Date.now(),
+      finishedAt: null,
+      pausedAt: null,
+      errors: [],
+      restaurants
+    };
+  } else {
+    bulkSyncJob.running = true;
+    bulkSyncJob.paused = false;
+    bulkSyncJob.pauseRequested = false;
+    bulkSyncJob.pausedAt = null;
+    bulkSyncJob.finishedAt = null;
+  }
+
+  let cursor = startIdx;
   async function worker() {
-    while (cursor < restaurants.length) {
+    while (!bulkSyncJob.pauseRequested) {
       const idx = cursor++;
+      if (idx >= bulkSyncJob.total) break;
       const restaurant = restaurants[idx];
       if (!restaurant || !restaurant.id) {
         bulkSyncJob.completed++;
@@ -3729,7 +3745,6 @@ async function runBulkRestaurantSync(restaurants) {
       try {
         const fresh = findRestaurantById(restaurant.id) || restaurant;
         await triggerSyncMenuScrape(fresh);
-        bulkSyncJob.completed++;
       } catch (err) {
         bulkSyncJob.failed++;
         bulkSyncJob.errors.push({
@@ -3737,17 +3752,32 @@ async function runBulkRestaurantSync(restaurants) {
           name: restaurant.name || restaurant.id,
           error: err.message || 'Lỗi đồng bộ'
         });
-        bulkSyncJob.completed++;
       }
+      bulkSyncJob.completed++;
     }
   }
 
-  const workers = Array.from({ length: Math.min(BULK_SYNC_CONCURRENCY, restaurants.length || 1) }, () => worker());
+  const workers = Array.from(
+    { length: Math.min(BULK_SYNC_CONCURRENCY, Math.max(1, bulkSyncJob.total - startIdx)) },
+    () => worker()
+  );
   await Promise.all(workers);
 
-  bulkSyncJob.running = false;
   bulkSyncJob.current = null;
+
+  if (bulkSyncJob.pauseRequested && bulkSyncJob.completed < bulkSyncJob.total) {
+    bulkSyncJob.running = false;
+    bulkSyncJob.paused = true;
+    bulkSyncJob.pausedAt = Date.now();
+    bulkSyncJob.remaining = bulkSyncJob.total - bulkSyncJob.completed;
+    console.log(`[Bulk Sync] ⏸ Tạm dừng tại ${bulkSyncJob.completed}/${bulkSyncJob.total}`);
+    return;
+  }
+
+  bulkSyncJob.running = false;
+  bulkSyncJob.paused = false;
   bulkSyncJob.finishedAt = Date.now();
+  bulkSyncJob.remaining = 0;
   console.log(`[Bulk Sync] Hoàn tất: ${bulkSyncJob.completed}/${bulkSyncJob.total}, lỗi ${bulkSyncJob.failed}`);
 }
 
@@ -5983,20 +6013,87 @@ app.get('/api/admin/restaurants/changes', authenticateAdmin, (req, res) => {
  */
 app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
   if (!bulkSyncJob) {
-    return res.json({ success: true, running: false, total: 0, completed: 0, failed: 0 });
+    return res.json({ success: true, running: false, paused: false, total: 0, completed: 0, failed: 0 });
   }
   res.json({
     success: true,
     running: bulkSyncJob.running,
+    paused: bulkSyncJob.paused,
+    pauseRequested: bulkSyncJob.pauseRequested,
     total: bulkSyncJob.total,
     completed: bulkSyncJob.completed,
     failed: bulkSyncJob.failed,
+    remaining: bulkSyncJob.remaining || Math.max(0, bulkSyncJob.total - bulkSyncJob.completed),
     current: bulkSyncJob.current,
     startedAt: bulkSyncJob.startedAt,
     finishedAt: bulkSyncJob.finishedAt,
+    pausedAt: bulkSyncJob.pausedAt,
     errors: bulkSyncJob.errors.slice(-10),
     menuScrapeEnabled: MENU_SCRAPE_ENABLED
   });
+});
+
+/**
+ * POST /api/admin/restaurants/sync-pause
+ * Tạm dừng job đồng bộ hàng loạt (hoàn tất quán đang xử lý rồi dừng)
+ */
+app.post('/api/admin/restaurants/sync-pause', authenticateAdmin, (req, res) => {
+  if (!bulkSyncJob?.running) {
+    return res.json({ success: false, error: 'Không có tiến trình đồng bộ đang chạy.' });
+  }
+  if (bulkSyncJob.pauseRequested) {
+    return res.json({ success: true, message: 'Đã gửi yêu cầu tạm dừng trước đó.' });
+  }
+  bulkSyncJob.pauseRequested = true;
+  res.json({
+    success: true,
+    message: 'Đang tạm dừng... Hoàn tất quán hiện tại rồi dừng.',
+    completed: bulkSyncJob.completed,
+    total: bulkSyncJob.total
+  });
+});
+
+/**
+ * POST /api/admin/restaurants/sync-resume
+ * Tiếp tục job đồng bộ đã tạm dừng
+ */
+app.post('/api/admin/restaurants/sync-resume', authenticateAdmin, async (req, res) => {
+  try {
+    if (bulkSyncJob?.running) {
+      return res.json({ success: false, error: 'Đồng bộ đang chạy.' });
+    }
+    if (!bulkSyncJob?.paused || !bulkSyncJob.restaurants?.length) {
+      return res.json({ success: false, error: 'Không có job tạm dừng để tiếp tục.' });
+    }
+    if (!MENU_SCRAPE_ENABLED) {
+      return res.status(503).json({
+        success: false,
+        error: 'Menu scrape đang tắt trên server (ENABLE_MENU_SCRAPE=true để bật).'
+      });
+    }
+
+    const startIdx = bulkSyncJob.completed;
+    const restaurants = bulkSyncJob.restaurants;
+    const remaining = bulkSyncJob.total - startIdx;
+
+    runBulkRestaurantSync(restaurants, startIdx).catch(err => {
+      console.error('[Bulk Sync] Lỗi resume:', err.message);
+      if (bulkSyncJob) {
+        bulkSyncJob.running = false;
+        bulkSyncJob.finishedAt = Date.now();
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Tiếp tục đồng bộ ${remaining} quán còn lại.`,
+      remaining,
+      completed: startIdx,
+      total: bulkSyncJob.total
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 /**
@@ -6007,7 +6104,7 @@ app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
 app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) => {
   try {
     if (bulkSyncJob?.running) {
-      return res.json({ success: false, error: 'Đồng bộ hàng loạt đang chạy. Vui lòng đợi hoàn tất.' });
+      return res.json({ success: false, error: 'Đồng bộ hàng loạt đang chạy. Dùng Tạm dừng nếu cần dừng.' });
     }
 
     if (!MENU_SCRAPE_ENABLED) {
@@ -6966,7 +7063,7 @@ app.get('/api/admin/shipper-support', authenticateAdmin, (req, res) => {
  * POST /api/admin/shipper-support/:id/messages
  * CRM trả lời tài xế
  */
-app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { text } = req.body || {};
     const cleanedText = String(text || '').trim();
@@ -6982,6 +7079,23 @@ app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requi
     if (!updated) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
     }
+
+    // Đồng bộ sang chat đơn hàng để tài xế thấy trong quick chat
+    if (updated.orderId) {
+      await updateOrdersDatabase((orders) => {
+        const idx = orders.findIndex(o => o.id === updated.orderId);
+        if (idx === -1) return false;
+        orders[idx].messages = orders[idx].messages || [];
+        orders[idx].messages.push({
+          sender: 'Admin',
+          role: 'admin',
+          text: cleanedText,
+          timestamp: Date.now()
+        });
+        return true;
+      });
+    }
+
     crm.markShipperSupportRead(updated.id, 'admin');
     crm.logAdminAudit(req, 'shipper_support_message', {
       threadId: updated.id,
@@ -7108,7 +7222,8 @@ app.post('/api/admin/orders/:id/messages', authenticateAdmin, crm.requireAdminRo
   try {
     const orderId = req.params.id;
     const { text } = req.body || {};
-    if (!text) return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
+    const cleanedText = String(text || '').trim();
+    if (!cleanedText) return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
     let updatedOrder = null;
     await updateOrdersDatabase((orders) => {
       const idx = orders.findIndex(o => o.id === orderId);
@@ -7117,14 +7232,33 @@ app.post('/api/admin/orders/:id/messages', authenticateAdmin, crm.requireAdminRo
       orders[idx].messages.push({
         sender: 'Admin',
         role: 'admin',
-        text,
+        text: cleanedText,
         timestamp: Date.now()
       });
       updatedOrder = orders[idx];
       return true;
     });
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn' });
-    crm.logAdminAudit(req, 'order_message', { orderId, text: text.slice(0, 80) });
+
+    // Đồng bộ sang thread CRM Support để tài xế nhận trong app shipper
+    const shipperPhone = cleanPhone(updatedOrder.shipperPhone || updatedOrder.assignedShipperPhone);
+    if (shipperPhone) {
+      const shippers = readShippersDatabase();
+      const shipper = shippers.find(s => cleanPhone(s.phone) === shipperPhone);
+      if (shipper) {
+        const thread = crm.getOrCreateShipperSupportThread(shipper, { orderId, priority: 'normal' });
+        if (thread) {
+          crm.appendShipperSupportMessage(thread.id, {
+            sender: 'admin',
+            role: 'admin',
+            text: cleanedText,
+            adminEmail: req.user?.email || 'admin'
+          });
+        }
+      }
+    }
+
+    crm.logAdminAudit(req, 'order_message', { orderId, text: cleanedText.slice(0, 80) });
     res.json({ success: true, data: updatedOrder.messages });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

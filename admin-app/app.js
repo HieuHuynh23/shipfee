@@ -1328,8 +1328,16 @@ function renderRestaurants() {
 
     <div id="restaurant-sync-progress" class="restaurant-sync-progress hidden">
       <div class="restaurant-sync-progress__header">
-        <span><i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ ShopeeFood...</span>
-        <span class="mono text-sm" id="restaurant-sync-progress-text">0 / 0</span>
+        <span id="restaurant-sync-progress-label"><i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ ShopeeFood...</span>
+        <div class="restaurant-sync-progress__actions">
+          <span class="mono text-sm" id="restaurant-sync-progress-text">0 / 0</span>
+          <button class="btn btn--secondary btn--sm" id="btn-sync-pause" onclick="pauseBulkSync()" title="Tạm dừng sau khi hoàn tất quán đang xử lý">
+            <i class="fa-solid fa-pause"></i> Tạm dừng
+          </button>
+          <button class="btn btn--primary btn--sm hidden" id="btn-sync-resume" onclick="resumeBulkSync()" title="Tiếp tục đồng bộ các quán còn lại">
+            <i class="fa-solid fa-play"></i> Tiếp tục
+          </button>
+        </div>
       </div>
       <div class="restaurant-sync-progress__bar">
         <div class="restaurant-sync-progress__fill" id="restaurant-sync-progress-fill" style="width: 0%;"></div>
@@ -1563,36 +1571,106 @@ async function syncAllRestaurants(scope) {
   }
 }
 
+async function pauseBulkSync() {
+  const btnPause = document.getElementById('btn-sync-pause');
+  if (btnPause) btnPause.disabled = true;
+  try {
+    const res = await apiFetch('/api/admin/restaurants/sync-pause', { method: 'POST' });
+    if (res.success) {
+      showToast(res.message || 'Đang tạm dừng...', 'info');
+      pollBulkSyncStatus(false);
+    } else {
+      showToast(res.error || 'Không thể tạm dừng', 'error');
+      if (btnPause) btnPause.disabled = false;
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+    if (btnPause) btnPause.disabled = false;
+  }
+}
+
+async function resumeBulkSync() {
+  if (!ensureMenuScrapeEnabled()) return;
+  const btnResume = document.getElementById('btn-sync-resume');
+  if (btnResume) btnResume.disabled = true;
+  try {
+    const res = await apiFetch('/api/admin/restaurants/sync-resume', { method: 'POST' });
+    if (res.success) {
+      showToast(res.message || 'Đã tiếp tục đồng bộ', 'success');
+      pollBulkSyncStatus(false);
+    } else {
+      showToast(res.error || 'Không thể tiếp tục', 'error');
+      if (btnResume) btnResume.disabled = false;
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+    if (btnResume) btnResume.disabled = false;
+  }
+}
+
 async function pollBulkSyncStatus(silent) {
   clearTimeout(bulkSyncPollTimer);
   const panel = document.getElementById('restaurant-sync-progress');
+  const labelEl = document.getElementById('restaurant-sync-progress-label');
   const textEl = document.getElementById('restaurant-sync-progress-text');
   const fillEl = document.getElementById('restaurant-sync-progress-fill');
   const currentEl = document.getElementById('restaurant-sync-current');
   const btnAll = document.getElementById('btn-sync-all');
   const btnChanged = document.getElementById('btn-sync-changed');
+  const btnPause = document.getElementById('btn-sync-pause');
+  const btnResume = document.getElementById('btn-sync-resume');
 
   try {
     const res = await apiFetch('/api/admin/restaurants/sync-status');
-    if (res.running) {
-      if (panel) panel.classList.remove('hidden');
+    const isActive = res.running || res.paused;
+
+    if (isActive) {
+      if (panel) {
+        panel.classList.remove('hidden');
+        panel.classList.toggle('restaurant-sync-progress--paused', !!res.paused);
+      }
       const pct = res.total > 0 ? Math.round((res.completed / res.total) * 100) : 0;
       if (textEl) textEl.textContent = `${res.completed} / ${res.total}${res.failed ? ` · lỗi ${res.failed}` : ''}`;
       if (fillEl) fillEl.style.width = `${pct}%`;
+      if (labelEl) {
+        labelEl.innerHTML = res.paused
+          ? '<i class="fa-solid fa-pause" style="color:#f59e0b;"></i> Đã tạm dừng đồng bộ'
+          : res.pauseRequested
+            ? '<i class="fa-solid fa-spinner fa-spin"></i> Đang tạm dừng...'
+            : '<i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ ShopeeFood...';
+      }
       if (currentEl) {
-        currentEl.textContent = res.current
-          ? `Đang xử lý: ${res.current.name} (${res.current.index}/${res.total})`
-          : 'Đang chuẩn bị...';
+        if (res.paused) {
+          currentEl.textContent = `Còn ${res.remaining || 0} quán chưa đồng bộ — bấm Tiếp tục để chạy lại.`;
+        } else {
+          currentEl.textContent = res.current
+            ? `Đang xử lý: ${res.current.name} (${res.current.index}/${res.total})`
+            : 'Đang chuẩn bị...';
+        }
+      }
+      if (btnPause) {
+        btnPause.classList.toggle('hidden', !res.running);
+        btnPause.disabled = !!res.pauseRequested;
+      }
+      if (btnResume) {
+        btnResume.classList.toggle('hidden', !res.paused);
+        btnResume.disabled = false;
       }
       if (btnAll) btnAll.disabled = true;
       if (btnChanged) btnChanged.disabled = true;
-      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(false), 2500);
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(res.running ? false : silent), res.running ? 2500 : 4000);
     } else {
-      if (panel) panel.classList.add('hidden');
-      if (btnAll) btnAll.disabled = false;
-      if (btnChanged) btnChanged.disabled = false;
+      if (panel) {
+        panel.classList.add('hidden');
+        panel.classList.remove('restaurant-sync-progress--paused');
+      }
+      if (btnPause) btnPause.classList.remove('hidden');
+      if (btnResume) btnResume.classList.add('hidden');
+      if (btnAll && menuScrapeEnabled !== false) btnAll.disabled = false;
+      if (btnChanged && menuScrapeEnabled !== false) btnChanged.disabled = false;
       if (res.completed > 0 && !silent) {
-        showToast(`Hoàn tất đồng bộ: ${res.completed - (res.failed || 0)}/${res.total} quán${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
+        const synced = Math.max(0, res.completed - (res.failed || 0));
+        showToast(`Hoàn tất đồng bộ: ${synced}/${res.total} quán${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
         loadRestaurants();
         loadRestaurantChanges();
         fetchNotifications().then(() => renderNotificationsList());
@@ -1602,6 +1680,9 @@ async function pollBulkSyncStatus(silent) {
     bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(true), 5000);
   }
 }
+
+window.pauseBulkSync = pauseBulkSync;
+window.resumeBulkSync = resumeBulkSync;
 
 window.syncAllRestaurants = syncAllRestaurants;
 window.loadRestaurantChanges = loadRestaurantChanges;

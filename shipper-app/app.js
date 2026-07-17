@@ -665,6 +665,7 @@ function startPolling() {
   pollBackoffActive = false;
   syncAllData();
   schedulePolling(3000);
+  startCrmSupportPolling();
 }
 
 function stopPolling() {
@@ -848,11 +849,27 @@ function checkNewMessages(oldOrder, newOrder) {
   const newMsgs = newOrder.messages;
   
   if (newMsgs.length > oldMsgs.length) {
-    const newCustomerMsgs = newMsgs.slice(oldMsgs.length).filter(m => m.sender === 'customer');
+    const incoming = newMsgs.slice(oldMsgs.length);
+    const newCustomerMsgs = incoming.filter(m => {
+      const s = String(m.sender || '').toLowerCase();
+      const r = String(m.role || '').toLowerCase();
+      return s === 'customer' || r === 'customer';
+    });
+    const newAdminMsgs = incoming.filter(m => {
+      const s = String(m.sender || '').toLowerCase();
+      const r = String(m.role || '').toLowerCase();
+      return s === 'admin' || r === 'admin' || m.sender === 'Admin';
+    });
     if (newCustomerMsgs.length > 0) {
       playMessageChimeSound();
       const lastMsg = newCustomerMsgs[newCustomerMsgs.length - 1];
       showToast('Khách hàng nhắn tin 💬', lastMsg.text, 'info');
+    }
+    if (newAdminMsgs.length > 0) {
+      playMessageChimeSound();
+      const lastMsg = newAdminMsgs[newAdminMsgs.length - 1];
+      showToast('CRM trả lời 💬', lastMsg.text, 'info');
+      maybeRefreshChat();
     }
   }
 }
@@ -875,9 +892,6 @@ function switchTab(tabId) {
   } else if (tabId === 'history') {
     renderHistoryAndStats();
     loadCrmSupportThread();
-    startCrmSupportPolling();
-  } else {
-    stopCrmSupportPolling();
   }
 }
 
@@ -3251,14 +3265,7 @@ function reportTripIncident() {
     input.value = `Khẩn cấp đơn ${activeOrder.id} (${activeOrder.status}): `;
   }
   updateCrmSupportOrderTag();
-
-  switchTab('history');
-  const panel = document.getElementById('crm-support-panel');
-  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  loadCrmSupportThread().then(() => {
-    if (input) input.focus();
-  });
-  showToast('Nhắn CRM', 'Đã mở chat CRM — gửi tin để nhờ hỗ trợ khẩn cấp.', 'info');
+  openCrmSupportSheet({ focus: true, toast: true });
 }
 window.reportTripIncident = reportTripIncident;
 
@@ -3267,6 +3274,46 @@ let crmSupportThread = null;
 let crmSupportLinkOrder = false;
 let crmSupportSendInFlight = false;
 let crmSupportPollTimer = null;
+let crmSupportSheetOpen = false;
+let lastCrmSupportFingerprint = '';
+
+function getCrmSupportFingerprint(thread) {
+  if (!thread || !Array.isArray(thread.messages) || thread.messages.length === 0) return '0';
+  const last = thread.messages[thread.messages.length - 1];
+  return `${thread.messages.length}:${last.id || ''}:${last.timestamp || ''}:${last.sender || ''}:${last.text || ''}`;
+}
+
+function openCrmSupportSheet(opts = {}) {
+  const sheet = document.getElementById('crm-support-sheet');
+  if (!sheet) return;
+  sheet.classList.add('is-open');
+  sheet.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('crm-support-open');
+  crmSupportSheetOpen = true;
+  updateCrmSupportOrderTag();
+  loadCrmSupportThread().then(() => {
+    if (opts.focus !== false) {
+      const input = document.getElementById('crm-support-input');
+      if (input) setTimeout(() => input.focus(), 280);
+    }
+  });
+  if (opts.toast) {
+    showToast('Nhắn CRM', 'Đã mở chat CRM — gửi tin để nhờ hỗ trợ.', 'info');
+  }
+}
+window.openCrmSupportSheet = openCrmSupportSheet;
+
+function closeCrmSupportSheet() {
+  const sheet = document.getElementById('crm-support-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('is-open');
+  sheet.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('crm-support-open');
+  crmSupportSheetOpen = false;
+  const input = document.getElementById('crm-support-input');
+  if (input) input.blur();
+}
+window.closeCrmSupportSheet = closeCrmSupportSheet;
 
 function updateCrmSupportOrderTag() {
   const tag = document.getElementById('crm-support-order-tag');
@@ -3358,8 +3405,20 @@ async function loadCrmSupportThread() {
     }, 10000);
     const data = await safeJson(res);
     if (res.ok && data.success) {
-      renderCrmSupportMessages(data.data || null);
-      return data.data || null;
+      const thread = data.data || null;
+      const newFp = getCrmSupportFingerprint(thread);
+      if (thread && lastCrmSupportFingerprint && newFp !== lastCrmSupportFingerprint) {
+        const msgs = thread.messages || [];
+        const last = msgs[msgs.length - 1];
+        const isAdmin = last && (last.sender === 'admin' || last.role === 'admin');
+        if (isAdmin) {
+          playMessageChimeSound();
+          showToast('CRM trả lời 💬', last.text || 'Có tin nhắn mới từ CRM', 'info');
+        }
+      }
+      if (thread) lastCrmSupportFingerprint = newFp;
+      renderCrmSupportMessages(thread);
+      return thread;
     }
   } catch (e) {
     console.warn('[CRM Support] load failed:', e?.message || e);
@@ -3427,11 +3486,10 @@ window.sendCrmSupportMessage = sendCrmSupportMessage;
 
 function startCrmSupportPolling() {
   stopCrmSupportPolling();
+  if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return;
+  loadCrmSupportThread();
   crmSupportPollTimer = setInterval(() => {
-    const historyTab = document.getElementById('tab-history');
-    if (historyTab && historyTab.classList.contains('active')) {
-      loadCrmSupportThread();
-    }
+    loadCrmSupportThread();
   }, 8000);
 }
 
@@ -3452,6 +3510,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && crmSupportSheetOpen) {
+      closeCrmSupportSheet();
+    }
+  });
 });
 
 function geocodeAddressOffline(address, name) {

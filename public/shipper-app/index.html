@@ -466,42 +466,14 @@
           </div>
         </div>
 
-        <div class="crm-support-panel" id="crm-support-panel">
-          <div class="crm-support-panel__head">
-            <span class="crm-support-panel__icon"><i class="fa-solid fa-headset"></i></span>
-            <div>
-              <h4>Nhắn CRM hỗ trợ</h4>
-              <p>Gửi tin khi cần hỗ trợ đơn hàng hoặc tình huống khẩn cấp. CRM sẽ trả lời trong hộp chat này.</p>
-            </div>
-          </div>
-
-          <div class="crm-support-chat" id="crm-support-chat">
-            <div class="crm-support-chat__meta" id="crm-support-meta">
-              <span id="crm-support-status">Chưa có hội thoại</span>
-              <span id="crm-support-order-tag" class="crm-support-order-tag" style="display:none;"></span>
-            </div>
-            <div class="crm-support-chat__messages" id="crm-support-messages" aria-live="polite">
-              <div class="crm-support-empty">Chưa có tin nhắn. Viết tin bên dưới để nhờ CRM hỗ trợ.</div>
-            </div>
-            <div class="crm-support-chat__compose">
-              <div class="crm-support-chat__tools">
-                <label class="crm-support-check">
-                  <input type="checkbox" id="crm-support-emergency">
-                  <span>Khẩn cấp</span>
-                </label>
-                <button type="button" class="crm-support-link-order" id="crm-support-link-order-btn" onclick="toggleCrmSupportOrderLink()">
-                  Gắn đơn đang chạy
-                </button>
-              </div>
-              <div class="crm-support-chat__row">
-                <input type="text" id="crm-support-input" class="crm-support-input" maxlength="1000" placeholder="VD: Đơn SPF-… quán đóng cửa / khách không nghe máy…" autocomplete="off">
-                <button type="button" class="btn btn--primary crm-support-send" id="crm-support-send-btn" onclick="sendCrmSupportMessage()">
-                  <i class="fa-solid fa-paper-plane"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <button type="button" class="crm-support-entry" id="crm-support-entry" onclick="openCrmSupportSheet()">
+          <span class="crm-support-entry__icon"><i class="fa-solid fa-headset"></i></span>
+          <span class="crm-support-entry__text">
+            <strong>Nhắn CRM hỗ trợ</strong>
+            <small>Sự cố đơn hàng · khẩn cấp · hỏi đáp nhanh</small>
+          </span>
+          <i class="fa-solid fa-chevron-up crm-support-entry__chevron"></i>
+        </button>
 
         <div class="section-title" style="margin-top: var(--space-lg);">
           <h3>Lịch Sử Giao Nhận</h3>
@@ -627,7 +599,7 @@
         <div class="profile-row"><span>Tổng đơn giao</span><strong id="profile-total-orders" class="text-info">0 đơn</strong></div>
         <div class="profile-row profile-row--last"><span>Doanh thu tích lũy</span><strong id="profile-revenue" class="text-accent">0đ</strong></div>
       </div>
-      <p class="profile-modal__crm-note"><i class="fa-solid fa-headset"></i> Cần hỗ trợ? Vào tab <strong>Hiệu suất</strong> → <strong>Nhắn CRM hỗ trợ</strong>.</p>
+      <p class="profile-modal__crm-note"><i class="fa-solid fa-headset"></i> Cần hỗ trợ? Nhấn <strong>Nhắn CRM hỗ trợ</strong> ở tab Hiệu suất hoặc <strong>Báo sự cố</strong> khi đang chạy đơn.</p>
       <button type="button" class="btn btn--secondary btn--full" onclick="closeDriverProfile()">Đóng</button>
     </div>
   </div>
@@ -648,7 +620,52 @@
       </button>
     </div>
   </div>
- 
+
+  <!-- ── CRM SUPPORT BOTTOM SHEET ── -->
+  <div class="crm-support-sheet" id="crm-support-sheet" aria-hidden="true">
+    <button type="button" class="crm-support-sheet__backdrop" onclick="closeCrmSupportSheet()" aria-label="Đóng hỗ trợ"></button>
+    <div class="crm-support-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="crm-support-title">
+      <div class="crm-support-sheet__handle" aria-hidden="true"></div>
+      <div class="crm-support-panel__head">
+        <span class="crm-support-panel__icon"><i class="fa-solid fa-headset"></i></span>
+        <div class="crm-support-panel__titles">
+          <h4 id="crm-support-title">Nhắn CRM hỗ trợ</h4>
+          <p>Gửi tin khi cần hỗ trợ đơn hàng hoặc tình huống khẩn cấp. CRM sẽ trả lời trong hộp chat này.</p>
+        </div>
+        <button type="button" class="crm-support-sheet__close" onclick="closeCrmSupportSheet()" aria-label="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="crm-support-chat" id="crm-support-chat">
+        <div class="crm-support-chat__meta" id="crm-support-meta">
+          <span id="crm-support-status">Chưa có hội thoại</span>
+          <span id="crm-support-order-tag" class="crm-support-order-tag" style="display:none;"></span>
+        </div>
+        <div class="crm-support-chat__messages" id="crm-support-messages" aria-live="polite">
+          <div class="crm-support-empty">Chưa có tin nhắn. Viết tin bên dưới để nhờ CRM hỗ trợ.</div>
+        </div>
+        <div class="crm-support-chat__compose">
+          <div class="crm-support-chat__tools">
+            <label class="crm-support-check">
+              <input type="checkbox" id="crm-support-emergency">
+              <span>Khẩn cấp</span>
+            </label>
+            <button type="button" class="crm-support-link-order" id="crm-support-link-order-btn" onclick="toggleCrmSupportOrderLink()">
+              Gắn đơn đang chạy
+            </button>
+          </div>
+          <div class="crm-support-chat__row">
+            <input type="text" id="crm-support-input" class="crm-support-input" maxlength="1000" placeholder="VD: Đơn SPF-… quán đóng cửa / khách không nghe máy…" autocomplete="off">
+            <button type="button" class="btn btn--primary crm-support-send" id="crm-support-send-btn" onclick="sendCrmSupportMessage()">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Supabase JS Client library (Try local first, then CDNs) -->
   <script src="supabase.js"></script>
   <script>
@@ -667,6 +684,6 @@
       }
     });
   </script>
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=2.6"></script>
 </body>
 </html>

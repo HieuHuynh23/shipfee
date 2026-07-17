@@ -193,16 +193,20 @@ async function loadShipperSupportThreads() {
         </div>
         <div style="max-height:140px;overflow-y:auto;margin-bottom:8px;background:rgba(15,23,42,0.03);padding:8px;border-radius:8px;">
           ${(t.messages || []).map(m => {
-            const who = m.sender === 'shipper' ? (t.shipperName || 'Shipper') : 'CRM';
+            const who = (m.sender === 'shipper' || m.role === 'shipper')
+              ? (t.shipperName || 'Tài xế')
+              : 'CRM';
             return `<div class="text-xs" style="padding:4px 0;border-bottom:1px solid var(--border);"><strong>${escapeHtml(who)}</strong>: ${escapeHtml(m.text || '')}</div>`;
           }).join('') || '<span class="text-xs text-muted">Chưa có tin</span>'}
         </div>
         ${canMutate() && t.status === 'open' ? `
-          <div class="flex gap-2" style="margin-top:8px;">
-            <input type="text" class="form-input" id="shipper-support-reply-${escapeHtml(t.id)}" placeholder="Trả lời tài xế..." style="flex:1;">
-            <button class="btn btn--primary btn--sm" onclick="replyShipperSupport('${escapeHtml(t.id)}')">Gửi</button>
-            <button class="btn btn--secondary btn--sm" onclick="resolveShipperSupport('${escapeHtml(t.id)}')">Đóng</button>
-            ${t.orderId ? `<button class="btn btn--ghost btn--sm" onclick="showOrderDetail('${escapeHtml(t.orderId)}')">Xem đơn</button>` : ''}
+          <div class="shipper-support-reply">
+            <input type="text" class="form-input shipper-support-reply__input" data-support-reply="${escapeHtml(t.id)}" placeholder="Trả lời tài xế..." maxlength="1000" onkeydown="if(event.key==='Enter'){event.preventDefault();replyShipperSupport('${escapeHtml(t.id)}');}">
+            <div class="shipper-support-reply__actions">
+              <button class="btn btn--primary btn--sm" onclick="replyShipperSupport('${escapeHtml(t.id)}')">Gửi</button>
+              <button class="btn btn--secondary btn--sm" onclick="resolveShipperSupport('${escapeHtml(t.id)}')">Đóng</button>
+              ${t.orderId ? `<button class="btn btn--ghost btn--sm" onclick="showOrderDetail('${escapeHtml(t.orderId)}')">Xem đơn</button>` : ''}
+            </div>
           </div>` : ''}
       </div>`;
     }).join('');
@@ -219,16 +223,20 @@ function filterShipperSupport(btn, status) {
 }
 
 async function replyShipperSupport(id) {
-  const input = document.getElementById(`shipper-support-reply-${id}`);
+  const input = document.querySelector(`[data-support-reply="${CSS.escape(String(id))}"]`);
   const text = input?.value?.trim();
-  if (!text) return;
+  if (!text) {
+    showToast('Nhập nội dung trả lời', 'warning');
+    input?.focus();
+    return;
+  }
   try {
     const res = await apiFetch(`/api/admin/shipper-support/${id}/messages`, {
       method: 'POST',
       body: JSON.stringify({ text })
     });
     if (res.success) {
-      input.value = '';
+      if (input) input.value = '';
       showToast('Đã gửi cho tài xế', 'success');
       loadShipperSupportThreads();
     } else {
@@ -575,9 +583,11 @@ showOrderDetail = async function(orderId) {
   const chatSection = document.querySelector('#order-modal-body [data-live-chat]')?.parentElement;
   if (chatSection) {
     chatSection.insertAdjacentHTML('beforeend', `
-      <div class="flex gap-2 mt-2" style="margin-top:8px;">
-        <input type="text" class="form-input" id="admin-order-reply" placeholder="Admin trả lời..." style="flex:1;">
-        <button class="btn btn--primary btn--sm" onclick="sendAdminOrderMessage('${escapeHtml(orderId)}')">Gửi</button>
+      <div class="shipper-support-reply" style="margin-top:8px;">
+        <input type="text" class="form-input shipper-support-reply__input" id="admin-order-reply" placeholder="Admin trả lời tài xế (đồng bộ CRM + chat đơn)..." maxlength="1000" onkeydown="if(event.key==='Enter'){event.preventDefault();sendAdminOrderMessage('${escapeHtml(orderId)}');}">
+        <div class="shipper-support-reply__actions">
+          <button class="btn btn--primary btn--sm" onclick="sendAdminOrderMessage('${escapeHtml(orderId)}')">Gửi</button>
+        </div>
       </div>`);
   }
 };

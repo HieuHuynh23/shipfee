@@ -1321,9 +1321,26 @@ h4 { font-size: 14px; font-weight: 600; }
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
   margin-bottom: 8px;
   font-size: 13px;
   font-weight: 600;
+}
+
+.restaurant-sync-progress__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.restaurant-sync-progress--paused {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.restaurant-sync-progress--paused .restaurant-sync-progress__fill {
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .restaurant-sync-progress__bar {
@@ -1373,6 +1390,27 @@ h4 { font-size: 14px; font-weight: 600; }
 .restaurant-change-badge--unread {
   animation: pulse 1.5s infinite;
   box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2);
+}
+
+/* ── SHIPPER SUPPORT REPLY (CRM) ─────────────────────────────────────────── */
+.shipper-support-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.shipper-support-reply__input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.shipper-support-reply__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
 }
 
 .tab-badge {
