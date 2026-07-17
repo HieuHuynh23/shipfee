@@ -5026,11 +5026,25 @@ app.post('/api/orders', async (req, res) => {
     
     let restLat = orderData.restaurantLat;
     let restLon = orderData.restaurantLon;
-    if (typeof restLat !== 'number' || typeof restLon !== 'number') {
-      const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
-      restLat = coords.lat;
-      restLon = coords.lon;
-      console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+    // Chuẩn hóa số (client có thể gửi string)
+    if (typeof restLat === 'string') restLat = parseFloat(restLat);
+    if (typeof restLon === 'string') restLon = parseFloat(restLon);
+    if (!Number.isFinite(restLat) || !Number.isFinite(restLon)) {
+      // Ưu tiên tọa độ thật từ DB quán (latitude/longitude), không dùng heuristic đường phố
+      const restId = orderData.restaurantId;
+      const mem = restId && Array.isArray(cachedRestaurants)
+        ? cachedRestaurants.find(r => r && String(r.id) === String(restId))
+        : null;
+      if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+        restLat = mem.latitude;
+        restLon = mem.longitude;
+        console.log(`[Order Server] Using DB coords for restaurant ${restId}: ${restLat}, ${restLon}`);
+      } else {
+        const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
+        restLat = coords.lat;
+        restLon = coords.lon;
+        console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+      }
     }
 
     const newOrder = {

@@ -93,8 +93,8 @@ function normalizeRestaurant(r, { includeMenu = true } = {}) {
     closedAt: r.closedAt ? String(r.closedAt) : null,
     closedReason: r.closedReason ? String(r.closedReason) : null,
     menuUpdatedAt: r.menuUpdatedAt ? String(r.menuUpdatedAt) : null,
-    latitude: typeof r.latitude === 'number' ? r.latitude : null,
-    longitude: typeof r.longitude === 'number' ? r.longitude : null,
+    latitude: typeof r.latitude === 'number' ? r.latitude : (typeof r.lat === 'number' ? r.lat : null),
+    longitude: typeof r.longitude === 'number' ? r.longitude : (typeof r.lon === 'number' ? r.lon : null),
     distanceValue: typeof r.distanceValue === 'number' ? r.distanceValue : null,
     distanceSurchargePerItem: typeof r.distanceSurchargePerItem === 'number' ? r.distanceSurchargePerItem : 0,
     dishNames
@@ -550,8 +550,10 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     restaurantId: cart.restaurantId,
     restaurantName: restaurant.name,
     restaurantAddress: restaurant.address || '',
-    restaurantLat: restaurant.latitude || null,
-    restaurantLon: restaurant.longitude || null,
+    restaurantLat: (typeof restaurant.latitude === 'number' ? restaurant.latitude : null)
+      ?? (typeof restaurant.lat === 'number' ? restaurant.lat : null),
+    restaurantLon: (typeof restaurant.longitude === 'number' ? restaurant.longitude : null)
+      ?? (typeof restaurant.lon === 'number' ? restaurant.lon : null),
     items,
     storeTotal: totals.storeTotal,
     appTotal: totals.appTotal,

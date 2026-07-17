@@ -1249,22 +1249,18 @@ function renderActiveTrip() {
     advanceTripStatus();
   });
   
-  // Show / Hide navigation buttons based on coordinates availability
+  // Hiện nút chỉ đường khi có tọa độ hoặc địa chỉ (Maps resolve bằng text)
   const btnNavRest = document.getElementById('btn-nav-restaurant');
   const btnNavCust = document.getElementById('btn-nav-customer');
   if (btnNavRest) {
-    if (activeOrder.restaurantLat && activeOrder.restaurantLon) {
-      btnNavRest.style.display = 'inline-flex';
-    } else {
-      btnNavRest.style.display = 'none';
-    }
+    const hasRestCoords = Number.isFinite(parseFloat(activeOrder.restaurantLat)) && Number.isFinite(parseFloat(activeOrder.restaurantLon));
+    const hasRestAddress = !!(activeOrder.restaurantAddress || activeOrder.restaurantName);
+    btnNavRest.style.display = (hasRestCoords || hasRestAddress) ? 'inline-flex' : 'none';
   }
   if (btnNavCust) {
-    if (activeOrder.pinnedLat && activeOrder.pinnedLon) {
-      btnNavCust.style.display = 'inline-flex';
-    } else {
-      btnNavCust.style.display = 'none';
-    }
+    const hasCustCoords = Number.isFinite(parseFloat(activeOrder.pinnedLat)) && Number.isFinite(parseFloat(activeOrder.pinnedLon));
+    const hasCustAddress = !!activeOrder.deliveryAddress;
+    btnNavCust.style.display = (hasCustCoords || hasCustAddress) ? 'inline-flex' : 'none';
   }
 
   initTripMap();
@@ -3266,45 +3262,100 @@ function geocodeAddressOffline(address, name) {
   return { lat: 10.0345, lon: 105.7876 };
 }
 
+function parseCoord(value) {
+  const n = typeof value === 'number' ? value : parseFloat(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function openExternalMapsUrl(url) {
+  // Anchor click tránh popup-blocker trên mobile; fallback gán location
+  try {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return true;
+  } catch (err) {
+    console.warn('[Navigation] anchor open failed', err);
+  }
+  try {
+    const opened = window.open(url, '_blank', 'noopener,noreferrer');
+    if (opened) return true;
+  } catch (_) { /* ignore */ }
+  try {
+    window.location.href = url;
+    return true;
+  } catch (err) {
+    console.error('[Navigation] location assign failed', err);
+    return false;
+  }
+}
+
+function buildGoogleMapsDirectionsUrl({ lat, lon, label }) {
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+  const text = (label || '').trim();
+
+  // Google Maps Directions — chỉ đường tới điểm đích
+  if (hasCoords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
+  }
+  if (text) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=driving`;
+  }
+  return null;
+}
+
 function navigateToPoint(target) {
   if (!activeOrder) {
     showToast('Không có đơn hàng', 'Không tìm thấy thông tin đơn hàng hoạt động.', 'warning');
     return;
   }
 
-  let lat, lon;
+  let lat = null;
+  let lon = null;
+  let label = '';
+
   if (target === 'restaurant') {
-    lat = activeOrder.restaurantLat;
-    lon = activeOrder.restaurantLon;
-    
-    // Offline geocode fallback if coordinates are missing/invalid
-    if (!lat || !lon || isNaN(parseFloat(lat)) || isNaN(parseFloat(lon))) {
+    lat = parseCoord(activeOrder.restaurantLat);
+    lon = parseCoord(activeOrder.restaurantLon);
+    label = [activeOrder.restaurantName, activeOrder.restaurantAddress].filter(Boolean).join(', ');
+
+    // Fallback offline khi thiếu tọa độ — vẫn giữ địa chỉ text cho Maps
+    if (lat == null || lon == null) {
       const coords = geocodeAddressOffline(activeOrder.restaurantAddress || '', activeOrder.restaurantName || '');
       lat = coords.lat;
       lon = coords.lon;
-      console.log(`[Navigation] Geocoded restaurant address offline fallback: ${lat}, ${lon}`);
+      console.log(`[Navigation] Geocoded restaurant offline fallback: ${lat}, ${lon}`);
     }
   } else if (target === 'customer') {
-    lat = activeOrder.pinnedLat;
-    lon = activeOrder.pinnedLon;
-    
-    // Offline geocode fallback if coordinates are missing/invalid
-    if (!lat || !lon || isNaN(parseFloat(lat)) || isNaN(parseFloat(lon))) {
+    lat = parseCoord(activeOrder.pinnedLat);
+    lon = parseCoord(activeOrder.pinnedLon);
+    label = [activeOrder.deliveryName, activeOrder.deliveryAddress].filter(Boolean).join(', ');
+
+    if (lat == null || lon == null) {
       const coords = geocodeAddressOffline(activeOrder.deliveryAddress || '', '');
       lat = coords.lat;
       lon = coords.lon;
-      console.log(`[Navigation] Geocoded customer address offline fallback: ${lat}, ${lon}`);
+      console.log(`[Navigation] Geocoded customer offline fallback: ${lat}, ${lon}`);
     }
-  }
-
-  if (!lat || !lon) {
-    showToast('Thiếu tọa độ', 'Đơn hàng này không có sẵn tọa độ chính xác.', 'error');
+  } else {
+    showToast('Lỗi', 'Điểm chỉ đường không hợp lệ.', 'error');
     return;
   }
 
-  // Use Google Maps search query URL scheme (placing a pin at exact coordinates)
-  // This is 100% robust and prevents any mobile browser/app redirect confusion.
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-  window.open(url, '_blank');
+  const url = buildGoogleMapsDirectionsUrl({ lat, lon, label });
+  if (!url) {
+    showToast('Thiếu địa chỉ', 'Đơn hàng này chưa có địa chỉ hoặc tọa độ để chỉ đường.', 'error');
+    return;
+  }
+
+  const ok = openExternalMapsUrl(url);
+  if (!ok) {
+    showToast('Không mở được Maps', 'Sao chép địa chỉ và mở Google Maps thủ công.', 'error');
+  }
 }
 window.navigateToPoint = navigateToPoint;
