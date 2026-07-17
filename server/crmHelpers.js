@@ -8,6 +8,7 @@ const PROMOS_FILE = path.join(__dirname, 'promos-local.json');
 const ZONES_FILE = path.join(__dirname, 'delivery-zones-local.json');
 const BLACKLIST_FILE = path.join(__dirname, 'customer-blacklist-local.json');
 const DISPUTES_FILE = path.join(__dirname, 'disputes-local.json');
+const SHIPPER_SUPPORT_FILE = path.join(__dirname, 'shipper-support-local.json');
 const COMMISSIONS_FILE = path.join(__dirname, 'restaurant-commissions-local.json');
 
 const SLA_NOTIFIED = new Map(); // orderId -> lastNotifiedAt
@@ -176,6 +177,92 @@ function readDisputes() {
 
 function writeDisputes(list) {
   writeJson(DISPUTES_FILE, list);
+}
+
+function readShipperSupportThreads() {
+  return readJson(SHIPPER_SUPPORT_FILE, []);
+}
+
+function writeShipperSupportThreads(list) {
+  writeJson(SHIPPER_SUPPORT_FILE, list);
+}
+
+/**
+ * Lấy (hoặc tạo) thread hỗ trợ đang mở của tài xế — 1 thread open / shipper.
+ */
+function getOrCreateShipperSupportThread(shipper, { priority = 'normal', orderId = null } = {}) {
+  const phone = cleanPhone(shipper?.phone);
+  if (!phone) return null;
+
+  const threads = readShipperSupportThreads();
+  let thread = threads.find(t => cleanPhone(t.shipperPhone) === phone && t.status === 'open');
+
+  if (!thread) {
+    thread = {
+      id: 'sst-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000),
+      type: 'shipper_support',
+      shipperPhone: phone,
+      shipperName: shipper.name || '',
+      status: 'open',
+      priority: priority === 'emergency' ? 'emergency' : 'normal',
+      orderId: orderId || null,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      unreadForAdmin: 0,
+      unreadForShipper: 0
+    };
+    threads.unshift(thread);
+  } else {
+    if (priority === 'emergency') thread.priority = 'emergency';
+    if (orderId) thread.orderId = orderId;
+    thread.shipperName = shipper.name || thread.shipperName;
+    thread.updatedAt = Date.now();
+  }
+
+  writeShipperSupportThreads(threads);
+  return thread;
+}
+
+function appendShipperSupportMessage(threadId, message) {
+  const threads = readShipperSupportThreads();
+  const idx = threads.findIndex(t => t.id === threadId);
+  if (idx === -1) return null;
+
+  const msg = {
+    id: 'ssm-' + Date.now() + '-' + Math.floor(100 + Math.random() * 900),
+    sender: message.sender, // shipper | admin
+    role: message.role || message.sender,
+    text: String(message.text || '').trim(),
+    timestamp: Date.now(),
+    adminEmail: message.adminEmail || null
+  };
+  if (!msg.text) return null;
+
+  threads[idx].messages = threads[idx].messages || [];
+  threads[idx].messages.push(msg);
+  threads[idx].updatedAt = Date.now();
+  if (message.priority === 'emergency') threads[idx].priority = 'emergency';
+  if (message.orderId) threads[idx].orderId = message.orderId;
+
+  if (msg.sender === 'shipper') {
+    threads[idx].unreadForAdmin = (threads[idx].unreadForAdmin || 0) + 1;
+  } else {
+    threads[idx].unreadForShipper = (threads[idx].unreadForShipper || 0) + 1;
+  }
+
+  writeShipperSupportThreads(threads);
+  return threads[idx];
+}
+
+function markShipperSupportRead(threadId, reader) {
+  const threads = readShipperSupportThreads();
+  const idx = threads.findIndex(t => t.id === threadId);
+  if (idx === -1) return null;
+  if (reader === 'admin') threads[idx].unreadForAdmin = 0;
+  if (reader === 'shipper') threads[idx].unreadForShipper = 0;
+  writeShipperSupportThreads(threads);
+  return threads[idx];
 }
 
 function readCommissions() {
@@ -411,6 +498,11 @@ module.exports = {
   cleanPhone,
   readDisputes,
   writeDisputes,
+  readShipperSupportThreads,
+  writeShipperSupportThreads,
+  getOrCreateShipperSupportThread,
+  appendShipperSupportMessage,
+  markShipperSupportRead,
   readCommissions,
   writeCommissions,
   getRestaurantCommissionRate,
