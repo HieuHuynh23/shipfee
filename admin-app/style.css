@@ -1288,3 +1288,59 @@ h4 { font-size: 14px; font-weight: 600; }
   }
 }
 
+/* ── OPS BOARD & FLEET MAP ─────────────────────────────────────────────────── */
+.ops-row--breach {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.ops-row--breach:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.sidebar__link-badge--alert {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.fleet-map {
+  height: min(56vh, 520px);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--zinc-900, #18181b);
+}
+
+.fleet-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.fleet-stat {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.fleet-stat strong {
+  color: var(--text-primary);
+  font-family: 'Geist Mono', monospace;
+}
+
+.fleet-marker {
+  background: transparent;
+  border: none;
+}
+
+.fleet-marker__pin {
+  font-size: 22px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.mt-4 { margin-top: 16px; }
+.mb-4 { margin-bottom: 16px; }
+.mt-2 { margin-top: 8px; }
+.gap-4 { gap: 16px; }
+

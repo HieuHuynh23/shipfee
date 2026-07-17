@@ -44,6 +44,16 @@ let restaurantTotal = 0;
 let lastPollHash = '';
 let pricingMarkupRate = 0.28;
 let orderLiveMap = null;
+let orderLivePollTimer = null;
+let fleetMap = null;
+let cachedOpsLive = null;
+let cachedFleet = null;
+let ordersPage = 1;
+let ordersLimit = 50;
+let ordersTotal = 0;
+let ordersHasMore = false;
+let ordersDateFrom = '';
+let ordersDateTo = '';
 
 // Cache
 let cachedShippers = [];
@@ -203,6 +213,7 @@ function navigateTo(page) {
     shippers: 'Quản lý Tài xế',
     restaurants: 'Quản lý Quán ăn',
     orders: 'Quản lý Đơn hàng',
+    fleet: 'Fleet Map',
     customers: 'Khách hàng',
     settings: 'Cấu hình hệ thống'
   };
@@ -211,6 +222,7 @@ function navigateTo(page) {
     shippers: 'Tài xế',
     restaurants: 'Quán ăn',
     orders: 'Đơn hàng',
+    fleet: 'Fleet Map',
     customers: 'Khách hàng',
     settings: 'Cấu hình'
   };
@@ -224,6 +236,7 @@ function navigateTo(page) {
     shippers: renderShippers,
     restaurants: renderRestaurants,
     orders: renderOrders,
+    fleet: renderFleet,
     customers: renderCustomers,
     settings: renderSettings
   };
@@ -236,8 +249,10 @@ function navigateTo(page) {
 }
 
 function refreshCurrentPage() {
-  navigateTo(currentPage);
-  showToast('Đã làm mới dữ liệu', 'info');
+  fetchAllData().then(() => {
+    navigateTo(currentPage);
+    showToast('Đã làm mới dữ liệu', 'info');
+  });
 }
 
 // ── POLLING ─────────────────────────────────────────────────────────────────
@@ -250,15 +265,19 @@ function startPolling() {
 async function fetchAllData() {
   try {
     const hasJwt = !!localStorage.getItem('shipfee_jwt');
-    const [shippersRes, ordersRes, dashRes] = await Promise.all([
+    const requests = [
       apiFetch('/api/shippers').catch(() => ({ data: [] })),
       hasJwt
-        ? apiFetch('/api/admin/orders').catch(() => ({ data: [] }))
+        ? apiFetch('/api/admin/orders?limit=200').catch(() => ({ data: [] }))
         : fetch(`${API_BASE}/api/orders`).then(r => r.json()).catch(() => ({ data: [] })),
       hasJwt
         ? apiFetch('/api/admin/dashboard').catch(() => null)
+        : Promise.resolve(null),
+      hasJwt
+        ? apiFetch('/api/admin/ops/live').catch(() => null)
         : Promise.resolve(null)
-    ]);
+    ];
+    const [shippersRes, ordersRes, dashRes, opsRes] = await Promise.all(requests);
 
     const nextShippers = Array.isArray(shippersRes?.data) ? shippersRes.data : [];
     const nextOrders = Array.isArray(ordersRes)
@@ -273,19 +292,37 @@ async function fetchAllData() {
     cachedOrders = nextOrders;
     if (dashRes?.success && dashRes.stats) cachedDashboard = dashRes.stats;
     else if (dashRes?.success && dashRes.data) cachedDashboard = dashRes.data;
+    if (opsRes?.success && opsRes.data) cachedOpsLive = opsRes.data;
+
+    updateSlaBadge(cachedOpsLive?.breachCount || 0);
 
     const shipperCountEl = document.getElementById('nav-shipper-count');
     const orderCountEl = document.getElementById('nav-order-count');
     if (shipperCountEl) shipperCountEl.textContent = cachedShippers.length;
-    if (orderCountEl) orderCountEl.textContent = cachedOrders.length;
+    if (orderCountEl) orderCountEl.textContent = cachedOpsLive?.activeCount ?? cachedOrders.length;
 
-    if (changed) {
-      if (currentPage === 'dashboard') renderDashboardStats();
+    if (changed || currentPage === 'dashboard' || currentPage === 'fleet') {
+      if (currentPage === 'dashboard') {
+        renderDashboardStats();
+        renderOpsBoard();
+      }
       if (currentPage === 'orders') renderOrdersTable();
       if (currentPage === 'shippers') renderShippersTable();
+      if (currentPage === 'fleet') renderFleetMap();
     }
   } catch (e) {
     console.warn('Polling error:', e);
+  }
+}
+
+function updateSlaBadge(count) {
+  const el = document.getElementById('nav-sla-badge');
+  if (!el) return;
+  if (count > 0) {
+    el.textContent = count;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
   }
 }
 
@@ -399,6 +436,20 @@ function openModal(id) {
 
 function closeModal(id) {
   document.getElementById(id).classList.remove('active');
+  if (id === 'order-modal') {
+    stopOrderLivePoll();
+    if (orderLiveMap) {
+      try { orderLiveMap.remove(); } catch (e) {}
+      orderLiveMap = null;
+    }
+  }
+}
+
+function stopOrderLivePoll() {
+  if (orderLivePollTimer) {
+    clearInterval(orderLivePollTimer);
+    orderLivePollTimer = null;
+  }
 }
 
 function toggleSidebar() {
@@ -439,6 +490,20 @@ function renderDashboard() {
   body.innerHTML = `
     <div class="stats-grid" id="dashboard-stats">
       ${renderStatSkeleton(6)}
+    </div>
+
+    <!-- Live Ops Board -->
+    <div class="data-table-wrapper mb-6" id="ops-board-wrapper">
+      <div class="data-table-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="display:flex;align-items:center;gap:8px;font-size:15px;">
+          <i class="fa-solid fa-bolt" style="color:var(--amber);"></i> Đang chạy — Command Center
+          <span class="badge badge--pending" id="ops-breach-badge" style="display:none;"><span class="badge__dot"></span> <span id="ops-breach-count">0</span> SLA</span>
+        </h3>
+        <button class="btn btn--ghost btn--sm" onclick="navigateTo('fleet')">Fleet Map →</button>
+      </div>
+      <div id="ops-board-body">
+        <div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Đang tải...</p></div>
+      </div>
     </div>
 
     <div class="grid-2 mb-6" style="gap: 20px;">
@@ -500,6 +565,92 @@ function renderDashboard() {
   `;
 
   renderDashboardStats();
+  renderOpsBoard();
+}
+
+function formatSlaAge(ms) {
+  if (!ms || ms < 0) return '—';
+  const mins = Math.floor(ms / 60000);
+  if (mins < 60) return `${mins} phút`;
+  const hrs = Math.floor(mins / 60);
+  return `${hrs}g ${mins % 60}p`;
+}
+
+function slaLabel(type) {
+  const map = {
+    PENDING_SLOW: 'Chờ quá lâu',
+    ACCEPTED_SLOW: 'Chưa mua hàng',
+    PURCHASED_SLOW: 'Giao chậm'
+  };
+  return map[type] || 'SLA';
+}
+
+function renderOpsBoard() {
+  const el = document.getElementById('ops-board-body');
+  const badge = document.getElementById('ops-breach-badge');
+  const badgeCount = document.getElementById('ops-breach-count');
+  if (!el) return;
+
+  const ops = cachedOpsLive;
+  if (!ops) {
+    el.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Cần đăng nhập JWT để xem ops live</p></div>`;
+    return;
+  }
+
+  const breaches = ops.slaBreaches || [];
+  if (badge && badgeCount) {
+    if (breaches.length > 0) {
+      badge.style.display = 'inline-flex';
+      badgeCount.textContent = breaches.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  const active = ops.activeOrders || [];
+  if (active.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Không có đơn đang chạy</p></div>`;
+    return;
+  }
+
+  const breachIds = new Set(breaches.map(b => b.id));
+  el.innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Mã đơn</th>
+          <th>Trạng thái</th>
+          <th>Quán / Khách</th>
+          <th>Tài xế</th>
+          <th>Tổng</th>
+          <th>Thời gian</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${active.map(o => {
+          const breach = breaches.find(b => b.id === o.id);
+          const rowClass = breachIds.has(o.id) ? 'ops-row--breach' : '';
+          return `
+          <tr class="${rowClass}" style="cursor:pointer;" onclick="showOrderDetail('${escapeHtml(o.id)}')">
+            <td><span class="mono text-sm fw-700">${escapeHtml(o.id)}</span></td>
+            <td>
+              <span class="badge ${statusBadgeClass(o.status)}"><span class="badge__dot"></span> ${statusLabel(o.status)}</span>
+              ${breach ? `<div class="text-xs" style="color:var(--red, #ef4444);margin-top:4px;"><i class="fa-solid fa-triangle-exclamation"></i> ${slaLabel(breach.slaType)} · ${formatSlaAge(breach.ageMs)}</div>` : ''}
+            </td>
+            <td>
+              <div class="text-sm fw-700 truncate" style="max-width:160px;">${escapeHtml(o.restaurantName || '—')}</div>
+              <div class="text-xs text-muted truncate" style="max-width:160px;">${escapeHtml(o.deliveryName || '—')}</div>
+            </td>
+            <td class="text-sm">${escapeHtml(o.shipperName || '—')}</td>
+            <td class="mono text-sm">${formatCurrency(o.appTotal)}</td>
+            <td class="text-xs text-muted">${formatTime(o.createdAt)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div class="text-xs text-muted" style="padding:8px 12px;border-top:1px solid var(--border);">
+      Cập nhật: ${ops.updatedAt ? formatTime(ops.updatedAt) : '—'} · ${active.length} đơn đang chạy
+    </div>`;
 }
 
 function renderStatSkeleton(count) {
@@ -959,14 +1110,17 @@ function renderShippersTable() {
         <td class="text-sm text-muted">${formatTime(s.lastCheckOut)}</td>
         <td style="text-align: right; white-space: nowrap;">
           ${s.isApproved === false ? `
-            <button class="btn btn--sm" onclick="approveShipper('${s.phone}')" title="Phê duyệt tài xế" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; cursor: pointer;">
+            <button class="btn btn--sm" onclick="approveShipper('${escapeHtml(s.phone)}')" title="Phê duyệt tài xế" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; cursor: pointer;">
               <i class="fa-solid fa-check"></i> Duyệt
             </button>
+            <button class="btn btn--sm" onclick="rejectShipper('${escapeHtml(s.phone)}')" title="Từ chối tài xế" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; cursor: pointer;">
+              <i class="fa-solid fa-xmark"></i> Từ chối
+            </button>
           ` : ''}
-          <button class="btn btn--ghost btn--sm" onclick="editShipper('${s.phone}')" title="Sửa">
+          <button class="btn btn--ghost btn--sm" onclick="editShipper('${escapeHtml(s.phone)}')" title="Sửa">
             <i class="fa-solid fa-pen"></i>
           </button>
-          <button class="btn btn--danger btn--sm" onclick="deleteShipper('${s.phone}')" title="Xóa">
+          <button class="btn btn--danger btn--sm" onclick="deleteShipper('${escapeHtml(s.phone)}')" title="Xóa">
             <i class="fa-solid fa-trash"></i>
           </button>
         </td>
@@ -978,7 +1132,7 @@ function renderShippersTable() {
 async function approveShipper(phone) {
   if (!confirm('Bạn có chắc chắn muốn phê duyệt kích hoạt tài xế này?')) return;
   try {
-    const res = await apiFetch(`/api/admin/shippers/${phone}/approve`, {
+    const res = await apiFetch(`/api/admin/shippers/${encodeURIComponent(phone)}/approve`, {
       method: 'POST'
     });
     if (res.success) {
@@ -993,6 +1147,25 @@ async function approveShipper(phone) {
   }
 }
 window.approveShipper = approveShipper;
+
+async function rejectShipper(phone) {
+  if (!confirm('Từ chối sẽ xóa tài xế khỏi hệ thống. Tiếp tục?')) return;
+  try {
+    const res = await apiFetch(`/api/admin/shippers/${encodeURIComponent(phone)}/reject`, {
+      method: 'POST'
+    });
+    if (res.success) {
+      showToast('Đã từ chối tài xế', 'success');
+      await fetchAllData();
+      renderShippersTable();
+    } else {
+      showToast(res.error || 'Lỗi từ chối tài xế', 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi kết nối máy chủ', 'error');
+  }
+}
+window.rejectShipper = rejectShipper;
 
 function openAddShipperModal() {
   editingShipperPhone = null;
@@ -1282,6 +1455,53 @@ async function syncRestaurantPrice(restaurantId) {
 }
 window.syncRestaurantPrice = syncRestaurantPrice;
 
+function openRestaurantEditModal(restaurantId) {
+  const r = cachedRestaurants.find(x => String(x.id) === String(restaurantId));
+  if (!r) {
+    showToast('Không tìm thấy quán', 'error');
+    return;
+  }
+  document.getElementById('restaurant-edit-id').value = r.id;
+  document.getElementById('restaurant-edit-name').value = r.name || '';
+  document.getElementById('restaurant-edit-address').value = r.address || '';
+  document.getElementById('restaurant-edit-category').value = r.category || '';
+  document.getElementById('restaurant-edit-closed').checked = !!r.isClosed;
+  document.getElementById('restaurant-modal-title').textContent = `Sửa: ${r.name || r.id}`;
+  openModal('restaurant-modal');
+}
+
+async function saveRestaurantMetadata() {
+  const id = document.getElementById('restaurant-edit-id').value;
+  const name = document.getElementById('restaurant-edit-name').value.trim();
+  const address = document.getElementById('restaurant-edit-address').value.trim();
+  const category = document.getElementById('restaurant-edit-category').value.trim();
+  const isClosed = document.getElementById('restaurant-edit-closed').checked;
+
+  if (!id || !name) {
+    showToast('Tên quán là bắt buộc', 'warning');
+    return;
+  }
+
+  try {
+    const res = await apiFetch(`/api/admin/restaurants/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ name, address, category, isClosed })
+    });
+    if (res.success) {
+      showToast('Đã cập nhật thông tin quán', 'success');
+      closeModal('restaurant-modal');
+      loadRestaurants();
+    } else {
+      showToast(res.error || 'Lỗi cập nhật', 'error');
+    }
+  } catch (e) {
+    showToast('Lỗi kết nối', 'error');
+  }
+}
+
+window.openRestaurantEditModal = openRestaurantEditModal;
+window.saveRestaurantMetadata = saveRestaurantMetadata;
+
 function filterRestaurantsLocal() {
   const tbody = document.getElementById('restaurants-tbody');
   const infoEl = document.getElementById('restaurant-result-info');
@@ -1362,13 +1582,16 @@ function filterRestaurantsLocal() {
       </td>
       <td class="text-xs text-muted">${r.menuUpdatedAt ? formatTime(r.menuUpdatedAt) : '—'}</td>
       <td style="text-align: right;">
-        <button class="btn btn--ghost btn--sm" onclick="viewRestaurantMenu('${r.id}')" title="Xem/Sửa menu">
+        <button class="btn btn--ghost btn--sm" onclick="openRestaurantEditModal('${escapeHtml(r.id)}')" title="Sửa thông tin quán">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button class="btn btn--ghost btn--sm" onclick="viewRestaurantMenu('${escapeHtml(r.id)}')" title="Xem/Sửa menu">
           <i class="fa-solid fa-utensils"></i>
         </button>
-        <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${r.id}')" title="Đồng bộ giá ShopeeFood">
+        <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${escapeHtml(r.id)}')" title="Đồng bộ giá ShopeeFood">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
-        <button class="btn btn--ghost btn--sm" onclick="toggleRestaurantStatus('${r.id}', ${!r.isClosed})" title="${r.isClosed ? 'Mở cửa' : 'Đóng cửa'}">
+        <button class="btn btn--ghost btn--sm" onclick="toggleRestaurantStatus('${escapeHtml(r.id)}', ${!r.isClosed})" title="${r.isClosed ? 'Mở cửa' : 'Đóng cửa'}">
           <i class="fa-solid fa-${r.isClosed ? 'lock-open' : 'lock'}"></i>
         </button>
       </td>
@@ -1552,47 +1775,272 @@ async function toggleRestaurantStatus(id, setClosed) {
   }
 }
 
+// ── FLEET MAP PAGE ──────────────────────────────────────────────────────────
+function renderFleet() {
+  const body = document.getElementById('main-body');
+  body.innerHTML = `
+    <div class="page-section-header">
+      <h2>Fleet Map</h2>
+      <div class="page-section-header__actions">
+        <button class="btn btn--secondary btn--sm" onclick="loadFleetData()">
+          <i class="fa-solid fa-arrows-rotate"></i> Làm mới
+        </button>
+      </div>
+    </div>
+    <div class="fleet-stats mb-4" id="fleet-stats-bar">
+      <span class="text-muted text-sm">Đang tải...</span>
+    </div>
+    <div id="fleet-map" class="fleet-map"></div>
+    <div class="data-table-wrapper mt-4">
+      <div class="data-table-header"><h3>Đơn đang chạy trên bản đồ</h3></div>
+      <div id="fleet-orders-list"></div>
+    </div>
+  `;
+  loadFleetData();
+}
+
+async function loadFleetData() {
+  if (!localStorage.getItem('shipfee_jwt')) {
+    const statsEl = document.getElementById('fleet-stats-bar');
+    if (statsEl) statsEl.innerHTML = '<span class="text-muted text-sm">Cần đăng nhập JWT để xem fleet</span>';
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/admin/fleet');
+    if (res.success && res.data) {
+      cachedFleet = res.data;
+      renderFleetMap();
+      renderFleetOrdersList();
+    }
+  } catch (e) {
+    console.warn('fleet load', e);
+  }
+}
+
+function renderFleetMap() {
+  const mapEl = document.getElementById('fleet-map');
+  const statsEl = document.getElementById('fleet-stats-bar');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  const data = cachedFleet || { shippers: [], orders: [] };
+  if (statsEl) {
+    statsEl.innerHTML = `
+      <span class="fleet-stat"><strong>${data.shippers.length}</strong> shipper online có GPS</span>
+      <span class="fleet-stat"><strong>${data.orders.length}</strong> đơn đang chạy</span>
+      <span class="text-muted text-xs">Cập nhật ${data.updatedAt ? formatTime(data.updatedAt) : '—'}</span>`;
+  }
+
+  if (fleetMap) {
+    try { fleetMap.remove(); } catch (e) {}
+    fleetMap = null;
+  }
+
+  fleetMap = L.map(mapEl).setView([10.7769, 106.7009], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(fleetMap);
+
+  const points = [];
+  (data.shippers || []).forEach(s => {
+    if (typeof s.lat !== 'number' || typeof s.lon !== 'number') return;
+    points.push([s.lat, s.lon]);
+    const icon = L.divIcon({
+      className: 'fleet-marker fleet-marker--shipper',
+      html: '<div class="fleet-marker__pin">🛵</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+    L.marker([s.lat, s.lon], { icon })
+      .addTo(fleetMap)
+      .bindPopup(`<strong>${escapeHtml(s.name || 'Shipper')}</strong><br>${escapeHtml(s.phone || '')}${s.activeOrderId ? `<br><button onclick="showOrderDetail('${escapeHtml(s.activeOrderId)}')" style="margin-top:6px;cursor:pointer;">Xem đơn ${escapeHtml(s.activeOrderId)}</button>` : ''}`);
+  });
+
+  (data.orders || []).forEach(o => {
+    if (typeof o.deliveryLat === 'number' && typeof o.deliveryLon === 'number') {
+      points.push([o.deliveryLat, o.deliveryLon]);
+      L.circleMarker([o.deliveryLat, o.deliveryLon], { radius: 6, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.8 })
+        .addTo(fleetMap)
+        .bindPopup(`<strong>${escapeHtml(o.id)}</strong> — ${statusLabel(o.status)}<br>${escapeHtml(o.restaurantName || '')}<br><button onclick="showOrderDetail('${escapeHtml(o.id)}')" style="margin-top:6px;cursor:pointer;">Chi tiết</button>`);
+    }
+  });
+
+  if (points.length > 0) {
+    fleetMap.fitBounds(points, { padding: [40, 40] });
+  }
+
+  setTimeout(() => { if (fleetMap) fleetMap.invalidateSize(); }, 120);
+}
+
+function renderFleetOrdersList() {
+  const el = document.getElementById('fleet-orders-list');
+  if (!el) return;
+  const orders = cachedFleet?.orders || [];
+  if (orders.length === 0) {
+    el.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Không có đơn đang chạy</p></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <table class="data-table">
+      <thead><tr><th>Mã</th><th>Trạng thái</th><th>Quán</th><th>Shipper</th><th></th></tr></thead>
+      <tbody>
+        ${orders.map(o => `
+          <tr>
+            <td class="mono text-sm">${escapeHtml(o.id)}</td>
+            <td><span class="badge ${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span></td>
+            <td class="text-sm">${escapeHtml(o.restaurantName || '—')}</td>
+            <td class="text-sm">${escapeHtml(o.shipperName || '—')}</td>
+            <td><button class="btn btn--ghost btn--sm" onclick="showOrderDetail('${escapeHtml(o.id)}')">Xem</button></td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+window.loadFleetData = loadFleetData;
+
 // ── ORDERS PAGE ─────────────────────────────────────────────────────────────
 function renderOrders() {
   const body = document.getElementById('main-body');
   body.innerHTML = `
     <div class="page-section-header">
       <h2>Quản lý Đơn hàng</h2>
+      <div class="page-section-header__actions">
+        <button class="btn btn--secondary btn--sm" onclick="exportOrdersCsv()">
+          <i class="fa-solid fa-file-csv"></i> Export CSV
+        </button>
+      </div>
     </div>
 
     <div class="toolbar">
       <div class="form-search" style="width: 260px;">
         <span class="form-search__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-        <input type="text" class="form-input" placeholder="Tìm đơn hàng..." id="order-search" onkeyup="renderOrdersTable()">
+        <input type="text" class="form-input" placeholder="Tìm đơn hàng..." id="order-search" onkeyup="debouncedLoadOrders()">
       </div>
+      <input type="date" class="form-input" id="order-date-from" style="width:auto;" value="${ordersDateFrom}" onchange="ordersDateFrom=this.value; ordersPage=1; loadOrdersPage()">
+      <input type="date" class="form-input" id="order-date-to" style="width:auto;" value="${ordersDateTo}" onchange="ordersDateTo=this.value; ordersPage=1; loadOrdersPage()">
       <div class="tabs" style="margin-bottom: 0;">
-        <button class="tab active" onclick="filterOrders(this, 'all')">Tất cả</button>
-        <button class="tab" onclick="filterOrders(this, 'PENDING')">Chờ nhận</button>
-        <button class="tab" onclick="filterOrders(this, 'ACCEPTED')">Đã nhận</button>
-        <button class="tab" onclick="filterOrders(this, 'PURCHASED')">Đã mua</button>
-        <button class="tab" onclick="filterOrders(this, 'DELIVERED')">Hoàn thành</button>
-        <button class="tab" onclick="filterOrders(this, 'CANCELLED')">Đã hủy</button>
+        <button class="tab ${orderFilter === 'all' ? 'active' : ''}" onclick="filterOrders(this, 'all')">Tất cả</button>
+        <button class="tab ${orderFilter === 'PENDING' ? 'active' : ''}" onclick="filterOrders(this, 'PENDING')">Chờ nhận</button>
+        <button class="tab ${orderFilter === 'ACCEPTED' ? 'active' : ''}" onclick="filterOrders(this, 'ACCEPTED')">Đã nhận</button>
+        <button class="tab ${orderFilter === 'PURCHASED' ? 'active' : ''}" onclick="filterOrders(this, 'PURCHASED')">Đã mua</button>
+        <button class="tab ${orderFilter === 'DELIVERED' ? 'active' : ''}" onclick="filterOrders(this, 'DELIVERED')">Hoàn thành</button>
+        <button class="tab ${orderFilter === 'CANCELLED' ? 'active' : ''}" onclick="filterOrders(this, 'CANCELLED')">Đã hủy</button>
       </div>
     </div>
 
     <div class="data-table-wrapper">
       <div class="data-table-header">
         <h3>Đơn hàng</h3>
-        <span class="count" id="order-table-count">${cachedOrders.length}</span>
+        <span class="count" id="order-table-count">0</span>
       </div>
       <div id="orders-table-body"></div>
+      <div class="pagination" id="orders-pagination"></div>
     </div>
   `;
-  renderOrdersTable();
+  loadOrdersPage();
 }
 
 let orderFilter = 'all';
+let orderSearchDebounce = null;
+
+function debouncedLoadOrders() {
+  clearTimeout(orderSearchDebounce);
+  orderSearchDebounce = setTimeout(() => {
+    ordersPage = 1;
+    loadOrdersPage();
+  }, 400);
+}
+
+async function loadOrdersPage() {
+  const el = document.getElementById('orders-table-body');
+  if (!el) return;
+
+  const q = (document.getElementById('order-search')?.value || '').trim();
+  ordersDateFrom = document.getElementById('order-date-from')?.value || ordersDateFrom;
+  ordersDateTo = document.getElementById('order-date-to')?.value || ordersDateTo;
+
+  if (!localStorage.getItem('shipfee_jwt')) {
+    renderOrdersTable();
+    return;
+  }
+
+  el.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Đang tải...</p></div>`;
+
+  try {
+    const params = new URLSearchParams({
+      page: String(ordersPage),
+      limit: String(ordersLimit)
+    });
+    if (orderFilter !== 'all') params.set('status', orderFilter);
+    if (q) params.set('q', q);
+    if (ordersDateFrom) params.set('from', ordersDateFrom);
+    if (ordersDateTo) params.set('to', ordersDateTo);
+
+    const res = await apiFetch(`/api/admin/orders?${params.toString()}`);
+    if (res.success) {
+      cachedOrders = Array.isArray(res.data) ? res.data : [];
+      ordersTotal = res.total ?? cachedOrders.length;
+      ordersHasMore = !!res.hasMore;
+      renderOrdersTable();
+      renderOrdersPagination();
+    }
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><p class="text-muted">Lỗi tải đơn hàng</p></div>`;
+  }
+}
+
+function renderOrdersPagination() {
+  const el = document.getElementById('orders-pagination');
+  if (!el) return;
+  const totalPages = Math.max(1, Math.ceil(ordersTotal / ordersLimit));
+  el.innerHTML = `
+    <button class="pagination__btn" ${ordersPage <= 1 ? 'disabled' : ''} onclick="changeOrdersPage(${ordersPage - 1})">← Trước</button>
+    <span class="pagination__info">Trang ${ordersPage}/${totalPages} · ${ordersTotal} đơn</span>
+    <button class="pagination__btn" ${!ordersHasMore ? 'disabled' : ''} onclick="changeOrdersPage(${ordersPage + 1})">Sau →</button>`;
+}
+
+function changeOrdersPage(page) {
+  if (page < 1) return;
+  ordersPage = page;
+  loadOrdersPage();
+}
+
+async function exportOrdersCsv() {
+  if (!localStorage.getItem('shipfee_jwt')) {
+    showToast('Cần đăng nhập JWT để export', 'warning');
+    return;
+  }
+  const q = (document.getElementById('order-search')?.value || '').trim();
+  const params = new URLSearchParams();
+  if (orderFilter !== 'all') params.set('status', orderFilter);
+  if (q) params.set('q', q);
+  if (ordersDateFrom) params.set('from', ordersDateFrom);
+  if (ordersDateTo) params.set('to', ordersDateTo);
+
+  try {
+    const url = `${API_BASE}/api/admin/orders/export?${params.toString()}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Export failed');
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `shipfee-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Đã tải CSV', 'success');
+  } catch (e) {
+    showToast('Lỗi export CSV', 'error');
+  }
+}
+
+window.changeOrdersPage = changeOrdersPage;
+window.exportOrdersCsv = exportOrdersCsv;
+window.debouncedLoadOrders = debouncedLoadOrders;
+window.loadOrdersPage = loadOrdersPage;
 
 function filterOrders(btn, filter) {
   orderFilter = filter;
   btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   btn.classList.add('active');
-  renderOrdersTable();
+  ordersPage = 1;
+  loadOrdersPage();
 }
 
 function renderOrdersTable() {
@@ -1600,25 +2048,26 @@ function renderOrdersTable() {
   const countEl = document.getElementById('order-table-count');
   if (!el) return;
 
+  const hasJwt = !!localStorage.getItem('shipfee_jwt');
   const query = (document.getElementById('order-search')?.value || '').toLowerCase();
   let filtered = cachedOrders;
 
-  if (orderFilter !== 'all') {
-    filtered = filtered.filter(o => o.status === orderFilter);
-  }
-  if (query) {
-    filtered = filtered.filter(o =>
-      (o.id || '').toLowerCase().includes(query) ||
-      (o.restaurantName || '').toLowerCase().includes(query) ||
-      (o.deliveryName || '').toLowerCase().includes(query) ||
-      (o.deliveryPhone || '').includes(query)
-    );
+  if (!hasJwt) {
+    if (orderFilter !== 'all') {
+      filtered = filtered.filter(o => o.status === orderFilter);
+    }
+    if (query) {
+      filtered = filtered.filter(o =>
+        (o.id || '').toLowerCase().includes(query) ||
+        (o.restaurantName || '').toLowerCase().includes(query) ||
+        (o.deliveryName || '').toLowerCase().includes(query) ||
+        (o.deliveryPhone || '').includes(query)
+      );
+    }
+    filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   }
 
-  // Sort by createdAt descending
-  filtered.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-
-  if (countEl) countEl.textContent = filtered.length;
+  if (countEl) countEl.textContent = hasJwt ? ordersTotal : filtered.length;
 
   if (filtered.length === 0) {
     el.innerHTML = `<div class="empty-state"><div class="empty-state__icon"><i class="fa-solid fa-receipt"></i></div><h3>Không có đơn hàng</h3><p>Chưa có đơn hàng phù hợp bộ lọc</p></div>`;
@@ -1812,7 +2261,7 @@ async function showOrderDetail(orderId) {
 
     <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
       <h4 class="mb-2">Chat</h4>
-      <div style="max-height:140px; overflow-y:auto;">${messagesHtml}</div>
+      <div data-live-chat style="max-height:140px; overflow-y:auto;">${messagesHtml}</div>
     </div>
 
     <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
@@ -1852,6 +2301,45 @@ async function showOrderDetail(orderId) {
   if (hasMap && typeof L !== 'undefined') {
     setTimeout(() => initOrderLiveMap(o), 80);
   }
+
+  startOrderLivePoll(orderId);
+}
+
+function startOrderLivePoll(orderId) {
+  stopOrderLivePoll();
+  if (!localStorage.getItem('shipfee_jwt')) return;
+
+  orderLivePollTimer = setInterval(async () => {
+    if (!document.getElementById('order-modal')?.classList.contains('active')) {
+      stopOrderLivePoll();
+      return;
+    }
+    try {
+      const res = await apiFetch(`/api/admin/orders/${orderId}/live`);
+      if (!res.success || !res.data) return;
+      const live = res.data;
+      const idx = cachedOrders.findIndex(x => x.id === orderId);
+      if (idx !== -1) cachedOrders[idx] = { ...cachedOrders[idx], ...live };
+
+      const chatEl = document.querySelector('#order-modal-body [data-live-chat]');
+      if (chatEl) {
+        const messages = live.messages || [];
+        chatEl.innerHTML = messages.length
+          ? messages.map(m => `
+              <div style="padding:6px 0; border-bottom:1px solid var(--border);">
+                <div class="text-xs text-muted">${escapeHtml(m.sender || m.role || '—')} · ${formatTime(m.createdAt || m.timestamp)}</div>
+                <div class="text-sm">${escapeHtml(m.text || m.message || '')}</div>
+              </div>`).join('')
+          : `<div class="text-xs text-muted">Chưa có tin nhắn</div>`;
+      }
+
+      if (typeof live.shipperLat === 'number' && orderLiveMap) {
+        initOrderLiveMap({ ...cachedOrders.find(x => x.id === orderId), ...live });
+      }
+    } catch (e) {
+      console.warn('order live poll', e);
+    }
+  }, 5000);
 }
 
 function initOrderLiveMap(o) {
@@ -2008,7 +2496,7 @@ function filterCustomersTable() {
       <thead><tr><th>Khách</th><th>SĐT</th><th>Địa chỉ</th><th>Số đơn</th><th>Chi tiêu</th></tr></thead>
       <tbody>
         ${list.map(c => `
-          <tr>
+          <tr style="cursor:pointer;" onclick="showCustomerDetail('${escapeHtml(c.phone || '')}')">
             <td class="text-sm fw-700">${escapeHtml(c.name || '—')}</td>
             <td><span class="mono text-sm">${escapeHtml(c.phone || '')}</span></td>
             <td class="text-sm text-muted" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(c.address || '')}</td>
@@ -2019,6 +2507,44 @@ function filterCustomersTable() {
     </table>`;
 }
 window.filterCustomersTable = filterCustomersTable;
+
+function showCustomerDetail(phone) {
+  if (!phone) return;
+  const customer = cachedCustomers.find(c => c.phone === phone);
+  const orders = cachedOrders.filter(o =>
+    (o.deliveryPhone || o.ordererPhone || '') === phone
+  ).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  document.getElementById('customer-modal-title').textContent = customer?.name || phone;
+  document.getElementById('customer-modal-body').innerHTML = `
+    <div class="card mb-4" style="padding:16px;">
+      <div class="text-sm fw-700">${escapeHtml(customer?.name || '—')}</div>
+      <div class="mono text-sm text-muted">${escapeHtml(phone)}</div>
+      <div class="text-sm text-muted mt-2">${escapeHtml(customer?.address || '—')}</div>
+      <div class="flex gap-4 mt-4">
+        <div><span class="text-muted text-xs">Số đơn</span><div class="mono fw-700">${customer?.orderCount || orders.length}</div></div>
+        <div><span class="text-muted text-xs">Tổng chi tiêu</span><div class="mono fw-700 text-accent">${formatCurrency(customer?.totalSpent || orders.reduce((s, o) => s + (o.appTotal || 0), 0))}</div></div>
+      </div>
+    </div>
+    <h4 class="mb-2">Lịch sử đơn (${orders.length})</h4>
+    ${orders.length === 0 ? '<p class="text-muted text-sm">Chưa có đơn</p>' : `
+      <table class="data-table">
+        <thead><tr><th>Mã</th><th>Quán</th><th>Tổng</th><th>Trạng thái</th><th></th></tr></thead>
+        <tbody>
+          ${orders.slice(0, 20).map(o => `
+            <tr>
+              <td class="mono text-sm">${escapeHtml(o.id)}</td>
+              <td class="text-sm truncate" style="max-width:140px;">${escapeHtml(o.restaurantName || '—')}</td>
+              <td class="mono text-sm">${formatCurrency(o.appTotal)}</td>
+              <td><span class="badge ${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span></td>
+              <td><button class="btn btn--ghost btn--sm" onclick="showOrderDetail('${escapeHtml(o.id)}')">Xem</button></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`}
+  `;
+  openModal('customer-modal');
+}
+window.showCustomerDetail = showCustomerDetail;
 
 // ── SETTINGS PAGE ───────────────────────────────────────────────────────────
 function renderSettings() {
@@ -2076,17 +2602,14 @@ function renderSettings() {
 
       <div class="card">
         <h3 class="mb-4"><i class="fa-solid fa-shield-halved" style="color: var(--emerald-500); margin-right: 8px;"></i>Supabase Auth</h3>
-        <div class="form-group">
-          <label class="form-label">Supabase URL</label>
-          <input type="text" class="form-input mono" id="settings-supabase-url" placeholder="https://xxxxx.supabase.co" value="${localStorage.getItem('supabase_url') || ''}">
+        <p class="text-sm text-muted mb-4" style="line-height:1.6;">
+          CRM tự lấy cấu hình Supabase từ <span class="mono">/api/config</span> khi khởi động.
+          Đăng nhập bằng tài khoản admin trên Supabase Auth.
+        </p>
+        <div class="text-sm text-muted" style="line-height:2;">
+          <div>Trạng thái client: <span class="mono">${supabaseClient ? 'Đã kết nối' : 'Chưa cấu hình'}</span></div>
+          <div>JWT: <span class="mono">${localStorage.getItem('shipfee_jwt') ? 'Có' : 'Không'}</span></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Anon Key</label>
-          <input type="password" class="form-input mono" id="settings-supabase-key" placeholder="eyJhbGci..." value="${localStorage.getItem('supabase_anon_key') || ''}">
-        </div>
-        <button class="btn btn--primary btn--sm" onclick="saveSupabaseConfig()">
-          <i class="fa-solid fa-floppy-disk"></i> Lưu
-        </button>
       </div>
 
       <div class="card">
@@ -2102,7 +2625,7 @@ function renderSettings() {
       <div class="card">
         <h3 class="mb-4"><i class="fa-solid fa-circle-info" style="color: var(--violet); margin-right: 8px;"></i>Thông tin</h3>
         <div class="text-sm text-muted" style="line-height: 2;">
-          <div>Phiên bản: <span class="mono">1.0.0</span></div>
+          <div>Phiên bản: <span class="mono">1.1.0</span></div>
           <div>Server: <span class="mono" id="server-status-text">—</span></div>
           <div>Database: <span class="mono">Local JSON + Supabase</span></div>
         </div>
@@ -2134,16 +2657,8 @@ function saveApiUrl() {
   if (url) {
     API_BASE = url;
     localStorage.setItem('shipfee_api_url', url);
-    showToast('Đã lưu API URL', 'success');
+    showToast('Đã lưu API URL — khởi động lại trang để áp dụng Supabase config', 'success');
   }
-}
-
-function saveSupabaseConfig() {
-  const url = document.getElementById('settings-supabase-url').value.trim();
-  const key = document.getElementById('settings-supabase-key').value.trim();
-  if (url) localStorage.setItem('supabase_url', url);
-  if (key) localStorage.setItem('supabase_anon_key', key);
-  showToast('Đã lưu cấu hình Supabase', 'success');
 }
 
 async function testApiConnection() {
@@ -2311,8 +2826,15 @@ function renderNotificationsList() {
   cachedNotifications.forEach(n => {
     const isUnread = n.read !== true;
     const timeStr = new Date(n.createdAt).toLocaleString('vi-VN');
-    const badgeColor = n.type === 'price_change' ? '#f59e0b' : '#ef4444';
-    const badgeText = n.type === 'price_change' ? 'Biến động giá' : 'Đổi trạng thái';
+    const badgeMap = {
+      price_change: { color: '#f59e0b', text: 'Biến động giá' },
+      status_change: { color: '#ef4444', text: 'Đổi trạng thái' },
+      sla_breach: { color: '#ef4444', text: 'SLA breach' },
+      order_cancelled: { color: '#71717a', text: 'Đơn hủy' }
+    };
+    const badge = badgeMap[n.type] || badgeMap.status_change;
+    const badgeColor = badge.color;
+    const badgeText = badge.text;
     
     // Custom style cho chấm đỏ chưa đọc
     const unreadDot = isUnread ? `<span class="badge__dot" style="background:#ef4444; width:8px; height:8px; display:inline-block; border-radius:50%; margin-right:6px; animation: pulse 1.5s infinite;"></span>` : '';

@@ -23,6 +23,7 @@ const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
+const crm = require('./crmHelpers');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -1917,10 +1918,11 @@ async function authenticateAdmin(req, res, next) {
     if (error || !user) {
       return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
     }
-    const isAdmin = user.email === 'admin@shipfee.vn' || (user.user_metadata && user.user_metadata.role === 'admin');
-    if (!isAdmin) {
+    const role = crm.resolveAdminRole(user);
+    if (!role) {
       return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập quản trị!' });
     }
+    req.adminRole = role;
     req.user = user;
     next();
   } catch (e) {
@@ -1978,6 +1980,73 @@ function calcAppPrice(inStorePrice) {
 
 // ── ONLINE SHIPPERS REAL-TIME COORDINATES & DISPATCH LOGIC ──────────────────
 const onlineShipperLocations = new Map(); // phone -> { lat, lon, lastSeen }
+
+const ADMIN_SLA_PENDING_MS = 5 * 60 * 1000;
+const ADMIN_SLA_ACCEPTED_MS = 25 * 60 * 1000;
+const ADMIN_SLA_PURCHASED_MS = 35 * 60 * 1000;
+
+function filterAdminOrders(orders, { status, q, from, to } = {}) {
+  let list = Array.isArray(orders) ? [...orders] : [];
+  if (status && status !== 'all') {
+    list = list.filter(o => o.status === status);
+  }
+  if (from) {
+    const fromTs = new Date(from).getTime();
+    if (!isNaN(fromTs)) list = list.filter(o => (o.createdAt || 0) >= fromTs);
+  }
+  if (to) {
+    const toEnd = new Date(to);
+    if (!isNaN(toEnd.getTime())) {
+      toEnd.setHours(23, 59, 59, 999);
+      list = list.filter(o => (o.createdAt || 0) <= toEnd.getTime());
+    }
+  }
+  if (q) {
+    const ql = String(q).toLowerCase();
+    list = list.filter(o =>
+      (o.id || '').toLowerCase().includes(ql) ||
+      (o.restaurantName || '').toLowerCase().includes(ql) ||
+      (o.deliveryName || '').toLowerCase().includes(ql) ||
+      (o.deliveryPhone || '').includes(q) ||
+      (o.shipperPhone || '').includes(q) ||
+      (o.shipperName || '').toLowerCase().includes(ql)
+    );
+  }
+  list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return list;
+}
+
+function getOrderSlaInfo(order) {
+  if (!order || ['DELIVERED', 'CANCELLED'].includes(order.status)) return null;
+  const now = Date.now();
+  if (order.status === 'PENDING') {
+    const age = now - (order.createdAt || now);
+    if (age > ADMIN_SLA_PENDING_MS) {
+      return { type: 'PENDING_SLOW', ageMs: age, thresholdMs: ADMIN_SLA_PENDING_MS };
+    }
+  }
+  if (order.status === 'ACCEPTED') {
+    const since = order.acceptedAt || order.createdAt || now;
+    const age = now - since;
+    if (age > ADMIN_SLA_ACCEPTED_MS) {
+      return { type: 'ACCEPTED_SLOW', ageMs: age, thresholdMs: ADMIN_SLA_ACCEPTED_MS };
+    }
+  }
+  if (order.status === 'PURCHASED') {
+    const since = order.purchasedAt || order.acceptedAt || now;
+    const age = now - since;
+    if (age > ADMIN_SLA_PURCHASED_MS) {
+      return { type: 'PURCHASED_SLOW', ageMs: age, thresholdMs: ADMIN_SLA_PURCHASED_MS };
+    }
+  }
+  return null;
+}
+
+function escapeCsvCell(val) {
+  const s = val == null ? '' : String(val);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
 
 function calcDistance(lat1, lon1, lat2, lon2) {
   if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return Infinity;
@@ -4891,6 +4960,8 @@ app.post('/api/orders', async (req, res) => {
       shipperEarning: typeof orderData.shipperEarning === 'number' ? orderData.shipperEarning : 0,
       discountValue: typeof orderData.discountValue === 'number' ? orderData.discountValue : 0,
       minServiceFee: typeof orderData.minServiceFee === 'number' ? orderData.minServiceFee : 0,
+      promoCode: null,
+      promoDiscount: 0,
       status: 'PENDING',
       shipperId: null,
       shipperName: null,
@@ -4916,6 +4987,21 @@ app.post('/api/orders', async (req, res) => {
       declinedShippers: []
     };
 
+    const blocked =
+      crm.isBlacklisted(newOrder.deliveryPhone) ||
+      crm.isBlacklisted(newOrder.ordererPhone);
+    if (blocked) {
+      return res.status(403).json({
+        success: false,
+        error: 'Số điện thoại bị hạn chế đặt hàng. Vui lòng liên hệ hỗ trợ.'
+      });
+    }
+
+    const zoneCheck = crm.isInDeliveryZone(newOrder.pinnedLat, newOrder.pinnedLon);
+    if (!zoneCheck.ok) {
+      return res.status(400).json({ success: false, error: zoneCheck.error });
+    }
+
     // Kiểm tra đơn hàng thứ 2+ của cùng một khách hàng để tự động giảm giá
     const orders = readOrdersDatabase();
     const cleanedOrdererPhone = newOrder.ordererPhone.trim().replace(/\s+/g, '');
@@ -4933,6 +5019,19 @@ app.post('/api/orders', async (req, res) => {
         newOrder.appTotal = Math.max(0, subtotal - discountVal);
         console.log(`[Pricing Config] Khách hàng ${cleanedOrdererPhone} được áp dụng giảm giá đơn thứ 2+ (${discountPercent * 100}%): Giảm ${discountVal}đ. Tổng mới: ${newOrder.appTotal}đ`);
       }
+    }
+
+    if (orderData.promoCode) {
+      const promoResult = crm.validatePromo(orderData.promoCode, newOrder.appTotal);
+      if (!promoResult.valid) {
+        return res.status(400).json({ success: false, error: promoResult.error });
+      }
+      newOrder.promoCode = promoResult.promo.code;
+      newOrder.promoDiscount = promoResult.discount;
+      newOrder.discountValue = (newOrder.discountValue || 0) + promoResult.discount;
+      newOrder.appTotal = Math.max(0, newOrder.appTotal - promoResult.discount);
+      newOrder.shipperEarning = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
+      crm.incrementPromoUse(promoResult.promo.code);
     }
 
     // Find nearest available shipper for targeted dispatch
@@ -6121,6 +6220,124 @@ app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/ops/live
+ * Command center: active orders, SLA breaches, online shippers
+ */
+app.get('/api/admin/ops/live', authenticateAdmin, (req, res) => {
+  try {
+    const shippers = readShippersDatabase();
+    const orders = readOrdersDatabase();
+    const activeStatuses = ['PENDING', 'ACCEPTED', 'PURCHASED'];
+    const activeOrders = orders
+      .filter(o => activeStatuses.includes(o.status))
+      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+    const slaBreaches = activeOrders
+      .map(o => {
+        const sla = getOrderSlaInfo(o);
+        if (!sla) return null;
+        return {
+          id: o.id,
+          status: o.status,
+          restaurantName: o.restaurantName,
+          deliveryName: o.deliveryName,
+          shipperName: o.shipperName,
+          appTotal: o.appTotal,
+          createdAt: o.createdAt,
+          slaType: sla.type,
+          ageMs: sla.ageMs,
+          thresholdMs: sla.thresholdMs
+        };
+      })
+      .filter(Boolean);
+
+    crm.checkSlaAndNotify(activeOrders, getOrderSlaInfo, addNotification);
+
+    const onlineList = shippers
+      .filter(s => s.status === 'ONLINE')
+      .map(s => ({
+        phone: s.phone,
+        name: s.name,
+        avatarUrl: s.avatarUrl
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        activeOrders,
+        slaBreaches,
+        onlineShippers: onlineList,
+        breachCount: slaBreaches.length,
+        activeCount: activeOrders.length,
+        updatedAt: Date.now()
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/fleet
+ * Live GPS map data: online shippers + active order markers
+ */
+app.get('/api/admin/fleet', authenticateAdmin, (req, res) => {
+  try {
+    const shippers = readShippersDatabase();
+    const orders = readOrdersDatabase();
+    const activeStatuses = ['PENDING', 'ACCEPTED', 'PURCHASED'];
+    const activeOrders = orders.filter(o => activeStatuses.includes(o.status));
+
+    const fleetShippers = shippers
+      .filter(s => s.status === 'ONLINE')
+      .map(s => {
+        const phone = cleanPhone(s.phone);
+        const loc = onlineShipperLocations.get(phone);
+        const activeOrder = activeOrders.find(o =>
+          cleanPhone(o.shipperPhone) === phone &&
+          ['ACCEPTED', 'PURCHASED'].includes(o.status)
+        );
+        return {
+          phone: s.phone,
+          name: s.name,
+          avatarUrl: s.avatarUrl,
+          lat: typeof activeOrder?.shipperLat === 'number' ? activeOrder.shipperLat : (loc?.lat ?? null),
+          lon: typeof activeOrder?.shipperLon === 'number' ? activeOrder.shipperLon : (loc?.lon ?? null),
+          lastSeen: loc?.lastSeen ?? null,
+          activeOrderId: activeOrder?.id ?? null
+        };
+      })
+      .filter(s => typeof s.lat === 'number' && typeof s.lon === 'number');
+
+    const orderMarkers = activeOrders.map(o => ({
+      id: o.id,
+      status: o.status,
+      restaurantName: o.restaurantName,
+      restaurantLat: o.restaurantLat ?? null,
+      restaurantLon: o.restaurantLon ?? null,
+      deliveryLat: o.pinnedLat ?? null,
+      deliveryLon: o.pinnedLon ?? null,
+      shipperLat: o.shipperLat ?? null,
+      shipperLon: o.shipperLon ?? null,
+      shipperPhone: o.shipperPhone ?? null,
+      shipperName: o.shipperName ?? null,
+      sla: getOrderSlaInfo(o)
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        shippers: fleetShippers,
+        orders: orderMarkers,
+        updatedAt: Date.now()
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * POST /api/admin/shippers
  * Create a new shipper on local JSON + Supabase Auth
  */
@@ -6419,6 +6636,20 @@ app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, re
 });
 
 /**
+ * POST /api/admin/shippers/:phone/reject
+ * Từ chối và xóa tài xế chờ duyệt (mirror Telegram reject)
+ */
+app.post('/api/admin/shippers/:phone/reject', authenticateAdmin, async (req, res) => {
+  const { phone } = req.params;
+  const success = await rejectShipperAccount(phone);
+  if (success) {
+    res.json({ success: true, message: 'Đã từ chối và xóa tài xế!' });
+  } else {
+    res.status(400).json({ success: false, error: 'Từ chối tài xế thất bại hoặc không tìm thấy tài xế!' });
+  }
+});
+
+/**
  * GET /api/shippers/profile
  * Get specific shipper profile details and approval status by phone number
  */
@@ -6596,13 +6827,59 @@ app.get('/api/admin/customers', authenticateAdmin, (req, res) => {
 
 /**
  * GET /api/admin/orders
- * Get all orders sorted by date
+ * List orders with filter, search, pagination
  */
 app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
   try {
+    const { status, q, from, to, page = '1', limit = '50' } = req.query;
     const orders = readOrdersDatabase();
-    orders.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    res.json({ success: true, data: orders });
+    const filtered = filterAdminOrders(orders, { status, q, from, to });
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+    const start = (pageNum - 1) * limitNum;
+    const slice = filtered.slice(start, start + limitNum);
+
+    res.json({
+      success: true,
+      data: slice,
+      total: filtered.length,
+      page: pageNum,
+      limit: limitNum,
+      hasMore: start + limitNum < filtered.length
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/orders/export
+ * Export filtered orders as CSV
+ */
+app.get('/api/admin/orders/export', authenticateAdmin, (req, res) => {
+  try {
+    const { status, q, from, to } = req.query;
+    const orders = readOrdersDatabase();
+    const filtered = filterAdminOrders(orders, { status, q, from, to });
+    const headers = ['id', 'status', 'restaurantName', 'deliveryName', 'deliveryPhone', 'shipperName', 'shipperPhone', 'appTotal', 'storeTotal', 'shipperEarning', 'createdAt'];
+    const rows = filtered.map(o => [
+      o.id,
+      o.status,
+      o.restaurantName,
+      o.deliveryName,
+      o.deliveryPhone,
+      o.shipperName,
+      o.shipperPhone,
+      o.appTotal,
+      o.storeTotal,
+      o.shipperEarning,
+      o.createdAt ? new Date(o.createdAt).toISOString() : ''
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.map(escapeCsvCell).join(','))].join('\r\n');
+    const filename = `shipfee-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -6661,7 +6938,7 @@ app.get('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
  * POST /api/admin/pricing-config
  * Cập nhật cấu hình pricing đầy đủ
  */
-app.post('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
+app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('admin'), (req, res) => {
   try {
     const {
       markupRate,
@@ -6692,6 +6969,7 @@ app.post('/api/admin/pricing-config', authenticateAdmin, (req, res) => {
     }
     
     fs.writeFileSync(PRICING_CONFIG_FILE, JSON.stringify(pricingConfig, null, 2), 'utf8');
+    crm.logAdminAudit(req, 'pricing_update', { pricingConfig });
     console.log('[Pricing Config] Admin đã cập nhật cấu hình:', pricingConfig);
     res.json({ success: true, data: pricingConfig });
   } catch (e) {
@@ -6829,6 +7107,7 @@ app.post('/api/admin/orders/:id/assign', authenticateAdmin, async (req, res) => 
 
     upsertOrderToSupabase(updatedOrder).catch(() => {});
     sendTelegramOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram gán đơn:', e.message));
+    crm.logAdminAudit(req, 'order_assign', { orderId, shipperPhone: matchedShipper.phone });
 
     console.log(`[Admin Dispatch] 🎯 Admin đã chỉ định gán đơn ${orderId} cho tài xế ${matchedShipper.name} (${matchedShipper.phone})`);
     res.json({ success: true, data: updatedOrder });
@@ -6911,6 +7190,8 @@ app.post('/api/admin/orders/:id/cancel', authenticateAdmin, async (req, res) => 
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
 
     upsertOrderToSupabase(updatedOrder).catch(() => {});
+    crm.notifyOrderCancelled(updatedOrder, addNotification);
+    crm.logAdminAudit(req, 'order_cancel', { orderId, reason });
     console.log(`[Admin] ❌ Đã hủy đơn ${orderId}: ${reason}`);
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -7138,6 +7419,346 @@ app.post('/api/admin/menus/reconcile', authenticateAdmin, async (req, res) => {
       pageSize: Math.min(50, parseInt(req.body?.pageSize, 10) || 40)
     });
     res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// ── WAVE 2/3 CRM: Analytics, Audit, Promos, Zones, Blacklist, Disputes, Settlement ──
+
+/**
+ * POST /api/promos/validate
+ * Public — validate promo code before checkout
+ */
+app.post('/api/promos/validate', (req, res) => {
+  try {
+    const { code, subtotal } = req.body || {};
+    const result = crm.validatePromo(code, Number(subtotal) || 0);
+    if (!result.valid) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({
+      success: true,
+      data: {
+        code: result.promo.code,
+        type: result.promo.type,
+        discount: result.discount
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/analytics', authenticateAdmin, (req, res) => {
+  try {
+    const range = req.query.range || '7d';
+    const orders = readOrdersDatabase();
+    const shippers = readShippersDatabase();
+    res.json({ success: true, data: crm.computeAnalytics(orders, shippers, range) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/audit-log', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const limit = Math.min(200, parseInt(req.query.limit, 10) || 100);
+    res.json({ success: true, data: crm.readAuditLog(limit) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/shippers/export', authenticateAdmin, (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const orders = readOrdersDatabase();
+    const shippers = readShippersDatabase();
+    const payouts = crm.computeShipperPayouts(orders, shippers, from, to);
+    const headers = ['phone', 'name', 'orders', 'earnings'];
+    const rows = payouts.map(p => [p.phone, p.name, p.orders, p.earnings]);
+    const csv = [headers.join(','), ...rows.map(r => r.map(crm.escapeCsvCell).join(','))].join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="shipfee-shipper-payouts.csv"`);
+    res.send('\uFEFF' + csv);
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/promos', authenticateAdmin, (req, res) => {
+  res.json({ success: true, data: crm.readPromos() });
+});
+
+app.post('/api/admin/promos', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const { code, type, value, minOrder, maxUses, maxDiscount, expiresAt, active } = req.body || {};
+    if (!code || !type) {
+      return res.status(400).json({ success: false, error: 'Thiếu code hoặc type' });
+    }
+    const promos = crm.readPromos();
+    if (promos.some(p => p.code.toUpperCase() === String(code).trim().toUpperCase())) {
+      return res.status(400).json({ success: false, error: 'Mã đã tồn tại' });
+    }
+    const promo = {
+      code: String(code).trim().toUpperCase(),
+      type,
+      value: Number(value) || 0,
+      minOrder: minOrder != null ? Number(minOrder) : 0,
+      maxUses: maxUses != null ? Number(maxUses) : null,
+      maxDiscount: maxDiscount != null ? Number(maxDiscount) : null,
+      usedCount: 0,
+      active: active !== false,
+      expiresAt: expiresAt ? new Date(expiresAt).getTime() : null,
+      createdAt: Date.now()
+    };
+    promos.unshift(promo);
+    crm.writePromos(promos);
+    crm.logAdminAudit(req, 'promo_create', { code: promo.code });
+    res.json({ success: true, data: promo });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.put('/api/admin/promos/:code', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const code = String(req.params.code).trim().toUpperCase();
+    const promos = crm.readPromos();
+    const idx = promos.findIndex(p => p.code === code);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy mã' });
+    const body = req.body || {};
+    ['type', 'value', 'minOrder', 'maxUses', 'maxDiscount', 'active'].forEach(k => {
+      if (body[k] !== undefined) promos[idx][k] = body[k];
+    });
+    if (body.expiresAt !== undefined) {
+      promos[idx].expiresAt = body.expiresAt ? new Date(body.expiresAt).getTime() : null;
+    }
+    crm.writePromos(promos);
+    crm.logAdminAudit(req, 'promo_update', { code });
+    res.json({ success: true, data: promos[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/delivery-zones', authenticateAdmin, (req, res) => {
+  res.json({ success: true, data: crm.readZones() });
+});
+
+app.post('/api/admin/delivery-zones', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const { name, centerLat, centerLon, radiusKm, active } = req.body || {};
+    if (!name || typeof centerLat !== 'number' || typeof centerLon !== 'number') {
+      return res.status(400).json({ success: false, error: 'Thiếu tên hoặc tọa độ trung tâm' });
+    }
+    const zones = crm.readZones();
+    const zone = {
+      id: 'zone-' + Date.now(),
+      name,
+      centerLat,
+      centerLon,
+      radiusKm: Number(radiusKm) || 3,
+      active: active !== false,
+      createdAt: Date.now()
+    };
+    zones.push(zone);
+    crm.writeZones(zones);
+    crm.logAdminAudit(req, 'zone_create', { id: zone.id, name });
+    res.json({ success: true, data: zone });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.delete('/api/admin/delivery-zones/:id', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const zones = crm.readZones().filter(z => z.id !== req.params.id);
+    crm.writeZones(zones);
+    crm.logAdminAudit(req, 'zone_delete', { id: req.params.id });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/blacklist', authenticateAdmin, (req, res) => {
+  res.json({ success: true, data: crm.readBlacklist() });
+});
+
+app.post('/api/admin/blacklist', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const { phone, reason } = req.body || {};
+    const cleaned = crm.cleanPhone(phone);
+    if (!cleaned) return res.status(400).json({ success: false, error: 'Thiếu SĐT' });
+    const list = crm.readBlacklist();
+    if (list.some(b => crm.cleanPhone(b.phone) === cleaned)) {
+      return res.status(400).json({ success: false, error: 'SĐT đã có trong blacklist' });
+    }
+    const entry = {
+      phone: cleaned,
+      reason: reason || 'Không nêu lý do',
+      blacklistedAt: Date.now(),
+      blacklistedBy: req.user?.email || 'admin'
+    };
+    list.unshift(entry);
+    crm.writeBlacklist(list);
+    crm.logAdminAudit(req, 'blacklist_add', { phone: cleaned, reason: entry.reason });
+    res.json({ success: true, data: entry });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.delete('/api/admin/blacklist/:phone', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const phone = crm.cleanPhone(req.params.phone);
+    const list = crm.readBlacklist().filter(b => crm.cleanPhone(b.phone) !== phone);
+    crm.writeBlacklist(list);
+    crm.logAdminAudit(req, 'blacklist_remove', { phone });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/disputes', authenticateAdmin, (req, res) => {
+  try {
+    const status = req.query.status;
+    let list = crm.readDisputes();
+    if (status) list = list.filter(d => d.status === status);
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/disputes', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const { orderId, reason } = req.body || {};
+    if (!orderId) return res.status(400).json({ success: false, error: 'Thiếu orderId' });
+    const orders = readOrdersDatabase();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn' });
+    const disputes = crm.readDisputes();
+    const ticket = {
+      id: 'disp-' + Date.now(),
+      orderId,
+      status: 'open',
+      reason: reason || 'Khiếu nại từ admin',
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    disputes.unshift(ticket);
+    crm.writeDisputes(disputes);
+    crm.logAdminAudit(req, 'dispute_create', { disputeId: ticket.id, orderId });
+    res.json({ success: true, data: ticket });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/disputes/:id/messages', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
+  try {
+    const { text } = req.body || {};
+    if (!text) return res.status(400).json({ success: false, error: 'Thiếu nội dung' });
+    const disputes = crm.readDisputes();
+    const idx = disputes.findIndex(d => d.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy ticket' });
+    const msg = {
+      role: 'admin',
+      sender: req.user?.email || 'admin',
+      text,
+      createdAt: Date.now()
+    };
+    disputes[idx].messages = disputes[idx].messages || [];
+    disputes[idx].messages.push(msg);
+    disputes[idx].updatedAt = Date.now();
+    crm.writeDisputes(disputes);
+
+    const orderId = disputes[idx].orderId;
+    await updateOrdersDatabase((orders) => {
+      const oIdx = orders.findIndex(o => o.id === orderId);
+      if (oIdx !== -1) {
+        orders[oIdx].messages = orders[oIdx].messages || [];
+        orders[oIdx].messages.push({ sender: 'Admin', text, timestamp: Date.now() });
+      }
+    });
+
+    res.json({ success: true, data: disputes[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/disputes/:id/resolve', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const disputes = crm.readDisputes();
+    const idx = disputes.findIndex(d => d.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy ticket' });
+    disputes[idx].status = 'resolved';
+    disputes[idx].resolvedAt = Date.now();
+    disputes[idx].updatedAt = Date.now();
+    crm.writeDisputes(disputes);
+    crm.logAdminAudit(req, 'dispute_resolve', { disputeId: req.params.id });
+    res.json({ success: true, data: disputes[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/orders/:id/messages', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const { text } = req.body || {};
+    if (!text) return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
+    let updatedOrder = null;
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === orderId);
+      if (idx === -1) return false;
+      orders[idx].messages = orders[idx].messages || [];
+      orders[idx].messages.push({
+        sender: 'Admin',
+        role: 'admin',
+        text,
+        timestamp: Date.now()
+      });
+      updatedOrder = orders[idx];
+      return true;
+    });
+    if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn' });
+    crm.logAdminAudit(req, 'order_message', { orderId, text: text.slice(0, 80) });
+    res.json({ success: true, data: updatedOrder.messages });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/commissions', authenticateAdmin, (req, res) => {
+  res.json({ success: true, data: crm.readCommissions() });
+});
+
+app.post('/api/admin/commissions', authenticateAdmin, crm.requireAdminRole('admin'), (req, res) => {
+  try {
+    const { defaultRate, restaurants } = req.body || {};
+    const cfg = crm.readCommissions();
+    if (typeof defaultRate === 'number') cfg.defaultRate = defaultRate;
+    if (restaurants && typeof restaurants === 'object') cfg.restaurants = restaurants;
+    crm.writeCommissions(cfg);
+    crm.logAdminAudit(req, 'commission_update', cfg);
+    res.json({ success: true, data: cfg });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/settlements/report', authenticateAdmin, (req, res) => {
+  try {
+    const { from, to } = req.query;
+    const orders = readOrdersDatabase();
+    res.json({ success: true, data: crm.computeSettlementReport(orders, from, to) });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

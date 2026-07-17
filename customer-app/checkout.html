@@ -282,6 +282,16 @@
         </div>
       </div>
 
+      <!-- PROMO CODE -->
+      <div class="section-card animate-fade-in">
+        <div class="section-card__title"><i class="fa-solid fa-ticket"></i> Mã giảm giá</div>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="form-input" id="promo-code-input" placeholder="Nhập mã (vd. SHIPFEE10)" style="flex:1;text-transform:uppercase;">
+          <button type="button" class="btn btn--secondary btn--sm" onclick="applyPromoCode()">Áp dụng</button>
+        </div>
+        <div id="promo-code-msg" class="text-xs" style="margin-top:8px;color:var(--clr-text-muted);"></div>
+      </div>
+
       <!-- TERMS NOTE -->
       <div class="info-box info-box--info animate-fade-in" style="margin-bottom:var(--space-md);">
         <i class="fa-solid fa-circle-info" style="color:var(--clr-info);margin-top:2px;flex-shrink:0;"></i>
@@ -344,6 +354,30 @@
   <script src="app.js"></script>
   <script>
     let cartTotals = null;
+    let appliedPromoCode = null;
+
+    async function applyPromoCode() {
+      const code = document.getElementById('promo-code-input')?.value?.trim();
+      const msgEl = document.getElementById('promo-code-msg');
+      if (!code) { if (msgEl) msgEl.textContent = ''; appliedPromoCode = null; return; }
+      try {
+        const totals = SF.getCartTotal();
+        const res = await fetch(`${SF.API_BASE}/api/promos/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, subtotal: totals.appTotal })
+        }).then(r => r.json());
+        if (!res.success) {
+          appliedPromoCode = null;
+          if (msgEl) msgEl.textContent = res.error || 'Mã không hợp lệ';
+          return;
+        }
+        appliedPromoCode = code;
+        if (msgEl) msgEl.textContent = `Giảm ${SF.formatCurrency(res.data.discount)} — áp dụng khi đặt hàng`;
+      } catch (e) {
+        if (msgEl) msgEl.textContent = 'Không kiểm tra được mã';
+      }
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
       SF.initNavScroll();
@@ -551,7 +585,8 @@
           state.userLat,
           state.userLon,
           state.isRelative,
-          noteVal
+          noteVal,
+          appliedPromoCode
         );
 
         // Show success modal

@@ -63,6 +63,10 @@
           <span class="sidebar__link-icon"><i class="fa-solid fa-grid-2"></i></span>
           Dashboard
         </a>
+        <a class="sidebar__link" data-page="analytics" onclick="navigateTo('analytics')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-chart-line"></i></span>
+          Analytics
+        </a>
 
         <div class="sidebar__section-label">Quản lý</div>
         <a class="sidebar__link" data-page="shippers" onclick="navigateTo('shippers')">
@@ -80,9 +84,18 @@
           Đơn hàng
           <span class="sidebar__link-badge" id="nav-order-count">0</span>
         </a>
+        <a class="sidebar__link" data-page="fleet" onclick="navigateTo('fleet')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-map-location-dot"></i></span>
+          Fleet Map
+          <span class="sidebar__link-badge sidebar__link-badge--alert hidden" id="nav-sla-badge">0</span>
+        </a>
         <a class="sidebar__link" data-page="customers" onclick="navigateTo('customers')">
           <span class="sidebar__link-icon"><i class="fa-solid fa-users"></i></span>
           Khách hàng
+        </a>
+        <a class="sidebar__link" data-page="support" onclick="navigateTo('support')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-headset"></i></span>
+          Hỗ trợ
         </a>
 
         <div class="sidebar__section-label">Hệ thống</div>
@@ -221,6 +234,61 @@
     </div>
   </div>
 
+  <!-- Restaurant Metadata Modal -->
+  <div class="modal-overlay" id="restaurant-modal">
+    <div class="modal" style="max-width: 520px;">
+      <div class="modal__header">
+        <h3 id="restaurant-modal-title">Sửa thông tin quán</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('restaurant-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body">
+        <input type="hidden" id="restaurant-edit-id">
+        <div class="form-group">
+          <label class="form-label">Tên quán</label>
+          <input type="text" class="form-input" id="restaurant-edit-name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Địa chỉ</label>
+          <input type="text" class="form-input" id="restaurant-edit-address">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Danh mục</label>
+          <input type="text" class="form-input" id="restaurant-edit-category">
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="restaurant-edit-closed" style="width:auto;">
+            Đóng cửa (isClosed)
+          </label>
+        </div>
+      </div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('restaurant-modal')">Hủy</button>
+        <button class="btn btn--primary" onclick="saveRestaurantMetadata()">
+          <i class="fa-solid fa-floppy-disk"></i> Lưu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Detail Modal -->
+  <div class="modal-overlay" id="customer-modal">
+    <div class="modal" style="max-width: 640px;">
+      <div class="modal__header">
+        <h3 id="customer-modal-title">Chi tiết khách hàng</h3>
+        <button class="btn btn--ghost btn--icon" onclick="closeModal('customer-modal')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal__body" id="customer-modal-body"></div>
+      <div class="modal__footer">
+        <button class="btn btn--secondary" onclick="closeModal('customer-modal')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Supabase JS Client library (Try local first, then CDNs) -->
   <script src="supabase.js"></script>
   <script>
@@ -239,6 +307,7 @@
       }
     });
   </script>
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.4"></script>
+  <script src="crmWave23.js?v=1"></script>
 </body>
 </html>
