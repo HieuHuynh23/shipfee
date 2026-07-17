@@ -979,18 +979,14 @@ function switchTab(tabId) {
   if (tabId === 'orders') {
     // Không hiển thị bể chung — chỉ trạng thái chờ đề xuất / SOS
     renderPendingOrders([]);
-    stopCrmSupportPolling();
   } else if (tabId === 'trip') {
     renderActiveTrip();
-    stopCrmSupportPolling();
   } else if (tabId === 'history') {
     lastHistoryFingerprint = '';
     renderHistoryAndStats();
-    loadCrmSupportThread();
-    startCrmSupportPolling();
-  } else {
-    stopCrmSupportPolling();
   }
+  // CRM chat poll chỉ chạy khi bottom-sheet đang mở
+  if (!crmSupportSheetOpen) stopCrmSupportPolling();
 }
 
 // ── RENDER PENDING ORDERS ───────────────────────────────────────────────────
@@ -3426,22 +3422,51 @@ function reportTripIncident() {
     input.value = `Khẩn cấp đơn ${activeOrder.id} (${activeOrder.status}): `;
   }
   updateCrmSupportOrderTag();
-
-  switchTab('history');
-  const panel = document.getElementById('crm-support-panel');
-  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  loadCrmSupportThread().then(() => {
-    if (input) input.focus();
-  });
+  openCrmSupportSheet({ focus: true });
   showToast('Nhắn CRM', 'Đã mở chat CRM — gửi tin để nhờ hỗ trợ khẩn cấp.', 'info');
 }
 window.reportTripIncident = reportTripIncident;
 
-/* ── CRM Support Chat (shipper ↔ admin) ───────────────────────────────────── */
+/* ── CRM Support Chat (shipper ↔ admin) — bottom sheet ───────────────────── */
 let crmSupportThread = null;
 let crmSupportLinkOrder = false;
 let crmSupportSendInFlight = false;
 let crmSupportPollTimer = null;
+let crmSupportSheetOpen = false;
+
+function openCrmSupportSheet(opts = {}) {
+  const overlay = document.getElementById('crm-support-overlay');
+  if (!overlay) return;
+  if (!overlay.classList.contains('active')) {
+    overlay.classList.add('active');
+    lockBodyScroll();
+  }
+  crmSupportSheetOpen = true;
+  updateCrmSupportOrderTag();
+  bindCrmSupportKeyboardAvoidance();
+  loadCrmSupportThread().then(() => {
+    startCrmSupportPolling();
+    if (opts.focus !== false) {
+      const input = document.getElementById('crm-support-input');
+      if (input) setTimeout(() => input.focus(), 220);
+    }
+  });
+}
+window.openCrmSupportSheet = openCrmSupportSheet;
+
+function closeCrmSupportSheet() {
+  const overlay = document.getElementById('crm-support-overlay');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
+  crmSupportSheetOpen = false;
+  stopCrmSupportPolling();
+  unbindCrmSupportKeyboardAvoidance();
+  const input = document.getElementById('crm-support-input');
+  if (input) input.blur();
+}
+window.closeCrmSupportSheet = closeCrmSupportSheet;
 
 function updateCrmSupportOrderTag() {
   const tag = document.getElementById('crm-support-order-tag');
@@ -3615,8 +3640,7 @@ window.sendCrmSupportMessage = sendCrmSupportMessage;
 function startCrmSupportPolling() {
   stopCrmSupportPolling();
   crmSupportPollTimer = setInterval(() => {
-    const historyTab = document.getElementById('tab-history');
-    if (historyTab && historyTab.classList.contains('active')) {
+    if (crmSupportSheetOpen) {
       loadCrmSupportThread();
     }
   }, 8000);
@@ -3629,9 +3653,38 @@ function stopCrmSupportPolling() {
   }
 }
 
+let crmSupportKbHandler = null;
+function unbindCrmSupportKeyboardAvoidance() {
+  if (crmSupportKbHandler && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', crmSupportKbHandler);
+    window.visualViewport.removeEventListener('scroll', crmSupportKbHandler);
+  }
+  crmSupportKbHandler = null;
+  const sheet = document.getElementById('crm-support-panel');
+  if (sheet) {
+    sheet.classList.remove('is-kb-open');
+    sheet.style.transform = '';
+    sheet.style.removeProperty('--kb-inset');
+  }
+}
+function bindCrmSupportKeyboardAvoidance() {
+  unbindCrmSupportKeyboardAvoidance();
+  const sheet = document.getElementById('crm-support-panel');
+  if (!sheet || !window.visualViewport) return;
+  sheet.classList.add('is-kb-open');
+  crmSupportKbHandler = () => {
+    const vv = window.visualViewport;
+    const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    sheet.style.setProperty('--kb-inset', occluded + 'px');
+    sheet.style.transform = occluded > 0 ? `translateY(-${Math.min(occluded, 220)}px)` : '';
+  };
+  window.visualViewport.addEventListener('resize', crmSupportKbHandler);
+  window.visualViewport.addEventListener('scroll', crmSupportKbHandler);
+  crmSupportKbHandler();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   const input = document.getElementById('crm-support-input');
-  const panel = document.getElementById('crm-support-panel');
   if (input) {
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
@@ -3639,38 +3692,13 @@ document.addEventListener('DOMContentLoaded', () => {
         sendCrmSupportMessage();
       }
     });
-
-    let crmKbHandler = null;
-    function unbindCrmKeyboard() {
-      if (crmKbHandler && window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', crmKbHandler);
-        window.visualViewport.removeEventListener('scroll', crmKbHandler);
-      }
-      crmKbHandler = null;
-      if (panel) {
-        panel.classList.remove('is-kb-open');
-        panel.style.paddingBottom = '';
-      }
-    }
-    function bindCrmKeyboard() {
-      if (!window.visualViewport || !panel) return;
-      unbindCrmKeyboard();
-      panel.classList.add('is-kb-open');
-      crmKbHandler = () => {
-        const vv = window.visualViewport;
-        const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-        panel.style.paddingBottom = occluded > 0
-          ? `calc(16px + ${occluded}px)`
-          : '';
-        input.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-      };
-      window.visualViewport.addEventListener('resize', crmKbHandler);
-      window.visualViewport.addEventListener('scroll', crmKbHandler);
-      crmKbHandler();
-    }
-    input.addEventListener('focus', bindCrmKeyboard);
-    input.addEventListener('blur', () => setTimeout(unbindCrmKeyboard, 180));
+    input.addEventListener('focus', () => {
+      if (crmSupportSheetOpen) bindCrmSupportKeyboardAvoidance();
+    });
   }
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && crmSupportSheetOpen) closeCrmSupportSheet();
+  });
   updateCrmSupportOrderTag();
 });
 
@@ -3884,7 +3912,7 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=2.7', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2.8', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- shipfee-deploy 20260717T173000Z crm-chat-fix-v27 -->
+<!-- shipfee-deploy 20260717T174500Z crm-bottom-sheet-v28 -->
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
@@ -15,14 +15,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>ShipFee Tài Xế — Hệ thống Shipper thời gian thực</title>
   <meta name="description" content="Ứng dụng quản lý đơn hàng và định vị GPS thời gian thực dành cho shipper ShipFee.">
-  <link rel="manifest" href="manifest.webmanifest?v=2.7">
+  <link rel="manifest" href="manifest.webmanifest?v=2.8">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=2.7">
+  <link rel="stylesheet" href="style.css?v=2.8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -269,6 +269,49 @@
     </div>
   </div>
 
+  <!-- ── CRM SUPPORT BOTTOM SHEET ── -->
+  <div class="overlay" id="crm-support-overlay" onclick="if(event.target===this) closeCrmSupportSheet()">
+    <div class="bottom-sheet crm-support-sheet" id="crm-support-panel" role="dialog" aria-modal="true" aria-labelledby="crm-support-sheet-title">
+      <div class="bottom-sheet__header">
+        <div class="crm-support-sheet__title">
+          <span class="crm-support-panel__icon"><i class="fa-solid fa-headset"></i></span>
+          <div>
+            <h4 id="crm-support-sheet-title">Nhắn CRM hỗ trợ</h4>
+            <p>CRM trả lời ngay trong hộp chat này</p>
+          </div>
+        </div>
+        <button type="button" class="close-btn" onclick="closeCrmSupportSheet()" aria-label="Đóng">✕</button>
+      </div>
+
+      <div class="crm-support-chat" id="crm-support-chat">
+        <div class="crm-support-chat__meta" id="crm-support-meta">
+          <span id="crm-support-status">Chưa có hội thoại</span>
+          <span id="crm-support-order-tag" class="crm-support-order-tag" style="display:none;"></span>
+        </div>
+        <div class="crm-support-chat__messages" id="crm-support-messages" aria-live="polite">
+          <div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>
+        </div>
+        <div class="crm-support-chat__compose">
+          <div class="crm-support-chat__tools">
+            <label class="crm-support-check">
+              <input type="checkbox" id="crm-support-emergency">
+              <span>Khẩn cấp</span>
+            </label>
+            <button type="button" class="crm-support-link-order" id="crm-support-link-order-btn" onclick="toggleCrmSupportOrderLink()">
+              Gắn đơn đang chạy
+            </button>
+          </div>
+          <div class="crm-support-chat__row">
+            <input type="text" id="crm-support-input" class="crm-support-input" maxlength="1000" placeholder="VD: Đơn SPF-… quán đóng cửa / khách không nghe máy…" autocomplete="off" enterkeyhint="send">
+            <button type="button" class="btn btn--primary crm-support-send" id="crm-support-send-btn" onclick="sendCrmSupportMessage()">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── MAIN APP LAYOUT ── -->
       <div class="app-layout">
     
@@ -468,42 +511,14 @@
           </div>
         </div>
 
-        <div class="crm-support-panel" id="crm-support-panel">
-          <div class="crm-support-panel__head">
-            <span class="crm-support-panel__icon"><i class="fa-solid fa-headset"></i></span>
-            <div>
-              <h4>Nhắn CRM hỗ trợ</h4>
-              <p>Gửi tin khi cần hỗ trợ đơn hàng hoặc tình huống khẩn cấp. CRM sẽ trả lời trong hộp chat này.</p>
-            </div>
-          </div>
-
-          <div class="crm-support-chat" id="crm-support-chat">
-            <div class="crm-support-chat__meta" id="crm-support-meta">
-              <span id="crm-support-status">Chưa có hội thoại</span>
-              <span id="crm-support-order-tag" class="crm-support-order-tag" style="display:none;"></span>
-            </div>
-            <div class="crm-support-chat__messages" id="crm-support-messages" aria-live="polite">
-              <div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>
-            </div>
-            <div class="crm-support-chat__compose">
-              <div class="crm-support-chat__tools">
-                <label class="crm-support-check">
-                  <input type="checkbox" id="crm-support-emergency">
-                  <span>Khẩn cấp</span>
-                </label>
-                <button type="button" class="crm-support-link-order" id="crm-support-link-order-btn" onclick="toggleCrmSupportOrderLink()">
-                  Gắn đơn đang chạy
-                </button>
-              </div>
-              <div class="crm-support-chat__row">
-                <input type="text" id="crm-support-input" class="crm-support-input" maxlength="1000" placeholder="VD: Đơn SPF-… quán đóng cửa / khách không nghe máy…" autocomplete="off">
-                <button type="button" class="btn btn--primary crm-support-send" id="crm-support-send-btn" onclick="sendCrmSupportMessage()">
-                  <i class="fa-solid fa-paper-plane"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <button type="button" class="crm-support-launch" id="crm-support-launch" onclick="openCrmSupportSheet()">
+          <span class="crm-support-launch__icon"><i class="fa-solid fa-headset"></i></span>
+          <span class="crm-support-launch__copy">
+            <strong>Nhắn CRM hỗ trợ</strong>
+            <small>Mở chat từ dưới lên · đơn hàng / khẩn cấp</small>
+          </span>
+          <span class="crm-support-launch__chevron" aria-hidden="true"><i class="fa-solid fa-chevron-up"></i></span>
+        </button>
 
         <div class="section-title" style="margin-top: var(--space-lg);">
           <h3>Lịch Sử Giao Nhận</h3>
@@ -629,7 +644,7 @@
         <div class="profile-row"><span>Tổng đơn giao</span><strong id="profile-total-orders" class="text-info">0 đơn</strong></div>
         <div class="profile-row profile-row--last"><span>Doanh thu tích lũy</span><strong id="profile-revenue" class="text-accent">0đ</strong></div>
       </div>
-      <p class="profile-modal__crm-note"><i class="fa-solid fa-headset"></i> Cần hỗ trợ? Vào tab <strong>Hiệu suất</strong> → <strong>Nhắn CRM hỗ trợ</strong>.</p>
+      <p class="profile-modal__crm-note"><i class="fa-solid fa-headset"></i> Cần hỗ trợ? Bấm <strong>Nhắn CRM hỗ trợ</strong> (popup từ dưới lên) hoặc <strong>Báo sự cố</strong> khi đang chạy đơn.</p>
       <button type="button" class="btn btn--secondary btn--full" onclick="closeDriverProfile()">Đóng</button>
     </div>
   </div>
@@ -669,6 +684,6 @@
       }
     });
   </script>
-  <script src="app.js?v=2.7"></script>
+  <script src="app.js?v=2.8"></script>
 </body>
 </html>
