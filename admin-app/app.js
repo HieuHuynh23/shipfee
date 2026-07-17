@@ -61,6 +61,8 @@ let cachedOrders = [];
 let cachedRestaurants = [];
 let restaurantSearchPage = 1;
 let restaurantSearchQuery = '';
+let restaurantChangedMap = new Map();
+let bulkSyncPollTimer = null;
 let currentEditingMenu = [];
 
 async function initSupabase() {
@@ -1295,6 +1297,41 @@ function renderRestaurants() {
   body.innerHTML = `
     <div class="page-section-header">
       <h2>Quản lý Quán ăn</h2>
+      <div class="page-section-header__actions">
+        <button class="btn btn--secondary btn--sm" id="btn-sync-changed" onclick="syncAllRestaurants('changed')" title="Đồng bộ các quán có biến động">
+          <i class="fa-solid fa-bell"></i> Đồng bộ quán thay đổi
+        </button>
+        <button class="btn btn--primary btn--sm" id="btn-sync-all" onclick="syncAllRestaurants('all')" title="Đồng bộ toàn bộ quán với ShopeeFood và lưu vào database">
+          <i class="fa-solid fa-arrows-rotate"></i> Đồng bộ tất cả
+        </button>
+      </div>
+    </div>
+
+    <div id="restaurant-sync-progress" class="restaurant-sync-progress hidden">
+      <div class="restaurant-sync-progress__header">
+        <span><i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ ShopeeFood...</span>
+        <span class="mono text-sm" id="restaurant-sync-progress-text">0 / 0</span>
+      </div>
+      <div class="restaurant-sync-progress__bar">
+        <div class="restaurant-sync-progress__fill" id="restaurant-sync-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="text-xs text-muted" id="restaurant-sync-current">—</div>
+    </div>
+
+    <div class="data-table-wrapper mb-6 restaurant-changes-panel" id="restaurant-changes-panel">
+      <div class="data-table-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="display:flex; align-items:center; gap:8px; font-size:15px;">
+          <i class="fa-solid fa-chart-line" style="color:#f59e0b;"></i>
+          Quán có biến động gần đây
+          <span class="count" id="restaurant-changes-count">0</span>
+        </h3>
+        <button class="btn btn--ghost btn--sm text-xs" onclick="loadRestaurantChanges()" style="color:var(--text-muted);">
+          <i class="fa-solid fa-arrows-rotate"></i> Làm mới
+        </button>
+      </div>
+      <div id="restaurant-changes-body" class="notifications-panel-list" style="max-height:220px; overflow-y:auto;">
+        <div class="empty-state" style="padding:20px;"><p class="text-muted text-sm">Đang tải biến động...</p></div>
+      </div>
     </div>
 
     <div class="toolbar">
@@ -1302,8 +1339,11 @@ function renderRestaurants() {
         <span class="form-search__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
         <input type="text" class="form-input" placeholder="Tìm quán ăn..." id="restaurant-search" onkeyup="searchRestaurantsDebounced()">
       </div>
-      <div class="tabs" style="margin-bottom: 0;">
+      <div class="tabs" style="margin-bottom: 0;" id="restaurant-filter-tabs">
         <button class="tab active" onclick="filterRestaurants(this, 'all')">Tất cả</button>
+        <button class="tab" onclick="filterRestaurants(this, 'changed')">
+          Có thay đổi <span class="tab-badge" id="restaurant-changed-tab-badge" style="display:none;">0</span>
+        </button>
         <button class="tab" onclick="filterRestaurants(this, 'open')">Đang mở</button>
         <button class="tab" onclick="filterRestaurants(this, 'closed')">Đã đóng</button>
       </div>
@@ -1360,7 +1400,164 @@ function renderRestaurants() {
   `;
 
   loadRestaurants();
+  loadRestaurantChanges();
+  pollBulkSyncStatus(true);
 }
+
+async function loadRestaurantChanges() {
+  const body = document.getElementById('restaurant-changes-body');
+  const countEl = document.getElementById('restaurant-changes-count');
+  const tabBadge = document.getElementById('restaurant-changed-tab-badge');
+  if (!body) return;
+
+  try {
+    const res = await apiFetch('/api/admin/restaurants/changes?limit=30');
+    const changes = res.success && Array.isArray(res.data) ? res.data : [];
+    restaurantChangedMap = new Map(changes.map(c => [String(c.restaurantId), c]));
+
+    if (countEl) countEl.textContent = changes.length;
+    if (tabBadge) {
+      const unread = res.unreadTotal || changes.filter(c => !c.read || c.unreadCount > 0).length;
+      if (unread > 0) {
+        tabBadge.style.display = 'inline-flex';
+        tabBadge.textContent = unread;
+      } else {
+        tabBadge.style.display = 'none';
+      }
+    }
+
+    if (changes.length === 0) {
+      body.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm"><i class="fa-solid fa-circle-check"></i> Không có biến động giá hoặc trạng thái mới.</p></div>`;
+    } else {
+      body.innerHTML = `
+        <table class="data-table">
+          <tbody>
+            ${changes.map(c => {
+              const badge = c.type === 'price_change'
+                ? { color: '#f59e0b', text: 'Biến động giá' }
+                : { color: '#ef4444', text: 'Đổi trạng thái' };
+              const unread = !c.read || c.unreadCount > 0;
+              return `
+              <tr class="${unread ? 'restaurant-change-row--unread' : ''}">
+                <td style="width:130px;">
+                  <span class="badge" style="background:${badge.color}22;color:${badge.color};border:1px solid ${badge.color}33;font-size:11px;">${badge.text}</span>
+                </td>
+                <td>
+                  <strong style="cursor:pointer;" onclick="focusRestaurantChange('${escapeHtml(c.restaurantId)}')">${escapeHtml(c.restaurantName || c.restaurantId)}</strong>
+                  <div class="text-xs text-muted" style="margin-top:4px;white-space:pre-wrap;line-height:1.5;">${escapeHtml((c.message || c.title || '').slice(0, 180))}${(c.message || '').length > 180 ? '…' : ''}</div>
+                </td>
+                <td class="mono text-xs text-muted" style="white-space:nowrap;width:140px;text-align:right;">${formatTime(c.createdAt)}</td>
+                <td style="text-align:right;width:150px;">
+                  <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${escapeHtml(c.restaurantId)}')" title="Đồng bộ quán này">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                  </button>
+                  <button class="btn btn--secondary btn--sm" onclick="focusRestaurantChange('${escapeHtml(c.restaurantId)}')">
+                    Xem
+                  </button>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    if (restaurantFilter === 'changed') filterRestaurantsLocal();
+  } catch (e) {
+    body.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Không tải được danh sách biến động</p></div>`;
+  }
+}
+
+function focusRestaurantChange(restaurantId) {
+  const change = restaurantChangedMap.get(String(restaurantId));
+  const restaurantName = change?.restaurantName || '';
+  restaurantFilter = 'changed';
+  document.querySelectorAll('#restaurant-filter-tabs .tab').forEach((t, i) => {
+    t.classList.toggle('active', i === 1);
+  });
+  const filterInput = document.getElementById('restaurant-filter-name');
+  if (filterInput && restaurantName) filterInput.value = restaurantName;
+  filterRestaurantsLocal();
+  setTimeout(() => {
+    const row = document.querySelector(`tr[data-restaurant-id="${CSS.escape(String(restaurantId))}"]`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 80);
+}
+
+async function syncAllRestaurants(scope) {
+  const label = scope === 'changed' ? 'các quán có biến động' : 'TẤT CẢ quán';
+  if (!confirm(`Đồng bộ ${label} với ShopeeFood?\n\nHệ thống sẽ cào menu/giá và lưu ngay vào database. Quá trình có thể mất nhiều phút.`)) {
+    return;
+  }
+
+  const btnAll = document.getElementById('btn-sync-all');
+  const btnChanged = document.getElementById('btn-sync-changed');
+  if (btnAll) btnAll.disabled = true;
+  if (btnChanged) btnChanged.disabled = true;
+
+  try {
+    showToast(`Đang khởi động đồng bộ ${label}...`, 'info');
+    const res = await apiFetch('/api/admin/restaurants/sync-all', {
+      method: 'POST',
+      body: JSON.stringify({ scope })
+    });
+    if (res.success) {
+      showToast(res.message || 'Đã bắt đầu đồng bộ', 'success');
+      pollBulkSyncStatus(false);
+    } else {
+      showToast(res.error || 'Không thể đồng bộ', 'error');
+      if (btnAll) btnAll.disabled = false;
+      if (btnChanged) btnChanged.disabled = false;
+    }
+  } catch (e) {
+    showToast(e.message || 'Lỗi kết nối', 'error');
+    if (btnAll) btnAll.disabled = false;
+    if (btnChanged) btnChanged.disabled = false;
+  }
+}
+
+async function pollBulkSyncStatus(silent) {
+  clearTimeout(bulkSyncPollTimer);
+  const panel = document.getElementById('restaurant-sync-progress');
+  const textEl = document.getElementById('restaurant-sync-progress-text');
+  const fillEl = document.getElementById('restaurant-sync-progress-fill');
+  const currentEl = document.getElementById('restaurant-sync-current');
+  const btnAll = document.getElementById('btn-sync-all');
+  const btnChanged = document.getElementById('btn-sync-changed');
+
+  try {
+    const res = await apiFetch('/api/admin/restaurants/sync-status');
+    if (res.running) {
+      if (panel) panel.classList.remove('hidden');
+      const pct = res.total > 0 ? Math.round((res.completed / res.total) * 100) : 0;
+      if (textEl) textEl.textContent = `${res.completed} / ${res.total}${res.failed ? ` · lỗi ${res.failed}` : ''}`;
+      if (fillEl) fillEl.style.width = `${pct}%`;
+      if (currentEl) {
+        currentEl.textContent = res.current
+          ? `Đang xử lý: ${res.current.name} (${res.current.index}/${res.total})`
+          : 'Đang chuẩn bị...';
+      }
+      if (btnAll) btnAll.disabled = true;
+      if (btnChanged) btnChanged.disabled = true;
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(false), 2500);
+    } else {
+      if (panel) panel.classList.add('hidden');
+      if (btnAll) btnAll.disabled = false;
+      if (btnChanged) btnChanged.disabled = false;
+      if (res.completed > 0 && !silent) {
+        showToast(`Hoàn tất đồng bộ: ${res.completed - (res.failed || 0)}/${res.total} quán${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
+        loadRestaurants();
+        loadRestaurantChanges();
+        fetchNotifications().then(() => renderNotificationsList());
+      }
+    }
+  } catch (e) {
+    bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(true), 5000);
+  }
+}
+
+window.syncAllRestaurants = syncAllRestaurants;
+window.loadRestaurantChanges = loadRestaurantChanges;
+window.focusRestaurantChange = focusRestaurantChange;
 
 let restaurantFilter = 'all';
 let searchDebounceTimer = null;
@@ -1441,16 +1638,30 @@ function changeRestaurantPage(page) {
 window.changeRestaurantPage = changeRestaurantPage;
 
 async function syncRestaurantPrice(restaurantId) {
+  const btn = event?.target?.closest('button');
+  if (btn) {
+    btn.disabled = true;
+    btn.dataset.origHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  }
   try {
-    showToast('Đang đồng bộ giá ShopeeFood...', 'info');
+    showToast('Đang đồng bộ ShopeeFood & lưu dữ liệu...', 'info');
     const res = await apiFetch(`/api/admin/restaurants/${restaurantId}/sync-price`, { method: 'POST' });
     if (res.success) {
-      showToast(res.message || 'Đã bắt đầu đồng bộ giá!', 'success');
+      showToast(res.message || 'Đã đồng bộ!', 'success');
+      loadRestaurants();
+      loadRestaurantChanges();
+      fetchNotifications().then(() => renderNotificationsList());
     } else {
       showToast(res.error || 'Lỗi đồng bộ', 'error');
     }
   } catch (e) {
     showToast(e.message || 'Lỗi kết nối', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+    }
   }
 }
 window.syncRestaurantPrice = syncRestaurantPrice;
@@ -1519,6 +1730,8 @@ function filterRestaurantsLocal() {
     filtered = filtered.filter(r => !r.isClosed);
   } else if (restaurantFilter === 'closed') {
     filtered = filtered.filter(r => r.isClosed);
+  } else if (restaurantFilter === 'changed') {
+    filtered = filtered.filter(r => restaurantChangedMap.has(String(r.id)));
   }
 
   // Lọc theo bộ lọc riêng từng cột
@@ -1562,12 +1775,22 @@ function filterRestaurantsLocal() {
     return;
   }
 
-  tbody.innerHTML = filtered.map(r => `
-    <tr>
+  tbody.innerHTML = filtered.map(r => {
+    const change = restaurantChangedMap.get(String(r.id));
+    const changeBadge = change
+      ? `<span class="restaurant-change-badge ${(!change.read || change.unreadCount > 0) ? 'restaurant-change-badge--unread' : ''}" title="${escapeHtml(change.title || 'Có biến động')}">${change.type === 'price_change' ? 'Giá' : 'TT'}</span>`
+      : '';
+    const rowClass = change && (!change.read || change.unreadCount > 0) ? 'restaurant-row--changed' : '';
+    return `
+    <tr class="${rowClass}" data-restaurant-id="${escapeHtml(r.id)}">
       <td>
         <div style="max-width: 260px;">
-          <strong class="truncate" style="display: block; font-size: 13px;">${r.name || '—'}</strong>
+          <div style="display:flex;align-items:center;gap:6px;">
+            ${changeBadge}
+            <strong class="truncate" style="display: block; font-size: 13px;">${r.name || '—'}</strong>
+          </div>
           <span class="text-muted text-xs truncate" style="display: block;">${r.address || ''}</span>
+          ${change ? `<span class="text-xs" style="color:#f59e0b;margin-top:4px;display:block;">${escapeHtml(String(change.message || change.title || '').split('\n')[0].slice(0, 80))}</span>` : ''}
         </div>
       </td>
       <td class="text-sm">${r.category || '—'}</td>
@@ -1588,7 +1811,7 @@ function filterRestaurantsLocal() {
         <button class="btn btn--ghost btn--sm" onclick="viewRestaurantMenu('${escapeHtml(r.id)}')" title="Xem/Sửa menu">
           <i class="fa-solid fa-utensils"></i>
         </button>
-        <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${escapeHtml(r.id)}')" title="Đồng bộ giá ShopeeFood">
+        <button class="btn btn--ghost btn--sm" onclick="syncRestaurantPrice('${escapeHtml(r.id)}')" title="Đồng bộ ShopeeFood & lưu ngay">
           <i class="fa-solid fa-arrows-rotate"></i>
         </button>
         <button class="btn btn--ghost btn--sm" onclick="toggleRestaurantStatus('${escapeHtml(r.id)}', ${!r.isClosed})" title="${r.isClosed ? 'Mở cửa' : 'Đóng cửa'}">
@@ -1596,7 +1819,8 @@ function filterRestaurantsLocal() {
         </button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 async function viewRestaurantMenu(restaurantId) {
@@ -2590,7 +2814,7 @@ function renderSettings() {
         <h3 class="mb-4"><i class="fa-solid fa-server" style="color: var(--blue); margin-right: 8px;"></i>API Server</h3>
         <div class="form-group">
           <label class="form-label">API Base URL</label>
-          <input type="text" class="form-input mono" id="settings-api-url" value="${API_BASE}">
+          <input type="text" class="form-input mono" id="settings-api-url" value="${API_BASE}" placeholder="https://shipfee-eo5s.onrender.com">
         </div>
         <button class="btn btn--primary btn--sm" onclick="saveApiUrl()">
           <i class="fa-solid fa-floppy-disk"></i> Lưu
@@ -2602,13 +2826,32 @@ function renderSettings() {
 
       <div class="card">
         <h3 class="mb-4"><i class="fa-solid fa-shield-halved" style="color: var(--emerald-500); margin-right: 8px;"></i>Supabase Auth</h3>
-        <p class="text-sm text-muted mb-4" style="line-height:1.6;">
-          CRM tự lấy cấu hình Supabase từ <span class="mono">/api/config</span> khi khởi động.
-          Đăng nhập bằng tài khoản admin trên Supabase Auth.
-        </p>
-        <div class="text-sm text-muted" style="line-height:2;">
-          <div>Trạng thái client: <span class="mono">${supabaseClient ? 'Đã kết nối' : 'Chưa cấu hình'}</span></div>
+        <div class="form-group">
+          <label class="form-label">Supabase URL</label>
+          <input type="text" class="form-input mono" id="settings-supabase-url" readonly placeholder="Đang tải từ /api/config...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Anon Key</label>
+          <input type="text" class="form-input mono" id="settings-supabase-key" readonly placeholder="Đang tải...">
+        </div>
+        <div class="text-sm text-muted mb-4" style="line-height:1.8;">
+          <div>Trạng thái client: <span class="mono" id="settings-supabase-status">${supabaseClient ? 'Đã kết nối' : 'Chưa kết nối'}</span></div>
           <div>JWT: <span class="mono">${localStorage.getItem('shipfee_jwt') ? 'Có' : 'Không'}</span></div>
+          <div>Đăng nhập admin: <span class="mono">admin@shipfee.vn</span> / <span class="mono">admin123</span></div>
+        </div>
+        <button class="btn btn--secondary btn--sm" onclick="reloadSupabaseConfig()">
+          <i class="fa-solid fa-arrows-rotate"></i> Tải lại cấu hình
+        </button>
+      </div>
+
+      <div class="card">
+        <h3 class="mb-4"><i class="fa-solid fa-link" style="color: var(--blue); margin-right: 8px;"></i>Đường dẫn hệ thống</h3>
+        <div class="text-sm text-muted" style="line-height:2.2;">
+          <div>CRM Admin: <a href="https://shipfee.vercel.app/admin-app/" target="_blank" rel="noopener" class="mono" style="color:var(--blue);">https://shipfee.vercel.app/admin-app/</a></div>
+          <div>Khách hàng: <a href="https://shipfee.vercel.app/customer-app/" target="_blank" rel="noopener" class="mono" style="color:var(--blue);">https://shipfee.vercel.app/customer-app/</a></div>
+          <div>Tài xế: <a href="https://shipfee.vercel.app/shipper-app/" target="_blank" rel="noopener" class="mono" style="color:var(--blue);">https://shipfee.vercel.app/shipper-app/</a></div>
+          <div>API Server: <span class="mono">https://shipfee-eo5s.onrender.com</span></div>
+          <div>Supabase: <span class="mono">https://zegfxtprqfksvcukdfif.supabase.co</span></div>
         </div>
       </div>
 
@@ -2650,7 +2893,40 @@ function renderSettings() {
     .catch(err => console.error('Lỗi lấy cấu hình pricing:', err));
 
   checkServerStatus();
+  loadSupabaseConfigDisplay();
 }
+
+async function loadSupabaseConfigDisplay() {
+  const urlEl = document.getElementById('settings-supabase-url');
+  const keyEl = document.getElementById('settings-supabase-key');
+  const statusEl = document.getElementById('settings-supabase-status');
+  try {
+    const res = await fetch(`${API_BASE}/api/config`).then(r => r.json());
+    if (urlEl) urlEl.value = res.supabaseUrl && res.supabaseUrl !== 'your_supabase_url_here'
+      ? res.supabaseUrl
+      : 'https://zegfxtprqfksvcukdfif.supabase.co';
+    if (keyEl && res.supabaseAnonKey) {
+      const k = res.supabaseAnonKey;
+      keyEl.value = k.length > 24 ? k.slice(0, 20) + '...' + k.slice(-8) : k;
+      keyEl.title = k;
+    } else if (keyEl) {
+      keyEl.value = '(Chưa cấu hình trên Render — thêm SUPABASE_ANON_KEY)';
+    }
+    if (statusEl) {
+      statusEl.textContent = (supabaseClient && res.supabaseUrl) ? 'Đã kết nối' : 'Chưa kết nối — kiểm tra Render env';
+    }
+  } catch (e) {
+    if (urlEl) urlEl.value = 'https://zegfxtprqfksvcukdfif.supabase.co';
+    if (keyEl) keyEl.value = '(Không tải được /api/config)';
+  }
+}
+
+async function reloadSupabaseConfig() {
+  await initSupabase();
+  await loadSupabaseConfigDisplay();
+  showToast('Đã tải lại cấu hình Supabase', 'info');
+}
+window.reloadSupabaseConfig = reloadSupabaseConfig;
 
 function saveApiUrl() {
   const url = document.getElementById('settings-api-url').value.trim();

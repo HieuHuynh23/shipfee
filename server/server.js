@@ -4677,6 +4677,99 @@ function triggerSyncMenuScrape(restaurant) {
   });
 }
 
+function findRestaurantById(id) {
+  const sid = String(id);
+  if (SEARCHED_RESTAURANTS_CACHE.has(sid)) {
+    return SEARCHED_RESTAURANTS_CACHE.get(sid);
+  }
+  const localData = dbHelper.read();
+  return localData.find(r => String(r.id) === sid) || null;
+}
+
+function getRestaurantChangeSummaries(limit = 50) {
+  const notifs = readNotifications().filter(n =>
+    n && (n.type === 'price_change' || n.type === 'status_change') && n.restaurantId
+  );
+  const byRestaurant = new Map();
+  for (const n of notifs) {
+    const key = String(n.restaurantId);
+    if (!byRestaurant.has(key)) {
+      byRestaurant.set(key, {
+        restaurantId: n.restaurantId,
+        restaurantName: n.restaurantName || key,
+        type: n.type,
+        title: n.title || '',
+        message: n.message || '',
+        createdAt: n.createdAt,
+        read: n.read === true,
+        unreadCount: 0
+      });
+    }
+    const entry = byRestaurant.get(key);
+    if (n.read !== true) entry.unreadCount++;
+    if (n.createdAt > entry.createdAt) {
+      entry.type = n.type;
+      entry.title = n.title || entry.title;
+      entry.message = n.message || entry.message;
+      entry.createdAt = n.createdAt;
+      entry.read = n.read === true && entry.unreadCount === 0;
+    }
+  }
+  return Array.from(byRestaurant.values())
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, limit);
+}
+
+const BULK_SYNC_CONCURRENCY = 2;
+let bulkSyncJob = null;
+
+async function runBulkRestaurantSync(restaurants) {
+  bulkSyncJob = {
+    running: true,
+    total: restaurants.length,
+    completed: 0,
+    failed: 0,
+    current: null,
+    startedAt: Date.now(),
+    finishedAt: null,
+    errors: []
+  };
+
+  let cursor = 0;
+  async function worker() {
+    while (cursor < restaurants.length) {
+      const idx = cursor++;
+      const restaurant = restaurants[idx];
+      if (!restaurant || !restaurant.id) {
+        bulkSyncJob.completed++;
+        continue;
+      }
+      bulkSyncJob.current = { id: restaurant.id, name: restaurant.name || restaurant.id, index: idx + 1 };
+      try {
+        const fresh = findRestaurantById(restaurant.id) || restaurant;
+        await triggerSyncMenuScrape(fresh);
+        bulkSyncJob.completed++;
+      } catch (err) {
+        bulkSyncJob.failed++;
+        bulkSyncJob.errors.push({
+          id: restaurant.id,
+          name: restaurant.name || restaurant.id,
+          error: err.message || 'Lỗi đồng bộ'
+        });
+        bulkSyncJob.completed++;
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(BULK_SYNC_CONCURRENCY, restaurants.length || 1) }, () => worker());
+  await Promise.all(workers);
+
+  bulkSyncJob.running = false;
+  bulkSyncJob.current = null;
+  bulkSyncJob.finishedAt = Date.now();
+  console.log(`[Bulk Sync] Hoàn tất: ${bulkSyncJob.completed}/${bulkSyncJob.total}, lỗi ${bulkSyncJob.failed}`);
+}
+
 /**
  * GET /api/restaurants/:id
  * Thông tin chi tiết + menu của 1 quán
@@ -6763,31 +6856,138 @@ app.put('/api/admin/restaurants/:id/menu', authenticateAdmin, async (req, res) =
 });
 
 /**
+ * GET /api/admin/restaurants/changes
+ * Danh sách quán có biến động giá / trạng thái gần đây
+ */
+app.get('/api/admin/restaurants/changes', authenticateAdmin, (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const data = getRestaurantChangeSummaries(limit);
+    res.json({
+      success: true,
+      data,
+      total: data.length,
+      unreadTotal: data.filter(d => !d.read || d.unreadCount > 0).length
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/restaurants/sync-status
+ * Trạng thái job đồng bộ hàng loạt
+ */
+app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
+  if (!bulkSyncJob) {
+    return res.json({ success: true, running: false, total: 0, completed: 0, failed: 0 });
+  }
+  res.json({
+    success: true,
+    running: bulkSyncJob.running,
+    total: bulkSyncJob.total,
+    completed: bulkSyncJob.completed,
+    failed: bulkSyncJob.failed,
+    current: bulkSyncJob.current,
+    startedAt: bulkSyncJob.startedAt,
+    finishedAt: bulkSyncJob.finishedAt,
+    errors: bulkSyncJob.errors.slice(-10),
+    menuScrapeEnabled: MENU_SCRAPE_ENABLED
+  });
+});
+
+/**
+ * POST /api/admin/restaurants/sync-all
+ * Kích hoạt đồng bộ ShopeeFood và lưu ngay vào database
+ * Body: { scope: 'all' | 'changed' }
+ */
+app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) => {
+  try {
+    if (bulkSyncJob?.running) {
+      return res.json({ success: false, error: 'Đồng bộ hàng loạt đang chạy. Vui lòng đợi hoàn tất.' });
+    }
+
+    if (!MENU_SCRAPE_ENABLED) {
+      return res.status(503).json({
+        success: false,
+        error: 'Menu scrape đang tắt trên server (ENABLE_MENU_SCRAPE=true để bật).'
+      });
+    }
+
+    const scope = req.body?.scope === 'changed' ? 'changed' : 'all';
+    let restaurants = [];
+
+    if (scope === 'changed') {
+      const changes = getRestaurantChangeSummaries(200);
+      restaurants = changes
+        .map(c => findRestaurantById(c.restaurantId))
+        .filter(Boolean);
+    } else {
+      restaurants = dbHelper.read().filter(r => r && r.id);
+    }
+
+    if (restaurants.length === 0) {
+      return res.json({ success: false, error: scope === 'changed' ? 'Không có quán nào có biến động.' : 'Không có quán trong database.' });
+    }
+
+    runBulkRestaurantSync(restaurants).catch(err => {
+      console.error('[Bulk Sync] Lỗi job:', err.message);
+      if (bulkSyncJob) {
+        bulkSyncJob.running = false;
+        bulkSyncJob.finishedAt = Date.now();
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `Đã bắt đầu đồng bộ ${restaurants.length} quán với ShopeeFood. Dữ liệu sẽ được lưu ngay sau mỗi quán.`,
+      total: restaurants.length,
+      scope
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * POST /api/admin/restaurants/:id/sync-price
- * Trigger manual ShopeeFood scraper for a restaurant
+ * Trigger manual ShopeeFood scraper for a restaurant (đồng bộ + lưu ngay)
  */
 app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    let found = null;
-    
-    if (SEARCHED_RESTAURANTS_CACHE.has(id)) {
-      found = SEARCHED_RESTAURANTS_CACHE.get(id);
-    } else {
-      const localData = dbHelper.read();
-      found = localData.find(r => String(r.id) === String(id));
-    }
-    
+    const found = findRestaurantById(id);
+
     if (!found) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
     }
-    
-    if (found._isScraping) {
-      return res.json({ success: true, message: 'Tiến trình cào/đồng bộ đang chạy ngầm!' });
+
+    if (!MENU_SCRAPE_ENABLED) {
+      return res.status(503).json({
+        success: false,
+        error: 'Menu scrape đang tắt trên server (ENABLE_MENU_SCRAPE=true để bật).'
+      });
     }
-    
-    triggerBackgroundMenuScrape(found);
-    res.json({ success: true, message: 'Đã kích hoạt cào & đồng bộ giá ngầm từ ShopeeFood.' });
+
+    if (found._isScraping) {
+      return res.json({ success: true, message: 'Tiến trình đồng bộ đang chạy cho quán này!' });
+    }
+
+    const updated = await triggerSyncMenuScrape(found);
+    const menu = readRestaurantMenu(id) || updated?.menu || [];
+    const menuCount = Array.isArray(menu) ? menu.length : 0;
+
+    res.json({
+      success: true,
+      message: menuCount > 0
+        ? `Đã đồng bộ & lưu ${menuCount} món từ ShopeeFood.`
+        : (updated?.isClosed
+          ? 'Quán đang đóng cửa trên ShopeeFood — trạng thái đã lưu.'
+          : 'Đồng bộ xong nhưng không lấy được menu mới.'),
+      menuCount,
+      isClosed: !!updated?.isClosed,
+      menuUpdatedAt: updated?.menuUpdatedAt || null
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

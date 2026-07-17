@@ -1288,6 +1288,88 @@ h4 { font-size: 14px; font-weight: 600; }
   }
 }
 
+/* ── RESTAURANTS SYNC & CHANGES ────────────────────────────────────────────── */
+.restaurant-sync-progress {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-md, 10px);
+  background: rgba(16, 185, 129, 0.06);
+}
+
+.restaurant-sync-progress__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.restaurant-sync-progress__bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.restaurant-sync-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.restaurant-changes-panel .count {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+}
+
+.restaurant-change-row--unread {
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.restaurant-row--changed {
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.restaurant-change-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  flex-shrink: 0;
+}
+
+.restaurant-change-badge--unread {
+  animation: pulse 1.5s infinite;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.2);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #f59e0b;
+  color: #111;
+}
+
 /* ── OPS BOARD & FLEET MAP ─────────────────────────────────────────────────── */
 .ops-row--breach {
   background: rgba(239, 68, 68, 0.08);
