@@ -7,10 +7,12 @@
   "multiItemDiscount": 0.15,
   "telegramConfig": {
     "enableNewShipperAlert": true,
-    "enableNewOrderAlert": false,
+    "enableNewOrderAlert": true,
     "enableOrderUpdateAlert": false,
     "enablePeriodicReport": true,
     "enableEmergencyAlert": true,
+    "enableSlaAlert": true,
+    "enableRestaurantAlert": false,
     "reportIntervalHours": 6
   }
 }

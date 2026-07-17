@@ -63,6 +63,7 @@ let restaurantSearchPage = 1;
 let restaurantSearchQuery = '';
 let restaurantChangedMap = new Map();
 let bulkSyncPollTimer = null;
+let menuScrapeEnabled = null;
 let currentEditingMenu = [];
 
 async function initSupabase() {
@@ -196,7 +197,17 @@ function showApp() {
     document.getElementById('sidebar-avatar').textContent = (adminUser.name || 'A').charAt(0).toUpperCase();
   }
 
-  navigateTo('dashboard');
+  const params = new URLSearchParams(window.location.search);
+  const deepPage = params.get('page');
+  const deepQ = params.get('q');
+  const validPages = ['dashboard', 'shippers', 'restaurants', 'orders', 'fleet', 'customers', 'settings'];
+
+  if (deepPage && validPages.includes(deepPage)) {
+    navigateTo(deepPage);
+    if (deepQ) setTimeout(() => handleGlobalSearch(deepQ), 150);
+  } else {
+    navigateTo('dashboard');
+  }
   startPolling();
 }
 
@@ -1307,6 +1318,14 @@ function renderRestaurants() {
       </div>
     </div>
 
+    <div id="restaurant-scrape-warning" class="restaurant-scrape-warning hidden">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div>
+        <strong>Đồng bộ ShopeeFood đang tắt trên server production</strong>
+        <p>Render mặc định tắt cào menu để tránh quá tải. Vào <span class="mono">Render → Environment</span> thêm biến <span class="mono">ENABLE_MENU_SCRAPE=true</span> rồi redeploy — hoặc chạy đồng bộ trên máy local.</p>
+      </div>
+    </div>
+
     <div id="restaurant-sync-progress" class="restaurant-sync-progress hidden">
       <div class="restaurant-sync-progress__header">
         <span><i class="fa-solid fa-spinner fa-spin"></i> Đang đồng bộ ShopeeFood...</span>
@@ -1402,6 +1421,34 @@ function renderRestaurants() {
   loadRestaurants();
   loadRestaurantChanges();
   pollBulkSyncStatus(true);
+  checkRestaurantSyncAvailability();
+}
+
+async function checkRestaurantSyncAvailability() {
+  const banner = document.getElementById('restaurant-scrape-warning');
+  const btnAll = document.getElementById('btn-sync-all');
+  const btnChanged = document.getElementById('btn-sync-changed');
+  try {
+    const res = await fetch(`${API_BASE}/api/status`).then(r => r.json());
+    menuScrapeEnabled = res.menuScrapeEnabled === true;
+    if (!menuScrapeEnabled) {
+      if (banner) banner.classList.remove('hidden');
+      if (btnAll) { btnAll.disabled = true; btnAll.title = 'Cần ENABLE_MENU_SCRAPE=true trên Render'; }
+      if (btnChanged) { btnChanged.disabled = true; btnChanged.title = 'Cần ENABLE_MENU_SCRAPE=true trên Render'; }
+    } else {
+      if (banner) banner.classList.add('hidden');
+    }
+  } catch (e) {
+    menuScrapeEnabled = null;
+  }
+}
+
+function ensureMenuScrapeEnabled() {
+  if (menuScrapeEnabled === false) {
+    showToast('Menu scrape đang tắt trên server. Thêm ENABLE_MENU_SCRAPE=true trên Render.', 'error');
+    return false;
+  }
+  return true;
 }
 
 async function loadRestaurantChanges() {
@@ -1484,6 +1531,7 @@ function focusRestaurantChange(restaurantId) {
 }
 
 async function syncAllRestaurants(scope) {
+  if (!ensureMenuScrapeEnabled()) return;
   const label = scope === 'changed' ? 'các quán có biến động' : 'TẤT CẢ quán';
   if (!confirm(`Đồng bộ ${label} với ShopeeFood?\n\nHệ thống sẽ cào menu/giá và lưu ngay vào database. Quá trình có thể mất nhiều phút.`)) {
     return;
@@ -1638,6 +1686,7 @@ function changeRestaurantPage(page) {
 window.changeRestaurantPage = changeRestaurantPage;
 
 async function syncRestaurantPrice(restaurantId) {
+  if (!ensureMenuScrapeEnabled()) return;
   const btn = event?.target?.closest('button');
   if (btn) {
     btn.disabled = true;
@@ -2810,6 +2859,46 @@ function renderSettings() {
         </button>
       </div>
 
+      <div class="card" id="telegram-settings-card">
+        <h3 class="mb-4"><i class="fa-brands fa-telegram" style="color: #29b6f6; margin-right: 8px;"></i>Telegram Alerts</h3>
+        <p class="text-sm text-muted mb-4" style="line-height:1.6;">Điều khiển thông báo bot Telegram (remote ops console khớp CRM). Cần cấu hình <span class="mono">TELEGRAM_BOT_TOKEN</span> và <span class="mono">TELEGRAM_CHAT_ID</span> trên server.</p>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Tài xế mới chờ duyệt</label>
+          <input type="checkbox" id="tg-enable-new-shipper" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Đơn hàng mới</label>
+          <input type="checkbox" id="tg-enable-new-order" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Cập nhật trạng thái đơn</label>
+          <input type="checkbox" id="tg-enable-order-update">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">SLA breach</label>
+          <input type="checkbox" id="tg-enable-sla" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">SOS / Hỗ trợ tài xế</label>
+          <input type="checkbox" id="tg-enable-emergency" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Quán ăn (đóng/mở, giá)</label>
+          <input type="checkbox" id="tg-enable-restaurant">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Báo cáo định kỳ CRM</label>
+          <input type="checkbox" id="tg-enable-periodic" checked>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chu kỳ báo cáo (giờ)</label>
+          <input type="number" class="form-input" id="tg-report-hours" min="1" max="24" value="6">
+        </div>
+        <button class="btn btn--primary btn--sm" onclick="saveTelegramSettings()">
+          <i class="fa-solid fa-floppy-disk"></i> Lưu Telegram
+        </button>
+      </div>
+
       <div class="card">
         <h3 class="mb-4"><i class="fa-solid fa-server" style="color: var(--blue); margin-right: 8px;"></i>API Server</h3>
         <div class="form-group">
@@ -2888,6 +2977,16 @@ function renderSettings() {
         set('settings-surcharge-coef', res.data.surchargeCoefficient);
         set('settings-min-earning', res.data.minShipperEarning);
         set('settings-multi-discount', Math.round((res.data.multiItemDiscount || 0) * 100));
+        const tg = res.data.telegramConfig || {};
+        const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+        setCheck('tg-enable-new-shipper', tg.enableNewShipperAlert !== false);
+        setCheck('tg-enable-new-order', tg.enableNewOrderAlert !== false);
+        setCheck('tg-enable-order-update', tg.enableOrderUpdateAlert === true);
+        setCheck('tg-enable-sla', tg.enableSlaAlert !== false);
+        setCheck('tg-enable-emergency', tg.enableEmergencyAlert !== false);
+        setCheck('tg-enable-restaurant', tg.enableRestaurantAlert === true);
+        setCheck('tg-enable-periodic', tg.enablePeriodicReport !== false);
+        set('tg-report-hours', tg.reportIntervalHours || 6);
       }
     })
     .catch(err => console.error('Lỗi lấy cấu hình pricing:', err));
@@ -3010,6 +3109,42 @@ async function savePricingSettings() {
 }
 
 window.savePricingSettings = savePricingSettings;
+
+async function saveTelegramSettings() {
+  const getCheck = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.checked : false;
+  };
+  const hoursEl = document.getElementById('tg-report-hours');
+  const reportHours = hoursEl ? parseInt(hoursEl.value, 10) : 6;
+
+  const telegramConfig = {
+    enableNewShipperAlert: getCheck('tg-enable-new-shipper'),
+    enableNewOrderAlert: getCheck('tg-enable-new-order'),
+    enableOrderUpdateAlert: getCheck('tg-enable-order-update'),
+    enableSlaAlert: getCheck('tg-enable-sla'),
+    enableEmergencyAlert: getCheck('tg-enable-emergency'),
+    enableRestaurantAlert: getCheck('tg-enable-restaurant'),
+    enablePeriodicReport: getCheck('tg-enable-periodic'),
+    reportIntervalHours: isNaN(reportHours) ? 6 : Math.min(24, Math.max(1, reportHours))
+  };
+
+  try {
+    const res = await apiFetch('/api/admin/pricing-config', {
+      method: 'POST',
+      body: JSON.stringify({ telegramConfig })
+    });
+    if (res.success) {
+      showToast('Đã lưu cấu hình Telegram!', 'success');
+    } else {
+      showToast(res.error || 'Lỗi lưu Telegram', 'error');
+    }
+  } catch (err) {
+    showToast(err.message || 'Không thể kết nối API.', 'error');
+  }
+}
+
+window.saveTelegramSettings = saveTelegramSettings;
 
 async function assignOrderToShipper(orderId) {
   const select = document.getElementById('assign-shipper-select');
