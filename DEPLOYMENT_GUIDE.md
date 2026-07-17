@@ -134,8 +134,9 @@ flowchart TD
   B --> C["Push feature branch + mở PR trên GitHub"]
   C --> D{"Merge vào master?"}
   D -->|Chưa| E["Chỉ lưu trên GitHub — chưa production"]
-  D -->|Có| F["Vercel deploy frontend"]
   D -->|Có| G["Render deploy API"]
+  D -->|Có| H["Đồng bộ main = master"]
+  H --> F["Vercel Production → shipfee.vercel.app"]
 ```
 
 ```bash
@@ -146,15 +147,19 @@ git add customer-app public server
 git commit -m "feat: mô tả"
 git push -u origin HEAD
 # Mở PR → review → merge master
-# → Render tự build lại backend (2–5 phút, cold start có thể lâu hơn)
-# → Vercel tự build frontend (Build: npm run build, ~30–90 giây)
+# → Render tự build lại backend (2–5 phút)
+# → BẮT BUỘC đồng bộ nhánh Vercel Production:
+git fetch origin && git push origin origin/master:main
+# → Vercel Production (Build: npm run build, ~30–90 giây) cập nhật shipfee.vercel.app
 ```
 
-| Trạng thái GitHub | Production? |
-|-------------------|-------------|
-| Push feature branch / PR mở | **Không** |
-| PR đã merge vào `master` | **Có** (auto Vercel + Render) |
-| Push thẳng `master` | **Có** (không khuyến nghị) |
+| Trạng thái GitHub | Production `shipfee.vercel.app`? |
+|-------------------|----------------------------------|
+| Push feature branch / PR mở | **Không** (chỉ Preview) |
+| PR đã merge vào `master` thôi | **Chưa** — Vercel Production Branch = `main` |
+| `main` đã = `master` (sau sync) | **Có** (Vercel Production + Render) |
+
+> **Lỗi hay gặp:** merge PR vào `master` thấy GitHub/Vercel “Deployment completed” nhưng `shipfee.vercel.app` vẫn cũ — đó là **Preview**, không phải Production. Luôn sync `main`.
 
 ### 2.5. API URL Frontend (Customer)
 

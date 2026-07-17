@@ -2,7 +2,10 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#EF4444">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="Permissions-Policy" content="geolocation=(self)">
   <title>Theo Dõi Đơn Hàng — ShipFee</title>
   <meta name="description" content="Theo dõi trạng thái đơn hàng của bạn theo thời gian thực.">
   <link rel="stylesheet" href="style.css">
@@ -1532,21 +1535,23 @@
       }
     }
 
-    function requestLocationPermission() {
-      if (!navigator.geolocation) {
+    async function requestLocationPermission() {
+      if (!SF.getUserLocation) {
         SF.showToast('Không hỗ trợ', 'Trình duyệt không hỗ trợ định vị.', 'error');
         return;
       }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          updatePermissionUI('location', 'granted');
-          SF.showToast('Cấp quyền thành công', 'Đã cấp quyền truy cập vị trí GPS.', 'success');
-        },
-        (err) => {
-          updatePermissionUI('location', 'denied');
-          SF.showToast('Từ chối vị trí', 'Bạn đã từ chối cấp quyền vị trí.', 'error');
-        }
-      );
+      try {
+        await SF.getUserLocation();
+        updatePermissionUI('location', 'granted');
+        SF.showToast('Cấp quyền thành công', 'Đã cấp quyền truy cập vị trí GPS.', 'success');
+      } catch (err) {
+        const denied = err && err.code === 1;
+        updatePermissionUI('location', denied ? 'denied' : 'prompt');
+        const formatted = SF.formatGeoError
+          ? SF.formatGeoError(err)
+          : { title: 'Lỗi vị trí', message: 'Không lấy được GPS.' };
+        SF.showToast(formatted.title, formatted.message, 'error', 8000);
+      }
     }
 
     function requestNotificationPermission() {

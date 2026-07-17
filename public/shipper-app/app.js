@@ -1504,7 +1504,11 @@ function startGpsTracking() {
     {
       enableHighAccuracy: true,
       maximumAge: 3000,
-      timeout: 15000
+      // iOS Safari cold GPS regularly needs >15s on first fix
+      timeout: (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+        ? 28000
+        : 18000
     }
   );
 }
