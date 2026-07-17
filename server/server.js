@@ -3207,6 +3207,19 @@ function geocodeAddress(address, name, restaurantId) {
   // Basic Vietnamese tone removal to improve matching
   const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  // CMT8 chạy dài nhiều quận — ưu tiên theo phường/quận trong địa chỉ
+  if (cleanText.includes('cach mang thang 8') || cleanText.includes('cmt8')) {
+    let result;
+    if (cleanText.includes('binh thuy') || cleanText.includes('an thoi')) {
+      result = { lat: 10.06014, lon: 105.76537 };
+    } else {
+      // Cái Khế / Ninh Kiều (mặc định đúng hơn centroid cũ gần Nguyễn Đệ)
+      result = { lat: 10.05031, lon: 105.77514 };
+    }
+    if (restaurantId) geocodeCache.set(restaurantId, result);
+    return result;
+  }
+
   const mappings = [
     { keys: ['nguyen van cu'], lat: 10.0298, lon: 105.7584 },
     { keys: ['mau than'], lat: 10.0276, lon: 105.7725 },
@@ -3214,7 +3227,6 @@ function geocodeAddress(address, name, restaurantId) {
     { keys: ['30 thang 4', 'ba muoi thang tu', '30/4'], lat: 10.0165, lon: 105.7708 },
     { keys: ['tran hung dao'], lat: 10.0381, lon: 105.7801 },
     { keys: ['ly tu trong'], lat: 10.0354, lon: 105.7825 },
-    { keys: ['cach mang thang 8', 'cmt8'], lat: 10.0492, lon: 105.7615 },
     { keys: ['hung vuong'], lat: 10.0415, lon: 105.7818 },
     { keys: ['tran van hoai'], lat: 10.0261, lon: 105.7772 },
     { keys: ['tam vu'], lat: 10.0182, lon: 105.7720 },
@@ -4981,6 +4993,22 @@ function readOrdersDatabase() {
   }
 }
 
+/** Ghi đè tọa độ quán từ DB thật (tránh heuristic đường phố sai trên đơn cũ). */
+function hydrateOrderRestaurantCoords(order) {
+  if (!order || !order.restaurantId || !Array.isArray(cachedRestaurants)) return order;
+  const mem = cachedRestaurants.find(r => r && String(r.id) === String(order.restaurantId));
+  if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+    order.restaurantLat = mem.latitude;
+    order.restaurantLon = mem.longitude;
+  }
+  return order;
+}
+
+function hydrateOrdersRestaurantCoords(orders) {
+  if (Array.isArray(orders)) return orders.map(hydrateOrderRestaurantCoords);
+  return hydrateOrderRestaurantCoords(orders);
+}
+
 function updateOrdersDatabase(updaterFn) {
   return new Promise((resolve, reject) => {
     ordersQueuePromise = ordersQueuePromise.then(() => {
@@ -5245,7 +5273,7 @@ app.get('/api/orders', async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(resultData, req) });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrdersRestaurantCoords(resultData), req) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -5263,7 +5291,7 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(order, req) });
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(order), req) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

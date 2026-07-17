@@ -3233,6 +3233,14 @@ function geocodeAddressOffline(address, name) {
   // Basic Vietnamese tone removal to improve matching
   const cleanText = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
+  // CMT8 dài nhiều quận — chọn theo phường trong địa chỉ
+  if (cleanText.includes('cach mang thang 8') || cleanText.includes('cmt8')) {
+    if (cleanText.includes('binh thuy') || cleanText.includes('an thoi')) {
+      return { lat: 10.06014, lon: 105.76537 };
+    }
+    return { lat: 10.05031, lon: 105.77514 }; // Cái Khế / Ninh Kiều
+  }
+
   const mappings = [
     { keys: ['nguyen van cu'], lat: 10.0298, lon: 105.7584 },
     { keys: ['mau than'], lat: 10.0276, lon: 105.7725 },
@@ -3240,7 +3248,6 @@ function geocodeAddressOffline(address, name) {
     { keys: ['30 thang 4', 'ba muoi thang tu', '30/4'], lat: 10.0165, lon: 105.7708 },
     { keys: ['tran hung dao'], lat: 10.0381, lon: 105.7801 },
     { keys: ['ly tu trong'], lat: 10.0354, lon: 105.7825 },
-    { keys: ['cach mang thang 8', 'cmt8'], lat: 10.0492, lon: 105.7615 },
     { keys: ['hung vuong'], lat: 10.0415, lon: 105.7818 },
     { keys: ['tran van hoai'], lat: 10.0261, lon: 105.7772 },
     { keys: ['tam vu'], lat: 10.0182, lon: 105.7720 },
@@ -3295,11 +3302,14 @@ function openExternalMapsUrl(url) {
   }
 }
 
-function buildGoogleMapsDirectionsUrl({ lat, lon, label }) {
+function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) {
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const text = (label || '').trim();
 
-  // Google Maps Directions — chỉ đường tới điểm đích
+  // Quán ăn: ưu tiên địa chỉ chữ — Google geocode chính xác hơn centroid đường heuristic
+  if (preferLabel && text) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=driving`;
+  }
   if (hasCoords) {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=driving`;
   }
@@ -3318,23 +3328,35 @@ function navigateToPoint(target) {
   let lat = null;
   let lon = null;
   let label = '';
+  let preferLabel = false;
 
   if (target === 'restaurant') {
+    // Luôn ưu tiên tên + địa chỉ quán cho Google Maps.
+    // restaurantLat/Lon thường là heuristic theo tên đường (sai lệch — vd. CMT8 → Bình Thủy).
+    label = [activeOrder.restaurantName, activeOrder.restaurantAddress]
+      .map(s => (s || '').trim())
+      .filter(Boolean)
+      .join(', ');
+    preferLabel = !!label;
+
     lat = parseCoord(activeOrder.restaurantLat);
     lon = parseCoord(activeOrder.restaurantLon);
-    label = [activeOrder.restaurantName, activeOrder.restaurantAddress].filter(Boolean).join(', ');
 
-    // Fallback offline khi thiếu tọa độ — vẫn giữ địa chỉ text cho Maps
-    if (lat == null || lon == null) {
+    // Chỉ fallback tọa độ khi KHÔNG có địa chỉ chữ
+    if (!preferLabel && (lat == null || lon == null)) {
       const coords = geocodeAddressOffline(activeOrder.restaurantAddress || '', activeOrder.restaurantName || '');
       lat = coords.lat;
       lon = coords.lon;
       console.log(`[Navigation] Geocoded restaurant offline fallback: ${lat}, ${lon}`);
     }
   } else if (target === 'customer') {
+    // Điểm giao: ưu tiên pin GPS của khách (chính xác)
     lat = parseCoord(activeOrder.pinnedLat);
     lon = parseCoord(activeOrder.pinnedLon);
-    label = [activeOrder.deliveryName, activeOrder.deliveryAddress].filter(Boolean).join(', ');
+    label = [activeOrder.deliveryName, activeOrder.deliveryAddress]
+      .map(s => (s || '').trim())
+      .filter(Boolean)
+      .join(', ');
 
     if (lat == null || lon == null) {
       const coords = geocodeAddressOffline(activeOrder.deliveryAddress || '', '');
@@ -3347,12 +3369,13 @@ function navigateToPoint(target) {
     return;
   }
 
-  const url = buildGoogleMapsDirectionsUrl({ lat, lon, label });
+  const url = buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel });
   if (!url) {
     showToast('Thiếu địa chỉ', 'Đơn hàng này chưa có địa chỉ hoặc tọa độ để chỉ đường.', 'error');
     return;
   }
 
+  console.log('[Navigation] Opening:', url);
   const ok = openExternalMapsUrl(url);
   if (!ok) {
     showToast('Không mở được Maps', 'Sao chép địa chỉ và mở Google Maps thủ công.', 'error');
