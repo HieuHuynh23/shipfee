@@ -686,6 +686,242 @@ function debounce(fn, delay) {
   return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
 }
 
+function throttle(fn, wait) {
+  let last = 0;
+  let pending = null;
+  return (...args) => {
+    const now = Date.now();
+    const remaining = wait - (now - last);
+    if (remaining <= 0) {
+      last = now;
+      if (pending) {
+        cancelAnimationFrame(pending);
+        pending = null;
+      }
+      fn(...args);
+    } else if (!pending) {
+      pending = requestAnimationFrame(() => {
+        pending = null;
+        last = Date.now();
+        fn(...args);
+      });
+    }
+  };
+}
+
+/* --------------------------------------------------------------------------
+   Geolocation — iOS Safari–safe accurate location
+   -------------------------------------------------------------------------- */
+function isAppleMobile() {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return iOS || iPadOS;
+}
+
+function geoGetOnce(options) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      const err = new Error('Geolocation unsupported');
+      err.code = 0;
+      reject(err);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
+}
+
+/** Watch briefly to refine a coarse first fix (common on iOS Safari). */
+function geoRefineWatch({ timeoutMs = 12000, targetAccuracy = 45 } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      const err = new Error('Geolocation unsupported');
+      err.code = 0;
+      reject(err);
+      return;
+    }
+    let best = null;
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!best || (pos.coords.accuracy || 9999) < (best.coords.accuracy || 9999)) {
+          best = pos;
+        }
+        if ((pos.coords.accuracy || 9999) <= targetAccuracy) {
+          navigator.geolocation.clearWatch(watchId);
+          clearTimeout(timer);
+          resolve(best);
+        }
+      },
+      (err) => {
+        navigator.geolocation.clearWatch(watchId);
+        clearTimeout(timer);
+        if (best) resolve(best);
+        else reject(err);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: timeoutMs }
+    );
+    const timer = setTimeout(() => {
+      navigator.geolocation.clearWatch(watchId);
+      if (best) resolve(best);
+      else {
+        const err = new Error('Geolocation timeout');
+        err.code = 3;
+        reject(err);
+      }
+    }, timeoutMs);
+  });
+}
+
+/**
+ * High-accuracy user location with iOS Safari fallbacks.
+ * Must be called from a user gesture (button tap).
+ *
+ * iOS Safari notes:
+ * - Cold GPS often needs 10–25s (short timeouts cause false failures)
+ * - First fix is frequently Wi‑Fi/cell (~100–500m); watchPosition refines
+ * - Permissions API for geolocation is unreliable — always attempt getCurrentPosition
+ */
+async function getUserLocation({ onProgress } = {}) {
+  const apple = isAppleMobile();
+  const progress = (msg) => {
+    if (typeof onProgress === 'function') onProgress(msg);
+  };
+
+  if (!navigator.geolocation) {
+    const err = new Error('unsupported');
+    err.code = 0;
+    throw err;
+  }
+
+  if (!window.isSecureContext && location.hostname !== 'localhost') {
+    const err = new Error('insecure');
+    err.code = 0;
+    err.insecure = true;
+    throw err;
+  }
+
+  // iOS cold-start GPS regularly exceeds 8–10s — do not use short timeouts.
+  const highOpts = {
+    enableHighAccuracy: true,
+    maximumAge: 0,
+    timeout: apple ? 28000 : 18000
+  };
+  const lowOpts = {
+    enableHighAccuracy: false,
+    maximumAge: 60_000,
+    timeout: apple ? 18000 : 12000
+  };
+
+  let position = null;
+  let coarse = false;
+
+  // On Apple: quick network fix first (keeps UI responsive), then refine with GPS.
+  if (apple) {
+    progress('Đang lấy vị trí nhanh (mạng)...');
+    try {
+      position = await geoGetOnce({
+        enableHighAccuracy: false,
+        maximumAge: 30_000,
+        timeout: 12000
+      });
+      coarse = (position.coords.accuracy || 9999) > 80;
+    } catch (_) {
+      // continue to high-accuracy attempt
+    }
+  }
+
+  try {
+    progress(apple
+      ? 'Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...'
+      : 'Đang lấy GPS độ chính xác cao...');
+    const highPos = await geoGetOnce(highOpts);
+    if (!position || (highPos.coords.accuracy || 9999) <= (position.coords.accuracy || 9999)) {
+      position = highPos;
+      coarse = (highPos.coords.accuracy || 9999) > 100;
+    }
+  } catch (highErr) {
+    if (!position) {
+      progress('GPS chậm — thử định vị mạng / Wi‑Fi...');
+      try {
+        position = await geoGetOnce(lowOpts);
+        coarse = true;
+      } catch (lowErr) {
+        const err = lowErr || highErr;
+        err.iosHint = apple;
+        throw err;
+      }
+    }
+  }
+
+  const accuracy = position.coords.accuracy || 9999;
+  if (accuracy > 80) {
+    progress('Đang tinh chỉnh vị trí chính xác hơn...');
+    try {
+      const refined = await geoRefineWatch({
+        timeoutMs: apple ? 18000 : 10000,
+        targetAccuracy: 40
+      });
+      if ((refined.coords.accuracy || 9999) <= accuracy) {
+        position = refined;
+      }
+      coarse = (position.coords.accuracy || 9999) > 100;
+    } catch (_) {
+      // keep best fix so far
+    }
+  }
+
+  return {
+    lat: position.coords.latitude,
+    lon: position.coords.longitude,
+    accuracy: position.coords.accuracy || null,
+    coarse,
+    apple,
+    timestamp: position.timestamp
+  };
+}
+
+function formatGeoError(error) {
+  const apple = isAppleMobile() || error?.iosHint;
+  if (error?.insecure) {
+    return {
+      title: 'Cần mở bằng HTTPS',
+      message: 'Safari chỉ cho phép GPS trên trang bảo mật (https). Hãy mở lại app qua link chính thức.'
+    };
+  }
+  if (!error || error.code === 0) {
+    return {
+      title: 'Không hỗ trợ GPS',
+      message: 'Trình duyệt không hỗ trợ định vị. Hãy ghim tay trên bản đồ.'
+    };
+  }
+  if (error.code === 1) {
+    return {
+      title: 'Chưa cấp quyền vị trí',
+      message: apple
+        ? 'Trên iPhone: Cài đặt → Safari → Vị trí → Cho phép, hoặc chạm aA trên thanh địa chỉ → Website Settings → Location → Allow. Sau đó nhấn lại nút GPS.'
+        : 'Hãy cho phép quyền vị trí trong trình duyệt, rồi nhấn lại nút GPS.'
+    };
+  }
+  if (error.code === 2) {
+    return {
+      title: 'Không đọc được GPS',
+      message: apple
+        ? 'Bật Dịch vụ định vị (Cài đặt → Quyền riêng tư → Dịch vụ định vị) và thử lại ngoài trời, hoặc ghim tay trên bản đồ.'
+        : 'Không lấy được tín hiệu GPS. Thử lại hoặc ghim tay trên bản đồ.'
+    };
+  }
+  if (error.code === 3) {
+    return {
+      title: 'GPS quá chậm',
+      message: 'Máy mất quá lâu để định vị. Ra chỗ thoáng hoặc kéo ghim trên bản đồ để chọn vị trí giao hàng.'
+    };
+  }
+  return {
+    title: 'Lỗi định vị',
+    message: 'Không thể lấy vị trí. Vui lòng ghim tay trên bản đồ.'
+  };
+}
+
 /* --------------------------------------------------------------------------
    Toast Notification System
    -------------------------------------------------------------------------- */
@@ -780,6 +1016,10 @@ window.SF = {
   calcToppingAppPrice,
   escapeHtml,
   debounce,
+  throttle,
+  isAppleMobile,
+  getUserLocation,
+  formatGeoError,
   loadPricingConfig,
   getState, saveState, getCart, getCartTotal, updateCartItemNote,
   addToCart, removeFromCart, removeItemFromCart, clearCart,
@@ -791,19 +1031,9 @@ window.SF = {
 };
 
 /* --------------------------------------------------------------------------
-   Mobile Zoom Prevention
+   Mobile Zoom Prevention (lightweight — avoid non-passive touch handlers
+   that jank scroll on iOS Safari). Prefer CSS touch-action: manipulation.
    -------------------------------------------------------------------------- */
-document.addEventListener('touchstart', function (event) {
-  if (event.touches.length > 1) {
-    event.preventDefault();
-  }
-}, { passive: false });
-
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function (event) {
-  const now = (new Date()).getTime();
-  if (now - lastTouchEnd <= 300) {
-    event.preventDefault();
-  }
-  lastTouchEnd = now;
+document.addEventListener('gesturestart', function (event) {
+  event.preventDefault();
 }, { passive: false });

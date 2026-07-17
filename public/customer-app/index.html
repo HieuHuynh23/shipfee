@@ -2,13 +2,17 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#EF4444">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta http-equiv="Permissions-Policy" content="geolocation=(self)">
   <title>ShipFee — Đặt Món Tiện Lợi & Giao Hàng Siêu Tốc</title>
   <meta name="description" content="Đặt đồ ăn trực tuyến nhanh chóng, tiện lợi, giao hàng siêu tốc tận nơi tại Cần Thơ. Đa dạng món ăn, an toàn thanh toán.">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Leaflet loaded on-demand when opening address modal (mobile perf) -->
   <style>
     /* ── PAGE-SPECIFIC STYLES ── */
     .hero-search-wrap {
@@ -760,17 +764,18 @@
         ? displayedData.slice(displayedData.length - (list || []).length)
         : displayedData;
 
+      const esc = SF.escapeHtml;
+      const frag = document.createDocumentFragment();
+      const maxStagger = 6; // Cap CSS animations — long delays jank iOS scroll
+
       dataToRender.forEach((r, i) => {
         if (!r) return;
         const card = document.createElement('article');
         const isClosed = r.isClosed === true;
-        card.className = 'card animate-fade-in' + (isClosed ? ' is-closed' : '');
-        card.style.animationDelay = (i * 0.08) + 's';
-        card.style.opacity = '0';
-        // Quán đóng cửa vẫn cho xem trang nhưng sẽ hiện thông báo đóng cửa
-        card.onclick = () => SF.navigate('restaurant.html', { id: r.id });
+        card.className = 'card' + (i < maxStagger ? ' animate-fade-in' : '') + (isClosed ? ' is-closed' : '');
+        if (i < maxStagger) card.style.animationDelay = (i * 0.04) + 's';
+        card.addEventListener('click', () => SF.navigate('restaurant.html', { id: r.id }), { passive: true });
 
-        // Tính thời gian mở lại (nếu có closedAt, ước tính 8 tiếng sau)
         let reopenText = 'Mở cửa lại sau';
         if (r.closedAt) {
           const closedTime = new Date(r.closedAt);
@@ -795,7 +800,7 @@
                 <i class="fa-solid fa-lock" style="font-size:9px;"></i> Đang đóng cửa
               </span>
               <span class="closed-overlay-strip__time">
-                <i class="fa-regular fa-clock"></i> ${reopenText}
+                <i class="fa-regular fa-clock"></i> ${esc(reopenText)}
               </span>
             </div>`;
         } else if (r.hasRealMenu !== true) {
@@ -808,40 +813,47 @@
         }
 
         const tags = Array.isArray(r.tags) ? r.tags : [];
+        const safeName = esc(r.name || '');
+        const safeImg = esc(r.img || '');
+        const safeDist = esc(r.distance || '');
+        const safeTime = esc(r.time || '');
+        const safeTags = tags.map(t => `<span class="badge badge--glass">${esc(t)}</span>`).join('');
 
         card.innerHTML = `
           <div class="card__img-wrap">
-            <img src="${r.img || ''}" alt="${r.name || ''}" class="card__img" loading="lazy">
+            <img src="${safeImg}" alt="${safeName}" class="card__img" loading="lazy" decoding="async" fetchpriority="${i < 3 && !isAppend ? 'high' : 'auto'}" width="400" height="160">
             <div class="card__badge">
               ${isClosed
-                ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;">🔒 Đóng cửa</span>`
+                ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;">Đóng cửa</span>`
                 : (r.hasRealMenu !== true)
-                  ? `<span class="badge" style="background:#F59E0B;color:white;border:none;">⏳ Sẽ mở lại sớm</span>`
-                  : tags.map(t => `<span class="badge badge--glass">${t}</span>`).join('')
+                  ? `<span class="badge" style="background:#F59E0B;color:white;border:none;">Sẽ mở lại sớm</span>`
+                  : safeTags
               }
             </div>
             ${closedOverlayHtml}
           </div>
           <div class="card__body">
-            <h3 class="card__name" style="${isClosed ? 'color:var(--clr-text-muted);' : ''}">${r.name || ''}</h3>
+            <h3 class="card__name" style="${isClosed ? 'color:var(--clr-text-muted);' : ''}">${safeName}</h3>
             <div class="card__meta">
               <span class="card__meta-item rating">
-                <i class="fa-solid fa-star"></i> ${r.rating || 0} (${(r.reviews || 0).toLocaleString()})
+                <i class="fa-solid fa-star"></i> ${esc(r.rating || 0)} (${(r.reviews || 0).toLocaleString()})
               </span>
               <span class="card__meta-item">
-                <i class="fa-solid fa-location-dot"></i> ${r.distance || ''}
+                <i class="fa-solid fa-location-dot"></i> ${safeDist}
               </span>
               <span class="card__meta-item">
                 <i class="fa-solid fa-clock"></i>
                 ${isClosed
                   ? `<span style="color:#f87171;font-weight:700;">Đóng cửa</span>`
-                  : r.time || ''
+                  : safeTime
                 }
               </span>
             </div>
           </div>`;
-        container.appendChild(card);
+        frag.appendChild(card);
       });
+
+      container.appendChild(frag);
 
       removeLoadMoreBtn();
       const canLoadMoreServer = clientRenderMode === 'server' && serverHasMore;
@@ -899,7 +911,7 @@
     function renderMiniCards(containerId, list) {
       const container = document.getElementById(containerId);
       if (!container) return;
-      container.innerHTML = '';
+      container.textContent = '';
 
       if (!list || list.length === 0) {
         container.innerHTML = `
@@ -909,37 +921,42 @@
         return;
       }
 
+      const esc = SF.escapeHtml;
+      const frag = document.createDocumentFragment();
       list.forEach((r, i) => {
         if (!r) return;
         const isClosed = r.isClosed === true;
         const card = document.createElement('div');
-        card.className = 'card-mini animate-fade-in' + (isClosed ? ' is-closed' : '');
-        card.style.animationDelay = (i * 0.05) + 's';
-        card.onclick = () => SF.navigate('restaurant.html', { id: r.id });
+        card.className = 'card-mini' + (i < 4 ? ' animate-fade-in' : '') + (isClosed ? ' is-closed' : '');
+        if (i < 4) card.style.animationDelay = (i * 0.04) + 's';
+        card.addEventListener('click', () => SF.navigate('restaurant.html', { id: r.id }), { passive: true });
 
         const tags = Array.isArray(r.tags) ? r.tags : [];
+        const label = esc(tags[0] || r.category || 'Món ngon');
+        const safeName = esc(r.name || '');
         const badgeHtml = isClosed
-          ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">🔒 Đóng</span>`
-          : `<span class="badge badge--glass" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">${tags[0] || r.category || 'Món ngon'}</span>`;
+          ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">Đóng</span>`
+          : `<span class="badge badge--glass" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">${label}</span>`;
 
         card.innerHTML = `
           <div class="card-mini__img-wrap">
-            <img src="${r.img || ''}" alt="${r.name || ''}" class="card-mini__img" loading="lazy">
+            <img src="${esc(r.img || '')}" alt="${safeName}" class="card-mini__img" loading="lazy" decoding="async">
             ${badgeHtml}
           </div>
           <div class="card-mini__body">
-            <h4 class="card-mini__name" title="${r.name || ''}">${r.name || ''}</h4>
+            <h4 class="card-mini__name" title="${safeName}">${safeName}</h4>
             <div class="card-mini__meta">
               <span class="card-mini__rating">
-                <i class="fa-solid fa-star"></i> ${r.rating || 0}
+                <i class="fa-solid fa-star"></i> ${esc(r.rating || 0)}
               </span>
               <span class="card-mini__distance">
-                <i class="fa-solid fa-location-dot"></i> ${r.distance || ''}
+                <i class="fa-solid fa-location-dot"></i> ${esc(r.distance || '')}
               </span>
             </div>
           </div>`;
-        container.appendChild(card);
+        frag.appendChild(card);
       });
+      container.appendChild(frag);
     }
 
     function renderAll() {
@@ -1247,6 +1264,29 @@
     let leafletMap = null;
     let mapMarker = null;
     let selectedOrderType = null;
+    let leafletLoadPromise = null;
+
+    function loadLeaflet() {
+      if (window.L) return Promise.resolve(window.L);
+      if (leafletLoadPromise) return leafletLoadPromise;
+      leafletLoadPromise = new Promise((resolve, reject) => {
+        const cssId = 'leaflet-css-deferred';
+        if (!document.getElementById(cssId)) {
+          const css = document.createElement('link');
+          css.id = cssId;
+          css.rel = 'stylesheet';
+          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(css);
+        }
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        s.async = true;
+        s.onload = () => resolve(window.L);
+        s.onerror = () => reject(new Error('Không tải được bản đồ'));
+        document.head.appendChild(s);
+      });
+      return leafletLoadPromise;
+    }
 
     function setOrderType(type) {
       selectedOrderType = type;
@@ -1303,7 +1343,7 @@
       }
     }
 
-    function showMapAt(lat, lon, updateInput = true) {
+    async function showMapAt(lat, lon, updateInput = true) {
       const mapDiv = document.getElementById('modal-map');
       if (mapDiv) mapDiv.style.display = 'block';
 
@@ -1314,16 +1354,28 @@
         document.getElementById('modal-address-input').value = `Vị trí Ghim Bản Đồ (${lat.toFixed(4)}, ${lon.toFixed(4)})`;
       }
 
+      try {
+        await loadLeaflet();
+      } catch (e) {
+        SF.showToast('Bản đồ', 'Không tải được bản đồ. Bạn vẫn có thể dùng GPS hoặc nhập địa chỉ.', 'warning');
+        return;
+      }
+
       if (!leafletMap) {
-        leafletMap = L.map('modal-map').setView(coords, 16);
+        leafletMap = L.map('modal-map', {
+          zoomControl: true,
+          attributionControl: false,
+          preferCanvas: true
+        }).setView(coords, 17);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
-          attribution: '© OpenStreetMap'
+          updateWhenIdle: true,
+          keepBuffer: 1
         }).addTo(leafletMap);
 
         mapMarker = L.marker(coords, { draggable: true }).addTo(leafletMap);
 
-        mapMarker.on('dragend', function (e) {
+        mapMarker.on('dragend', function () {
           const position = mapMarker.getLatLng();
           tempGpsCoords = { lat: position.lat, lon: position.lng };
           
@@ -1340,13 +1392,15 @@
           SF.showToast('📍 Đã ghim vị trí', `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`, 'info');
         });
       } else {
-        leafletMap.setView(coords, 16);
+        leafletMap.setView(coords, 17);
         mapMarker.setLatLng(coords);
       }
 
-      setTimeout(() => {
-        leafletMap.invalidateSize();
-      }, 150);
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (leafletMap) leafletMap.invalidateSize();
+        }, 80);
+      });
     }
 
     function promptAddress() {
@@ -1396,65 +1450,76 @@
       }
     }
 
-    function detectUserLocation() {
-      if (!navigator.geolocation) {
-        SF.showToast('Không hỗ trợ', 'Trình duyệt không hỗ trợ định vị GPS.', 'error');
-        return;
-      }
-      
+    async function detectUserLocation() {
       const btn = document.querySelector('button[onclick="detectUserLocation()"]');
+      if (!btn) return;
       const originalText = btn.innerHTML;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang tìm vị trí GPS...`;
       btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lấy vị trí...`;
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const lat = position.coords.latitude;
-          const lon = position.coords.longitude;
-          
-          // Kiểm tra xem vị trí có nằm ngoài Cần Thơ không (cách trung tâm Ninh Kiều > 20km)
-          const distFromCenter = clientHaversine(lat, lon, 10.0345, 105.7876);
-          let finalLat = lat;
-          let finalLon = lon;
-          if (distFromCenter > 20) {
-            finalLat = 10.0345;
-            finalLon = 105.7876;
-            SF.showToast('📍 Vùng phục vụ', 'Bạn đang ở ngoài Cần Thơ. Hệ thống tự động chuyển định vị về Trung tâm Ninh Kiều để bạn trải nghiệm!', 'info');
-          } else {
-            SF.showToast('📍 Đã định vị', 'Lấy tọa độ GPS thành công!', 'success');
-          }
-          
-          tempGpsCoords = { lat: finalLat, lon: finalLon };
-          
-          document.getElementById('modal-address-input').value = `Vị trí GPS (${finalLat.toFixed(4)}, ${finalLon.toFixed(4)})`;
-          
-          btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
-          btn.disabled = false;
-          btn.style.background = 'rgba(16, 185, 129, 0.1)';
-          btn.style.color = '#10B981';
-          btn.style.borderColor = '#10B981';
+      try {
+        if (!SF.getUserLocation) {
+          throw Object.assign(new Error('missing geo helper'), { code: 0 });
+        }
 
-          // Update map and marker location
-          showMapAt(finalLat, finalLon, false);
+        const loc = await SF.getUserLocation({
+          onProgress: (msg) => {
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${msg}`;
+          }
+        });
 
-          const pinBadge = document.getElementById('map-pin-badge');
-          if (pinBadge) {
-            pinBadge.style.display = 'flex';
-            pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí GPS chính xác: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}!`;
-          }
-        },
-        (error) => {
-          console.error(error);
-          btn.innerHTML = originalText;
-          btn.disabled = false;
-          let msg = 'Không thể lấy vị trí của bạn.';
-          if (error.code === error.PERMISSION_DENIED) {
-            msg = 'Vui lòng cho phép quyền định vị trong trình duyệt.';
-          }
-          SF.showToast('Lỗi định vị', msg, 'error');
-        },
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+        let finalLat = loc.lat;
+        let finalLon = loc.lon;
+        const distFromCenter = clientHaversine(finalLat, finalLon, 10.0345, 105.7876);
+
+        // Chỉ ép về Ninh Kiều khi chắc chắn ngoài vùng (tránh GPS iOS lệch tạm thời)
+        if (distFromCenter > 35) {
+          finalLat = 10.0345;
+          finalLon = 105.7876;
+          SF.showToast(
+            '📍 Ngoài vùng phục vụ',
+            'GPS đang ở ngoài Cần Thơ. Đã đặt tạm tại Ninh Kiều — hãy kéo ghim trên bản đồ tới đúng điểm giao.',
+            'info',
+            6000
+          );
+        } else {
+          const acc = loc.accuracy != null ? Math.round(loc.accuracy) : null;
+          const accText = acc != null ? ` (±${acc}m)` : '';
+          SF.showToast(
+            '📍 Đã định vị',
+            (loc.coarse ? 'Đã lấy vị trí gần đúng' : 'Đã lấy vị trí GPS') + accText + '. Kéo ghim nếu cần chỉnh.',
+            loc.coarse || (acc != null && acc > 100) ? 'warning' : 'success',
+            4500
+          );
+        }
+
+        tempGpsCoords = { lat: finalLat, lon: finalLon };
+        document.getElementById('modal-address-input').value =
+          `Vị trí GPS (${finalLat.toFixed(5)}, ${finalLon.toFixed(5)})`;
+
+        btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
+        btn.disabled = false;
+        btn.style.background = 'rgba(16, 185, 129, 0.1)';
+        btn.style.color = '#10B981';
+        btn.style.borderColor = '#10B981';
+
+        await showMapAt(finalLat, finalLon, false);
+
+        const pinBadge = document.getElementById('map-pin-badge');
+        if (pinBadge) {
+          pinBadge.style.display = 'flex';
+          const acc = loc.accuracy != null ? ` · ±${Math.round(loc.accuracy)}m` : '';
+          pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> GPS: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
+        }
+      } catch (error) {
+        console.error('[GPS]', error);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        const formatted = SF.formatGeoError
+          ? SF.formatGeoError(error)
+          : { title: 'Lỗi định vị', message: 'Không thể lấy vị trí. Hãy ghim tay trên bản đồ.' };
+        SF.showToast(formatted.title, formatted.message, 'error', 8000);
+      }
     }
 
     function saveAddress() {

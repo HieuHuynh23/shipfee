@@ -82,6 +82,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -91,8 +92,12 @@ body {
   color: var(--clr-text-primary);
   background: var(--clr-bg);
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: contain;
+  /* Avoid 300ms tap delay / double-tap zoom jank on iOS/Android */
+  touch-action: manipulation;
 }
 
 img {
@@ -106,9 +111,15 @@ a {
   text-decoration: none;
 }
 
-button {
+button, a, [role="button"], .card, .card-mini, .chip {
   cursor: pointer;
   font-family: inherit;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+button {
   border: none;
   background: none;
 }
@@ -590,11 +601,18 @@ ul, ol {
   overflow: hidden;
   transition: transform var(--transition-base), box-shadow var(--transition-base);
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: 260px;
 }
 
-.card:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+  .card:hover .card__img {
+    transform: scale(1.05);
+  }
 }
 
 .card:active {
@@ -614,10 +632,6 @@ ul, ol {
   height: 100%;
   object-fit: cover;
   transition: transform var(--transition-slow);
-}
-
-.card:hover .card__img {
-  transform: scale(1.05);
 }
 
 .card__badge {
@@ -1746,5 +1760,56 @@ ul, ol {
   }
   .cart-bar.visible {
     transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Mobile performance & iOS Safari polish
+   -------------------------------------------------------------------------- */
+.page-wrapper {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.nav {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.cart-bar {
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+
+.overlay,
+#address-overlay {
+  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Horizontal chip / mini-card rows: momentum scroll without page hijack */
+.chip-row,
+.category-row,
+#category-row,
+.mini-scroll,
+[class*="scroll-x"] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Disable expensive hover image zoom on coarse pointers (phones) */
+@media (hover: none), (pointer: coarse) {
+  .card:hover,
+  .card:hover .card__img,
+  .promo-banner:hover {
+    transform: none;
   }
 }
