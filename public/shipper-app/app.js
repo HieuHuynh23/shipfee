@@ -67,6 +67,110 @@ function cleanPhone(p) {
   return (p || '').toString().trim().replace(/\s+/g, '');
 }
 
+/* --------------------------------------------------------------------------
+   Leaflet — on-demand loader (faster first paint on mobile)
+   -------------------------------------------------------------------------- */
+let _leafletLoadPromise = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (_leafletLoadPromise) return _leafletLoadPromise;
+  _leafletLoadPromise = new Promise((resolve, reject) => {
+    const cssId = 'leaflet-css-deferred';
+    if (!document.getElementById(cssId)) {
+      const css = document.createElement('link');
+      css.id = cssId;
+      css.rel = 'stylesheet';
+      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.async = true;
+    s.onload = () => resolve(window.L);
+    s.onerror = () => reject(new Error('Không tải được bản đồ'));
+    document.head.appendChild(s);
+  });
+  return _leafletLoadPromise;
+}
+
+/* --------------------------------------------------------------------------
+   Modal body scroll lock (iOS Safari overscroll through overlays)
+   -------------------------------------------------------------------------- */
+let _modalLockCount = 0;
+let _modalScrollY = 0;
+function lockBodyScroll() {
+  if (_modalLockCount === 0) {
+    _modalScrollY = window.scrollY || window.pageYOffset || 0;
+    document.body.classList.add('modal-open');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${_modalScrollY}px`;
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+  _modalLockCount += 1;
+}
+function unlockBodyScroll() {
+  if (_modalLockCount <= 0) return;
+  _modalLockCount -= 1;
+  if (_modalLockCount > 0) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, _modalScrollY);
+}
+
+function setOverlayActive(overlayEl, active) {
+  if (!overlayEl) return;
+  const wasActive = overlayEl.classList.contains('active');
+  if (active && !wasActive) {
+    overlayEl.classList.add('active');
+    lockBodyScroll();
+  } else if (!active && wasActive) {
+    overlayEl.classList.remove('active');
+    unlockBodyScroll();
+  } else if (active) {
+    overlayEl.classList.add('active');
+  } else {
+    overlayEl.classList.remove('active');
+  }
+}
+
+/* Chat bottom-sheet keyboard avoidance (visualViewport) */
+let chatKeyboardHandler = null;
+function bindChatKeyboardAvoidance() {
+  unbindChatKeyboardAvoidance();
+  const overlay = document.getElementById('chat-overlay');
+  const sheet = overlay && overlay.querySelector('.bottom-sheet');
+  if (!overlay || !sheet || !window.visualViewport) return;
+
+  chatKeyboardHandler = () => {
+    const vv = window.visualViewport;
+    const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    sheet.style.setProperty('--kb-inset', occluded + 'px');
+    sheet.style.transform = occluded > 0 ? `translateY(-${occluded}px)` : '';
+  };
+  window.visualViewport.addEventListener('resize', chatKeyboardHandler);
+  window.visualViewport.addEventListener('scroll', chatKeyboardHandler);
+  chatKeyboardHandler();
+}
+function unbindChatKeyboardAvoidance() {
+  if (chatKeyboardHandler && window.visualViewport) {
+    window.visualViewport.removeEventListener('resize', chatKeyboardHandler);
+    window.visualViewport.removeEventListener('scroll', chatKeyboardHandler);
+  }
+  chatKeyboardHandler = null;
+  const overlay = document.getElementById('chat-overlay');
+  const sheet = overlay && overlay.querySelector('.bottom-sheet');
+  if (sheet) {
+    sheet.style.removeProperty('--kb-inset');
+    sheet.style.transform = '';
+  }
+}
+
 let driverAvatarBase64 = null;
 function previewDriverAvatar(event) {
   const file = event.target.files[0];
@@ -132,6 +236,8 @@ let loginInFlight = false;
 let pollFailCount = 0;
 let pollBackoffActive = false;
 let lastChatFingerprint = '';
+let lastHistoryFingerprint = '';
+let activeTabId = 'orders';
 let mapFollowGps = true;
 let lastGpsUiUpdate = 0;
 let lastGpsIndicatorText = '';
@@ -774,7 +880,9 @@ async function syncAllData() {
       renderPendingOrders([]);
       
       historyOrders = allOrders.filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && o.status === 'DELIVERED');
-      renderHistoryAndStats();
+      if (activeTabId === 'history' && !document.hidden) {
+        renderHistoryAndStats();
+      }
       
       const activeDriverOrders = allOrders
         .filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && (o.status === 'ACCEPTED' || o.status === 'PURCHASED'))
@@ -859,6 +967,7 @@ function checkNewMessages(oldOrder, newOrder) {
 
 // ── TAB ROUTING ─────────────────────────────────────────────────────────────
 function switchTab(tabId) {
+  activeTabId = tabId || 'orders';
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   const btn = document.getElementById(`nav-btn-${tabId}`);
   if (btn) btn.classList.add('active');
@@ -870,9 +979,12 @@ function switchTab(tabId) {
   if (tabId === 'orders') {
     // Không hiển thị bể chung — chỉ trạng thái chờ đề xuất / SOS
     renderPendingOrders([]);
+    stopCrmSupportPolling();
   } else if (tabId === 'trip') {
     renderActiveTrip();
+    stopCrmSupportPolling();
   } else if (tabId === 'history') {
+    lastHistoryFingerprint = '';
     renderHistoryAndStats();
     loadCrmSupportThread();
     startCrmSupportPolling();
@@ -1049,16 +1161,22 @@ function openJobDetail(orderId) {
   }
   
   document.getElementById('order-detail-overlay').classList.add('active');
+  lockBodyScroll();
   
   // Initialize accept swipe button
   initSwipeButton('accept-swipe-container', 'accept-swipe-handle', 'accept-swipe-text', () => {
     document.getElementById('order-detail-overlay').classList.remove('active');
+    unlockBodyScroll();
     acceptOrder(activeJobId);
   });
 }
 
 function closeJobDetail() {
-  document.getElementById('order-detail-overlay').classList.remove('active');
+  const overlay = document.getElementById('order-detail-overlay');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
   activeJobId = null;
 }
 
@@ -1290,15 +1408,26 @@ function getStatusBadgeClass(status) {
 }
 
 // ── TRIP MAP & ROUTING ──────────────────────────────────────────────────────
-function initTripMap() {
+let tripMapInitToken = 0;
+async function initTripMap() {
   if (!activeOrder) return;
+  const token = ++tripMapInitToken;
+  const mapEl = document.getElementById('shipper-map');
   if (typeof L === 'undefined') {
-    const mapEl = document.getElementById('shipper-map');
-    if (mapEl) {
-      mapEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:16px;text-align:center;color:var(--clr-text-muted);font-size:13px;">Không tải được bản đồ. Dùng nút điều hướng Google Maps bên dưới.</div>`;
+    if (mapEl && !tripMap) {
+      mapEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:16px;text-align:center;color:var(--clr-text-muted);font-size:13px;">Đang tải bản đồ…</div>`;
     }
-    return;
+    try {
+      await loadLeaflet();
+    } catch (e) {
+      if (token !== tripMapInitToken) return;
+      if (mapEl) {
+        mapEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:16px;text-align:center;color:var(--clr-text-muted);font-size:13px;">Không tải được bản đồ. Dùng nút điều hướng Google Maps bên dưới.</div>`;
+      }
+      return;
+    }
   }
+  if (token !== tripMapInitToken || !activeOrder) return;
   
   const restLat = activeOrder.restaurantLat || 10.0354;
   const restLon = activeOrder.restaurantLon || 105.7825;
@@ -1312,14 +1441,22 @@ function initTripMap() {
     if (!tripMap) {
       // Prevent "Map container is already initialized" error defensively on reload
       const mapContainer = document.getElementById('shipper-map');
-      if (mapContainer && mapContainer._leaflet_id) {
-        const parent = mapContainer.parentNode;
-        const newContainer = mapContainer.cloneNode(false);
-        newContainer.removeAttribute('_leaflet_id');
-        parent.replaceChild(newContainer, mapContainer);
+      if (mapContainer) {
+        // Clear deferred-load placeholder before Leaflet mounts
+        mapContainer.innerHTML = '';
+        if (mapContainer._leaflet_id) {
+          const parent = mapContainer.parentNode;
+          const newContainer = mapContainer.cloneNode(false);
+          newContainer.removeAttribute('_leaflet_id');
+          parent.replaceChild(newContainer, mapContainer);
+        }
       }
       
-      tripMap = L.map('shipper-map', { zoomControl: false }).setView([shipLat, shipLon], 16);
+      tripMap = L.map('shipper-map', {
+        zoomControl: false,
+        tapTolerance: 15,
+        preferCanvas: true
+      }).setView([shipLat, shipLon], 16);
       mapFollowGps = true;
       tripMap.on('dragstart', () => { mapFollowGps = false; });
       tripMap.on('zoomstart', () => { mapFollowGps = false; });
@@ -1565,7 +1702,11 @@ function handleTargetedOffer(offer) {
   if (!offer) {
     if (targetedOffer) {
       clearOfferTimer();
-      document.getElementById('job-offer-overlay').classList.remove('active');
+      const offerOverlay = document.getElementById('job-offer-overlay');
+      if (offerOverlay && offerOverlay.classList.contains('active')) {
+        offerOverlay.classList.remove('active');
+        unlockBodyScroll();
+      }
       targetedOffer = null;
       showToast('Đơn đề xuất đã hết hạn ⏰', 'Đơn đề xuất đã được nhận bởi tài xế khác hoặc hết thời gian.', 'info');
     }
@@ -1618,9 +1759,11 @@ function handleTargetedOffer(offer) {
     }
 
     document.getElementById('job-offer-overlay').classList.add('active');
+    lockBodyScroll();
 
     initSwipeButton('offer-swipe-container', 'offer-swipe-handle', 'offer-swipe-text', () => {
       document.getElementById('job-offer-overlay').classList.remove('active');
+      unlockBodyScroll();
       clearOfferTimer();
       targetedOffer = null;
       acceptOrder(offer.id);
@@ -1679,7 +1822,11 @@ async function declineTargetedOffer(isAuto = false) {
   const offerId = targetedOffer.id;
   
   clearOfferTimer();
-  document.getElementById('job-offer-overlay').classList.remove('active');
+  const offerOverlay = document.getElementById('job-offer-overlay');
+  if (offerOverlay && offerOverlay.classList.contains('active')) {
+    offerOverlay.classList.remove('active');
+    unlockBodyScroll();
+  }
   targetedOffer = null;
 
   try {
@@ -1715,7 +1862,12 @@ function openQuickChat() {
     showToast('Không có chuyến đi', 'Bạn cần có chuyến đi đang hoạt động để chat.', 'warning');
     return;
   }
-  document.getElementById('chat-overlay').classList.add('active');
+  const overlay = document.getElementById('chat-overlay');
+  if (overlay && !overlay.classList.contains('active')) {
+    overlay.classList.add('active');
+    lockBodyScroll();
+  }
+  bindChatKeyboardAvoidance();
   lastChatFingerprint = getChatFingerprint(activeOrder);
   renderShipperChatMessages();
   setTimeout(() => {
@@ -1725,7 +1877,12 @@ function openQuickChat() {
 }
 
 function closeQuickChat() {
-  document.getElementById('chat-overlay').classList.remove('active');
+  const overlay = document.getElementById('chat-overlay');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
+  unbindChatKeyboardAvoidance();
 }
 
 function renderShipperChatMessages() {
@@ -2114,6 +2271,16 @@ async function syncStatsToServer() {
 
 // ── STATS & HISTORY TAB ─────────────────────────────────────────────────────
 function renderHistoryAndStats() {
+  const fingerprint = [
+    historyOrders.length,
+    historyOrders.map(o => `${o.id}:${o.rating || 0}:${o.shipperEarning || 0}`).join(','),
+    stats.accepted || 0,
+    stats.declined || 0,
+    stats.completed || 0
+  ].join('|');
+  if (fingerprint === lastHistoryFingerprint) return;
+  lastHistoryFingerprint = fingerprint;
+
   const totalOrders = historyOrders.length;
   
   let totalEarnings = 0;
@@ -2386,7 +2553,10 @@ async function checkIncomingCall(orderId) {
 function showIncomingCallOverlay(callObj) {
   callActive = true;
   const overlay = document.getElementById('call-overlay');
-  if (overlay) overlay.classList.add('active');
+  if (overlay && !overlay.classList.contains('active')) {
+    overlay.classList.add('active');
+    lockBodyScroll();
+  }
 
   document.getElementById('call-contact-name').textContent = activeOrder.deliveryName || 'Khách hàng';
   document.getElementById('call-avatar-display').textContent = (activeOrder.deliveryName || 'K').charAt(0);
@@ -2901,7 +3071,10 @@ function endCallLocally() {
   }
 
   const overlay = document.getElementById('call-overlay');
-  if (overlay) overlay.classList.remove('active');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
 
   const audioEl = document.getElementById('remote-audio-el');
   if (audioEl) audioEl.srcObject = null;
@@ -2930,6 +3103,7 @@ function makeDirectCall() {
       if (btnRel) btnRel.innerHTML = `<i class="fa-solid fa-user"></i> Gọi Người Thân (Nhận): ${activeOrder.deliveryName || ''} (${activeOrder.deliveryPhone})`;
       if (btnOrd) btnOrd.innerHTML = `<i class="fa-solid fa-user-group"></i> Gọi Người Đặt Hộ: (${activeOrder.ordererPhone})`;
       overlay.classList.add('active');
+      lockBodyScroll();
     }
   } else {
     if (!activeOrder.deliveryPhone) {
@@ -2943,7 +3117,10 @@ window.makeDirectCall = makeDirectCall;
 
 function callPerson(type) {
   const overlay = document.getElementById('call-select-overlay');
-  if (overlay) overlay.classList.remove('active');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
   
   if (!activeOrder) return;
   
@@ -2957,7 +3134,10 @@ window.callPerson = callPerson;
 
 function closeCallSelect() {
   const overlay = document.getElementById('call-select-overlay');
-  if (overlay) overlay.classList.remove('active');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
 }
 window.closeCallSelect = closeCallSelect;
 
@@ -3080,7 +3260,10 @@ async function showDriverProfile() {
   const overlay = document.getElementById('driver-profile-overlay');
   if (overlay) {
     overlay.style.display = 'flex';
-    overlay.classList.add('active');
+    if (!overlay.classList.contains('active')) {
+      overlay.classList.add('active');
+      lockBodyScroll();
+    }
   }
 }
 
@@ -3088,7 +3271,10 @@ function closeDriverProfile() {
   const overlay = document.getElementById('driver-profile-overlay');
   if (overlay) {
     overlay.style.display = 'none';
-    overlay.classList.remove('active');
+    if (overlay.classList.contains('active')) {
+      overlay.classList.remove('active');
+      unlockBodyScroll();
+    }
   }
 }
 
@@ -3109,20 +3295,9 @@ window.addEventListener('pagehide', () => {
 // Fetch ICE servers dynamically on page load
 fetchIceServers();
 
-// Mobile Zoom Prevention
-document.addEventListener('touchstart', function (event) {
-  if (event.touches.length > 1) {
-    event.preventDefault();
-  }
-}, { passive: false });
-
-let lastTouchEnd = 0;
-document.addEventListener('touchend', function (event) {
-  const now = (new Date()).getTime();
-  if (now - lastTouchEnd <= 300) {
-    event.preventDefault();
-  }
-  lastTouchEnd = now;
+// Mobile Zoom Prevention — prefer CSS touch-action; avoid non-passive touchend
+document.addEventListener('gesturestart', function (event) {
+  event.preventDefault();
 }, { passive: false });
 
 async function initSupabase() {
@@ -3664,7 +3839,7 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=2.5', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2.6', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

@@ -1,37 +1,35 @@
 <!DOCTYPE html>
-<!-- shipfee-deploy 20260717T161500Z crm-chat-v1 -->
+<!-- shipfee-deploy 20260717T180000Z mobile-perf-v26 -->
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#F97316">
   <meta name="application-name" content="ShipFee Tài Xế">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="SF Tài Xế">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
   <meta http-equiv="Permissions-Policy" content="geolocation=(self)">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>ShipFee Tài Xế — Hệ thống Shipper thời gian thực</title>
   <meta name="description" content="Ứng dụng quản lý đơn hàng và định vị GPS thời gian thực dành cho shipper ShipFee.">
-  <link rel="manifest" href="manifest.webmanifest?v=2.5">
+  <link rel="manifest" href="manifest.webmanifest?v=2.6">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=2.5">
+  <link rel="stylesheet" href="style.css?v=2.6">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
-  
-  <!-- Leaflet Map library -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+  <!-- Leaflet loaded on-demand when trip map opens (see loadLeaflet in app.js) -->
 </head>
 <body>
 
@@ -263,10 +261,10 @@
         </button>
       </div>
 
-      <!-- Custom Input for Shipper -->
-      <div style="display: flex; gap: 8px; margin-top: 5px;">
-        <input type="text" id="shipper-chat-input" placeholder="Nhập tin nhắn tùy chỉnh..." style="flex: 1; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--clr-border); background: var(--clr-surface); color: var(--clr-text-primary); font-size: 12px;" onkeyup="if(event.key === 'Enter') sendShipperCustomMessage()">
-        <button class="btn btn--primary" onclick="sendShipperCustomMessage()" style="padding: 8px 14px; border-radius: var(--radius-md); font-size: 12px;">Gửi</button>
+      <!-- Custom Input for Shipper (16px avoids iOS focus zoom) -->
+      <div class="shipper-chat-compose">
+        <input type="text" id="shipper-chat-input" class="shipper-chat-input" placeholder="Nhập tin nhắn tùy chỉnh..." autocomplete="off" enterkeyhint="send" onkeyup="if(event.key === 'Enter') sendShipperCustomMessage()">
+        <button type="button" class="btn btn--primary shipper-chat-send" onclick="sendShipperCustomMessage()">Gửi</button>
       </div>
     </div>
   </div>
@@ -540,7 +538,7 @@
   </div>
 
   <!-- ── VoIP CALL OVERLAY ── -->
-  <div class="overlay" id="call-overlay" onclick="event.stopPropagation()" style="display: none !important;">
+  <div class="overlay" id="call-overlay" onclick="event.stopPropagation()">
     <div class="modal call-modal" style="max-width: 330px; text-align: center; background: rgba(255, 255, 255, 0.98); border: 1.5px solid var(--clr-border); backdrop-filter: blur(16px); color: var(--clr-text-primary); display: flex; flex-direction: column; align-items: center; gap: 20px; padding: var(--space-xl); border-radius: var(--radius-xl); box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
       <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--clr-text-muted); font-weight: 700;">Cuộc gọi internet miễn phí</div>
       
@@ -671,6 +669,6 @@
       }
     });
   </script>
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=2.6"></script>
 </body>
 </html>

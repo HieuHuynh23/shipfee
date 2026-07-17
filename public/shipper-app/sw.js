@@ -1,5 +1,5 @@
-/* ShipFee Tài Xế PWA — SW v2.5 (clear stale caches so CRM chat UI updates) */
-const SW_VERSION = 'shipfee-tx-v2.5';
+/* ShipFee Tài Xế PWA — SW v2.6 (mobile perf/UI cache bust) */
+const SW_VERSION = 'shipfee-tx-v2.6';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
