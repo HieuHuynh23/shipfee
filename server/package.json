@@ -12,15 +12,18 @@
     "crawl:menus:dry": "node crawl_restaurant_menus.js --only-fallback --open-only --dry-run"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "axios": "^1.7.2",
     "cheerio": "^1.2.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.6.0",
+    "express-slow-down": "^3.1.0",
+    "helmet": "^8.3.0",
     "puppeteer": "^22.10.0",
     "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "@supabase/supabase-js": "^2.45.0",
-    "dotenv": "^16.4.5"
+    "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
 }

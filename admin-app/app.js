@@ -124,6 +124,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function handleAdminLogin() {
   const email = document.getElementById('admin-email').value.trim();
   const password = document.getElementById('admin-password').value.trim();
+  const hp = document.getElementById('admin-website');
+  if (hp && hp.value && hp.value.trim()) {
+    // Bot filled honeypot — silent ignore
+    return;
+  }
 
   if (!email || !password) {
     showToast('Vui lòng nhập đầy đủ email và mật khẩu', 'warning');
@@ -158,15 +163,8 @@ async function handleAdminLogin() {
       showToast('Lỗi đăng nhập hệ thống: ' + e.message, 'error');
     }
   } else {
-    // Demo admin credentials — chỉ khi thiếu Supabase (mutations admin sẽ 401)
-    if (email === 'admin@shipfee.vn' && password === 'admin123') {
-      adminUser = { email, name: 'Admin ShipFee', role: 'admin', demo: true };
-      localStorage.setItem('shipfee_admin', JSON.stringify(adminUser));
-      showToast('Đăng nhập demo (không JWT) — thao tác admin cần Supabase Auth', 'warning');
-      showApp();
-    } else {
-      showToast('Email hoặc mật khẩu không đúng', 'error');
-    }
+    // Không cho đăng nhập demo / mật khẩu cứng — bắt buộc Supabase Auth
+    showToast('Supabase chưa cấu hình. Không thể đăng nhập quản trị.', 'error');
   }
 }
 
@@ -2676,7 +2674,11 @@ async function testApiConnection() {
 
 async function clearApiCache() {
   try {
-    await fetch(`${API_BASE}/api/cache/clear`, { method: 'POST' });
+    const res = await apiFetch('/api/cache/clear', { method: 'POST' });
+    if (res && res.success === false) {
+      showToast(res.error || 'Không có quyền xóa cache', 'error');
+      return;
+    }
     showToast('Đã xóa cache API', 'success');
   } catch (e) {
     showToast('Lỗi xóa cache', 'error');

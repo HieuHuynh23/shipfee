@@ -166,6 +166,17 @@ const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
 
 Shipper/Admin có thể có interceptor JWT + thay `localhost:3001` → Render khi không chạy local. Chi tiết xem từng `app.js`.
 
+### 2.6. Bảo mật hệ thống
+
+| Lớp | Biện pháp |
+|-----|-----------|
+| API | Helmet, rate-limit, slow-down, bot UA filter, honeypot |
+| CORS | Chỉ localhost + `shipfee.vercel.app` + preview `shipfee-*-hieuhuynh234s-projects` |
+| Auth | Khóa `GET /api/shippers`, `POST /api/cache/clear`; chống IDOR shipper |
+| Upload | Validate magic-byte ảnh, tối đa 1MB |
+| Admin seed | Chỉ khi có `ADMIN_SEED_PASSWORD` (≥12 ký tự) trong env Render |
+| Frontend | CSP + security headers trên Vercel; bỏ demo admin password |
+
 ---
 
 ## 3. Xử Lý Sự Cố Phổ Biến (Troubleshooting)
