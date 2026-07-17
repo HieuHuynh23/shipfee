@@ -231,6 +231,14 @@ ul, ol {
 .absolute { position: absolute; }
 .hidden { display: none !important; }
 .overflow-hidden { overflow: hidden; }
+body.modal-open {
+  position: fixed;
+  width: 100%;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  touch-action: none;
+}
 .text-center { text-align: center; }
 
 /* --------------------------------------------------------------------------
@@ -264,7 +272,8 @@ ul, ol {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--nav-h);
+  height: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -328,8 +337,8 @@ ul, ol {
 }
 
 .nav__icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -383,8 +392,9 @@ ul, ol {
    Page Wrapper (offset for fixed nav)
    -------------------------------------------------------------------------- */
 .page-wrapper {
-  padding-top: var(--nav-h);
+  padding-top: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* --------------------------------------------------------------------------
@@ -511,7 +521,7 @@ ul, ol {
   background: white;
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--clr-text-primary);
   box-shadow: var(--shadow-md);
@@ -555,6 +565,8 @@ ul, ol {
   padding-bottom: var(--space-sm);
   scrollbar-width: none;
   -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .category-scroll::-webkit-scrollbar { display: none; }
@@ -563,7 +575,8 @@ ul, ol {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
+  min-height: 44px;
+  padding: 10px 16px;
   border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
@@ -1315,7 +1328,7 @@ ul, ol {
   background: var(--clr-surface);
   border: 2px solid var(--clr-border);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--clr-text-primary);
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
@@ -1420,7 +1433,7 @@ ul, ol {
    -------------------------------------------------------------------------- */
 .toast-container {
   position: fixed;
-  top: calc(var(--nav-h) + 12px);
+  top: calc(var(--nav-h) + env(safe-area-inset-top, 0px) + 12px);
   right: var(--space-md);
   left: var(--space-md);
   z-index: 200;
@@ -1480,6 +1493,7 @@ ul, ol {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-base);
+  overscroll-behavior: none;
 }
 
 .overlay.active {
@@ -1491,12 +1505,17 @@ ul, ol {
   background: var(--clr-surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
   width: 100%;
   max-width: 480px;
-  max-height: 90vh;
+  max-height: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 8px));
+  max-height: min(92vh, calc(100vh - env(safe-area-inset-top, 0px) - 8px));
   overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   transform: translateY(100%);
   transition: transform var(--transition-slow);
+  touch-action: pan-y;
 }
 
 .overlay.active .modal {
@@ -1814,6 +1833,7 @@ ul, ol {
     max-width: 480px;
     margin: 0 auto;
     min-height: 100vh;
+    min-height: 100dvh;
     box-shadow: var(--shadow-lg);
   }
   .nav {
@@ -1845,12 +1865,12 @@ ul, ol {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-.nav {
-  padding-top: env(safe-area-inset-top, 0);
-}
-
 .cart-bar {
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+}
+
+.toast-container {
+  top: calc(var(--nav-h) + env(safe-area-inset-top, 0px) + 12px);
 }
 
 .overlay,
@@ -1860,9 +1880,106 @@ ul, ol {
   -webkit-overflow-scrolling: touch;
 }
 
+.order-type-row {
+  display: flex;
+  gap: 10px;
+}
+
+.order-type-btn {
+  flex: 1;
+  min-height: 48px;
+  border: 2px solid var(--clr-border) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 10px;
+  font-weight: 700;
+}
+
+.order-type-btn.is-selected {
+  border-color: var(--clr-primary) !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  color: var(--clr-primary) !important;
+}
+
+.address-gps-btn {
+  margin-bottom: 15px;
+  min-height: 48px;
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--clr-primary);
+  border: 1px dashed var(--clr-primary);
+}
+
+.address-gps-btn.is-success {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+  border-color: #10B981;
+}
+
+.address-map-hint {
+  font-size: 12px;
+  color: var(--clr-text-secondary);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.05);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  line-height: 1.45;
+}
+
+.address-map-hint i {
+  color: var(--clr-primary);
+  font-size: 14px;
+  margin-top: 1px;
+}
+
+.address-modal-map {
+  width: 100%;
+  min-height: clamp(200px, 32dvh, 280px);
+  height: clamp(200px, 32dvh, 280px);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--clr-border);
+  margin-bottom: 15px;
+  z-index: 100;
+  touch-action: none;
+  overscroll-behavior: contain;
+  background: var(--clr-surface-2);
+}
+
+.address-pin-badge {
+  display: none;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10B981;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 15px;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.35;
+}
+
+.address-confirm-btn {
+  margin-top: 15px;
+  min-height: 48px;
+  position: sticky;
+  bottom: 0;
+}
+
+.address-row {
+  min-height: 48px;
+}
+
 /* Horizontal chip / mini-card rows: momentum scroll without page hijack */
 .chip-row,
 .category-row,
+.category-scroll,
 #category-row,
 .mini-scroll,
 [class*="scroll-x"] {
@@ -1880,11 +1997,20 @@ ul, ol {
   }
 }
 
-/* Disable expensive hover image zoom on coarse pointers (phones) */
+/* Disable expensive hover/blur on phones */
 @media (hover: none), (pointer: coarse) {
   .card:hover,
   .card:hover .card__img,
   .promo-banner:hover {
     transform: none;
+  }
+  .overlay {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.82);
+  }
+  .nav {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
   }
 }

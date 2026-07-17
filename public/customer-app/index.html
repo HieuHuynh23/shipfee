@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#EF4444">
   <meta name="application-name" content="SHIPFEE">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -19,7 +19,9 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://unpkg.com" crossorigin>
+  <link rel="dns-prefetch" href="https://unpkg.com">
+  <link rel="stylesheet" href="style.css?v=2.6">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <!-- Leaflet loaded on-demand when opening address modal (mobile perf) -->
@@ -423,31 +425,31 @@
       <!-- HÌNH THỨC ĐẶT HÀNG (BẮT BUỘC CHỌN) -->
       <div class="form-group" style="margin-bottom: 15px;">
         <label class="form-label">Hình thức đặt hàng <span style="color:#ef4444;">*</span></label>
-        <div style="display: flex; gap: 10px;">
-          <button type="button" id="btn-order-self" class="btn btn--secondary" style="flex: 1; border: 2px solid var(--clr-border); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-weight: 700;" onclick="setOrderType('self')">
+        <div class="order-type-row">
+          <button type="button" id="btn-order-self" class="btn btn--secondary order-type-btn" onclick="setOrderType('self')">
             <i class="fa-solid fa-user"></i> Đặt cho bạn
           </button>
-          <button type="button" id="btn-order-relative" class="btn btn--secondary" style="flex: 1; border: 2px solid var(--clr-border); display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; font-weight: 700;" onclick="setOrderType('relative')">
+          <button type="button" id="btn-order-relative" class="btn btn--secondary order-type-btn" onclick="setOrderType('relative')">
             <i class="fa-solid fa-user-group"></i> Đặt cho người thân
           </button>
         </div>
       </div>
 
-      <button class="btn btn--secondary btn--full" onclick="detectUserLocation()" style="margin-bottom: 15px; background: rgba(124, 58, 237, 0.1); color: var(--clr-primary); border: 1px dashed var(--clr-primary);">
+      <button class="btn btn--secondary btn--full address-gps-btn" onclick="detectUserLocation()">
         <i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại
       </button>
       
       <!-- Hint for dragging pin -->
-      <div style="font-size: 11px; color: var(--clr-text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; background: rgba(124, 58, 237, 0.05); padding: 8px 10px; border-radius: var(--radius-md); border: 1px solid rgba(124, 58, 237, 0.1);">
-        <i class="fa-solid fa-circle-info" style="color: var(--clr-primary); font-size: 13px;"></i>
+      <div class="address-map-hint">
+        <i class="fa-solid fa-circle-info"></i>
         <span><strong>Gợi ý:</strong> Kéo thả ghim đỏ trên bản đồ đến đúng vị trí nhà bạn để Shipper giao hàng chính xác nhất!</span>
       </div>
 
       <!-- Leaflet map container for dragging pin -->
-      <div id="modal-map" style="height: 180px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--clr-border); margin-bottom: 15px; display: none; z-index: 100;"></div>
+      <div id="modal-map" class="address-modal-map" style="display: none;"></div>
       
       <!-- Precise pin indicator -->
-      <div id="map-pin-badge" style="display: none; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10B981; font-size: 11px; font-weight: 700; padding: 8px 10px; border-radius: var(--radius-md); margin-bottom: 15px; align-items: center; gap: 6px;">
+      <div id="map-pin-badge" class="address-pin-badge" style="display: none;">
         <i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác trên bản đồ!
       </div>
 
@@ -455,27 +457,37 @@
         <label class="form-label" for="modal-address-input">Địa chỉ nhận hàng</label>
         <input type="text" id="modal-address-input" class="form-input"
           placeholder="Số nhà, tên đường, phường/quận..."
+          autocomplete="street-address"
+          enterkeyhint="next"
           value="">
       </div>
       <div class="form-group">
         <label class="form-label" for="modal-name-input">Tên người nhận</label>
         <input type="text" id="modal-name-input" class="form-input"
-          placeholder="Nhập tên đầy đủ">
+          placeholder="Nhập tên đầy đủ"
+          autocomplete="name"
+          enterkeyhint="next">
       </div>
       <div class="form-group">
         <label class="form-label" for="modal-phone-input">Số điện thoại</label>
         <input type="tel" id="modal-phone-input" class="form-input"
-          placeholder="0xxx xxx xxx">
+          placeholder="0xxx xxx xxx"
+          inputmode="numeric"
+          autocomplete="tel"
+          enterkeyhint="done">
       </div>
 
       <!-- SĐT người đặt (ẩn mặc định, hiện khi chọn đặt cho người thân) -->
       <div class="form-group" id="group-orderer-phone" style="display: none;">
         <label class="form-label" for="modal-orderer-phone-input">Số điện thoại của bạn (người đặt hộ) <span style="color:#ef4444;">*</span></label>
         <input type="tel" id="modal-orderer-phone-input" class="form-input"
-          placeholder="Nhập số điện thoại của bạn">
+          placeholder="Nhập số điện thoại của bạn"
+          inputmode="numeric"
+          autocomplete="tel"
+          enterkeyhint="done">
       </div>
 
-      <button class="btn btn--primary btn--full btn--lg" onclick="saveAddress()" style="margin-top: 15px;">
+      <button class="btn btn--primary btn--full btn--lg address-confirm-btn" onclick="saveAddress()">
         <i class="fa-solid fa-check"></i> Xác nhận địa chỉ
       </button>
     </div>
@@ -551,14 +563,29 @@
       const modalAddrInput = document.getElementById('modal-address-input');
       if (modalAddrInput) {
         const syncMapFromAddress = SF.debounce((addr) => {
-          if (addr && !addr.includes('GPS') && !addr.includes('Ghim Bản Đồ')) {
+          const overlay = document.getElementById('address-overlay');
+          if (!overlay || !overlay.classList.contains('active')) return;
+          if (addr && !addr.includes('GPS') && !addr.includes('Ghim Bản Đồ') && !addr.includes('Ghim')) {
             const resolved = localGeocode(addr);
             showMapAt(resolved.lat, resolved.lon, false);
           }
-        }, 350);
+        }, 450);
         modalAddrInput.addEventListener('input', (e) => {
           syncMapFromAddress(e.target.value.trim());
         });
+        // Keep focused fields visible above iOS/Android keyboard
+        ['modal-address-input', 'modal-name-input', 'modal-phone-input', 'modal-orderer-phone-input']
+          .forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('focus', () => {
+              setTimeout(() => {
+                try {
+                  el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } catch (_) {}
+              }, 280);
+            }, { passive: true });
+          });
       }
     });
 
@@ -896,10 +923,12 @@
       loadMoreBtn.textContent = 'Xem thêm cửa hàng';
       loadMoreBtn.onclick = async () => {
         if (clientRenderMode === 'server' && serverHasMore) {
+          const beforeIds = new Set(displayedData.map(r => String(r.id)));
           const ok = await loadMoreFromServer();
           if (ok) {
             const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
-            renderRestaurants(activeOnlyList, false, { mode: 'server' });
+            const newSlice = activeOnlyList.filter(r => !beforeIds.has(String(r.id)));
+            renderRestaurants(newSlice.length ? newSlice : activeOnlyList, !!newSlice.length, { mode: 'server' });
             // Refresh mini sections with newly loaded data
             const openRests = activeOnlyList;
             renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
@@ -1337,18 +1366,16 @@
 
       // Reset styles
       if (btnSelf && btnRel) {
-        btnSelf.style.borderColor = 'var(--clr-border)';
-        btnSelf.style.background = 'transparent';
-        btnSelf.style.color = 'var(--clr-text-primary)';
-        btnRel.style.borderColor = 'var(--clr-border)';
-        btnRel.style.background = 'transparent';
-        btnRel.style.color = 'var(--clr-text-primary)';
+        btnSelf.classList.toggle('is-selected', type === 'self');
+        btnRel.classList.toggle('is-selected', type === 'relative');
+        btnSelf.style.borderColor = '';
+        btnSelf.style.background = '';
+        btnSelf.style.color = '';
+        btnRel.style.borderColor = '';
+        btnRel.style.background = '';
+        btnRel.style.color = '';
 
         if (type === 'self') {
-          btnSelf.style.borderColor = 'var(--clr-primary)';
-          btnSelf.style.background = 'rgba(124, 58, 237, 0.08)';
-          btnSelf.style.color = 'var(--clr-primary)';
-          
           if (groupOrdererPhone) groupOrdererPhone.style.display = 'none';
           
           if (addrLabel) addrLabel.innerHTML = 'Địa chỉ giao hàng <span style="color:#ef4444;">*</span>';
@@ -1359,10 +1386,6 @@
           nameInput.placeholder = "Nhập tên đầy đủ";
           phoneInput.placeholder = "0xxx xxx xxx";
         } else if (type === 'relative') {
-          btnRel.style.borderColor = 'var(--clr-primary)';
-          btnRel.style.background = 'rgba(124, 58, 237, 0.08)';
-          btnRel.style.color = 'var(--clr-primary)';
-          
           if (groupOrdererPhone) groupOrdererPhone.style.display = 'block';
           
           if (addrLabel) addrLabel.innerHTML = 'Địa chỉ người thân chính xác <span style="color:#ef4444;">*</span>';
@@ -1398,12 +1421,14 @@
         leafletMap = L.map('modal-map', {
           zoomControl: true,
           attributionControl: false,
-          preferCanvas: true
-        }).setView(coords, 17);
+          preferCanvas: true,
+          tap: true,
+          touchZoom: true
+        }).setView(coords, 16);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
+          maxZoom: 18,
           updateWhenIdle: true,
-          keepBuffer: 1
+          keepBuffer: 0
         }).addTo(leafletMap);
 
         mapMarker = L.marker(coords, { draggable: true }).addTo(leafletMap);
@@ -1425,15 +1450,61 @@
           SF.showToast('📍 Đã ghim vị trí', `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`, 'info');
         });
       } else {
-        leafletMap.setView(coords, 17);
+        const cur = leafletMap.getCenter();
+        const moved = Math.abs(cur.lat - lat) > 0.0004 || Math.abs(cur.lng - lon) > 0.0004;
+        if (moved) leafletMap.setView(coords, Math.min(leafletMap.getZoom() || 16, 17));
         mapMarker.setLatLng(coords);
       }
 
       requestAnimationFrame(() => {
         setTimeout(() => {
-          if (leafletMap) leafletMap.invalidateSize();
-        }, 80);
+          if (leafletMap) leafletMap.invalidateSize({ animate: false });
+        }, 220);
       });
+    }
+
+    let addressModalScrollY = 0;
+    let addressKeyboardHandler = null;
+
+    function lockBodyForAddressModal() {
+      addressModalScrollY = window.scrollY || window.pageYOffset || 0;
+      document.body.classList.add('overflow-hidden', 'modal-open');
+      document.body.style.top = `-${addressModalScrollY}px`;
+    }
+
+    function unlockBodyForAddressModal() {
+      document.body.classList.remove('overflow-hidden', 'modal-open');
+      document.body.style.top = '';
+      window.scrollTo(0, addressModalScrollY || 0);
+    }
+
+    function bindAddressKeyboardAvoidance() {
+      unbindAddressKeyboardAvoidance();
+      const overlay = document.getElementById('address-overlay');
+      const modal = overlay && overlay.querySelector('.modal');
+      if (!overlay || !modal || !window.visualViewport) return;
+
+      addressKeyboardHandler = () => {
+        const vv = window.visualViewport;
+        const occluded = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+        overlay.style.setProperty('--kb-inset', occluded + 'px');
+        modal.style.paddingBottom = `calc(16px + env(safe-area-inset-bottom, 0px) + ${occluded}px)`;
+      };
+      window.visualViewport.addEventListener('resize', addressKeyboardHandler);
+      window.visualViewport.addEventListener('scroll', addressKeyboardHandler);
+      addressKeyboardHandler();
+    }
+
+    function unbindAddressKeyboardAvoidance() {
+      if (addressKeyboardHandler && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', addressKeyboardHandler);
+        window.visualViewport.removeEventListener('scroll', addressKeyboardHandler);
+      }
+      addressKeyboardHandler = null;
+      const overlay = document.getElementById('address-overlay');
+      const modal = overlay && overlay.querySelector('.modal');
+      if (overlay) overlay.style.removeProperty('--kb-inset');
+      if (modal) modal.style.paddingBottom = '';
     }
 
     function promptAddress() {
@@ -1454,7 +1525,10 @@
       const gpsBtn = document.querySelector('button[onclick="detectUserLocation()"]');
       if (gpsBtn) {
         gpsBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại`;
-        gpsBtn.style.cssText = "margin-bottom: 15px; background: rgba(124, 58, 237, 0.1); color: var(--clr-primary); border: 1px dashed var(--clr-primary);";
+        gpsBtn.classList.remove('is-success');
+        gpsBtn.style.background = '';
+        gpsBtn.style.color = '';
+        gpsBtn.style.borderColor = '';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
@@ -1462,9 +1536,11 @@
       const currentLon = state.userLon || 105.7876;
       tempGpsCoords = { lat: currentLat, lon: currentLon };
 
+      lockBodyForAddressModal();
       document.getElementById('address-overlay').classList.add('active');
+      bindAddressKeyboardAvoidance();
       
-      // Render map with Leaflet
+      // Render map with Leaflet (after sheet opens so invalidateSize is accurate)
       showMapAt(currentLat, currentLon, false);
 
       // Set badge if coordinates exist and are not default Ninh Kieu
@@ -1485,6 +1561,8 @@
       }
       const overlay = document.getElementById('address-overlay');
       if (overlay) overlay.classList.remove('active');
+      unbindAddressKeyboardAvoidance();
+      unlockBodyForAddressModal();
     }
 
     async function detectUserLocation() {
@@ -1536,9 +1614,10 @@
 
         btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
         btn.disabled = false;
-        btn.style.background = 'rgba(16, 185, 129, 0.1)';
-        btn.style.color = '#10B981';
-        btn.style.borderColor = '#10B981';
+        btn.classList.add('is-success');
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
 
         await showMapAt(finalLat, finalLon, false);
 
@@ -1630,6 +1709,8 @@
 
       document.getElementById('hero-address-text').textContent = address;
       document.getElementById('address-overlay').classList.remove('active');
+      unbindAddressKeyboardAvoidance();
+      unlockBodyForAddressModal();
       SF.showToast('Đã lưu địa chỉ', address, 'success');
 
       // Reload restaurants from server with new coordinates!
