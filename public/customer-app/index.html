@@ -884,9 +884,7 @@
             renderRestaurants(activeOnlyList, false, { mode: 'server' });
             // Refresh mini sections with newly loaded data
             const openRests = activeOnlyList;
-            renderMiniCards('featured-list', [...openRests]
-              .sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.reviews || 0) - (a.reviews || 0)))
-              .slice(0, 10));
+            renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
             renderMiniCards('near-list', [...openRests]
               .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
               .slice(0, 10));
@@ -906,6 +904,14 @@
     function removeLoadMoreBtn() {
       const btn = document.getElementById('btn-load-more');
       if (btn) btn.remove();
+    }
+
+    /** Quán nổi bật: chỉ quán mở + có thực đơn thật (ẩn tag "Sẽ mở lại sớm"). */
+    function getFeaturedRestaurants(list, limit = 10) {
+      return (list || [])
+        .filter(r => r && !r.isClosed && r.hasRealMenu === true)
+        .sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.reviews || 0) - (a.reviews || 0)))
+        .slice(0, limit);
     }
 
     function renderMiniCards(containerId, list) {
@@ -961,11 +967,11 @@
 
     function renderAll() {
       try {
-        // 1. Quán Nổi Bật: Top 10 open restaurants sorted by rating/reviews
+        // 1. Quán Nổi Bật: chỉ quán có thực đơn thật (không hiện "Sẽ mở lại sớm")
         const openRests = (ALL_DATA || []).filter(r => r && !r.isClosed);
-        const featuredList = [...openRests]
-          .sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.reviews || 0) - (a.reviews || 0)))
-          .slice(0, 10);
+        const featuredList = getFeaturedRestaurants(openRests);
+        const featuredWrap = document.getElementById('featured-section-wrap');
+        if (featuredWrap) featuredWrap.style.display = featuredList.length ? 'block' : 'none';
         renderMiniCards('featured-list', featuredList);
 
         // 2. Gần Bạn Nhất: Top 10 open restaurants sorted by distance
@@ -1004,7 +1010,7 @@
           });
           
           const openRests = ALL_DATA.filter(r => r && !r.isClosed);
-          renderMiniCards('featured-list', openRests.slice(0, 10));
+          renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
           renderMiniCards('near-list', openRests.slice(0, 10));
           renderRestaurants(openRests, false, { mode: 'local' });
         } catch (recoverErr) {
