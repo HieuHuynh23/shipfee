@@ -2434,7 +2434,7 @@ function getCallDiagnostics() {
     const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
     return urls.some(url => String(url || '').startsWith('turn:') || String(url || '').startsWith('turns:'));
   });
-  const apiUrl = localStorage.getItem('shipfee_api_url') || API_BASE;
+  const apiUrl = API_BASE;
   const usingHttpsPage = window.location.protocol === 'https:';
   const usingHttpApi = String(apiUrl).startsWith('http://');
   return {
@@ -2935,20 +2935,8 @@ function closeCallSelect() {
 window.closeCallSelect = closeCallSelect;
 
 function configureApiUrl() {
-  const defaultApiUrl = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-    ? 'http://localhost:3001'
-    : 'https://shipfee-eo5s.onrender.com';
-  const currentUrl = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
-  const newUrl = prompt('Cấu hình URL Backend API (Ví dụ: https://shipfee-backend.onrender.com):', currentUrl);
-  if (newUrl !== null) {
-    const cleanedUrl = newUrl.trim().replace(/\/+$/, '');
-    if (cleanedUrl) {
-      localStorage.setItem('shipfee_api_url', cleanedUrl);
-    } else {
-      localStorage.removeItem('shipfee_api_url');
-    }
-    window.location.reload();
-  }
+  // Đã ẩn trên production — không cho xem/đổi Backend API URL.
+  return;
 }
 window.configureApiUrl = configureApiUrl;
 
