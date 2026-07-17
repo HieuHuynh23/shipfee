@@ -885,9 +885,7 @@
             // Refresh mini sections with newly loaded data
             const openRests = activeOnlyList;
             renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
-            renderMiniCards('near-list', [...openRests]
-              .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
-              .slice(0, 10));
+            renderMiniCards('near-list', getNearRestaurants(openRests));
           } else if (document.getElementById('btn-load-more')) {
             document.getElementById('btn-load-more').disabled = false;
             document.getElementById('btn-load-more').textContent = 'Xem thêm cửa hàng';
@@ -906,11 +904,22 @@
       if (btn) btn.remove();
     }
 
-    /** Quán nổi bật: chỉ quán mở + có thực đơn thật (ẩn tag "Sẽ mở lại sớm"). */
+    /** Chỉ quán mở + có thực đơn thật (ẩn tag "Sẽ mở lại sớm"). */
+    function getReadyRestaurants(list) {
+      return (list || []).filter(r => r && !r.isClosed && r.hasRealMenu === true);
+    }
+
+    /** Quán nổi bật: sort theo rating/reviews. */
     function getFeaturedRestaurants(list, limit = 10) {
-      return (list || [])
-        .filter(r => r && !r.isClosed && r.hasRealMenu === true)
+      return getReadyRestaurants(list)
         .sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || ((b.reviews || 0) - (a.reviews || 0)))
+        .slice(0, limit);
+    }
+
+    /** Gần bạn: sort theo khoảng cách. */
+    function getNearRestaurants(list, limit = 10) {
+      return getReadyRestaurants(list)
+        .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
         .slice(0, limit);
     }
 
@@ -974,10 +983,10 @@
         if (featuredWrap) featuredWrap.style.display = featuredList.length ? 'block' : 'none';
         renderMiniCards('featured-list', featuredList);
 
-        // 2. Gần Bạn Nhất: Top 10 open restaurants sorted by distance
-        const nearList = [...openRests]
-          .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
-          .slice(0, 10);
+        // 2. Gần bạn: chỉ quán có thực đơn thật, sort theo khoảng cách
+        const nearList = getNearRestaurants(openRests);
+        const nearWrap = document.getElementById('near-section-wrap');
+        if (nearWrap) nearWrap.style.display = nearList.length ? 'block' : 'none';
         renderMiniCards('near-list', nearList);
 
         // 3. Tất Cả Cửa Hàng: Mặc định ẩn quán đóng cửa ở trang chủ (chỉ hiện quán hoạt động)
@@ -1011,7 +1020,7 @@
           
           const openRests = ALL_DATA.filter(r => r && !r.isClosed);
           renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
-          renderMiniCards('near-list', openRests.slice(0, 10));
+          renderMiniCards('near-list', getNearRestaurants(openRests));
           renderRestaurants(openRests, false, { mode: 'local' });
         } catch (recoverErr) {
           console.error('[Render] Không thể khôi phục tự động:', recoverErr);
