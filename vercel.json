@@ -5,5 +5,27 @@
     { "source": "/", "destination": "/customer-app/", "permanent": false },
     { "source": "/shipper", "destination": "/shipper-app/", "permanent": false },
     { "source": "/admin", "destination": "/admin-app/", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/customer-app/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/customer-app/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/customer-app/" }
+      ]
+    },
+    {
+      "source": "/customer-app/icons/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    }
   ]
 }

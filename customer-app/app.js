@@ -1037,3 +1037,13 @@ window.SF = {
 document.addEventListener('gesturestart', function (event) {
   event.preventDefault();
 }, { passive: false });
+
+/* --------------------------------------------------------------------------
+   PWA — register service worker so Android can install SHIPFEE to home screen
+   -------------------------------------------------------------------------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    const swUrl = new URL('sw.js', window.location.href).href;
+    navigator.serviceWorker.register(swUrl).catch(() => {});
+  });
+}
