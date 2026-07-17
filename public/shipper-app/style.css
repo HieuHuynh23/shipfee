@@ -75,7 +75,8 @@ body {
   box-shadow: 0 0 40px rgba(15, 23, 42, 0.08);
   border-left: 1px solid var(--clr-border);
   border-right: 1px solid var(--clr-border);
-  padding-bottom: 64px; /* space for bottom tab bar */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   overflow: hidden;
 }
 
@@ -1205,7 +1206,7 @@ input:checked + .slider:before {
   border-radius: var(--radius-md);
   color: var(--clr-text-primary);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px;
   outline: none;
   transition: var(--transition-base);
 }
@@ -1811,11 +1812,11 @@ input:checked + .slider:before {
 .crm-support-input {
   flex: 1;
   min-width: 0;
-  height: 40px;
+  height: 44px;
   border-radius: 10px;
   border: 1px solid var(--clr-border);
   padding: 0 12px;
-  font-size: 13px;
+  font-size: 16px;
   font-family: inherit;
   background: #fff;
   color: var(--clr-text-primary);

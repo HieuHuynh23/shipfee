@@ -2,7 +2,7 @@
    SHIPFEE — Customer App Design System
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* Fonts loaded via <link> in HTML (avoid render-blocking @import) */
 
 /* --------------------------------------------------------------------------
    CSS Variables / Design Tokens
@@ -58,8 +58,8 @@
   --space-xl: 32px;
   --space-2xl: 48px;
 
-  /* Typography */
-  --font-base: 'Inter', sans-serif;
+  /* Typography — system first for fast paint; Inter when loaded */
+  --font-base: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -68,6 +68,8 @@
 
   /* Nav height */
   --nav-h: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* --------------------------------------------------------------------------
@@ -264,13 +266,15 @@ ul, ol {
   top: 0;
   left: 0;
   right: 0;
-  height: var(--nav-h);
+  height: calc(var(--nav-h) + var(--safe-top));
+  padding-top: var(--safe-top);
   background: rgba(255,255,255,0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--clr-border);
   z-index: 100;
   transition: box-shadow var(--transition-base);
+  box-sizing: border-box;
 }
 
 .nav.scrolled {
@@ -328,8 +332,8 @@ ul, ol {
 }
 
 .nav__icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -383,8 +387,9 @@ ul, ol {
    Page Wrapper (offset for fixed nav)
    -------------------------------------------------------------------------- */
 .page-wrapper {
-  padding-top: var(--nav-h);
+  padding-top: calc(var(--nav-h) + var(--safe-top));
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* --------------------------------------------------------------------------
@@ -511,7 +516,7 @@ ul, ol {
   background: white;
   border: 2px solid transparent;
   border-radius: var(--radius-lg);
-  font-size: 14px;
+  font-size: 16px; /* iOS: avoid focus zoom */
   font-weight: 500;
   color: var(--clr-text-primary);
   box-shadow: var(--shadow-md);
@@ -774,9 +779,11 @@ ul, ol {
   background: var(--clr-surface);
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--clr-border);
-  transition: all var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base);
   cursor: pointer;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: 112px;
 }
 
 .food-item:hover {
@@ -848,8 +855,8 @@ ul, ol {
 }
 
 .qty-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
@@ -1315,7 +1322,7 @@ ul, ol {
   background: var(--clr-surface);
   border: 2px solid var(--clr-border);
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 16px; /* iOS: avoid focus zoom */
   font-weight: 500;
   color: var(--clr-text-primary);
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
@@ -1491,10 +1498,14 @@ ul, ol {
   background: var(--clr-surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: var(--space-lg);
+  padding-bottom: calc(var(--space-lg) + var(--safe-bottom));
   width: 100%;
   max-width: 480px;
   max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   transform: translateY(100%);
   transition: transform var(--transition-slow);
 }
@@ -1842,33 +1853,40 @@ ul, ol {
    Mobile performance & iOS Safari polish
    -------------------------------------------------------------------------- */
 .page-wrapper {
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-
-.nav {
-  padding-top: env(safe-area-inset-top, 0);
+  padding-bottom: var(--safe-bottom);
 }
 
 .cart-bar {
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0));
+  padding-bottom: calc(12px + var(--safe-bottom));
 }
 
 .overlay,
 #address-overlay {
-  padding-top: env(safe-area-inset-top, 0);
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
   -webkit-overflow-scrolling: touch;
+}
+
+body.modal-open {
+  overflow: hidden;
+  touch-action: none;
 }
 
 /* Horizontal chip / mini-card rows: momentum scroll without page hijack */
 .chip-row,
 .category-row,
 #category-row,
+.horizontal-scroll,
 .mini-scroll,
 [class*="scroll-x"] {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   scroll-behavior: smooth;
+}
+
+.card-mini {
+  content-visibility: auto;
+  contain-intrinsic-size: 180px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1884,7 +1902,9 @@ ul, ol {
 @media (hover: none), (pointer: coarse) {
   .card:hover,
   .card:hover .card__img,
+  .food-item:hover,
   .promo-banner:hover {
     transform: none;
+    box-shadow: none;
   }
 }

@@ -16,8 +16,13 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <style>
     /* ── PAGE-SPECIFIC ── */
     .restaurant-header {
@@ -93,7 +98,7 @@
       border-bottom: 2px solid var(--clr-border);
       scrollbar-width: none;
       position: sticky;
-      top: var(--nav-h);
+      top: calc(var(--nav-h) + env(safe-area-inset-top, 0px));
       z-index: 50;
     }
     .menu-cat-tabs::-webkit-scrollbar { display: none; }
@@ -1063,14 +1068,15 @@
         container.appendChild(sec);
 
         const itemsEl = sec.querySelector('.menu-items');
+        let foodAnimIdx = 0;
         items.forEach(item => {
-          const el = renderFoodItem(item);
+          const el = renderFoodItem(item, foodAnimIdx++);
           itemsEl.appendChild(el);
         });
       });
     }
 
-    function renderFoodItem(item) {
+    function renderFoodItem(item, animIndex = 99) {
       const cart = SF.getCart();
       let qty = 0;
       if (cart.restaurantId === RESTAURANT.id) {
@@ -1084,9 +1090,11 @@
       const isAvailable = item.isAvailable !== false && item.available !== false;
 
       const el = document.createElement('div');
-      el.className = 'food-item animate-fade-in' 
+      el.className = 'food-item'
+        + (animIndex < 6 ? ' animate-fade-in' : '')
         + (qty > 0 ? ' selected' : '')
         + (!isAvailable || isRestaurantClosed ? ' is-out-of-stock' : '');
+      if (animIndex < 6) el.style.animationDelay = (animIndex * 0.04) + 's';
       el.id = 'food-item-' + item.id;
       
       let qtyControlHtml = '';

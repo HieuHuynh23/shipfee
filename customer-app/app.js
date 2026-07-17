@@ -964,7 +964,7 @@ function initNavScroll() {
   const nav = document.querySelector('.nav');
   if (!nav) return;
   const onScroll = () => nav.classList.toggle('scrolled', window.scrollY > 10);
-  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('scroll', throttle(onScroll, 100), { passive: true });
   onScroll();
 }
 
@@ -1005,6 +1005,56 @@ function updateCartBar() {
 }
 
 /* --------------------------------------------------------------------------
+   Leaflet — on-demand loader (shared across customer pages)
+   -------------------------------------------------------------------------- */
+let _leafletLoadPromise = null;
+function loadLeaflet() {
+  if (window.L) return Promise.resolve(window.L);
+  if (_leafletLoadPromise) return _leafletLoadPromise;
+  _leafletLoadPromise = new Promise((resolve, reject) => {
+    const cssId = 'leaflet-css-deferred';
+    if (!document.getElementById(cssId)) {
+      const css = document.createElement('link');
+      css.id = cssId;
+      css.rel = 'stylesheet';
+      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.async = true;
+    s.onload = () => resolve(window.L);
+    s.onerror = () => reject(new Error('Không tải được bản đồ'));
+    document.head.appendChild(s);
+  });
+  return _leafletLoadPromise;
+}
+
+/* --------------------------------------------------------------------------
+   Modal body scroll lock (iOS Safari overscroll)
+   -------------------------------------------------------------------------- */
+let _modalScrollY = 0;
+function lockBodyScroll() {
+  _modalScrollY = window.scrollY || window.pageYOffset || 0;
+  document.body.classList.add('modal-open');
+  document.body.style.position = 'fixed';
+  document.body.style.top = `-${_modalScrollY}px`;
+  document.body.style.left = '0';
+  document.body.style.right = '0';
+  document.body.style.width = '100%';
+}
+function unlockBodyScroll() {
+  if (!document.body.classList.contains('modal-open')) return;
+  document.body.classList.remove('modal-open');
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, _modalScrollY);
+}
+
+/* --------------------------------------------------------------------------
    Expose to global scope (called from HTML onclick attributes)
    -------------------------------------------------------------------------- */
 window.SF = {
@@ -1022,6 +1072,9 @@ window.SF = {
   isAppleMobile,
   getUserLocation,
   formatGeoError,
+  loadLeaflet,
+  lockBodyScroll,
+  unlockBodyScroll,
   loadPricingConfig,
   getState, saveState, getCart, getCartTotal, updateCartItemNote,
   addToCart, removeFromCart, removeItemFromCart, clearCart,

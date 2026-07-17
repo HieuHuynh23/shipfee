@@ -17,12 +17,14 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  
-  <!-- Leaflet Map library -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Leaflet loaded on-demand (mobile perf) -->
   <style>
     /* ── PAGE-SPECIFIC ── */
     .order-id-bar {
@@ -622,7 +624,7 @@
 
       <!-- Send Input -->
       <div style="display: flex; gap: 8px; margin-top: 15px;">
-        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--clr-border); background: #FFFFFF !important; color: #0F172A !important; font-size: 13px;" onkeyup="if(event.key === 'Enter') sendChatMessage()">
+        <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." style="flex: 1; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--clr-border); background: #FFFFFF !important; color: #0F172A !important; font-size: 16px;" onkeyup="if(event.key === 'Enter') sendChatMessage()">
         <button class="btn btn--primary" onclick="sendChatMessage()" style="padding: 10px 16px; border-radius: var(--radius-md);">Gửi</button>
       </div>
     </div>
@@ -1014,11 +1016,15 @@
       const shipperStartLon = restLon - 0.005;
 
       try {
-        trackingMap = L.map('tracking-map').setView([(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2], 14);
+        if (!window.L && SF.loadLeaflet) await SF.loadLeaflet();
+        if (!window.L) throw new Error('Leaflet unavailable');
+
+        trackingMap = L.map('tracking-map', { preferCanvas: true }).setView([(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2], 14);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
-          attribution: '© OpenStreetMap'
+          attribution: '© OpenStreetMap',
+          updateWhenIdle: true
         }).addTo(trackingMap);
 
         const restIcon = L.divIcon({
@@ -1399,9 +1405,11 @@
     }
 
     let isChatOpen = false;
+    let lastChatRenderCount = -1;
     function openChatModal() {
       document.getElementById('chat-overlay').classList.add('active');
       isChatOpen = true;
+      lastChatRenderCount = -1;
       renderChatMessages();
       setTimeout(() => {
         const box = document.getElementById('chat-messages-box');
@@ -1418,13 +1426,17 @@
       const box = document.getElementById('chat-messages-box');
       if (!box) return;
 
-      if (!order.messages || order.messages.length === 0) {
+      const msgs = order.messages || [];
+      if (msgs.length === lastChatRenderCount && msgs.length > 0) return;
+      lastChatRenderCount = msgs.length;
+
+      if (msgs.length === 0) {
         box.innerHTML = `<div style="color: var(--clr-text-muted); text-align: center; font-size: 12px; margin-top: 50px;">Chưa có tin nhắn nào</div>`;
         return;
       }
 
       const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
-      const html = order.messages.map(msg => {
+      const html = msgs.map(msg => {
         const isMe = msg.sender === 'customer';
         const alignStyle = isMe ? 'align-self: flex-end; background: var(--clr-primary); color: white;' : 'align-self: flex-start; background: var(--clr-surface-2); color: var(--clr-text-primary);';
         const senderName = isMe ? 'Bạn' : (order.shipperName || 'Shipper');
