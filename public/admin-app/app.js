@@ -203,8 +203,14 @@ function showApp() {
   const validPages = ['dashboard', 'shippers', 'restaurants', 'orders', 'fleet', 'customers', 'analytics', 'support', 'settings'];
 
   if (deepPage && validPages.includes(deepPage)) {
+    if (deepPage === 'support' && deepQ) {
+      window.__shipperSupportFilter = 'open';
+      window.__focusShipperSupportPhone = String(deepQ).trim();
+    }
     navigateTo(deepPage);
-    if (deepQ) setTimeout(() => handleGlobalSearch(deepQ), 150);
+    if (deepQ && deepPage !== 'support') {
+      setTimeout(() => handleGlobalSearch(deepQ), 150);
+    }
   } else {
     navigateTo('dashboard');
   }

@@ -513,7 +513,11 @@ function initTelegramBot() {
     addNotification,
     upsertOrderToSupabase,
     supabase,
-    notifyOrderCancelled: (order) => crm.notifyOrderCancelled(order, addNotification)
+    notifyOrderCancelled: (order) => crm.notifyOrderCancelled(order, addNotification),
+    readShipperSupportThreads: () => crm.readShipperSupportThreads(),
+    writeShipperSupportThreads: (list) => crm.writeShipperSupportThreads(list),
+    appendShipperSupportMessage: (id, msg) => crm.appendShipperSupportMessage(id, msg),
+    markShipperSupportRead: (id, reader) => crm.markShipperSupportRead(id, reader)
   });
   return telegramBot;
 }
@@ -5257,8 +5261,9 @@ app.post('/api/shippers/support/messages', authenticateShipper, async (req, res)
       telegramBot.sendShipperSupportNotification({
         ...shipper,
         supportMessage: cleanedText,
-        supportOrderId: linkedOrderId,
-        supportPriority: isEmergency ? 'emergency' : 'normal'
+        supportOrderId: linkedOrderId || updated?.orderId || null,
+        supportPriority: isEmergency ? 'emergency' : 'normal',
+        supportThreadId: updated?.id || thread.id
       }).catch(e => console.error('[Telegram] shipper support chat:', e.message));
     }
 

@@ -17,6 +17,9 @@ let lastPollError = null;
 let lastUpdateAt = 0;
 let pollSuccessCount = 0;
 const slaTelegramNotified = new Map();
+/** chatId -> { threadId, expiresAt } — admin đang soạn trả lời hỗ trợ tài xế */
+const pendingSupportReplies = new Map();
+const SUPPORT_REPLY_TTL_MS = 5 * 60 * 1000;
 
 function crmLink(page, q) {
   const params = new URLSearchParams({ page });
@@ -180,6 +183,7 @@ function generateCRMReportMessage() {
           { text: '⏳ Shipper chờ duyệt', callback_data: 'crm_pending_shippers' }
         ],
         [
+          { text: '💬 Chat hỗ trợ TX', callback_data: 'crm_support_list' },
           { text: '🔗 Mở CRM', url: crmLink('dashboard') }
         ]
       ]
@@ -681,24 +685,175 @@ async function sendSosNotification(shipper) {
   }
 }
 
-async function sendShipperSupportNotification(shipper) {
+function supportThreadKeyboard(threadId, shipperPhone = '') {
+  const id = String(threadId || '');
+  const crmQ = shipperPhone || id;
+  return {
+    inline_keyboard: [
+      [
+        { text: '💬 Trả lời ngay', callback_data: `support_reply:${id}` },
+        { text: '📜 Xem hội thoại', callback_data: `support_view:${id}` }
+      ],
+      [
+        { text: '✅ Đóng hỗ trợ', callback_data: `support_resolve:${id}` },
+        { text: '🔗 Mở CRM can thiệp', url: crmLink('support', crmQ) }
+      ]
+    ]
+  };
+}
+
+function generateSupportListMessage() {
+  try {
+    if (!deps.readShipperSupportThreads) {
+      return { text: '❌ Module hỗ trợ chưa sẵn sàng.', keyboard: { inline_keyboard: [] } };
+    }
+    const open = (deps.readShipperSupportThreads() || [])
+      .filter(t => t.status === 'open')
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, 10);
+
+    let text = `💬 *CHAT HỖ TRỢ TÀI XẾ (ĐANG MỞ)*\n` +
+      `📅 ${new Date().toLocaleTimeString('vi-VN')}\n\n`;
+
+    if (!open.length) {
+      text += `✅ Không có hội thoại đang mở.`;
+    } else {
+      open.forEach((t, i) => {
+        const last = (t.messages || [])[t.messages.length - 1];
+        const preview = last ? String(last.text || '').slice(0, 40) : '—';
+        const urg = t.priority === 'emergency' ? '🚨 ' : '';
+        text += `${i + 1}. ${urg}*${t.shipperName || t.shipperPhone}*\n` +
+          `   📞 \`${t.shipperPhone}\`${t.orderId ? ` · 📦 ${t.orderId}` : ''}\n` +
+          `   💬 ${preview}${preview.length >= 40 ? '…' : ''}\n`;
+      });
+    }
+
+    const keyboard = { inline_keyboard: [] };
+    open.forEach(t => {
+      keyboard.inline_keyboard.push([{
+        text: `${t.priority === 'emergency' ? '🚨' : '💬'} ${t.shipperName || t.shipperPhone}`,
+        callback_data: `support_view:${t.id}`
+      }]);
+    });
+    keyboard.inline_keyboard.push([
+      { text: '🔄 Làm mới', callback_data: 'crm_support_list' },
+      { text: '🔗 Mở CRM', url: crmLink('support') }
+    ]);
+    keyboard.inline_keyboard.push([{ text: '⬅️ Menu', callback_data: 'crm_main_menu' }]);
+    return { text, keyboard };
+  } catch (e) {
+    return { text: '❌ Lỗi tải danh sách hỗ trợ!', keyboard: { inline_keyboard: [] } };
+  }
+}
+
+function generateSupportThreadMessage(thread) {
+  if (!thread) {
+    return { text: '❌ Không tìm thấy hội thoại.', keyboard: { inline_keyboard: [] } };
+  }
+  const msgs = (thread.messages || []).slice(-8);
+  let text = `💬 *HỘI THOẠI HỖ TRỢ*\n\n` +
+    `🛵 *Tài xế:* ${thread.shipperName || '—'} (\`${thread.shipperPhone}\`)\n` +
+    `📈 *Trạng thái:* ${thread.status}${thread.priority === 'emergency' ? ' · 🚨 Khẩn cấp' : ''}\n` +
+    (thread.orderId ? `📦 *Đơn:* \`${thread.orderId}\`\n` : '') +
+    `\n`;
+
+  if (!msgs.length) {
+    text += `_Chưa có tin nhắn._\n`;
+  } else {
+    msgs.forEach(m => {
+      const who = m.sender === 'admin' || m.role === 'admin' ? 'CRM' : 'TX';
+      const t = m.timestamp ? new Date(m.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+      text += `• *${who}*${t ? ` (${t})` : ''}: ${String(m.text || '').slice(0, 180)}\n`;
+    });
+  }
+
+  text += `\n💡 Nhấn *Trả lời ngay* rồi gõ tin — tài xế nhận trong app.\nHoặc mở CRM để can thiệp đầy đủ.`;
+  return { text, keyboard: supportThreadKeyboard(thread.id, thread.shipperPhone) };
+}
+
+async function adminReplySupportThread(threadId, replyText, chatId) {
+  const cleaned = String(replyText || '').trim();
+  if (!cleaned) return { ok: false, error: 'Tin trống!' };
+  if (cleaned.length > 1000) return { ok: false, error: 'Tối đa 1000 ký tự!' };
+  if (!deps.appendShipperSupportMessage) return { ok: false, error: 'Module hỗ trợ chưa sẵn sàng!' };
+
+  const updated = deps.appendShipperSupportMessage(threadId, {
+    sender: 'admin',
+    role: 'admin',
+    text: cleaned,
+    adminEmail: 'telegram-admin'
+  });
+  if (!updated) return { ok: false, error: 'Không tìm thấy hội thoại!' };
+
+  if (deps.markShipperSupportRead) deps.markShipperSupportRead(threadId, 'admin');
+
+  // Đồng bộ sang chat đơn (nếu có) — giống API admin CRM
+  if (updated.orderId && deps.updateOrdersDatabase) {
+    await deps.updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === updated.orderId);
+      if (idx === -1) return false;
+      orders[idx].messages = orders[idx].messages || [];
+      orders[idx].messages.push({
+        sender: 'Admin',
+        role: 'admin',
+        text: cleaned,
+        timestamp: Date.now()
+      });
+      return true;
+    });
+  }
+
+  if (deps.addNotification) {
+    deps.addNotification(
+      'shipper_support',
+      updated.shipperPhone,
+      updated.shipperName || updated.shipperPhone,
+      'CRM đã trả lời tài xế (Telegram)',
+      `${updated.shipperName || updated.shipperPhone}: ${cleaned.slice(0, 120)}`
+    );
+  }
+
+  return { ok: true, thread: updated };
+}
+
+async function adminResolveSupportThread(threadId) {
+  if (!deps.readShipperSupportThreads || !deps.writeShipperSupportThreads) {
+    return { ok: false, error: 'Module hỗ trợ chưa sẵn sàng!' };
+  }
+  const threads = deps.readShipperSupportThreads();
+  const idx = threads.findIndex(t => t.id === threadId);
+  if (idx === -1) return { ok: false, error: 'Không tìm thấy hội thoại!' };
+  threads[idx].status = 'resolved';
+  threads[idx].resolvedAt = Date.now();
+  threads[idx].updatedAt = Date.now();
+  deps.writeShipperSupportThreads(threads);
+  return { ok: true, thread: threads[idx] };
+}
+
+async function sendShipperSupportNotification(payload) {
   if (!isConfigured()) return;
   try {
-    const isEmergency = String(shipper.supportPriority || '').toLowerCase() === 'emergency';
-    const msg = String(shipper.supportMessage || '').trim();
-    const orderId = shipper.supportOrderId ? String(shipper.supportOrderId) : '';
+    const isEmergency = String(payload.supportPriority || '').toLowerCase() === 'emergency';
+    const msg = String(payload.supportMessage || '').trim();
+    const orderId = payload.supportOrderId ? String(payload.supportOrderId) : '';
+    const threadId = payload.supportThreadId || '';
     const title = isEmergency ? '🚨 *Shipper khẩn cấp*' : '💬 *Shipper nhắn CRM*';
     const text = `${title}\n\n` +
-      `🛵 *Tài xế:* ${shipper.name || '—'} (${shipper.phone || '—'})\n` +
+      `🛵 *Tài xế:* ${payload.name || '—'} (${payload.phone || '—'})\n` +
       (orderId ? `📦 *Đơn:* \`${orderId}\`\n` : '') +
       (msg ? `\n📝 ${msg.slice(0, 400)}${msg.length > 400 ? '…' : ''}\n` : '') +
-      `\n🔗 [Mở Chat tài xế](${crmLink('support')})`;
+      `\nTrả lời ngay trên Telegram — hoặc mở CRM để can thiệp.`;
 
-    await sendMessage(text, {
-      inline_keyboard: [[
-        { text: '💬 Mở CRM Hỗ trợ', url: crmLink('support') }
-      ]]
-    });
+    const keyboard = threadId
+      ? supportThreadKeyboard(threadId, payload.phone)
+      : {
+          inline_keyboard: [[
+            { text: '💬 Danh sách hỗ trợ', callback_data: 'crm_support_list' },
+            { text: '🔗 Mở CRM Hỗ trợ', url: crmLink('support') }
+          ]]
+        };
+
+    await sendMessage(text, keyboard);
   } catch (err) {
     console.error('[Telegram Bot] Lỗi shipper support chat:', err.message);
   }
@@ -827,15 +982,83 @@ async function processUpdates(updates) {
           console.log(`[Telegram Bot] Lệnh nhận: ${text} từ chat ${chatId}`);
           lastUpdateAt = Date.now();
 
+          // Admin đang soạn trả lời hỗ trợ tài xế (tin thường, không phải lệnh)
+          const pendingKey = String(chatId);
+          const pending = pendingSupportReplies.get(pendingKey);
+          if (pending && Date.now() < pending.expiresAt) {
+            if (text === '/cancel' || text === 'hủy' || text === 'huy' || text === 'cancel') {
+              pendingSupportReplies.delete(pendingKey);
+              await tgPost('sendMessage', { chat_id: chatId, text: '❌ Đã hủy trả lời hỗ trợ.' });
+              continue;
+            }
+            if (!text.startsWith('/')) {
+              const replyBody = String(msg.text || '').trim();
+              pendingSupportReplies.delete(pendingKey);
+              const result = await adminReplySupportThread(pending.threadId, replyBody, chatId);
+              if (result.ok) {
+                const detail = generateSupportThreadMessage(result.thread);
+                await tgPost('sendMessage', {
+                  chat_id: chatId,
+                  text: `✅ *Đã gửi tới tài xế!*\n\n${detail.text}`,
+                  parse_mode: 'Markdown',
+                  reply_markup: detail.keyboard
+                });
+              } else {
+                await tgPost('sendMessage', { chat_id: chatId, text: `❌ ${result.error || 'Gửi thất bại!'}` });
+              }
+              continue;
+            }
+            // Lệnh khác khi đang pending → hủy pending rồi xử lý lệnh
+            pendingSupportReplies.delete(pendingKey);
+          } else if (pending) {
+            pendingSupportReplies.delete(pendingKey);
+          }
+
           if (text === '/crm' || text === '/stats' || text === '/start') {
             const report = generateCRMReportMessage();
             await tgPost('sendMessage', { chat_id: chatId, text: report.text, parse_mode: 'Markdown', reply_markup: report.keyboard });
           } else if (text === '/help') {
             await tgPost('sendMessage', {
               chat_id: chatId,
-              text: '🤖 *ShipFee CRM Bot*\n\n`/crm` `/stats` — Dashboard\n`/orders` — Đơn chờ\n`/pending_shippers` — Shipper chờ duyệt\n`/shippers` — Shipper online\n`/find <tên|sđt>` — Tìm tài xế\n`/assign <mã_đơn> <tài_xế>` — Gán đơn\n`/help` — Trợ giúp',
+              text: '🤖 *ShipFee CRM Bot*\n\n`/crm` `/stats` — Dashboard\n`/orders` — Đơn chờ\n`/support` — Chat hỗ trợ tài xế\n`/reply <threadId|sđt> <tin>` — Trả lời TX\n`/pending_shippers` — Shipper chờ duyệt\n`/shippers` — Shipper online\n`/find <tên|sđt>` — Tìm tài xế\n`/assign <mã_đơn> <tài_xế>` — Gán đơn\n`/help` — Trợ giúp',
               parse_mode: 'Markdown'
             });
+          } else if (text === '/support' || text === '/supports' || text === '/chat') {
+            const supportMsg = generateSupportListMessage();
+            await tgPost('sendMessage', { chat_id: chatId, text: supportMsg.text, parse_mode: 'Markdown', reply_markup: supportMsg.keyboard });
+          } else if (text.startsWith('/reply ') || text.startsWith('/r ')) {
+            const raw = String(msg.text || '').trim().replace(/^\/(reply|r)\s+/i, '');
+            const spaceIdx = raw.search(/\s/);
+            if (spaceIdx < 1) {
+              await tgPost('sendMessage', {
+                chat_id: chatId,
+                text: '⚠️ Cú pháp: `/reply <threadId hoặc SĐT> <nội dung>`\nVí dụ: `/reply 0907296261 Đang xử lý giúp bạn`',
+                parse_mode: 'Markdown'
+              });
+              continue;
+            }
+            const target = raw.slice(0, spaceIdx).trim();
+            const body = raw.slice(spaceIdx + 1).trim();
+            let threadId = target;
+            if (!target.startsWith('sst-') && deps.readShipperSupportThreads) {
+              const phone = target.replace(/\s+/g, '');
+              const open = deps.readShipperSupportThreads().find(t =>
+                t.status === 'open' && String(t.shipperPhone || '').replace(/\s+/g, '') === phone
+              );
+              if (open) threadId = open.id;
+            }
+            const result = await adminReplySupportThread(threadId, body, chatId);
+            if (result.ok) {
+              const detail = generateSupportThreadMessage(result.thread);
+              await tgPost('sendMessage', {
+                chat_id: chatId,
+                text: `✅ *Đã gửi tới tài xế!*\n\n${detail.text}`,
+                parse_mode: 'Markdown',
+                reply_markup: detail.keyboard
+              });
+            } else {
+              await tgPost('sendMessage', { chat_id: chatId, text: `❌ ${result.error || 'Gửi thất bại!'}` });
+            }
           } else if (text === '/shippers' || text === '/drivers') {
             const shippersMsg = generateShippersReportMessage();
             await tgPost('sendMessage', { chat_id: chatId, text: shippersMsg.text, parse_mode: 'Markdown', reply_markup: shippersMsg.keyboard });
@@ -949,6 +1172,66 @@ async function processUpdates(updates) {
             const pendingMsg = generatePendingShippersMessage();
             await answer('Đã tải shipper chờ duyệt!');
             await edit(pendingMsg.text, pendingMsg.keyboard);
+          } else if (data === 'crm_support_list') {
+            const supportMsg = generateSupportListMessage();
+            await answer('Danh sách hỗ trợ!');
+            await edit(supportMsg.text, supportMsg.keyboard);
+          } else if (data.startsWith('support_view:')) {
+            const threadId = data.slice('support_view:'.length);
+            const threads = deps.readShipperSupportThreads ? deps.readShipperSupportThreads() : [];
+            const thread = threads.find(t => t.id === threadId);
+            if (!thread) {
+              await answer('Không tìm thấy hội thoại!', { show_alert: true });
+              continue;
+            }
+            if (deps.markShipperSupportRead) deps.markShipperSupportRead(threadId, 'admin');
+            const detail = generateSupportThreadMessage(thread);
+            await answer('Chi tiết hội thoại!');
+            await edit(detail.text, detail.keyboard);
+          } else if (data.startsWith('support_reply:')) {
+            const threadId = data.slice('support_reply:'.length);
+            const threads = deps.readShipperSupportThreads ? deps.readShipperSupportThreads() : [];
+            const thread = threads.find(t => t.id === threadId);
+            if (!thread) {
+              await answer('Không tìm thấy hội thoại!', { show_alert: true });
+              continue;
+            }
+            if (thread.status === 'resolved') {
+              await answer('Hội thoại đã đóng — mở lại khi TX nhắn mới.', { show_alert: true });
+              continue;
+            }
+            pendingSupportReplies.set(String(chatId), {
+              threadId,
+              expiresAt: Date.now() + SUPPORT_REPLY_TTL_MS
+            });
+            await answer('Nhập tin trả lời...');
+            await tgPost('sendMessage', {
+              chat_id: chatId,
+              text:
+                `💬 *Trả lời ${thread.shipperName || thread.shipperPhone}*\n\n` +
+                `Gõ nội dung tin nhắn ngay bên dưới (trong 5 phút).\n` +
+                `Tài xế sẽ nhận trong app « Nhắn CRM hỗ trợ ».\n\n` +
+                `Hoặc: \`/reply ${thread.shipperPhone} <nội dung>\`\n` +
+                `Huỷ: \`/cancel\``,
+              parse_mode: 'Markdown'
+            });
+          } else if (data.startsWith('support_resolve:')) {
+            const threadId = data.slice('support_resolve:'.length);
+            const result = await adminResolveSupportThread(threadId);
+            if (result.ok) {
+              await answer('Đã đóng hỗ trợ!');
+              await edit(
+                `✅ *Đã đóng hội thoại hỗ trợ*\n\n🛵 ${result.thread.shipperName || ''} (\`${result.thread.shipperPhone}\`)`,
+                {
+                  inline_keyboard: [[
+                    { text: '💬 Danh sách hỗ trợ', callback_data: 'crm_support_list' },
+                    { text: '🔗 Mở CRM', url: crmLink('support') }
+                  ]]
+                }
+              );
+            } else {
+              await answer(result.error || 'Lỗi!', { show_alert: true });
+            }
           } else if (data.startsWith('view_order_details:')) {
             const orderId = data.split(':')[1];
             const order = deps.readOrdersDatabase().find(o => o.id === orderId);
