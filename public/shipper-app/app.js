@@ -874,6 +874,10 @@ function switchTab(tabId) {
     renderActiveTrip();
   } else if (tabId === 'history') {
     renderHistoryAndStats();
+    loadCrmSupportThread();
+    startCrmSupportPolling();
+  } else {
+    stopCrmSupportPolling();
   }
 }
 
@@ -897,7 +901,7 @@ function renderPendingOrders(orders) {
             <span class="crm-assist-card__icon"><i class="fa-solid fa-headset"></i></span>
             <div>
               <h4>Hỗ trợ tìm đơn từ CRM</h4>
-              <p>CRM ShipFee ưu tiên gán đơn gần bạn (Live Ops). Dùng khi lâu không nhận đề xuất.</p>
+              <p>Dùng khi lâu không nhận đề xuất — CRM sẽ ưu tiên gán đơn gần bạn.</p>
             </div>
           </div>
           <div class="crm-assist-card__meta">
@@ -1739,9 +1743,23 @@ function renderShipperChatMessages() {
   }
 
   const html = activeOrder.messages.map(msg => {
-    const isMe = msg.sender === 'shipper';
-    const alignStyle = isMe ? 'align-self: flex-end; background: var(--clr-primary); color: white;' : 'align-self: flex-start; background: rgba(255,255,255,0.1); color: var(--clr-text-primary);';
-    const senderName = isMe ? 'Bạn' : 'Khách hàng';
+    const role = String(msg.role || '').toLowerCase();
+    const sender = String(msg.sender || '').toLowerCase();
+    const isMe = sender === 'shipper' || role === 'shipper';
+    const isAdmin = sender === 'admin' || role === 'admin' || sender === 'crm'
+      || String(msg.sender || '') === 'Admin';
+    let alignStyle;
+    let senderName;
+    if (isMe) {
+      alignStyle = 'align-self: flex-end; background: var(--clr-primary); color: white;';
+      senderName = 'Bạn';
+    } else if (isAdmin) {
+      alignStyle = 'align-self: flex-start; background: rgba(16, 185, 129, 0.12); color: var(--clr-text-primary); border: 1px solid rgba(16, 185, 129, 0.25);';
+      senderName = 'CRM';
+    } else {
+      alignStyle = 'align-self: flex-start; background: rgba(255,255,255,0.1); color: var(--clr-text-primary);';
+      senderName = 'Khách hàng';
+    }
     return `
       <div style="max-width: 80%; padding: 8px 12px; border-radius: var(--radius-md); font-size: 12px; ${alignStyle} display: flex; flex-direction: column; gap: 3px;">
         <span style="font-weight: 700; opacity: 0.8; font-size: 10px;">${senderName}</span>
@@ -3224,22 +3242,217 @@ function reportTripIncident() {
     showToast('Chưa có chuyến đi', 'Chỉ báo sự cố khi đang chạy đơn.', 'warning');
     return;
   }
-  const tip =
-    `Đơn ${activeOrder.id} đang ${activeOrder.status}.\n\n` +
-    'CRM Live Ops có thể theo dõi đơn này (gán lại tài xế / hủy / chat).\n' +
-    'Bạn nên: (1) nhắn tin hoặc gọi khách, (2) giữ app mở để CRM thấy vị trí GPS.\n\n' +
-    'Tiếp tục mở chat với khách?';
-  if (confirm(tip)) {
-    openQuickChat();
-  } else {
-    showToast(
-      'Đã ghi nhận',
-      'Ops CRM theo dõi đơn trên Live Ops. Giữ ca online và cập nhật trạng thái đúng.',
-      'info'
-    );
+
+  crmSupportLinkOrder = true;
+  const emergencyEl = document.getElementById('crm-support-emergency');
+  if (emergencyEl) emergencyEl.checked = true;
+  const input = document.getElementById('crm-support-input');
+  if (input && !input.value.trim()) {
+    input.value = `Khẩn cấp đơn ${activeOrder.id} (${activeOrder.status}): `;
   }
+  updateCrmSupportOrderTag();
+
+  switchTab('history');
+  const panel = document.getElementById('crm-support-panel');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  loadCrmSupportThread().then(() => {
+    if (input) input.focus();
+  });
+  showToast('Nhắn CRM', 'Đã mở chat CRM — gửi tin để nhờ hỗ trợ khẩn cấp.', 'info');
 }
 window.reportTripIncident = reportTripIncident;
+
+/* ── CRM Support Chat (shipper ↔ admin) ───────────────────────────────────── */
+let crmSupportThread = null;
+let crmSupportLinkOrder = false;
+let crmSupportSendInFlight = false;
+let crmSupportPollTimer = null;
+
+function updateCrmSupportOrderTag() {
+  const tag = document.getElementById('crm-support-order-tag');
+  const btn = document.getElementById('crm-support-link-order-btn');
+  if (btn) btn.classList.toggle('is-on', !!crmSupportLinkOrder && !!activeOrder);
+  if (!tag) return;
+  if (crmSupportLinkOrder && activeOrder) {
+    tag.style.display = 'inline-flex';
+    tag.textContent = `Đơn ${activeOrder.id}`;
+  } else if (crmSupportThread?.orderId) {
+    tag.style.display = 'inline-flex';
+    tag.textContent = `Đơn ${crmSupportThread.orderId}`;
+  } else {
+    tag.style.display = 'none';
+    tag.textContent = '';
+  }
+}
+
+function toggleCrmSupportOrderLink() {
+  if (!activeOrder) {
+    showToast('Chưa có đơn', 'Chỉ gắn được khi đang có chuyến đi.', 'warning');
+    crmSupportLinkOrder = false;
+  } else {
+    crmSupportLinkOrder = !crmSupportLinkOrder;
+  }
+  updateCrmSupportOrderTag();
+}
+window.toggleCrmSupportOrderLink = toggleCrmSupportOrderLink;
+
+function formatCrmSupportTime(ts) {
+  if (!ts) return '';
+  try {
+    return new Date(ts).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
+function renderCrmSupportMessages(thread) {
+  const box = document.getElementById('crm-support-messages');
+  const statusEl = document.getElementById('crm-support-status');
+  if (!box) return;
+
+  crmSupportThread = thread || null;
+  updateCrmSupportOrderTag();
+
+  if (statusEl) {
+    if (!thread) {
+      statusEl.textContent = 'Chưa có hội thoại';
+    } else if (thread.status === 'resolved') {
+      statusEl.textContent = 'Đã xử lý — gửi tin mới sẽ mở lại hỗ trợ';
+    } else if (thread.priority === 'emergency') {
+      statusEl.textContent = 'Đang mở · Khẩn cấp';
+    } else {
+      statusEl.textContent = 'Đang mở · CRM sẽ trả lời tại đây';
+    }
+  }
+
+  const messages = (thread && Array.isArray(thread.messages)) ? thread.messages : [];
+  if (!messages.length) {
+    box.innerHTML = `<div class="crm-support-empty">Chưa có tin nhắn. Viết tin bên dưới để nhờ CRM hỗ trợ.</div>`;
+    return;
+  }
+
+  const shouldScroll = box.scrollTop + box.clientHeight >= box.scrollHeight - 40
+    || box.querySelector('.crm-support-empty');
+
+  box.innerHTML = messages.map(msg => {
+    const isMe = msg.sender === 'shipper' || msg.role === 'shipper';
+    const who = isMe ? 'Bạn' : 'CRM';
+    const cls = isMe ? 'crm-support-bubble--me' : 'crm-support-bubble--crm';
+    const time = formatCrmSupportTime(msg.timestamp || msg.createdAt);
+    return `
+      <div class="crm-support-bubble ${cls}">
+        <span class="crm-support-bubble__who">${who}</span>
+        <span>${escapeHtml(msg.text || '')}</span>
+        ${time ? `<span class="crm-support-bubble__time">${time}</span>` : ''}
+      </div>`;
+  }).join('');
+
+  if (shouldScroll) box.scrollTop = box.scrollHeight;
+}
+
+async function loadCrmSupportThread() {
+  if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return null;
+  try {
+    const res = await apiFetch(`${API_BASE}/api/shippers/support/thread`, {
+      headers: { 'Authorization': `Bearer ${sessionStorage.getItem('shipfee_jwt')}` }
+    }, 10000);
+    const data = await safeJson(res);
+    if (res.ok && data.success) {
+      renderCrmSupportMessages(data.data || null);
+      return data.data || null;
+    }
+  } catch (e) {
+    console.warn('[CRM Support] load failed:', e?.message || e);
+  }
+  return null;
+}
+
+async function sendCrmSupportMessage() {
+  if (crmSupportSendInFlight) return;
+  if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) {
+    showToast('Chưa đăng nhập', 'Vui lòng đăng nhập lại.', 'warning');
+    return;
+  }
+
+  const input = document.getElementById('crm-support-input');
+  const emergencyEl = document.getElementById('crm-support-emergency');
+  const btn = document.getElementById('crm-support-send-btn');
+  const text = (input?.value || '').trim();
+  if (!text) {
+    showToast('Thiếu nội dung', 'Nhập tin nhắn cần hỗ trợ.', 'warning');
+    return;
+  }
+
+  const priority = emergencyEl?.checked ? 'emergency' : 'normal';
+  const orderId = (crmSupportLinkOrder && activeOrder?.id)
+    ? activeOrder.id
+    : (crmSupportThread?.orderId || null);
+
+  crmSupportSendInFlight = true;
+  if (btn) btn.disabled = true;
+  if (input) input.disabled = true;
+
+  try {
+    const res = await apiFetch(`${API_BASE}/api/shippers/support/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${sessionStorage.getItem('shipfee_jwt')}`
+      },
+      body: JSON.stringify({ text, orderId, priority })
+    }, 12000);
+    const data = await safeJson(res);
+    if (res.ok && data.success) {
+      if (input) input.value = '';
+      if (emergencyEl) emergencyEl.checked = false;
+      crmSupportLinkOrder = false;
+      renderCrmSupportMessages(data.data);
+      showToast('Đã gửi CRM', priority === 'emergency' ? 'Đã báo khẩn cấp tới CRM.' : 'CRM đã nhận tin nhắn của bạn.', 'success');
+    } else {
+      showToast('Gửi thất bại', data.error || 'Không gửi được tin nhắn.', 'error');
+    }
+  } catch (e) {
+    console.error('[CRM Support] send failed:', e);
+    showToast('Lỗi kết nối', 'Không thể gửi tin tới CRM.', 'error');
+  } finally {
+    crmSupportSendInFlight = false;
+    if (btn) btn.disabled = false;
+    if (input) {
+      input.disabled = false;
+      input.focus();
+    }
+  }
+}
+window.sendCrmSupportMessage = sendCrmSupportMessage;
+
+function startCrmSupportPolling() {
+  stopCrmSupportPolling();
+  crmSupportPollTimer = setInterval(() => {
+    const historyTab = document.getElementById('tab-history');
+    if (historyTab && historyTab.classList.contains('active')) {
+      loadCrmSupportThread();
+    }
+  }, 8000);
+}
+
+function stopCrmSupportPolling() {
+  if (crmSupportPollTimer) {
+    clearInterval(crmSupportPollTimer);
+    crmSupportPollTimer = null;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const input = document.getElementById('crm-support-input');
+  if (input) {
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendCrmSupportMessage();
+      }
+    });
+  }
+});
 
 function geocodeAddressOffline(address, name) {
   const text = ((address || '') + ' ' + (name || '')).toLowerCase();

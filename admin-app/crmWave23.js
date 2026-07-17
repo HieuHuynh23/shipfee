@@ -123,17 +123,134 @@ async function renderSupport() {
     <div class="page-section-header">
       <h2>Hỗ trợ & Khiếu nại</h2>
       ${canMutate() ? `<div class="page-section-header__actions">
-        <button class="btn btn--primary btn--sm" onclick="openCreateDisputePrompt()"><i class="fa-solid fa-plus"></i> Tạo ticket</button>
+        <button class="btn btn--primary btn--sm" onclick="openCreateDisputePrompt()"><i class="fa-solid fa-plus"></i> Tạo ticket khách</button>
       </div>` : ''}
     </div>
     <div class="tabs mb-4">
-      <button class="tab active" onclick="filterDisputes(this,'all')">Tất cả</button>
-      <button class="tab" onclick="filterDisputes(this,'open')">Đang mở</button>
-      <button class="tab" onclick="filterDisputes(this,'resolved')">Đã xử lý</button>
+      <button class="tab active" onclick="switchSupportSection(this,'shipper')">Chat tài xế</button>
+      <button class="tab" onclick="switchSupportSection(this,'disputes')">Khiếu nại khách</button>
     </div>
-    <div id="disputes-body"><div class="empty-state" style="padding:24px;">Đang tải...</div></div>`;
+    <div id="support-section-shipper">
+      <div class="tabs mb-4">
+        <button class="tab active" onclick="filterShipperSupport(this,'open')">Đang mở</button>
+        <button class="tab" onclick="filterShipperSupport(this,'all')">Tất cả</button>
+        <button class="tab" onclick="filterShipperSupport(this,'resolved')">Đã xử lý</button>
+      </div>
+      <div id="shipper-support-body"><div class="empty-state" style="padding:24px;">Đang tải...</div></div>
+    </div>
+    <div id="support-section-disputes" style="display:none;">
+      <div class="tabs mb-4">
+        <button class="tab active" onclick="filterDisputes(this,'all')">Tất cả</button>
+        <button class="tab" onclick="filterDisputes(this,'open')">Đang mở</button>
+        <button class="tab" onclick="filterDisputes(this,'resolved')">Đã xử lý</button>
+      </div>
+      <div id="disputes-body"><div class="empty-state" style="padding:24px;">Đang tải...</div></div>
+    </div>`;
   window.__disputeFilter = 'all';
-  await loadDisputes();
+  window.__shipperSupportFilter = 'open';
+  await Promise.all([loadShipperSupportThreads(), loadDisputes()]);
+}
+
+function switchSupportSection(btn, section) {
+  btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const shipperEl = document.getElementById('support-section-shipper');
+  const disputesEl = document.getElementById('support-section-disputes');
+  if (shipperEl) shipperEl.style.display = section === 'shipper' ? '' : 'none';
+  if (disputesEl) disputesEl.style.display = section === 'disputes' ? '' : 'none';
+}
+
+async function loadShipperSupportThreads() {
+  const el = document.getElementById('shipper-support-body');
+  if (!el) return;
+  try {
+    const res = await apiFetch('/api/admin/shipper-support');
+    let list = res.data || [];
+    const f = window.__shipperSupportFilter || 'open';
+    if (f !== 'all') list = list.filter(t => t.status === f);
+    if (!list.length) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px;"><p class="text-muted">Chưa có tin nhắn từ tài xế</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(t => {
+      const unread = t.unreadForAdmin || 0;
+      const priorityBadge = t.priority === 'emergency'
+        ? `<span class="badge badge--pending">Khẩn cấp</span>`
+        : '';
+      const statusBadge = t.status === 'open'
+        ? `<span class="badge badge--online">Mở</span>`
+        : `<span class="badge">Đã xử lý</span>`;
+      return `
+      <div class="card mb-4" style="padding:16px;${unread ? 'border-color:rgba(16,185,129,0.45);' : ''}">
+        <div class="flex justify-between items-center mb-2" style="gap:8px;flex-wrap:wrap;">
+          <div>
+            <strong>${escapeHtml(t.shipperName || 'Tài xế')}</strong>
+            <span class="mono text-xs text-muted"> · ${escapeHtml(t.shipperPhone || '')}</span>
+            ${t.orderId ? ` · Đơn <span class="mono">${escapeHtml(t.orderId)}</span>` : ''}
+            ${unread ? ` · <span style="color:#059669;font-weight:700;">${unread} tin mới</span>` : ''}
+          </div>
+          <div class="flex gap-2" style="gap:6px;">${priorityBadge}${statusBadge}</div>
+        </div>
+        <div style="max-height:140px;overflow-y:auto;margin-bottom:8px;background:rgba(15,23,42,0.03);padding:8px;border-radius:8px;">
+          ${(t.messages || []).map(m => {
+            const who = m.sender === 'shipper' ? (t.shipperName || 'Shipper') : 'CRM';
+            return `<div class="text-xs" style="padding:4px 0;border-bottom:1px solid var(--border);"><strong>${escapeHtml(who)}</strong>: ${escapeHtml(m.text || '')}</div>`;
+          }).join('') || '<span class="text-xs text-muted">Chưa có tin</span>'}
+        </div>
+        ${canMutate() && t.status === 'open' ? `
+          <div class="flex gap-2" style="margin-top:8px;">
+            <input type="text" class="form-input" id="shipper-support-reply-${escapeHtml(t.id)}" placeholder="Trả lời tài xế..." style="flex:1;">
+            <button class="btn btn--primary btn--sm" onclick="replyShipperSupport('${escapeHtml(t.id)}')">Gửi</button>
+            <button class="btn btn--secondary btn--sm" onclick="resolveShipperSupport('${escapeHtml(t.id)}')">Đóng</button>
+            ${t.orderId ? `<button class="btn btn--ghost btn--sm" onclick="showOrderDetail('${escapeHtml(t.orderId)}')">Xem đơn</button>` : ''}
+          </div>` : ''}
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="empty-state"><p class="text-muted">${escapeHtml(e.message)}</p></div>`;
+  }
+}
+
+function filterShipperSupport(btn, status) {
+  window.__shipperSupportFilter = status;
+  btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  loadShipperSupportThreads();
+}
+
+async function replyShipperSupport(id) {
+  const input = document.getElementById(`shipper-support-reply-${id}`);
+  const text = input?.value?.trim();
+  if (!text) return;
+  try {
+    const res = await apiFetch(`/api/admin/shipper-support/${id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ text })
+    });
+    if (res.success) {
+      input.value = '';
+      showToast('Đã gửi cho tài xế', 'success');
+      loadShipperSupportThreads();
+    } else {
+      showToast(res.error || 'Lỗi', 'error');
+    }
+  } catch (e) {
+    showToast('Lỗi kết nối', 'error');
+  }
+}
+
+async function resolveShipperSupport(id) {
+  try {
+    const res = await apiFetch(`/api/admin/shipper-support/${id}/resolve`, { method: 'POST' });
+    if (res.success) {
+      showToast('Đã đóng hội thoại', 'success');
+      loadShipperSupportThreads();
+    } else {
+      showToast(res.error || 'Lỗi', 'error');
+    }
+  } catch (e) {
+    showToast('Lỗi kết nối', 'error');
+  }
 }
 
 async function loadDisputes() {
@@ -503,6 +620,11 @@ window.filterDisputes = filterDisputes;
 window.openCreateDisputePrompt = openCreateDisputePrompt;
 window.replyDispute = replyDispute;
 window.resolveDispute = resolveDispute;
+window.switchSupportSection = switchSupportSection;
+window.loadShipperSupportThreads = loadShipperSupportThreads;
+window.filterShipperSupport = filterShipperSupport;
+window.replyShipperSupport = replyShipperSupport;
+window.resolveShipperSupport = resolveShipperSupport;
 window.createPromo = createPromo;
 window.createZone = createZone;
 window.deleteZone = deleteZone;

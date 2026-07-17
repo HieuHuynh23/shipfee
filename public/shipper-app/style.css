@@ -1700,34 +1700,134 @@ input:checked + .slider:before {
   line-height: 1.45;
   color: var(--clr-text-secondary);
 }
-.crm-support-list {
-  list-style: none;
-  margin: 0 0 12px;
-  padding: 0;
+.crm-support-chat__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  font-size: 11px;
+  color: var(--clr-text-muted);
+  margin-bottom: 8px;
+}
+.crm-support-order-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: #1d4ed8;
+  font-weight: 700;
+}
+.crm-support-chat__messages {
+  min-height: 140px;
+  max-height: 220px;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--clr-border);
+  background: rgba(15, 23, 42, 0.03);
+  margin-bottom: 10px;
 }
-.crm-support-list li {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
+.crm-support-empty {
+  color: var(--clr-text-muted);
+  text-align: center;
+  font-size: 11px;
+  margin: 36px 8px;
+  line-height: 1.45;
+}
+.crm-support-bubble {
+  max-width: 86%;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
   font-size: 12px;
-  color: var(--clr-text-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
   line-height: 1.4;
 }
-.crm-support-list i {
-  color: #10b981;
-  margin-top: 2px;
-  width: 14px;
+.crm-support-bubble--me {
+  align-self: flex-end;
+  background: var(--clr-primary);
+  color: #fff;
 }
-.crm-support-panel__note {
-  margin: 0;
+.crm-support-bubble--crm {
+  align-self: flex-start;
+  background: #fff;
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text-primary);
+}
+.crm-support-bubble__who {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.crm-support-bubble__time {
+  font-size: 9px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+.crm-support-chat__tools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.crm-support-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
+  cursor: pointer;
+  user-select: none;
+}
+.crm-support-check input {
+  accent-color: #d97706;
+}
+.crm-support-link-order {
+  border: 1px solid var(--clr-border);
+  background: #fff;
+  color: var(--clr-text-secondary);
+  border-radius: 999px;
+  padding: 4px 10px;
   font-size: 11px;
-  line-height: 1.5;
-  color: var(--clr-text-muted);
-  padding-top: 10px;
-  border-top: 1px dashed var(--clr-border);
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.crm-support-link-order.is-on {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: rgba(59, 130, 246, 0.08);
+  color: #1d4ed8;
+}
+.crm-support-chat__row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.crm-support-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--clr-border);
+  padding: 0 12px;
+  font-size: 13px;
+  font-family: inherit;
+  background: #fff;
+  color: var(--clr-text-primary);
+}
+.crm-support-send {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .crm-incident-btn {

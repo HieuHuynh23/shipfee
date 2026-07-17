@@ -5131,6 +5131,113 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
 });
 
 /**
+ * GET /api/shippers/support/thread
+ * Thread chat hỗ trợ CRM của tài xế đang đăng nhập
+ */
+app.get('/api/shippers/support/thread', authenticateShipper, (req, res) => {
+  try {
+    const phone = cleanPhone(req.shipperPhone);
+    const shippers = readShippersDatabase();
+    const shipper = shippers.find(s => cleanPhone(s.phone) === phone);
+    if (!shipper) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế' });
+    }
+
+    const threads = crm.readShipperSupportThreads();
+    let thread = threads.find(t => cleanPhone(t.shipperPhone) === phone && t.status === 'open');
+    if (!thread) {
+      thread = threads
+        .filter(t => cleanPhone(t.shipperPhone) === phone)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0] || null;
+    }
+
+    if (thread) {
+      crm.markShipperSupportRead(thread.id, 'shipper');
+      thread = crm.readShipperSupportThreads().find(t => t.id === thread.id) || thread;
+    }
+
+    res.json({ success: true, data: thread });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/support/messages
+ * Tài xế nhắn CRM (hỗ trợ đơn / khẩn cấp)
+ * body: { text, orderId?, priority?: 'normal'|'emergency' }
+ */
+app.post('/api/shippers/support/messages', authenticateShipper, async (req, res) => {
+  try {
+    const phone = cleanPhone(req.shipperPhone);
+    const { text, orderId = null, priority = 'normal' } = req.body || {};
+    const cleanedText = String(text || '').trim();
+    if (!cleanedText) {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
+    }
+    if (cleanedText.length > 1000) {
+      return res.status(400).json({ success: false, error: 'Tin nhắn tối đa 1000 ký tự' });
+    }
+
+    const shippers = readShippersDatabase();
+    const shipper = shippers.find(s => cleanPhone(s.phone) === phone);
+    if (!shipper) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế' });
+    }
+
+    let linkedOrderId = orderId ? String(orderId).trim() : null;
+    if (linkedOrderId) {
+      const orders = readOrdersDatabase();
+      const order = orders.find(o => o.id === linkedOrderId);
+      if (!order) {
+        return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+      }
+      const orderShipper = cleanPhone(order.shipperPhone || order.assignedShipperPhone);
+      if (orderShipper && orderShipper !== phone) {
+        return res.status(403).json({ success: false, error: 'Đơn này không thuộc về bạn' });
+      }
+    }
+
+    const isEmergency = String(priority).toLowerCase() === 'emergency';
+    const thread = crm.getOrCreateShipperSupportThread(shipper, {
+      priority: isEmergency ? 'emergency' : 'normal',
+      orderId: linkedOrderId
+    });
+    if (!thread) {
+      return res.status(500).json({ success: false, error: 'Không tạo được thread hỗ trợ' });
+    }
+
+    const updated = crm.appendShipperSupportMessage(thread.id, {
+      sender: 'shipper',
+      role: 'shipper',
+      text: cleanedText,
+      priority: isEmergency ? 'emergency' : undefined,
+      orderId: linkedOrderId
+    });
+
+    addNotification(
+      isEmergency ? 'shipper_emergency' : 'shipper_support',
+      phone,
+      shipper.name || phone,
+      isEmergency ? '🚨 Shipper cần hỗ trợ khẩn cấp' : '💬 Shipper nhắn CRM',
+      `${shipper.name || phone}: ${cleanedText.slice(0, 160)}${linkedOrderId ? `\nĐơn: ${linkedOrderId}` : ''}`
+    );
+
+    if (isEmergency && telegramBot && typeof telegramBot.sendSosNotification === 'function') {
+      telegramBot.sendSosNotification({
+        ...shipper,
+        supportMessage: cleanedText,
+        supportOrderId: linkedOrderId
+      }).catch(e => console.error('[Telegram] shipper support:', e.message));
+    }
+
+    res.json({ success: true, data: updated });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * POST /api/orders/:id/decline
  * Tài xế chủ động từ chối đơn hàng đề xuất (Job Offer)
  */
@@ -6834,6 +6941,89 @@ app.get('/api/admin/disputes', authenticateAdmin, (req, res) => {
     let list = crm.readDisputes();
     if (status) list = list.filter(d => d.status === status);
     res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/shipper-support
+ * Danh sách thread chat hỗ trợ từ tài xế
+ */
+app.get('/api/admin/shipper-support', authenticateAdmin, (req, res) => {
+  try {
+    const status = req.query.status;
+    let list = crm.readShipperSupportThreads();
+    if (status) list = list.filter(t => t.status === status);
+    list = list.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/shipper-support/:id/messages
+ * CRM trả lời tài xế
+ */
+app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const { text } = req.body || {};
+    const cleanedText = String(text || '').trim();
+    if (!cleanedText) {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
+    }
+    const updated = crm.appendShipperSupportMessage(req.params.id, {
+      sender: 'admin',
+      role: 'admin',
+      text: cleanedText,
+      adminEmail: req.user?.email || 'admin'
+    });
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
+    }
+    crm.markShipperSupportRead(updated.id, 'admin');
+    crm.logAdminAudit(req, 'shipper_support_message', {
+      threadId: updated.id,
+      shipperPhone: updated.shipperPhone,
+      text: cleanedText.slice(0, 80)
+    });
+    res.json({
+      success: true,
+      data: crm.readShipperSupportThreads().find(t => t.id === updated.id) || updated
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/shipper-support/:id/resolve
+ */
+app.post('/api/admin/shipper-support/:id/resolve', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
+  try {
+    const threads = crm.readShipperSupportThreads();
+    const idx = threads.findIndex(t => t.id === req.params.id);
+    if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
+    threads[idx].status = 'resolved';
+    threads[idx].resolvedAt = Date.now();
+    threads[idx].updatedAt = Date.now();
+    crm.writeShipperSupportThreads(threads);
+    crm.logAdminAudit(req, 'shipper_support_resolve', { threadId: req.params.id });
+    res.json({ success: true, data: threads[idx] });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/shipper-support/:id/read
+ */
+app.post('/api/admin/shipper-support/:id/read', authenticateAdmin, (req, res) => {
+  try {
+    const updated = crm.markShipperSupportRead(req.params.id, 'admin');
+    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
+    res.json({ success: true, data: updated });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
