@@ -681,6 +681,29 @@ async function sendSosNotification(shipper) {
   }
 }
 
+async function sendShipperSupportNotification(shipper) {
+  if (!isConfigured()) return;
+  try {
+    const isEmergency = String(shipper.supportPriority || '').toLowerCase() === 'emergency';
+    const msg = String(shipper.supportMessage || '').trim();
+    const orderId = shipper.supportOrderId ? String(shipper.supportOrderId) : '';
+    const title = isEmergency ? '🚨 *Shipper khẩn cấp*' : '💬 *Shipper nhắn CRM*';
+    const text = `${title}\n\n` +
+      `🛵 *Tài xế:* ${shipper.name || '—'} (${shipper.phone || '—'})\n` +
+      (orderId ? `📦 *Đơn:* \`${orderId}\`\n` : '') +
+      (msg ? `\n📝 ${msg.slice(0, 400)}${msg.length > 400 ? '…' : ''}\n` : '') +
+      `\n🔗 [Mở Chat tài xế](${crmLink('support')})`;
+
+    await sendMessage(text, {
+      inline_keyboard: [[
+        { text: '💬 Mở CRM Hỗ trợ', url: crmLink('support') }
+      ]]
+    });
+  } catch (err) {
+    console.error('[Telegram Bot] Lỗi shipper support chat:', err.message);
+  }
+}
+
 async function sendRestaurantAlert(type, restaurantName, title, message, restaurantId) {
   if (!isConfigured() || !getTelegramConfig().enableRestaurantAlert) return;
   try {
@@ -1194,6 +1217,7 @@ module.exports = function createTelegramBot(depsIn) {
     sendOrderStatusUpdateNotification,
     sendSlaBreachNotification,
     sendSosNotification,
+    sendShipperSupportNotification,
     sendRestaurantAlert,
     sendPeriodicReport,
     checkAndNotifySla,

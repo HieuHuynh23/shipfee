@@ -118,6 +118,7 @@ async function exportShipperPayouts() {
 
 // ── SUPPORT / DISPUTES ──────────────────────────────────────────────────────
 async function renderSupport() {
+  stopShipperSupportPolling();
   const body = document.getElementById('main-body');
   body.innerHTML = `
     <div class="page-section-header">
@@ -147,8 +148,25 @@ async function renderSupport() {
       <div id="disputes-body"><div class="empty-state" style="padding:24px;">Đang tải...</div></div>
     </div>`;
   window.__disputeFilter = 'all';
-  window.__shipperSupportFilter = 'open';
+  window.__shipperSupportFilter = window.__shipperSupportFilter || 'open';
   await Promise.all([loadShipperSupportThreads(), loadDisputes()]);
+  startShipperSupportPolling();
+}
+
+let __shipperSupportPollTimer = null;
+function startShipperSupportPolling() {
+  stopShipperSupportPolling();
+  __shipperSupportPollTimer = setInterval(() => {
+    if (currentPage === 'support' && document.getElementById('shipper-support-body')) {
+      loadShipperSupportThreads({ silent: true });
+    }
+  }, 5000);
+}
+function stopShipperSupportPolling() {
+  if (__shipperSupportPollTimer) {
+    clearInterval(__shipperSupportPollTimer);
+    __shipperSupportPollTimer = null;
+  }
 }
 
 function switchSupportSection(btn, section) {
@@ -160,7 +178,7 @@ function switchSupportSection(btn, section) {
   if (disputesEl) disputesEl.style.display = section === 'disputes' ? '' : 'none';
 }
 
-async function loadShipperSupportThreads() {
+async function loadShipperSupportThreads(opts = {}) {
   const el = document.getElementById('shipper-support-body');
   if (!el) return;
   try {
@@ -168,12 +186,21 @@ async function loadShipperSupportThreads() {
     let list = res.data || [];
     const f = window.__shipperSupportFilter || 'open';
     if (f !== 'all') list = list.filter(t => t.status === f);
+    const focusPhone = String(window.__focusShipperSupportPhone || '').replace(/\s+/g, '');
+    if (focusPhone) {
+      list = [...list].sort((a, b) => {
+        const ap = String(a.shipperPhone || '').replace(/\s+/g, '') === focusPhone ? 0 : 1;
+        const bp = String(b.shipperPhone || '').replace(/\s+/g, '') === focusPhone ? 0 : 1;
+        return ap - bp;
+      });
+    }
     if (!list.length) {
       el.innerHTML = `<div class="empty-state" style="padding:32px;"><p class="text-muted">Chưa có tin nhắn từ tài xế</p></div>`;
       return;
     }
     el.innerHTML = list.map(t => {
       const unread = t.unreadForAdmin || 0;
+      const isFocus = focusPhone && String(t.shipperPhone || '').replace(/\s+/g, '') === focusPhone;
       const priorityBadge = t.priority === 'emergency'
         ? `<span class="badge badge--pending">Khẩn cấp</span>`
         : '';
@@ -181,7 +208,7 @@ async function loadShipperSupportThreads() {
         ? `<span class="badge badge--online">Mở</span>`
         : `<span class="badge">Đã xử lý</span>`;
       return `
-      <div class="card mb-4" style="padding:16px;${unread ? 'border-color:rgba(16,185,129,0.45);' : ''}">
+      <div class="card mb-4" style="padding:16px;${unread || isFocus ? 'border-color:rgba(16,185,129,0.45);' : ''}${isFocus ? 'box-shadow:0 0 0 2px rgba(16,185,129,0.25);' : ''}">
         <div class="flex justify-between items-center mb-2" style="gap:8px;flex-wrap:wrap;">
           <div>
             <strong>${escapeHtml(t.shipperName || 'Tài xế')}</strong>
@@ -210,8 +237,13 @@ async function loadShipperSupportThreads() {
           </div>` : ''}
       </div>`;
     }).join('');
+    if (focusPhone && !opts.silent) {
+      window.__focusShipperSupportPhone = '';
+    }
   } catch (e) {
-    el.innerHTML = `<div class="empty-state"><p class="text-muted">${escapeHtml(e.message)}</p></div>`;
+    if (!opts.silent) {
+      el.innerHTML = `<div class="empty-state"><p class="text-muted">${escapeHtml(e.message)}</p></div>`;
+    }
   }
 }
 
@@ -539,6 +571,7 @@ renderSettings = function() {
 // Patch navigateTo
 const _origNavigateTo = navigateTo;
 navigateTo = function(page) {
+  if (page !== 'support') stopShipperSupportPolling();
   currentPage = page;
   document.querySelectorAll('.sidebar__link').forEach(link => {
     link.classList.toggle('active', link.dataset.page === page);

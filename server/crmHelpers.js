@@ -259,8 +259,17 @@ function markShipperSupportRead(threadId, reader) {
   const threads = readShipperSupportThreads();
   const idx = threads.findIndex(t => t.id === threadId);
   if (idx === -1) return null;
+  const beforeAdmin = threads[idx].unreadForAdmin || 0;
+  const beforeShipper = threads[idx].unreadForShipper || 0;
   if (reader === 'admin') threads[idx].unreadForAdmin = 0;
   if (reader === 'shipper') threads[idx].unreadForShipper = 0;
+  // Skip disk write when nothing changed — reduces race with concurrent send/reply
+  if (
+    (reader === 'admin' && beforeAdmin === 0) ||
+    (reader === 'shipper' && beforeShipper === 0)
+  ) {
+    return threads[idx];
+  }
   writeShipperSupportThreads(threads);
   return threads[idx];
 }
