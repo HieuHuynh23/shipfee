@@ -36,6 +36,11 @@
           <label class="form-label" for="admin-password">Mật khẩu</label>
           <input type="password" id="admin-password" class="form-input" placeholder="Nhập mật khẩu" autocomplete="current-password">
         </div>
+        <!-- Honeypot chống bot — ẩn với người dùng thật -->
+        <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+          <label for="admin-website">Website</label>
+          <input type="text" id="admin-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
         <button class="btn btn--primary btn--full btn--lg" onclick="handleAdminLogin()" id="login-btn">
           <i class="fa-solid fa-right-to-bracket"></i> Đăng nhập
         </button>

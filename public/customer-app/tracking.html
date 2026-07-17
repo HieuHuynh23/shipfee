@@ -2430,12 +2430,11 @@
       const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
       const apiBase = defaultApiUrl;
 
-      fetch(`${apiBase}/api/shippers`)
+      fetch(`${apiBase}/api/shippers/profile?phone=${encodeURIComponent(cleanPhone)}`)
         .then(r => r.json())
         .then(json => {
-          if (json.success && Array.isArray(json.data)) {
-            const shipper = json.data.find(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
-            if (shipper) {
+          const shipper = json.success ? json.shipper : null;
+          if (shipper) {
               document.getElementById('profile-modal-name').textContent = shipper.name || order.shipperName || '—';
               document.getElementById('profile-modal-phone').textContent = shipper.phone || order.shipperPhone || '—';
               document.getElementById('profile-modal-rating').innerHTML = `<i class="fa-solid fa-star"></i> ${shipper.rating || order.shipperRating || '5.0'}`;
@@ -2465,7 +2464,6 @@
                 overlay.style.display = 'flex';
                 overlay.classList.add('active');
               }
-            }
           }
         }).catch(err => {
           console.error('Error fetching shipper details:', err);

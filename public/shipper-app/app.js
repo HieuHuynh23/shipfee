@@ -346,6 +346,8 @@ function toggleAuthMode(e) {
 }
 
 async function handleAuthAction() {
+  const hp = document.getElementById('driver-website');
+  if (hp && hp.value && hp.value.trim()) return; // honeypot
   if (authMode === 'login') {
     await loginDriver();
   } else {
@@ -368,6 +370,10 @@ async function registerDriver() {
   
   if (!name || !phone || !cccd || !email || !password) {
     showToast('Thiếu thông tin', 'Vui lòng điền đầy đủ Họ tên, Số điện thoại, Số CCCD, Email và Mật khẩu.', 'warning');
+    return;
+  }
+  if (password.length < 8) {
+    showToast('Mật khẩu yếu', 'Mật khẩu tối thiểu 8 ký tự.', 'warning');
     return;
   }
 
@@ -394,7 +400,7 @@ async function registerDriver() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64, cccd })
+      body: JSON.stringify({ name, phone, email, password, avatar: driverAvatarBase64, cccd, _hp: '' })
     }, 20000);
 
     const res = await safeJson(response);
@@ -424,7 +430,8 @@ async function registerDriver() {
 async function refreshDriverInfo() {
   if (!currentDriver || !currentDriver.phone) return;
   try {
-    const res = await fetch(`${API_BASE}/api/shippers/profile?phone=${currentDriver.phone}`).then(r => r.json());
+    const response = await apiFetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`, {}, 10000);
+    const res = await safeJson(response);
     if (res.success && res.shipper) {
       currentDriver = {
         name: res.shipper.name,

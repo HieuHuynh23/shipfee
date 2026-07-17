@@ -24,6 +24,15 @@ const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
+const {
+  createSecurityMiddleware,
+  normalizePhone: secNormalizePhone,
+  isValidVnPhone,
+  sanitizeMessageText,
+  stripShipperPublic,
+  validateAvatarBase64
+} = require('./security');
+const sec = createSecurityMiddleware();
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -170,9 +179,14 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
 
 async function seedAdminUser() {
   try {
-    const adminEmail = 'admin@shipfee.vn';
-    const adminPassword = 'admin123';
-    
+    // Chỉ seed khi có ADMIN_SEED_PASSWORD trong env — không hardcode mật khẩu yếu
+    const adminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@shipfee.vn').trim();
+    const adminPassword = (process.env.ADMIN_SEED_PASSWORD || '').trim();
+    if (!adminPassword || adminPassword.length < 12) {
+      console.log('[Supabase Admin Seed] Bỏ qua seed (thiếu ADMIN_SEED_PASSWORD ≥ 12 ký tự).');
+      return;
+    }
+
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
     if (listError) {
       console.warn('[Supabase Admin Seed] Không thể lấy danh sách user:', listError.message);
@@ -181,20 +195,23 @@ async function seedAdminUser() {
 
     const adminExists = users.some(u => u.email === adminEmail);
     if (!adminExists) {
-      console.log('[Supabase Admin Seed] Đang khởi tạo tài khoản Admin mặc định...');
-      const { data, error } = await supabase.auth.admin.createUser({
+      console.log('[Supabase Admin Seed] Đang khởi tạo tài khoản Admin từ env...');
+      const { error } = await supabase.auth.admin.createUser({
         email: adminEmail,
         password: adminPassword,
         email_confirm: true,
         user_metadata: {
           role: 'admin',
           full_name: 'ShipFee Admin'
+        },
+        app_metadata: {
+          role: 'admin'
         }
       });
       if (error) {
         console.error('[Supabase Admin Seed] Tạo tài khoản Admin thất bại:', error.message);
       } else {
-        console.log('[Supabase Admin Seed] Đã khởi tạo thành công tài khoản Admin mặc định: admin@shipfee.vn / admin123');
+        console.log('[Supabase Admin Seed] Đã khởi tạo Admin:', adminEmail);
       }
     } else {
       console.log('[Supabase Admin Seed] Tài khoản Admin đã sẵn sàng.');
@@ -251,11 +268,18 @@ function normalizeImageUrl(url, req) {
 
 async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
   let avatarUrl = '';
+  const safePhone = secNormalizePhone(cleanedPhone).replace(/\D/g, '') || 'unknown';
+  const validated = validateAvatarBase64(base64Data);
+  if (!validated.ok) {
+    throw new Error(validated.error || 'Ảnh không hợp lệ');
+  }
+  const ext = validated.contentType === 'image/jpeg' ? 'jpg'
+    : validated.contentType === 'image/webp' ? 'webp' : 'png';
+  const fileName = `${safePhone}.${ext}`;
+  const buffer = validated.buffer;
+
   // 1. Lưu local filesystem (dự phòng)
-  const fileName = `${cleanedPhone}.png`;
   try {
-    const base64DataClean = base64Data.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64DataClean, 'base64');
     const filePath = path.join(UPLOADS_DIR, fileName);
     fs.writeFileSync(filePath, buffer);
     const host = req.headers['x-forwarded-host'] || req.get('host') || 'shipfee-eo5s.onrender.com';
@@ -268,12 +292,10 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
   // 2. Tải lên Supabase Storage (lưu trữ bền vững đám mây)
   if (supabase) {
     try {
-      const base64DataClean = base64Data.replace(/^data:image\/\w+;base64,/, '');
-      const buffer = Buffer.from(base64DataClean, 'base64');
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('avatars')
         .upload(`shippers/${fileName}`, buffer, {
-          contentType: 'image/png',
+          contentType: validated.contentType,
           upsert: true
         });
       if (error) throw error;
@@ -284,7 +306,7 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
       
       if (publicUrl) {
         avatarUrl = publicUrl;
-        console.log(`[Supabase Storage] Upload thành công avatar của shipper ${cleanedPhone}: ${avatarUrl}`);
+        console.log(`[Supabase Storage] Upload thành công avatar của shipper ${safePhone}`);
       }
     } catch (err) {
       console.warn(`[Supabase Storage Upload Error] Không thể upload avatar lên Supabase Storage (sử dụng URL local dự phòng):`, err.message);
@@ -1574,18 +1596,20 @@ async function authenticateShipper(req, res, next) {
 
     // Kiểm tra xem shipper đã được duyệt tài khoản chưa
     const shippers = readShippersDatabase();
-    const userPhone = (user.phone || user.user_metadata?.phone || '').trim().replace(/\s+/g, '');
-    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === userPhone || s.id === user.id);
-    
-    if (shipper && shipper.isApproved === false) {
+    const rawPhone = (user.phone || user.user_metadata?.phone || '').trim();
+    const userPhone = secNormalizePhone(rawPhone);
+    const shipper = shippers.find(s => secNormalizePhone(s.phone) === userPhone || s.id === user.id);
+
+    if (!shipper) {
+      return res.status(403).json({ success: false, error: 'SHIPPER_NOT_FOUND', message: 'Không tìm thấy hồ sơ tài xế!' });
+    }
+    if (shipper.isApproved === false) {
       return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
     }
 
     req.user = user;
-    req.shipper = shipper || null;
-    req.shipperPhone = shipper
-      ? shipper.phone.trim().replace(/\s+/g, '')
-      : userPhone;
+    req.shipper = shipper;
+    req.shipperPhone = secNormalizePhone(shipper.phone);
     next();
   } catch (e) {
     res.status(500).json({ success: false, error: 'Lỗi xác thực Shipper: ' + e.message });
@@ -2187,6 +2211,16 @@ const ACTIVE_SCRAPE_PROMISES = new Map(); // id -> Promise để gộp các requ
 const app  = express();
 const PORT = 3001;
 
+// Render / reverse-proxy: tin X-Forwarded-For cho rate-limit theo IP thật
+app.set('trust proxy', 1);
+
+// ── SECURITY MIDDLEWARE ──────────────────────────────────────────────────────
+app.use(sec.requestId);
+app.use(sec.helmetMw);
+app.use(sec.botFilter);
+app.use(sec.globalLimiter);
+app.use(sec.speedLimiter);
+
 // ── PERFORMANCE MIDDLEWARE ───────────────────────────────────────────────────
 // Gzip compression: giảm ~70% bandwidth cho tất cả JSON responses
 app.use(compression({
@@ -2198,33 +2232,31 @@ app.use(compression({
   }
 }));
 
-// CORS: cho phép localhost và các tên miền Vercel gọi API
-const whitelist = [
-  'http://localhost:8000',
-  'http://127.0.0.1:8000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3001',
-  'https://shipfee.vercel.app',
-  'https://shipfee-hieuhuynh234s-projects.vercel.app'
-];
+// CORS: chỉ origin ShipFee (localhost + production + preview shipfee-*)
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const isVercel = origin.endsWith('.vercel.app');
-    const isWhitelisted = whitelist.indexOf(origin) !== -1;
-    if (isWhitelisted || isVercel) {
+    if (sec.isAllowedOrigin(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+  maxAge: 86400,
   optionsSuccessStatus: 200
 }));
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ limit: '10mb', extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// 2mb: đủ avatar base64 (~1MB ảnh) nhưng vẫn chặn dump lớn
+app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ limit: '2mb', extended: true }));
+app.use(sec.honeypotGuard);
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads'), {
+  setHeaders(res) {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+  }
+}));
 
 function triggerCrawler() {
   // Crawler ngầm được quản lý tập trung bởi Sweep Worker trong tiến trình chính
@@ -3873,9 +3905,7 @@ const SHOPEEFOOD_HEADERS = {
   'x-foody-support-chef-show':'true',
 };
 
-// ── CORS — cho phép web app local gọi vào ──────────────────────────────────
-// Đã xử lý tập trung ở cấu hình CORS phía trên đầu file
-app.use(express.json());
+// ── CORS — đã xử lý tập trung ở cấu hình CORS đầu file (không mount express.json lần 2)
 
 // Phục vụ frontend tĩnh từ thư mục root (canonical cho shipfee.vercel.app)
 app.use('/app', express.static(path.join(__dirname, '..', 'customer-app')));
@@ -4861,10 +4891,10 @@ app.get('/api/restaurants/:id', async (req, res) => {
  * POST /api/cache/clear
  * Xóa cache để force reload từ ShopeeFood
  */
-app.post('/api/cache/clear', (req, res) => {
+app.post('/api/cache/clear', authenticateAdmin, (req, res) => {
   try {
     if (fs.existsSync(CACHE_FILE)) fs.unlinkSync(CACHE_FILE);
-    console.log('[Cache] Đã xóa cache');
+    console.log('[Cache] Đã xóa cache bởi admin:', req.user?.email || 'unknown');
     res.json({ success: true, message: 'Cache đã được xóa. Lần sau load sẽ fetch từ ShopeeFood.' });
   } catch(e) {
     res.status(500).json({ error: e.message });
@@ -4922,11 +4952,29 @@ function updateOrdersDatabase(updaterFn) {
  * POST /api/orders
  * Khách hàng gửi đơn hàng lên server (lưu vào orders-local.json)
  */
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', sec.orderCreateLimiter, async (req, res) => {
   try {
     const orderData = req.body;
     if (!orderData || typeof orderData !== 'object') {
       return res.status(400).json({ error: 'Đơn hàng không hợp lệ' });
+    }
+
+    // Chặn giá âm / bất thường từ client (chống sửa giá)
+    const clampMoney = (n, max = 50_000_000) => {
+      const v = Number(n);
+      if (!Number.isFinite(v) || v < 0) return 0;
+      return Math.min(Math.round(v), max);
+    };
+    orderData.storeTotal = clampMoney(orderData.storeTotal);
+    orderData.appTotal = clampMoney(orderData.appTotal);
+    orderData.shipperEarning = clampMoney(orderData.shipperEarning, 5_000_000);
+    orderData.discountValue = clampMoney(orderData.discountValue);
+    orderData.minServiceFee = clampMoney(orderData.minServiceFee);
+    orderData.note = sanitizeMessageText(orderData.note, 500);
+    orderData.deliveryName = sanitizeMessageText(orderData.deliveryName, 80);
+    orderData.deliveryAddress = sanitizeMessageText(orderData.deliveryAddress, 300);
+    if (orderData.deliveryPhone && !isValidVnPhone(orderData.deliveryPhone)) {
+      return res.status(400).json({ error: 'SĐT giao hàng không hợp lệ' });
     }
 
     const orderId = orderData.id || 'SPF-' + Math.floor(100000 + Math.random() * 900000);
@@ -5115,27 +5163,37 @@ function enrichOrdersWithShipperAvatar(ordersOrOrder, req) {
  */
 app.get('/api/orders', async (req, res) => {
   try {
-    const { status, shipperPhone } = req.query;
+    const { status, shipperPhone, ordererPhone } = req.query;
+    // Chống dump toàn bộ đơn: bắt buộc filter theo SĐT tài xế hoặc người đặt
+    if (!shipperPhone && !ordererPhone) {
+      return res.status(400).json({
+        success: false,
+        error: 'Thiếu bộ lọc shipperPhone hoặc ordererPhone. Không cho phép lấy toàn bộ đơn.'
+      });
+    }
+
     let orders = readOrdersDatabase();
     const now = Date.now();
-
-    // Now filter orders
     let resultData = orders;
     if (status) {
       resultData = resultData.filter(o => o.status === status);
     }
 
-    // If shipperPhone is provided, filter PENDING orders and assign driver ownership for ACCEPTED/DELIVERED
     if (shipperPhone) {
-      const cleanInputPhone = cleanPhone(shipperPhone);
+      const cleanInputPhone = secNormalizePhone(shipperPhone);
       resultData = resultData.filter(o => {
         if (o.status === 'PENDING') {
-          // Chỉ đề xuất đích danh — không mở bể chung
           if (!o.assignedShipperPhone || !o.offerExpiresAt) return false;
-          return cleanPhone(o.assignedShipperPhone) === cleanInputPhone && now <= o.offerExpiresAt;
+          return secNormalizePhone(o.assignedShipperPhone) === cleanInputPhone && now <= o.offerExpiresAt;
         }
-        return cleanPhone(o.shipperPhone) === cleanInputPhone;
+        return secNormalizePhone(o.shipperPhone) === cleanInputPhone;
       });
+    } else if (ordererPhone) {
+      const cleanOrderer = secNormalizePhone(ordererPhone);
+      resultData = resultData.filter(o =>
+        secNormalizePhone(o.ordererPhone) === cleanOrderer ||
+        secNormalizePhone(o.deliveryPhone) === cleanOrderer
+      );
     }
 
     res.json({ success: true, data: enrichOrdersWithShipperAvatar(resultData, req) });
@@ -5415,13 +5473,17 @@ app.post('/api/orders/:id/rate', async (req, res) => {
  * POST /api/orders/:id/messages
  * Gửi tin nhắn mới cho đơn hàng (được lưu trong mảng messages của đơn hàng)
  */
-app.post('/api/orders/:id/messages', async (req, res) => {
+app.post('/api/orders/:id/messages', sec.writeLimiter, async (req, res) => {
   try {
     const { id } = req.params;
     const { sender, text } = req.body;
-
-    if (!sender || !text) {
-      return res.status(400).json({ error: 'Thiếu người gửi (sender) hoặc nội dung tin nhắn (text)' });
+    const allowedSenders = ['customer', 'shipper', 'admin', 'system'];
+    if (!sender || !allowedSenders.includes(String(sender))) {
+      return res.status(400).json({ error: 'Sender không hợp lệ' });
+    }
+    const cleanText = sanitizeMessageText(text, 1000);
+    if (!cleanText) {
+      return res.status(400).json({ error: 'Thiếu nội dung tin nhắn' });
     }
 
     let updatedOrder = null;
@@ -5434,9 +5496,13 @@ app.post('/api/orders/:id/messages', async (req, res) => {
         if (!orders[idx].messages) {
           orders[idx].messages = [];
         }
+        // Giới hạn lịch sử chat chống spam/DoS
+        if (orders[idx].messages.length > 200) {
+          orders[idx].messages = orders[idx].messages.slice(-150);
+        }
         orders[idx].messages.push({
-          sender,
-          text,
+          sender: String(sender),
+          text: cleanText,
           timestamp: Date.now()
         });
         updatedOrder = orders[idx];
@@ -5449,7 +5515,7 @@ app.post('/api/orders/:id/messages', async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
 
-    console.log(`[Order Server] 💬 [Đơn ${id}] ${sender}: ${text}`);
+    console.log(`[Order Server] 💬 [Đơn ${id}] ${sender}: ${cleanText.slice(0, 80)}`);
     res.json({ success: true, messages: updatedOrder.messages });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -5600,7 +5666,7 @@ function writeShippersDatabase(data) {
  * POST /api/shippers/login
  * Xác thực trùng khớp cả SĐT và Họ tên tài xế (không phân biệt chữ hoa/thường, loại bỏ khoảng trắng thừa)
  */
-app.post('/api/shippers/login', async (req, res) => {
+app.post('/api/shippers/login', sec.authLimiter, async (req, res) => {
   try {
     const { token } = req.body;
 
@@ -5662,11 +5728,17 @@ app.post('/api/shippers/login', async (req, res) => {
  * POST /api/shippers/register
  * Cho phép shipper tự động đăng ký tài khoản
  */
-app.post('/api/shippers/register', async (req, res) => {
+app.post('/api/shippers/register', sec.authLimiter, async (req, res) => {
   try {
     const { name, phone, email, password, avatar, cccd } = req.body;
     if (!name || !phone) {
       return res.status(400).json({ success: false, error: 'Thiếu thông tin đăng ký!' });
+    }
+    if (!isValidVnPhone(phone)) {
+      return res.status(400).json({ success: false, error: 'Số điện thoại không hợp lệ!' });
+    }
+    if (password && String(password).length < 8) {
+      return res.status(400).json({ success: false, error: 'Mật khẩu tối thiểu 8 ký tự!' });
     }
     if (!cccd) {
       return res.status(400).json({ success: false, error: 'Thiếu số CCCD của tài xế!' });
@@ -5696,10 +5768,14 @@ app.post('/api/shippers/register', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Số CCCD này đã được đăng ký cho một tài khoản tài xế khác!' });
     }
 
-    // Xử lý và lưu ảnh chân dung (Base64 -> PNG & Supabase Storage)
+    // Xử lý và lưu ảnh chân dung (Base64 -> validated image & Supabase Storage)
     let avatarUrl = '';
     if (avatar) {
-      avatarUrl = await uploadShipperAvatar(cleanedPhone, avatar, req);
+      try {
+        avatarUrl = await uploadShipperAvatar(cleanedPhone, avatar, req);
+      } catch (avatarErr) {
+        return res.status(400).json({ success: false, error: avatarErr.message || 'Ảnh đại diện không hợp lệ' });
+      }
     }
 
     // Sử dụng Supabase Admin Client để tạo user trực tiếp và tự động xác thực email (email_confirm: true)
@@ -5777,14 +5853,16 @@ app.post('/api/shippers/register', async (req, res) => {
  */
 app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
   try {
-    const { phone, status } = req.body;
+    const { status } = req.body;
+    // Chống IDOR: chỉ cho phép thao tác trên chính tài xế đã xác thực
+    const phone = req.shipperPhone;
     if (!phone || !['ONLINE', 'OFFLINE'].includes(status)) {
       return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
     }
 
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const cleanedPhone = secNormalizePhone(phone);
+    const idx = shippers.findIndex(s => secNormalizePhone(s.phone) === cleanedPhone);
 
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Số điện thoại tài xế không tồn tại!' });
@@ -5832,12 +5910,16 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
  */
 app.post('/api/shippers/location', authenticateShipper, (req, res) => {
   try {
-    const { phone, lat, lon } = req.body;
+    const { lat, lon } = req.body;
+    const phone = req.shipperPhone;
     if (!phone || typeof lat !== 'number' || typeof lon !== 'number') {
       return res.status(400).json({ success: false, error: 'Dữ liệu vị trí không hợp lệ!' });
     }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      return res.status(400).json({ success: false, error: 'Tọa độ không hợp lệ!' });
+    }
 
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const cleanedPhone = secNormalizePhone(phone);
     onlineShipperLocations.set(cleanedPhone, {
       lat,
       lon,
@@ -5856,14 +5938,15 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
  */
 app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
   try {
-    const { phone, stats, totalOrders, totalEarnings, acceptanceRate, completionRate } = req.body;
+    const { stats, totalOrders, totalEarnings, acceptanceRate, completionRate } = req.body;
+    const phone = req.shipperPhone;
     if (!phone) {
       return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
     }
 
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const cleanedPhone = secNormalizePhone(phone);
+    const idx = shippers.findIndex(s => secNormalizePhone(s.phone) === cleanedPhone);
 
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Tài xế không tồn tại!' });
@@ -5906,14 +5989,14 @@ app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
  */
 app.post('/api/shippers/request-assistance', authenticateShipper, async (req, res) => {
   try {
-    const { phone } = req.body;
+    const phone = req.shipperPhone;
     if (!phone) {
       return res.status(400).json({ success: false, error: 'Thiếu số điện thoại tài xế!' });
     }
 
     const shippers = readShippersDatabase();
-    const cleanPhone = phone.trim().replace(/\s+/g, '');
-    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+    const cleanPhone = secNormalizePhone(phone);
+    const idx = shippers.findIndex(s => secNormalizePhone(s.phone) === cleanPhone);
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
     }
@@ -6113,9 +6196,9 @@ app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
 
 /**
  * GET /api/shippers
- * Lấy danh sách tài xế cùng lịch sử check-in/out phục vụ CRM
+ * Danh sách đầy đủ tài xế — chỉ Admin CRM
  */
-app.get('/api/shippers', (req, res) => {
+app.get('/api/shippers', authenticateAdmin, (req, res) => {
   try {
     const shippers = readShippersDatabase();
     const normalizedShippers = shippers.map(s => ({
@@ -6651,25 +6734,47 @@ app.post('/api/admin/shippers/:phone/reject', authenticateAdmin, async (req, res
 
 /**
  * GET /api/shippers/profile
- * Get specific shipper profile details and approval status by phone number
+ * Public: chỉ trả field an toàn (không CCCD/earnings). Full profile khi có JWT shipper/admin.
  */
-app.get('/api/shippers/profile', (req, res) => {
+app.get('/api/shippers/profile', async (req, res) => {
   try {
     const { phone } = req.query;
     if (!phone) {
       return res.status(400).json({ success: false, error: 'Thiếu số điện thoại!' });
     }
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const cleanedPhone = secNormalizePhone(phone);
+    const shipper = shippers.find(s => secNormalizePhone(s.phone) === cleanedPhone);
     if (!shipper) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
     }
-    const responseShipper = {
-      ...shipper,
-      avatarUrl: normalizeImageUrl(shipper.avatarUrl, req)
-    };
-    res.json({ success: true, shipper: responseShipper });
+
+    let fullAccess = false;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ') && supabase) {
+      try {
+        const token = authHeader.split(' ')[1];
+        const { data: { user } } = await supabase.auth.getUser(token);
+        if (user) {
+          const role = crm.resolveAdminRole(user);
+          const userPhone = secNormalizePhone(user.phone || user.user_metadata?.phone || '');
+          if (role || userPhone === cleanedPhone || user.id === shipper.id) {
+            fullAccess = true;
+          }
+        }
+      } catch (_) { /* treat as public */ }
+    }
+
+    if (fullAccess) {
+      return res.json({
+        success: true,
+        shipper: { ...shipper, avatarUrl: normalizeImageUrl(shipper.avatarUrl, req) }
+      });
+    }
+
+    const publicShipper = stripShipperPublic(shipper);
+    publicShipper.avatarUrl = normalizeImageUrl(publicShipper.avatarUrl, req);
+    res.json({ success: true, shipper: publicShipper });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
