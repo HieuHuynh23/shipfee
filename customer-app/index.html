@@ -19,6 +19,10 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
@@ -752,13 +756,16 @@
       } else {
         const incoming = list || [];
         const existingIds = new Set(displayedData.map(r => String(r.id)));
+        const newlyAdded = [];
         incoming.forEach(r => {
           if (r && !existingIds.has(String(r.id))) {
             displayedData.push(r);
+            newlyAdded.push(r);
             existingIds.add(String(r.id));
           }
         });
         fullDataToDisplay = displayedData.slice();
+        list = newlyAdded;
       }
 
       if (displayedData.length === 0) {
@@ -778,9 +785,7 @@
         : `${displayedData.length} quán`;
       countEl.textContent = totalLabel;
 
-      const dataToRender = isAppend
-        ? displayedData.slice(displayedData.length - (list || []).length)
-        : displayedData;
+      const dataToRender = isAppend ? (list || []) : displayedData;
 
       const esc = SF.escapeHtml;
       const frag = document.createDocumentFragment();
@@ -896,14 +901,20 @@
       loadMoreBtn.textContent = 'Xem thêm cửa hàng';
       loadMoreBtn.onclick = async () => {
         if (clientRenderMode === 'server' && serverHasMore) {
+          const existingIds = new Set(displayedData.map(r => String(r.id)));
           const ok = await loadMoreFromServer();
           if (ok) {
             const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
-            renderRestaurants(activeOnlyList, false, { mode: 'server' });
+            const newItems = activeOnlyList.filter(r => !existingIds.has(String(r.id)));
+            if (newItems.length) {
+              renderRestaurants(newItems, true, { mode: 'server' });
+            } else {
+              removeLoadMoreBtn();
+              if (serverHasMore) createLoadMoreBtn();
+            }
             // Refresh mini sections with newly loaded data
-            const openRests = activeOnlyList;
-            renderMiniCards('featured-list', getFeaturedRestaurants(openRests));
-            renderMiniCards('near-list', getNearRestaurants(openRests));
+            renderMiniCards('featured-list', getFeaturedRestaurants(activeOnlyList));
+            renderMiniCards('near-list', getNearRestaurants(activeOnlyList));
           } else if (document.getElementById('btn-load-more')) {
             document.getElementById('btn-load-more').disabled = false;
             document.getElementById('btn-load-more').textContent = 'Xem thêm cửa hàng';
@@ -1297,29 +1308,6 @@
     let leafletMap = null;
     let mapMarker = null;
     let selectedOrderType = null;
-    let leafletLoadPromise = null;
-
-    function loadLeaflet() {
-      if (window.L) return Promise.resolve(window.L);
-      if (leafletLoadPromise) return leafletLoadPromise;
-      leafletLoadPromise = new Promise((resolve, reject) => {
-        const cssId = 'leaflet-css-deferred';
-        if (!document.getElementById(cssId)) {
-          const css = document.createElement('link');
-          css.id = cssId;
-          css.rel = 'stylesheet';
-          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          document.head.appendChild(css);
-        }
-        const s = document.createElement('script');
-        s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        s.async = true;
-        s.onload = () => resolve(window.L);
-        s.onerror = () => reject(new Error('Không tải được bản đồ'));
-        document.head.appendChild(s);
-      });
-      return leafletLoadPromise;
-    }
 
     function setOrderType(type) {
       selectedOrderType = type;
@@ -1388,7 +1376,7 @@
       }
 
       try {
-        await loadLeaflet();
+        await (SF.loadLeaflet ? SF.loadLeaflet() : Promise.reject(new Error('no leaflet')));
       } catch (e) {
         SF.showToast('Bản đồ', 'Không tải được bản đồ. Bạn vẫn có thể dùng GPS hoặc nhập địa chỉ.', 'warning');
         return;
@@ -1463,6 +1451,7 @@
       tempGpsCoords = { lat: currentLat, lon: currentLon };
 
       document.getElementById('address-overlay').classList.add('active');
+      if (SF.lockBodyScroll) SF.lockBodyScroll();
       
       // Render map with Leaflet
       showMapAt(currentLat, currentLon, false);
@@ -1485,6 +1474,7 @@
       }
       const overlay = document.getElementById('address-overlay');
       if (overlay) overlay.classList.remove('active');
+      if (SF.unlockBodyScroll) SF.unlockBodyScroll();
     }
 
     async function detectUserLocation() {
@@ -1630,6 +1620,7 @@
 
       document.getElementById('hero-address-text').textContent = address;
       document.getElementById('address-overlay').classList.remove('active');
+      if (SF.unlockBodyScroll) SF.unlockBodyScroll();
       SF.showToast('Đã lưu địa chỉ', address, 'success');
 
       // Reload restaurants from server with new coordinates!

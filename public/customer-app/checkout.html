@@ -16,12 +16,14 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  
-  <!-- Leaflet Map library -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+  <!-- Leaflet loaded on-demand (mobile perf) -->
   <style>
     .order-item-row {
       display: flex;
@@ -124,11 +126,14 @@
       bottom: 0;
       background: rgba(255,255,255,0.97);
       backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       padding: var(--space-md);
+      padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom, 0px));
       border-top: 1px solid var(--clr-border);
       margin: 0 calc(-1 * var(--space-md));
       padding-left: var(--space-md);
       padding-right: var(--space-md);
+      z-index: 40;
     }
 
     .total-summary {
@@ -146,7 +151,7 @@
       background: var(--clr-surface-2);
       border: 2px solid var(--clr-border);
       border-radius: var(--radius-md);
-      font-size: 13px;
+      font-size: 16px;
       color: var(--clr-text-primary);
       resize: none;
       outline: none;
@@ -187,7 +192,7 @@
 
   <!-- ── PAGE WRAPPER ── -->
   <div class="page-wrapper">
-    <div class="container" style="padding-top:var(--space-lg);padding-bottom:140px;">
+    <div class="container" style="padding-top:var(--space-lg);padding-bottom:calc(140px + env(safe-area-inset-bottom, 0px));">
 
       <!-- ORDER ITEMS -->
       <div class="section-card animate-fade-in">
@@ -506,29 +511,36 @@
         }
       }
 
-      // Initialize map
+      // Initialize map (Leaflet on-demand)
       const deliveryLat = state.userLat || 10.0345;
       const deliveryLon = state.userLon || 105.7876;
       
-      try {
-        const checkMap = L.map('checkout-map', {
-          zoomControl: false,
-          scrollWheelZoom: false,
-          doubleClickZoom: false,
-          dragging: false,
-          touchZoom: false
-        }).setView([deliveryLat, deliveryLon], 16);
+      (async () => {
+        try {
+          if (!window.L && SF.loadLeaflet) await SF.loadLeaflet();
+          if (!window.L) return;
+          const checkMap = L.map('checkout-map', {
+            zoomControl: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            dragging: false,
+            touchZoom: false,
+            preferCanvas: true
+          }).setView([deliveryLat, deliveryLon], 16);
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19,
-          attribution: '© OpenStreetMap'
-        }).addTo(checkMap);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap',
+            updateWhenIdle: true
+          }).addTo(checkMap);
 
-        const marker = L.marker([deliveryLat, deliveryLon]).addTo(checkMap);
-        marker.bindPopup(`<b>Vị trí giao hàng ${isRel ? 'người thân' : 'của bạn'}</b><br>${state.deliveryAddress}`).openPopup();
-      } catch (e) {
-        console.error('Lỗi load map checkout:', e);
-      }
+          const marker = L.marker([deliveryLat, deliveryLon]).addTo(checkMap);
+          marker.bindPopup(`<b>Vị trí giao hàng ${isRel ? 'người thân' : 'của bạn'}</b><br>${SF.escapeHtml(state.deliveryAddress || '')}`).openPopup();
+          requestAnimationFrame(() => checkMap.invalidateSize());
+        } catch (e) {
+          console.error('Lỗi load map checkout:', e);
+        }
+      })();
     }
 
     function renderPriceBreakdown(totals) {
