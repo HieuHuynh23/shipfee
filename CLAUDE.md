@@ -147,18 +147,21 @@ flowchart LR
   build --> commit["git commit + push branch"]
   commit --> pr["Mở / cập nhật Pull Request"]
   pr --> merge["Merge vào master"]
-  merge --> vercel["Vercel auto deploy frontend"]
   merge --> render["Render auto deploy API"]
+  merge --> sync["git push origin master:main"]
+  sync --> vercel["Vercel Production → shipfee.vercel.app"]
 ```
 
 | Bước | Hành động | Kết quả |
 |------|-----------|---------|
 | 1 | Push branch + mở PR | Code lên GitHub, **chưa** production |
-| 2 | Merge PR vào `master` | Trigger auto-deploy |
-| 3 | Vercel Build Command | `npm run build` → serve `public/` |
-| 4 | Render | `cd server` → `npm install` → `node server.js` |
+| 2 | Merge PR vào `master` | Render API auto-deploy |
+| 3 | Đồng bộ `main = master` | **Bắt buộc** để Vercel Production cập nhật |
+| 4 | Vercel Build Command | `npm run build` → serve `public/` |
 
-> **Lưu ý:** Push lên feature branch / mở PR **không** deploy production. Chỉ **merge vào `master`** mới cập nhật `shipfee.vercel.app` và Render API.
+> **Quan trọng:** GitHub mặc định là `master`, nhưng **Vercel Production Branch = `main`**. Merge PR vào `master` thôi thì `shipfee.vercel.app` **không** đổi — chỉ tạo Preview. Sau mỗi lần merge production-ready, chạy:
+> `git fetch origin && git push origin origin/master:main`
+> (hoặc merge `master` → `main`). URL production: https://shipfee.vercel.app
 
 Chi tiết: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 
