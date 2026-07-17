@@ -72,3 +72,4 @@ server/test_*.js
 
 .vercel
 .env*
+server/.cache/

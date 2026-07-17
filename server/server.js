@@ -2711,6 +2711,11 @@ let cacheLoadedAt = 0;           // Timestamp lần load gần nhất
 const geocodeCache = new Map();
 const nearbyListCache = new Map(); // key -> { at, data }
 const NEARBY_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+/** Foody place:location GPS — trusted shop pins (unlike street-name heuristics) */
+const foodyCoordsCache = new Map(); // restaurantId -> { lat, lon, source, at }
+const foodyCoordsInflight = new Map(); // restaurantId -> Promise
+const FOODY_COORDS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const TRUSTED_COORDS_SOURCES = new Set(['foody', 'manual']);
 
 // Puppeteer scrape kills free Render dynos — off on Render unless explicitly enabled
 const IS_RENDER = !!process.env.RENDER;
@@ -3265,18 +3270,189 @@ function geocodeAddress(address, name, restaurantId) {
   return result;
 }
 
+function isTrustedCoordsSource(source) {
+  return TRUSTED_COORDS_SOURCES.has(String(source || '').toLowerCase());
+}
+
+function isCanThoCoord(lat, lon) {
+  return Number.isFinite(lat) && Number.isFinite(lon)
+    && lat >= 9.85 && lat <= 10.30
+    && lon >= 105.50 && lon <= 106.00;
+}
+
+function resolveFoodyPlaceUrls(restaurant) {
+  const urls = [];
+  const seen = new Set();
+  const push = (u) => {
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    urls.push(u);
+  };
+
+  const href = String(restaurant?.foodyHref || '').trim();
+  if (href) {
+    if (/^https?:\/\//i.test(href)) {
+      push(href.split('?')[0]);
+    } else if (href.includes('/can-tho/') && !href.includes('/dia-diem') && !href.includes('/thuong-hieu')) {
+      push(`https://www.foody.vn${href.startsWith('/') ? href.split('?')[0] : `/${href.split('?')[0]}`}`);
+    }
+  }
+
+  const slug = String(restaurant?.shopeefoodSlug || '').trim()
+    || String(restaurant?.id || '').replace(/^r_ct_/, '').replace(/_/g, '-');
+  if (slug && !slug.includes('?') && slug.length > 2) {
+    push(`https://www.foody.vn/can-tho/${slug}`);
+  }
+  return urls;
+}
+
+/**
+ * Lấy GPS chính xác từ meta Foody:
+ * <meta property="place:location:latitude" content="...">
+ * <meta property="place:location:longitude" content="...">
+ */
+async function fetchFoodyPlaceCoords(restaurant) {
+  const urls = resolveFoodyPlaceUrls(restaurant);
+  if (!urls.length) return null;
+
+  for (const url of urls) {
+    try {
+      const res = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        },
+        timeout: 8000,
+        validateStatus: () => true
+      });
+      if (res.status !== 200 || !res.data) continue;
+
+      const $ = cheerio.load(res.data);
+      let lat = parseFloat($('meta[property="place:location:latitude"]').attr('content'));
+      let lon = parseFloat($('meta[property="place:location:longitude"]').attr('content'));
+
+      if (!isCanThoCoord(lat, lon)) {
+        const html = String(res.data);
+        const mLat = html.match(/property=["']place:location:latitude["']\s+content=["']([^"']+)["']/i)
+          || html.match(/content=["']([^"']+)["']\s+property=["']place:location:latitude["']/i);
+        const mLon = html.match(/property=["']place:location:longitude["']\s+content=["']([^"']+)["']/i)
+          || html.match(/content=["']([^"']+)["']\s+property=["']place:location:longitude["']/i);
+        if (mLat && mLon) {
+          lat = parseFloat(mLat[1]);
+          lon = parseFloat(mLon[1]);
+        }
+      }
+
+      if (isCanThoCoord(lat, lon)) {
+        console.log(`[Foody GPS] ✅ ${restaurant?.id || restaurant?.name}: ${lat}, ${lon} ← ${url}`);
+        return { lat, lon, source: 'foody', url };
+      }
+    } catch (err) {
+      console.warn(`[Foody GPS] ⚠️ ${url}: ${err.message}`);
+    }
+  }
+  return null;
+}
+
+/**
+ * Đảm bảo quán có GPS tin cậy (Foody/manual). Không ghi đè manual.
+ * Heuristic street-centroid chỉ dùng cho xếp khoảng cách gần, không dùng chỉ đường Maps.
+ */
+async function ensureFoodyRestaurantCoords(restaurant, { persist = true } = {}) {
+  if (!restaurant || !restaurant.id) return null;
+  const id = String(restaurant.id);
+
+  if (isTrustedCoordsSource(restaurant.coordsSource)
+      && isCanThoCoord(restaurant.latitude, restaurant.longitude)) {
+    return {
+      lat: restaurant.latitude,
+      lon: restaurant.longitude,
+      source: String(restaurant.coordsSource).toLowerCase()
+    };
+  }
+
+  const cached = foodyCoordsCache.get(id);
+  if (cached && (Date.now() - cached.at) < FOODY_COORDS_CACHE_TTL_MS) {
+    restaurant.latitude = cached.lat;
+    restaurant.longitude = cached.lon;
+    restaurant.coordsSource = cached.source;
+    geocodeCache.set(id, { lat: cached.lat, lon: cached.lon });
+    return { lat: cached.lat, lon: cached.lon, source: cached.source };
+  }
+
+  if (foodyCoordsInflight.has(id)) {
+    return foodyCoordsInflight.get(id);
+  }
+
+  const job = (async () => {
+    const fetched = await fetchFoodyPlaceCoords(restaurant);
+    if (!fetched) return null;
+
+    restaurant.latitude = fetched.lat;
+    restaurant.longitude = fetched.lon;
+    restaurant.coordsSource = 'foody';
+    geocodeCache.set(id, { lat: fetched.lat, lon: fetched.lon });
+    foodyCoordsCache.set(id, { lat: fetched.lat, lon: fetched.lon, source: 'foody', at: Date.now() });
+    nearbyListCache.clear();
+
+    const mem = Array.isArray(cachedRestaurants)
+      ? cachedRestaurants.find(r => r && String(r.id) === id)
+      : null;
+    if (mem) {
+      mem.latitude = fetched.lat;
+      mem.longitude = fetched.lon;
+      mem.coordsSource = 'foody';
+    }
+
+    if (persist) {
+      try {
+        await updateLocalDatabase((localData) => {
+          const idx = localData.findIndex(r => r && String(r.id) === id);
+          if (idx === -1) return false;
+          localData[idx].latitude = fetched.lat;
+          localData[idx].longitude = fetched.lon;
+          localData[idx].coordsSource = 'foody';
+          return true;
+        });
+      } catch (err) {
+        console.warn(`[Foody GPS] Persist failed for ${id}:`, err.message);
+      }
+    }
+
+    return { lat: fetched.lat, lon: fetched.lon, source: 'foody' };
+  })().finally(() => {
+    foodyCoordsInflight.delete(id);
+  });
+
+  foodyCoordsInflight.set(id, job);
+  return job;
+}
+
 function precomputeRestaurantCoordinates() {
   const t0 = Date.now();
   let geocoded = 0;
   for (const r of cachedRestaurants) {
     if (!r || !r.id) continue;
-    if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+
+    // Không ghi đè GPS Foody/manual bằng heuristic đường phố
+    if (isTrustedCoordsSource(r.coordsSource)
+        && typeof r.latitude === 'number' && typeof r.longitude === 'number') {
       geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude });
       continue;
     }
+
+    if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
+      // Tọa độ sẵn có nhưng không có nguồn tin cậy → coi là heuristic (street centroid)
+      if (!r.coordsSource) r.coordsSource = 'heuristic';
+      geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude });
+      continue;
+    }
+
     const coords = geocodeAddress(r.address || '', r.name || '', r.id);
     r.latitude = coords.lat;
     r.longitude = coords.lon;
+    r.coordsSource = 'heuristic';
     geocoded++;
   }
   console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (geocoded ${geocoded}) in ${Date.now() - t0}ms`);
@@ -3351,6 +3527,7 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
         coords = geocodeAddress(r.address || '', r.name || '', r.id);
         r.latitude = coords.lat;
         r.longitude = coords.lon;
+        if (!r.coordsSource) r.coordsSource = 'heuristic';
       }
       scored.push({ idx: i, distKm: getHaversineDistance(user, coords), isClosed: !!r.isClosed });
     }
@@ -3468,6 +3645,7 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
       coords = geocodeAddress(r.address || '', r.name || '', r.id);
       r.latitude = coords.lat;
       r.longitude = coords.lon;
+      if (!r.coordsSource) r.coordsSource = 'heuristic';
     }
     const distKm = getHaversineDistance(userCoords, coords);
     processed.push(toListRestaurant(r, distKm));
@@ -4783,6 +4961,63 @@ async function runBulkRestaurantSync(restaurants) {
 }
 
 /**
+ * GET /api/restaurants/:id/location
+ * GPS quán tin cậy (Foody place:location) — dùng cho chỉ đường shipper.
+ * Trả về coordsSource: foody | manual | heuristic
+ */
+app.get('/api/restaurants/:id/location', async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    let found = null;
+    if (SEARCHED_RESTAURANTS_CACHE.has(id)) {
+      found = SEARCHED_RESTAURANTS_CACHE.get(id);
+    }
+    if (!found && Array.isArray(cachedRestaurants)) {
+      found = cachedRestaurants.find(r => r && String(r.id) === id) || null;
+    }
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán' });
+    }
+
+    let source = found.coordsSource || null;
+    let lat = typeof found.latitude === 'number' ? found.latitude : null;
+    let lon = typeof found.longitude === 'number' ? found.longitude : null;
+
+    if (!isTrustedCoordsSource(source)) {
+      const accurate = await ensureFoodyRestaurantCoords(found, { persist: true });
+      if (accurate) {
+        lat = accurate.lat;
+        lon = accurate.lon;
+        source = accurate.source;
+      } else if (lat != null && lon != null) {
+        source = source || 'heuristic';
+      }
+    }
+
+    if (lat == null || lon == null) {
+      const coords = geocodeAddress(found.address || '', found.name || '', found.id);
+      lat = coords.lat;
+      lon = coords.lon;
+      source = 'heuristic';
+    }
+
+    return res.json({
+      success: true,
+      id: found.id,
+      name: found.name,
+      address: found.address,
+      latitude: lat,
+      longitude: lon,
+      coordsSource: source || 'heuristic',
+      trusted: isTrustedCoordsSource(source)
+    });
+  } catch (e) {
+    console.error('[Restaurant Location]', e.message);
+    return res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * GET /api/restaurants/:id
  * Thông tin chi tiết + menu của 1 quán
  */
@@ -4993,13 +5228,28 @@ function readOrdersDatabase() {
   }
 }
 
-/** Ghi đè tọa độ quán từ DB thật (tránh heuristic đường phố sai trên đơn cũ). */
+/** Ghi đè tọa độ quán từ DB (ưu tiên Foody/manual; gắn coordsSource cho shipper Maps). */
 function hydrateOrderRestaurantCoords(order) {
   if (!order || !order.restaurantId || !Array.isArray(cachedRestaurants)) return order;
   const mem = cachedRestaurants.find(r => r && String(r.id) === String(order.restaurantId));
-  if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+  if (!mem) return order;
+
+  if (isTrustedCoordsSource(mem.coordsSource)
+      && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
     order.restaurantLat = mem.latitude;
     order.restaurantLon = mem.longitude;
+    order.restaurantCoordsSource = mem.coordsSource;
+    return order;
+  }
+
+  if (order.restaurantLat == null || order.restaurantLon == null) {
+    if (typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+      order.restaurantLat = mem.latitude;
+      order.restaurantLon = mem.longitude;
+    }
+  }
+  if (!order.restaurantCoordsSource) {
+    order.restaurantCoordsSource = mem.coordsSource || 'heuristic';
   }
   return order;
 }
@@ -5054,24 +5304,53 @@ app.post('/api/orders', async (req, res) => {
     
     let restLat = orderData.restaurantLat;
     let restLon = orderData.restaurantLon;
+    let restCoordsSource = orderData.restaurantCoordsSource || null;
     // Chuẩn hóa số (client có thể gửi string)
     if (typeof restLat === 'string') restLat = parseFloat(restLat);
     if (typeof restLon === 'string') restLon = parseFloat(restLon);
-    if (!Number.isFinite(restLat) || !Number.isFinite(restLon)) {
-      // Ưu tiên tọa độ thật từ DB quán (latitude/longitude), không dùng heuristic đường phố
-      const restId = orderData.restaurantId;
-      const mem = restId && Array.isArray(cachedRestaurants)
-        ? cachedRestaurants.find(r => r && String(r.id) === String(restId))
-        : null;
-      if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+
+    const restId = orderData.restaurantId;
+    const mem = restId && Array.isArray(cachedRestaurants)
+      ? cachedRestaurants.find(r => r && String(r.id) === String(restId))
+      : null;
+
+    // Ưu tiên GPS Foody (meta place:location) — cùng kiểu ghim chính xác như pinnedLat khách
+    if (mem) {
+      try {
+        const accurate = await ensureFoodyRestaurantCoords(mem, { persist: true });
+        if (accurate && isCanThoCoord(accurate.lat, accurate.lon)) {
+          restLat = accurate.lat;
+          restLon = accurate.lon;
+          restCoordsSource = accurate.source;
+          console.log(`[Order Server] Foody GPS for restaurant ${restId}: ${restLat}, ${restLon}`);
+        }
+      } catch (foodyErr) {
+        console.warn(`[Order Server] Foody GPS failed for ${restId}:`, foodyErr.message);
+      }
+    }
+
+    if (!isTrustedCoordsSource(restCoordsSource) || !Number.isFinite(restLat) || !Number.isFinite(restLon)) {
+      if (mem && isTrustedCoordsSource(mem.coordsSource)
+          && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
         restLat = mem.latitude;
         restLon = mem.longitude;
-        console.log(`[Order Server] Using DB coords for restaurant ${restId}: ${restLat}, ${restLon}`);
-      } else {
-        const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
-        restLat = coords.lat;
-        restLon = coords.lon;
-        console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+        restCoordsSource = mem.coordsSource;
+        console.log(`[Order Server] Using trusted DB coords for restaurant ${restId}: ${restLat}, ${restLon}`);
+      } else if (!Number.isFinite(restLat) || !Number.isFinite(restLon)) {
+        if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
+          restLat = mem.latitude;
+          restLon = mem.longitude;
+          restCoordsSource = mem.coordsSource || 'heuristic';
+          console.log(`[Order Server] Using heuristic DB coords for restaurant ${restId}: ${restLat}, ${restLon}`);
+        } else {
+          const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
+          restLat = coords.lat;
+          restLon = coords.lon;
+          restCoordsSource = 'heuristic';
+          console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+        }
+      } else if (!restCoordsSource) {
+        restCoordsSource = mem?.coordsSource || 'heuristic';
       }
     }
 
@@ -5082,6 +5361,7 @@ app.post('/api/orders', async (req, res) => {
       restaurantAddress: orderData.restaurantAddress || '',
       restaurantLat: restLat,
       restaurantLon: restLon,
+      restaurantCoordsSource: restCoordsSource || 'heuristic',
       items: Array.isArray(orderData.items) ? orderData.items.map(item => ({
         id: item.id,
         name: item.name,
