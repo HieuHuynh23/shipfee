@@ -2418,6 +2418,7 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
   if (!Array.isArray(localData)) return [];
 
   const userCoords = normalizeUserCoords(lat, lon);
+  const { isGenericBrandPortal } = require('./slugMap');
 
   // Separate cache namespace from getNearbyRestaurantsPage (search / fallback only)
   const cacheKey = skipDistanceFilter
@@ -2434,6 +2435,8 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
   for (let i = 0; i < localData.length; i++) {
     const r = localData[i];
     if (!r || !r.id) continue;
+    // Ẩn portal cha "N chi nhánh" — chỉ hiện chi nhánh đặt được
+    if (r.isBrandPortal || isGenericBrandPortal(r.name, r.address)) continue;
     let coords;
     if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
       coords = { lat: r.latitude, lon: r.longitude };
@@ -2564,66 +2567,13 @@ async function getShopeeFoodSlugFromFoody(foodySlug) {
 
 /**
  * Phân giải các chi nhánh thực tế từ trang thương hiệu Foody
+ * (dùng brandResolver dùng chung với crawler — chấp nhận foody slug khi thiếu link SF)
  */
 async function resolveBrandBranches(brandSlug) {
-  const url = `https://www.foody.vn/thuong-hieu/${brandSlug}?c=can-tho`;
-  console.log(`[Brand Resolver] 🔍 Đang phân giải các chi nhánh từ trang thương hiệu: ${url}...`);
+  const { resolveBrandBranches: resolve } = require('./brandResolver');
+  console.log(`[Brand Resolver] 🔍 Đang phân giải các chi nhánh từ trang thương hiệu: ${brandSlug}...`);
   try {
-    const res = await axios.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
-      },
-      timeout: 10000
-    });
-    
-    if (res.status !== 200) return [];
-    
-    const $ = cheerio.load(res.data);
-    const branches = [];
-    
-    $('.ldc-item').each((i, el) => {
-      const name = $(el).find('.ldc-item-h-name h2 a').text().trim();
-      const foodyHref = $(el).find('.ldc-item-h-name h2 a').attr('href') || '';
-      const address = $(el).find('.ldc-item-h-address span').text().trim();
-      
-      let img = $(el).find('.ldc-item-img img').attr('src') || '';
-      if (!img || img.includes('ratin-rank') || img.includes('arrow-top')) {
-        img = 'https://images.unsplash.com/photo-1625398407796-82650a8c135f?w=800&q=80';
-      }
-      
-      let shopeefoodUrl = '';
-      $(el).find('a').each((j, aEl) => {
-        const href = $(aEl).attr('href') || '';
-        if (href.includes('shopeefood.vn/can-tho/') && !href.includes('/can-tho/fresh') && !href.includes('/can-tho/food')) {
-          shopeefoodUrl = href;
-        }
-      });
-      
-      if (name && shopeefoodUrl) {
-        const parts = shopeefoodUrl.split('?')[0].split('/');
-        const shopeefoodSlug = parts.pop() || parts.pop();
-        
-        let resId = 'r_ct_';
-        if (shopeefoodSlug) {
-          resId += shopeefoodSlug.replace(/-/g, '_');
-        } else if (foodyHref) {
-          resId += foodyHref.split('/').pop().replace(/-/g, '_');
-        } else {
-          resId += i;
-        }
-        
-        branches.push({
-          id: resId,
-          name: name,
-          address: address,
-          img: img,
-          shopeefoodSlug: shopeefoodSlug
-        });
-      }
-    });
-    
+    const branches = await resolve(brandSlug);
     console.log(`[Brand Resolver] ✅ Tìm thấy ${branches.length} chi nhánh từ thương hiệu: ${brandSlug}`);
     return branches;
   } catch (err) {
@@ -3131,14 +3081,9 @@ app.get('/api/restaurants', async (req, res) => {
         }
       }
 
-      // Lọc bỏ nút "Hệ thống" cha chung chung để khách đặt hàng trực tiếp tại chi nhánh cụ thể
-      mergedResults = mergedResults.filter(r => {
-        const normName = normalizeText(r.name);
-        const addr = (r.address || '').toLowerCase();
-        const isGenericParent = (normName.includes('he thong') || addr.includes('chi nhánh') || addr.includes('chi nhanh') || addr === '2 chi nhánh' || addr === '3 chi nhánh') &&
-          (normName.includes('jollibee') || normName.includes('highlands') || normName.includes('kfc') || normName.includes('lotteria') || normName.includes('lumos') || normName.includes('xo') || normName.includes('anh beo em u') || normName.includes('phuc tea'));
-        return !isGenericParent;
-      });
+      // Lọc bỏ portal cha "Hệ thống" (address = N chi nhánh) — khách đặt tại chi nhánh cụ thể
+      const { isGenericBrandPortal } = require('./slugMap');
+      mergedResults = mergedResults.filter(r => !r.isBrandPortal && !isGenericBrandPortal(r.name, r.address));
     }
 
     // Sắp xếp kết quả: quán đang mở trước, quán đóng cửa sau
@@ -3391,6 +3336,11 @@ function triggerBackgroundMenuScrape(restaurant) {
     let closedReason = '';
     let menu = null;
 
+    if (realMenu && realMenu.blocked === true) {
+      console.log(`[Background Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
+      return;
+    }
+
     if (realMenu && realMenu.closed === true) {
       isClosed = true;
       closedReason = realMenu.reason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.';
@@ -3558,6 +3508,11 @@ function triggerSyncMenuScrape(restaurant) {
     let isClosed = false;
     let closedReason = '';
     let menu = null;
+
+    if (realMenu && realMenu.blocked === true) {
+      console.log(`[Sync Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
+      return null;
+    }
 
     if (realMenu && realMenu.closed === true) {
       isClosed = true;
@@ -7565,6 +7520,12 @@ function runSweepIteration() {
       let isClosed = false;
       let closedReason = '';
       let menu = null;
+
+      if (realMenu && realMenu.blocked === true) {
+        console.log(`[Sweep Worker] ⏳ API bị chặn (quán vẫn tồn tại): "${target.name}" — bỏ qua chu kỳ này.`);
+        setTimeout(runSweepIteration, 30 * 1000);
+        return;
+      }
 
       if (realMenu && realMenu.closed === true) {
         isClosed = true;

@@ -13,9 +13,10 @@ const path = require('path');
 const args = process.argv.slice(2);
 // Mặc định: chỉ fallback + quán đang mở (an toàn hơn cào hết DB)
 const defaults = [];
-if (!args.some(a => a.startsWith('--threads='))) defaults.push('--threads=2');
+if (!args.some(a => a.startsWith('--threads='))) defaults.push('--threads=4');
+if (!args.some(a => a.startsWith('--delay='))) defaults.push('--delay=1500');
 if (!args.includes('--only-fallback') && !args.includes('--force') && !args.some(a => a.startsWith('--id='))) {
-  defaults.push('--only-fallback', '--open-only');
+  defaults.push('--only-fallback', '--open-only', '--sf-priority');
 }
 
 const child = spawn(

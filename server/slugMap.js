@@ -51,21 +51,27 @@ function rewriteSlug(slug) {
   return SLUG_REWRITER_MAP[key] || key;
 }
 
+/**
+ * Portal cha "Hệ thống X" trên Foody — address dạng "2 chi nhánh", "3 chi nhánh".
+ * KHÔNG coi chi nhánh thật (có địa chỉ đường/phố) là portal dù tên có "Hệ thống".
+ */
 function isGenericBrandPortal(name, address) {
+  const a = String(address || '').toLowerCase().trim();
+  if (/^\d+\s*chi\s*nh/.test(a)) return true;
+  // Một số portal ghi "Chi nhánh" thuần, không có số nhà
+  if (/^chi\s*nh[aá]nh\s*$/i.test(a)) return true;
+  return false;
+}
+
+function looksLikeBrandChainName(name) {
   const n = String(name || '').toLowerCase();
-  const a = String(address || '').toLowerCase();
-  const looksPortal =
-    n.includes('hệ thống') ||
-    n.includes('he thong') ||
-    a.includes('chi nhánh') ||
-    a.includes('chi nhanh') ||
-    /^[0-9]+\s*chi\s*nhánh/.test(a);
-  return looksPortal;
+  return n.includes('hệ thống') || n.includes('he thong');
 }
 
 module.exports = {
   SLUG_REWRITER_MAP,
   slugFromRestaurant,
   rewriteSlug,
-  isGenericBrandPortal
+  isGenericBrandPortal,
+  looksLikeBrandChainName
 };
