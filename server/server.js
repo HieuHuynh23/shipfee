@@ -2025,15 +2025,19 @@ function fastSearch(query) {
     const nameAll = tokens.every(t => entry.normName.includes(t));
     const addrAll = tokens.every(t => entry.normAddress.includes(t));
     const catAll = tokens.every(t => entry.normCategory.includes(t));
+    const dishPhrase = !!normQuery && entry.normDishNames.some(d => d.includes(normQuery));
     const dishAll = entry.normDishNames.some(d => tokens.every(t => d.includes(t)));
-    if (!phraseName && !nameAll && !addrAll && !catAll && !dishAll) continue;
+    // ≥2 từ khóa: chỉ nhận khớp tên/địa chỉ/category hoặc cả cụm trên 1 món (không ghép token rời)
+    const strong = phraseName || nameAll || addrAll || catAll || dishPhrase;
+    if (!strong && !(tokens.length === 1 && dishAll)) continue;
 
     let score = 0;
     if (phraseName) score += 100;
     if (nameAll) score += 50;
     if (addrAll) score += 15;
     if (catAll) score += 10;
-    if (dishAll) score += 8;
+    if (dishPhrase) score += 20;
+    else if (dishAll) score += 8;
     if (!entry.isClosed) score += 5;
     score += tokens.filter(t => entry.normName.includes(t)).length * 3;
     scored.push({ idx: entry.idx, score });
@@ -2469,9 +2473,16 @@ function processRestaurantsWithLocation(localData, lat, lon, skipDistanceFilter 
     }
   }
 
-  const openRests = filteredData.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-  const closedRests = filteredData.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
-  const result = [...openRests, ...closedRests];
+  // Search (skipDistanceFilter): giữ thứ tự liên quan từ fastSearch — không xếp lại theo khoảng cách.
+  // Nearby list: mở cửa trước, rồi theo khoảng cách.
+  let result;
+  if (skipDistanceFilter) {
+    result = filteredData;
+  } else {
+    const openRests = filteredData.filter(r => !r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+    const closedRests = filteredData.filter(r => r.isClosed).sort((a, b) => a.distanceValue - b.distanceValue);
+    result = [...openRests, ...closedRests];
+  }
 
   if (cacheKey) {
     nearbyListCache.set(cacheKey, { at: Date.now(), data: result });
@@ -3098,11 +3109,7 @@ app.get('/api/restaurants', async (req, res) => {
       mergedResults = mergedResults.filter(r => !r.isBrandPortal && !isGenericBrandPortal(r.name, r.address));
     }
 
-    // Sắp xếp kết quả: quán đang mở trước, quán đóng cửa sau
-    mergedResults = [
-      ...mergedResults.filter(r => !r.isClosed),
-      ...mergedResults.filter(r => r.isClosed)
-    ];
+    // Giữ thứ tự điểm liên quan từ fastSearch (không đảo theo đóng/mở — sẽ chôn quán khớp tên)
 
     // 4. Đồng bộ các kết quả search này vào SEARCHED_RESTAURANTS_CACHE phía server
     mergedResults.forEach(r => {
