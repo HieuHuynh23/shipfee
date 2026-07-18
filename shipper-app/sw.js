@@ -1,5 +1,5 @@
-/* ShipFee Tài Xế PWA — SW v2.9 (maps address-only cache bust) */
-const SW_VERSION = 'shipfee-tx-v2.9';
+/* ShipFee Tài Xế PWA — SW v3.0 (shift+security cache bust) */
+const SW_VERSION = 'shipfee-tx-v3.0';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

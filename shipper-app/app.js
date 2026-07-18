@@ -359,39 +359,29 @@ async function initApp() {
     document.getElementById('login-overlay').classList.remove('active');
     updateDriverHeader();
     
-    // Set UI immediately from sessionStorage to prevent flash of OFFLINE status
-    const savedStatus = sessionStorage.getItem('shipfee_driver_online') || 'true';
+    // Ưu tiên trạng thái ca local (session + localStorage) — không để reload/restart Render tự checkout
+    const savedStatus =
+      sessionStorage.getItem('shipfee_driver_online') ??
+      localStorage.getItem('shipfee_driver_online') ??
+      'true';
     isOnline = (savedStatus === 'true');
     const checkbox = document.getElementById('online-switch');
     const statusText = document.getElementById('status-text');
-    if (checkbox && statusText) {
-      checkbox.checked = isOnline;
-      if (isOnline) {
-        statusText.textContent = 'Đang trong ca (Check-in)';
-        statusText.className = 'status-indicator online';
-      } else {
-        statusText.textContent = 'Đã tắt ca (Check-out)';
-        statusText.className = 'status-indicator offline';
-      }
-    }
+    applyOnlineUi(isOnline);
     
-    // Đồng bộ trạng thái ca làm việc (Check-in/Check-out) từ server bằng API profile
+    // Đồng bộ từ server; nếu local đang ONLINE mà server OFFLINE (sau deploy) → tự check-in lại
     try {
       const res = await apiFetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`, {}, 10000);
       if (res.ok) {
         const json = await safeJson(res);
         if (json.success && json.shipper) {
-          isOnline = (json.shipper.status === 'ONLINE');
-          sessionStorage.setItem('shipfee_driver_online', isOnline);
-          if (checkbox && statusText) {
-            checkbox.checked = isOnline;
-            if (isOnline) {
-              statusText.textContent = 'Đang trong ca (Check-in)';
-              statusText.className = 'status-indicator online';
-            } else {
-              statusText.textContent = 'Đã tắt ca (Check-out)';
-              statusText.className = 'status-indicator offline';
-            }
+          const serverOnline = (json.shipper.status === 'ONLINE');
+          if (isOnline && !serverOnline) {
+            await restoreOnlineShift();
+          } else {
+            isOnline = serverOnline;
+            persistOnlineStatus(isOnline);
+            applyOnlineUi(isOnline);
           }
         }
       }
@@ -400,6 +390,46 @@ async function initApp() {
     }
     
     startPolling();
+  }
+}
+
+function persistOnlineStatus(online) {
+  const v = online ? 'true' : 'false';
+  sessionStorage.setItem('shipfee_driver_online', v);
+  try { localStorage.setItem('shipfee_driver_online', v); } catch (_) {}
+}
+
+function applyOnlineUi(online) {
+  const checkbox = document.getElementById('online-switch');
+  const statusText = document.getElementById('status-text');
+  if (checkbox) checkbox.checked = !!online;
+  if (statusText) {
+    if (online) {
+      statusText.textContent = 'Đang trong ca (Check-in)';
+      statusText.className = 'status-indicator online';
+    } else {
+      statusText.textContent = 'Đã tắt ca (Check-out)';
+      statusText.className = 'status-indicator offline';
+    }
+  }
+}
+
+async function restoreOnlineShift() {
+  if (!currentDriver) return;
+  try {
+    const res = await apiFetch(`${API_BASE}/api/shippers/shift`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: currentDriver.phone, status: 'ONLINE' })
+    }, 10000);
+    if (res.ok) {
+      isOnline = true;
+      persistOnlineStatus(true);
+      applyOnlineUi(true);
+      console.log('[Shift] Đã khôi phục Check-in sau khi tải lại trang');
+    }
+  } catch (e) {
+    console.warn('[Shift] Không khôi phục được ca ONLINE:', e?.message || e);
   }
 }
 
@@ -647,14 +677,8 @@ async function loginDriver() {
       showToast('Đăng nhập thành công', `Chào mừng ${currentDriver.name} đã vào hệ thống!`, 'success');
 
       isOnline = true;
-      sessionStorage.setItem('shipfee_driver_online', 'true');
-      const checkbox = document.getElementById('online-switch');
-      const statusText = document.getElementById('status-text');
-      if (checkbox && statusText) {
-        checkbox.checked = true;
-        statusText.textContent = 'Đang trong ca (Check-in)';
-        statusText.className = 'status-indicator online';
-      }
+      persistOnlineStatus(true);
+      applyOnlineUi(true);
 
       apiFetch(`${API_BASE}/api/shippers/shift`, {
         method: 'POST',
@@ -728,7 +752,7 @@ async function toggleOnlineStatus() {
     const result = await safeJson(res);
     if (res.ok && result.success) {
       isOnline = nextOnline;
-      sessionStorage.setItem('shipfee_driver_online', isOnline);
+      persistOnlineStatus(isOnline);
       if (isOnline) {
         statusText.textContent = 'Đang trong ca (Check-in)';
         statusText.className = 'status-indicator online';
@@ -3177,6 +3201,7 @@ async function logoutDriver() {
     sessionStorage.removeItem('shipfee_driver');
     sessionStorage.removeItem('shipfee_jwt');
     sessionStorage.removeItem('shipfee_driver_online');
+    try { localStorage.removeItem('shipfee_driver_online'); } catch (_) {}
     
     if (supabaseClient) {
       try {
@@ -3952,7 +3977,7 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=2.9', window.location.href).href;
+    const swUrl = new URL('sw.js?v=3.0', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

@@ -360,12 +360,13 @@ async function syncShippersFromSupabase() {
         changed = true;
       }
 
-      // Đảm bảo ghi profile đồng bộ vào bảng shipper_profiles luôn nếu bảng trống
+      // Không ghi đè status ONLINE khi sync Auth → tránh mất ca làm việc
+      const existingStatus = idx !== -1 ? (localShippers[idx].status || 'OFFLINE') : 'OFFLINE';
       supabase.from('shipper_profiles').upsert({
         id: u.id,
         phone: cleanPhone,
         full_name: metadata.full_name || 'Tài xế tự do',
-        status: 'OFFLINE',
+        status: existingStatus,
         avatar_url: metadata.avatar_url || ''
       }).then(({ error }) => {
         if (error) console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', error.message);
@@ -567,6 +568,103 @@ async function authenticateShipper(req, res, next) {
 
 function cleanPhone(phone) {
   return (phone || '').trim().replace(/\s+/g, '');
+}
+
+/** Cần Thơ service center — reject GPS spoofing far outside city */
+const SHIPPER_SERVICE_CENTER = { lat: 10.0345, lon: 105.7876 };
+const SHIPPER_SERVICE_RADIUS_KM = 35;
+const SHIPPER_MAX_SPEED_KMH = 160; // motorcycle + GPS jitter ceiling
+const SHIPPER_STALE_ONLINE_MS = 12 * 60 * 1000; // no GPS heartbeat → auto OFFLINE
+
+function getClientIp(req) {
+  const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const ip = xf || req.headers['cf-connecting-ip'] || req.ip || req.socket?.remoteAddress || '';
+  return String(ip).replace(/^::ffff:/, '');
+}
+
+/**
+ * Bind body.phone to JWT shipper — block spoofing another driver.
+ * Returns { ok, phone, error }.
+ */
+function resolveAuthenticatedShipperPhone(req, bodyPhone) {
+  const authPhone = cleanPhone(req.shipperPhone);
+  if (!authPhone) {
+    return { ok: false, phone: '', error: 'Không xác định được tài xế từ token' };
+  }
+  const claimed = cleanPhone(bodyPhone);
+  if (claimed && claimed !== authPhone) {
+    return { ok: false, phone: authPhone, error: 'Không được thao tác hộ tài xế khác' };
+  }
+  return { ok: true, phone: authPhone };
+}
+
+function isShipperGpsInServiceArea(lat, lon) {
+  return calcDistance(lat, lon, SHIPPER_SERVICE_CENTER.lat, SHIPPER_SERVICE_CENTER.lon) <= SHIPPER_SERVICE_RADIUS_KM;
+}
+
+/**
+ * Validate GPS write: anti-teleport + optional service-area fence for dispatch.
+ * Returns { ok, error?, code? }.
+ */
+function validateShipperLocationUpdate(cleanedPhone, lat, lon, opts = {}) {
+  const requireServiceArea = opts.requireServiceArea !== false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+    return { ok: false, code: 'INVALID_COORDS', error: 'Tọa độ không hợp lệ' };
+  }
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    return { ok: false, code: 'INVALID_COORDS', error: 'Tọa độ ngoài phạm vi' };
+  }
+  if (requireServiceArea && !isShipperGpsInServiceArea(lat, lon)) {
+    return {
+      ok: false,
+      code: 'OUT_OF_SERVICE_AREA',
+      error: 'Vị trí ngoài khu vực phục vụ Cần Thơ — không dùng để nhận đơn'
+    };
+  }
+  const prev = onlineShipperLocations.get(cleanedPhone);
+  if (prev && Number.isFinite(prev.lat) && Number.isFinite(prev.lon) && prev.lastSeen) {
+    const dtMs = Date.now() - prev.lastSeen;
+    if (dtMs > 0 && dtMs < 10 * 60 * 1000) {
+      const distKm = calcDistance(prev.lat, prev.lon, lat, lon);
+      const speedKmh = distKm / (dtMs / 3600000);
+      if (speedKmh > SHIPPER_MAX_SPEED_KMH && distKm > 3) {
+        return {
+          ok: false,
+          code: 'IMPOSSIBLE_JUMP',
+          error: 'Phát hiện nhảy vị trí bất thường — từ chối cập nhật GPS'
+        };
+      }
+    }
+  }
+  return { ok: true };
+}
+
+function markStaleShippersOffline() {
+  try {
+    const shippers = readShippersDatabase();
+    const now = Date.now();
+    let changed = false;
+    for (let i = 0; i < shippers.length; i++) {
+      const s = shippers[i];
+      if (s.status !== 'ONLINE') continue;
+      const phone = cleanPhone(s.phone);
+      const loc = onlineShipperLocations.get(phone);
+      const lastSeen = loc?.lastSeen || 0;
+      // Keep ONLINE briefly after deploy (Map empty) if check-in was recent
+      const lastCheckInMs = s.lastCheckIn ? Date.parse(s.lastCheckIn) : 0;
+      const freshCheckIn = lastCheckInMs && (now - lastCheckInMs) < SHIPPER_STALE_ONLINE_MS;
+      if (!lastSeen && freshCheckIn) continue;
+      if (!lastSeen || (now - lastSeen) > SHIPPER_STALE_ONLINE_MS) {
+        shippers[i].status = 'OFFLINE';
+        shippers[i].lastCheckOut = new Date().toISOString();
+        onlineShipperLocations.delete(phone);
+        changed = true;
+      }
+    }
+    if (changed) writeShippersDatabase(shippers);
+  } catch (e) {
+    console.warn('[Shift TTL]', e.message);
+  }
 }
 
 const MAX_ACTIVE_ORDERS_PER_SHIPPER = 2; // tối thiểu 1, tối đa 2 đơn đang chạy
@@ -4687,10 +4785,20 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
     const { id } = req.params;
     const lat = Number(req.body?.lat);
     const lon = Number(req.body?.lon);
-    const authPhone = req.shipperPhone;
+    const authPhone = cleanPhone(req.shipperPhone);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return res.status(400).json({ error: 'Tọa độ không hợp lệ' });
+    }
+
+    // Đơn đang giao: chỉ chặn nhảy GPS bất thường (không siết bán kính như lúc rảnh)
+    const validated = validateShipperLocationUpdate(authPhone, lat, lon, { requireServiceArea: false });
+    if (!validated.ok) {
+      return res.status(400).json({
+        success: false,
+        error: validated.error,
+        code: validated.code
+      });
     }
 
     let found = false;
@@ -4701,7 +4809,7 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
       const idx = orders.findIndex(o => o.id === id);
       if (idx !== -1) {
         found = true;
-        if (cleanPhone(orders[idx].shipperPhone) !== cleanPhone(authPhone)) {
+        if (cleanPhone(orders[idx].shipperPhone) !== authPhone) {
           forbidden = true;
           return false;
         }
@@ -4718,6 +4826,16 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
     }
     if (forbidden) {
       return res.status(403).json({ success: false, error: 'Bạn không phải tài xế của đơn này' });
+    }
+
+    // Mirror into dispatch map only when still inside service area
+    if (isShipperGpsInServiceArea(lat, lon)) {
+      onlineShipperLocations.set(authPhone, {
+        lat,
+        lon,
+        lastSeen: Date.now(),
+        ip: getClientIp(req) || null
+      });
     }
 
     res.json({ success: true, data: updatedOrder });
@@ -5131,14 +5249,19 @@ app.post('/api/shippers/register', async (req, res) => {
  */
 app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
   try {
-    const { phone, status } = req.body;
-    if (!phone || !['ONLINE', 'OFFLINE'].includes(status)) {
+    const { status } = req.body;
+    if (!['ONLINE', 'OFFLINE'].includes(status)) {
       return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
     }
 
+    const bound = resolveAuthenticatedShipperPhone(req, req.body?.phone);
+    if (!bound.ok) {
+      return res.status(403).json({ success: false, error: bound.error });
+    }
+    const cleanedPhone = bound.phone;
+
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const idx = shippers.findIndex(s => cleanPhone(s.phone) === cleanedPhone);
 
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Số điện thoại tài xế không tồn tại!' });
@@ -5154,7 +5277,7 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
     }
 
     writeShippersDatabase(shippers);
-    console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${phone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'}`);
+    console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${cleanedPhone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'} ip=${getClientIp(req)}`);
 
     // Sync to Supabase shipper_profiles if active
     if (supabase && shippers[idx].id) {
@@ -5186,18 +5309,41 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
  */
 app.post('/api/shippers/location', authenticateShipper, (req, res) => {
   try {
-    const { phone } = req.body;
+    const bound = resolveAuthenticatedShipperPhone(req, req.body?.phone);
+    if (!bound.ok) {
+      return res.status(403).json({ success: false, error: bound.error, code: 'PHONE_MISMATCH' });
+    }
+    const cleanedPhone = bound.phone;
     const lat = Number(req.body?.lat);
     const lon = Number(req.body?.lon);
-    if (!phone || !Number.isFinite(lat) || !Number.isFinite(lon)) {
-      return res.status(400).json({ success: false, error: 'Dữ liệu vị trí không hợp lệ!' });
+    const accuracy = Number(req.body?.accuracy);
+    const clientIp = getClientIp(req);
+
+    const shippers = readShippersDatabase();
+    const shipper = shippers.find(s => cleanPhone(s.phone) === cleanedPhone);
+    if (!shipper) {
+      return res.status(404).json({ success: false, error: 'Tài xế không tồn tại!' });
+    }
+    if (shipper.status !== 'ONLINE') {
+      return res.status(409).json({ success: false, error: 'Cần Check-in trước khi gửi vị trí', code: 'NOT_ONLINE' });
     }
 
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
+    const validated = validateShipperLocationUpdate(cleanedPhone, lat, lon);
+    if (!validated.ok) {
+      console.warn(`[GPS Guard] ${cleanedPhone} rejected ${validated.code} lat=${lat} lon=${lon} ip=${clientIp}`);
+      return res.status(400).json({
+        success: false,
+        error: validated.error,
+        code: validated.code
+      });
+    }
+
     onlineShipperLocations.set(cleanedPhone, {
       lat,
       lon,
-      lastSeen: Date.now()
+      accuracy: Number.isFinite(accuracy) ? accuracy : null,
+      lastSeen: Date.now(),
+      ip: clientIp || null
     });
 
     res.json({ success: true });
@@ -5212,14 +5358,15 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
  */
 app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
   try {
-    const { phone, stats, totalOrders, totalEarnings, acceptanceRate, completionRate } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, error: 'Thông tin không hợp lệ!' });
+    const { stats, totalOrders, totalEarnings, acceptanceRate, completionRate } = req.body;
+    const bound = resolveAuthenticatedShipperPhone(req, req.body?.phone);
+    if (!bound.ok) {
+      return res.status(403).json({ success: false, error: bound.error });
     }
+    const cleanedPhone = bound.phone;
 
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const idx = shippers.findIndex(s => cleanPhone(s.phone) === cleanedPhone);
 
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Tài xế không tồn tại!' });
@@ -5262,13 +5409,13 @@ app.post('/api/shippers/stats', authenticateShipper, async (req, res) => {
  */
 app.post('/api/shippers/request-assistance', authenticateShipper, async (req, res) => {
   try {
-    const { phone } = req.body;
-    if (!phone) {
-      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại tài xế!' });
+    const bound = resolveAuthenticatedShipperPhone(req, req.body?.phone);
+    if (!bound.ok) {
+      return res.status(403).json({ success: false, error: bound.error });
     }
+    const cleanPhone = bound.phone;
 
     const shippers = readShippersDatabase();
-    const cleanPhone = phone.trim().replace(/\s+/g, '');
     const idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
     if (idx === -1) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
@@ -8031,28 +8178,13 @@ app.listen(PORT, () => {
   }, 8000);
   processExpiredOffers().catch(() => {});
 
-  // Đặt lại trạng thái tất cả tài xế thành OFFLINE khi khởi chạy server
-  if (fs.existsSync(SHIPPERS_FILE_PATH)) {
-    try {
-      const raw = fs.readFileSync(SHIPPERS_FILE_PATH, 'utf8');
-      const shippers = JSON.parse(raw);
-      if (Array.isArray(shippers)) {
-        let changed = false;
-        shippers.forEach(s => {
-          if (s.status !== 'OFFLINE') {
-            s.status = 'OFFLINE';
-            changed = true;
-          }
-        });
-        if (changed) {
-          fs.writeFileSync(SHIPPERS_FILE_PATH, JSON.stringify(shippers, null, 2), 'utf8');
-          console.log('[Sanitization] 🧹 Đã đặt lại trạng thái tất cả tài xế thành OFFLINE khi khởi chạy server.');
-        }
-      }
-    } catch (e) {
-      console.error('[Sanitization] Lỗi dọn dẹp shippers-local.json:', e.message);
-    }
-  }
+  // Không ép toàn bộ OFFLINE khi boot (gây checkout khi shipper reload sau deploy).
+  // Thay bằng TTL heartbeat GPS — ca ONLINE hết hạn nếu không gửi vị trí.
+  console.log('[Sanitization] ⏭️ Giữ trạng thái ca ONLINE qua restart; stale TTL chạy nền.');
+  setInterval(() => {
+    markStaleShippersOffline();
+  }, 60000);
+  setTimeout(() => markStaleShippersOffline(), 15000);
 
   // Sanitize rewrites all chunks + can OOM free Render — skip on Render (in-memory coords already warm)
   if (!IS_RENDER) {
