@@ -19,6 +19,7 @@ puppeteer.use(StealthPlugin());
 
 const dbHelper = require('./dbHelper');
 const { rewriteSlug } = require('./slugMap');
+const { getShopeeFoodKeywords } = require('./discover_keywords_cantho');
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const kwArg = process.argv.find(a => a.startsWith('--keywords='));
@@ -26,17 +27,7 @@ const EXTRA_KEYWORDS = kwArg
   ? kwArg.split('=').slice(1).join('=').split(',').map(s => s.trim()).filter(Boolean)
   : [];
 
-const DEFAULT_KEYWORDS = [
-  'cơm', 'bún', 'phở', 'trà sữa', 'gà', 'lẩu', 'bánh mì', 'pizza', 'hải sản', 'cà phê',
-  'chè', 'xôi', 'hủ tiếu', 'mì', 'ốc', 'chay', 'kem', 'sushi', 'burger', 'lotteria',
-  'jollibee', 'kfc', 'highlands', 'gà rán', 'bò né', 'nem nướng', 'cơm tấm', 'bún đậu',
-  'đồ ăn vặt', 'mì cay', 'tokbokki', 'gỏi', 'bánh ngọt', 'sinh tố', 'bánh cuốn', 'bánh xèo',
-  'bún bò', 'cơm gà', 'cơm gà kim', 'cơm gà xối mỡ', 'gỏi cuốn', 'nướng', 'buffet', 'dimsum',
-  'hotpot', 'phúc long', 'tocotoco', 'highland', 'gà nướng', 'bánh canh', 'cháo', 'nem',
-  'bún riêu', 'bún thịt nướng', 'cơm chiên', 'cơm văn phòng', 'hủ tiếu nam vang', 'phở bò',
-  'mì quảng', 'lẩu thái', 'bánh tráng trộn', 'bánh ướt', 'ăn vặt', 'nước ép', 'sinh tố',
-  'five star', 'bún mắm', 'chả cá', 'gà ủ muối', 'cơm sườn', 'bánh hỏi'
-];
+const DEFAULT_KEYWORDS = getShopeeFoodKeywords();
 
 const BLOCKED_SLUGS = new Set([
   'food', 'fresh', 'drink', 'flowers', 'medicine', 'market', 'khac', 'other',
@@ -56,7 +47,13 @@ const CATEGORY_PAGES = [
   'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-pizza-pasta-burger-giao-tan-noi',
   'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-cake-pastry-giao-tan-noi',
   'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-desserts-giao-tan-noi',
-  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-vegetarian-giao-tan-noi'
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-vegetarian-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-noodles-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-chicken-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-fastfood-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-milk-tea-giao-tan-noi',
+  'https://shopeefood.vn/can-tho/danh-sach-dia-diem-phuc-vu-coffee-giao-tan-noi'
 ];
 
 function sleep(ms) {
