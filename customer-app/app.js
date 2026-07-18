@@ -652,22 +652,6 @@ function clearActiveOrder() {
   saveState(state);
 }
 
-// Simulate order progression (for demo purposes)
-function progressOrder() {
-  const state = getState();
-  if (!state.activeOrder) return null;
-  const flow = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
-  const curIdx = flow.indexOf(state.activeOrder.status);
-  if (curIdx < flow.length - 1) {
-    const nextStatus = flow[curIdx + 1];
-    state.activeOrder.status = nextStatus;
-    state.activeOrder.statusTime = Date.now();
-    state.activeOrder.statusHistory.push({ status: nextStatus, time: Date.now() });
-    saveState(state);
-  }
-  return state.activeOrder;
-}
-
 function completeOrder() {
   clearActiveOrder();
 }
@@ -1093,7 +1077,7 @@ window.SF = {
   loadPricingConfig,
   getState, saveState, getCart, getCartTotal, updateCartItemNote,
   addToCart, removeFromCart, removeItemFromCart, clearCart,
-  placeOrder, getActiveOrder, progressOrder, completeOrder, rateOrder,
+  placeOrder, getActiveOrder, completeOrder, rateOrder,
   navigate, getParam,
   formatCurrency, formatTime,
   showToast, updateCartBar,

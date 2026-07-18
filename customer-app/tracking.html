@@ -220,117 +220,21 @@
     .mini-summary-row:last-child { border: none; }
     .mini-summary-row.total { font-weight: 800; font-size: 15px; color: var(--clr-text-primary); padding-top: 10px; }
 
-    /* Floating Sandbox Toggle Button */
-    .dev-tools-toggle {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      z-index: 100;
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(8px);
-      border: 1.5px solid rgba(255, 255, 255, 0.2);
+    .map-gps-hint {
+      position: absolute;
+      left: 12px;
+      bottom: 12px;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.82);
       color: #F8FAFC;
-      padding: 12px 20px;
-      border-radius: var(--radius-full);
-      font-size: 13px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: var(--shadow-lg);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    .dev-tools-toggle:hover {
-      background: var(--clr-primary);
-      color: white;
-      border-color: var(--clr-primary);
-      transform: translateY(-2px);
-      box-shadow: var(--shadow-primary);
-    }
-    .dev-tools-toggle i {
-      color: var(--clr-success);
-    }
-    
-    /* Sleek Dev/Simulator Drawer Panel */
-    .demo-bar {
-      position: fixed;
-      bottom: 84px;
-      right: 24px;
-      width: calc(100% - 48px);
-      max-width: 432px;
-      z-index: 101;
-      background: rgba(15, 23, 42, 0.95);
-      backdrop-filter: blur(12px);
-      border: 1.5px solid rgba(255, 255, 255, 0.15);
-      border-radius: var(--radius-lg);
-      padding: var(--space-md);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
-      display: none; /* Hidden by default */
-      transition: all var(--transition-base);
-    }
-    .demo-bar.active {
-      display: block;
-      animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .demo-bar__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-xs);
-    }
-    .demo-bar__title {
-      font-size: 12px;
-      font-weight: 800;
-      color: rgba(255, 255, 255, 0.9);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .demo-bar__title i {
-      color: var(--clr-primary);
-    }
-    .demo-bar__close {
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.5);
-      font-size: 16px;
-      cursor: pointer;
-      padding: 4px;
-      line-height: 1;
-      transition: color var(--transition-fast);
-    }
-    .demo-bar__close:hover {
-      color: white;
-    }
-    .demo-bar__desc {
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
-      margin-bottom: var(--space-md);
-      line-height: 1.4;
-    }
-    .demo-steps {
-      display: flex; gap: var(--space-sm); overflow-x: auto;
-      scrollbar-width: none; padding-bottom: 2px;
-    }
-    .demo-steps::-webkit-scrollbar { display: none; }
-    .demo-step-btn {
-      padding: 8px 14px;
+      font-weight: 600;
+      padding: 6px 10px;
       border-radius: var(--radius-md);
-      font-size: 12px; font-weight: 700;
-      white-space: nowrap; flex-shrink: 0;
-      border: 1.5px solid rgba(255,255,255,0.15);
-      color: rgba(255,255,255,0.6);
-      background: rgba(255,255,255,0.05);
-      cursor: pointer;
-      transition: all var(--transition-fast);
+      pointer-events: none;
+      display: none;
     }
-    .demo-step-btn:hover { background: rgba(255,255,255,0.12); color: white; }
-    .demo-step-btn.done  { border-color: var(--clr-success); color: var(--clr-success); }
-    .demo-step-btn.active { border-color: var(--clr-primary); color: white; background: var(--clr-primary); }
-    
+
     #chat-input {
       background: #FFFFFF !important;
       color: #0F172A !important;
@@ -375,14 +279,9 @@
         <i class="fa-solid fa-house"></i> Trang chủ
       </a>
       <span style="font-size:15px;font-weight:700;color:var(--clr-text-primary);">Theo dõi đơn</span>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        <button onclick="configureApiUrl()" title="Cấu hình API" style="background:none; border:none; color:var(--clr-primary); font-size:14px; cursor:pointer; padding:8px;" id="nav-settings-btn">
-          <i class="fa-solid fa-gear"></i>
-        </button>
-        <button onclick="SF.navigate('./')" style="font-size:12px;font-weight:600;color:var(--clr-primary);padding:8px;">
-          Đặt thêm
-        </button>
-      </div>
+      <button onclick="SF.navigate('./')" style="font-size:12px;font-weight:600;color:var(--clr-primary);padding:8px;">
+        Đặt thêm
+      </button>
     </div>
   </nav>
 
@@ -402,7 +301,8 @@
 
     <!-- MAP AREA -->
     <div style="position: relative; width: 100%;">
-      <div id="tracking-map" style="height: 240px; width: 100%; border-bottom: 1px solid var(--clr-border); z-index: 10;"></div>
+      <div id="tracking-map" style="height: 260px; width: 100%; border-bottom: 1px solid var(--clr-border); z-index: 10;"></div>
+      <div class="map-gps-hint" id="map-gps-hint">Đang chờ vị trí GPS từ tài xế...</div>
     </div>
 
     <div class="container" style="padding-top:var(--space-lg);padding-bottom:var(--space-2xl);">
@@ -415,37 +315,6 @@
         </div>
         <div class="progress-bar">
           <div class="progress-bar__fill" id="order-progress" style="width:10%;"></div>
-        </div>
-      </div>
-
-      <!-- ── COLLAPSIBLE ORDER SIMULATOR (DEV TOOLS) ── -->
-      <!-- Floating Sandbox Toggle Button -->
-      <button id="dev-tools-toggle" class="dev-tools-toggle" onclick="toggleDevTools()" title="Mô phỏng đơn hàng (Tester)">
-        <i class="fa-solid fa-flask"></i> <span>Mô phỏng đơn</span>
-      </button>
-
-      <!-- DEMO CONTROL BAR (Simulation) — chỉ hiện trên localhost -->
-      <div class="demo-bar animate-fade-in" id="demo-bar-container" style="display:none;">
-        <div class="demo-bar__header">
-          <div class="demo-bar__title">
-            <i class="fa-solid fa-laptop-code"></i> Trình giả lập tiến trình (local only)
-          </div>
-          <button class="demo-bar__close" onclick="toggleDevTools()">✕</button>
-        </div>
-        <div class="demo-bar__desc">Chỉ dùng khi chạy local. Production đã tắt vì API yêu cầu JWT shipper.</div>
-        <div class="demo-steps">
-          <button class="demo-step-btn active" id="demo-btn-PENDING" onclick="simulateStep('PENDING')">
-            1. Tìm Shipper
-          </button>
-          <button class="demo-step-btn" id="demo-btn-ACCEPTED" onclick="simulateStep('ACCEPTED')">
-            2. Shipper nhận đơn
-          </button>
-          <button class="demo-step-btn" id="demo-btn-PURCHASED" onclick="simulateStep('PURCHASED')">
-            3. Đã mua hàng
-          </button>
-          <button class="demo-step-btn" id="demo-btn-DELIVERED" onclick="simulateStep('DELIVERED')">
-            4. Giao thành công
-          </button>
         </div>
       </div>
 
@@ -932,14 +801,6 @@
       }
     }
 
-    function toggleDevTools() {
-      const bar = document.getElementById('demo-bar-container');
-      if (bar) {
-        bar.classList.toggle('active');
-      }
-    }
-    window.toggleDevTools = toggleDevTools;
-
     document.addEventListener('DOMContentLoaded', () => {
       SF.initNavScroll();
       order = SF.getActiveOrder();
@@ -962,14 +823,6 @@
       initTrackingMap();
       startOrderPolling();
       checkAllPermissions();
-
-      // Auto-open simulator drawer if running under automated testing (Puppeteer)
-      if (navigator.webdriver || window.location.search.includes('demo=1') || window.location.search.includes('test=true')) {
-        const bar = document.getElementById('demo-bar-container');
-        if (bar) bar.classList.add('active');
-        const toggleBtn = document.getElementById('dev-tools-toggle');
-        if (toggleBtn) toggleBtn.style.display = 'none';
-      }
     });
 
     function localGeocode(address) {
@@ -1012,88 +865,114 @@
     let restMarker = null;
     let deliveryMarker = null;
     let shipperMarker = null;
-    let routeLine = null;
     let restCoords = null;
-    let shipperToRestRoute = [];
-    let restToDeliveryRoute = [];
-    let shipperAnimationInterval = null;
+    let lastPopupStatus = null;
+    let shipperSmoothInterval = null;
+    let lastShipperGpsKey = '';
 
-    async function fetchRoute(startLat, startLon, endLat, endLon) {
-      const url = `https://router.project-osrm.org/route/v1/driving/${startLon},${startLat};${endLon},${endLat}?overview=full&geometries=geojson`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('OSRM API returned error status');
-        const data = await response.json();
-        if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-          const coords = data.routes[0].geometry.coordinates;
-          return coords.map(c => [c[1], c[0]]); // convert from [lon, lat] to [lat, lon]
-        }
-      } catch (err) {
-        console.warn('Error fetching route from OSRM:', err.message);
-      }
-      
-      // Fallback: simple linear interpolation (15 steps)
-      const steps = [];
-      for (let i = 0; i <= 15; i++) {
-        const t = i / 15;
-        steps.push([
-          startLat + (endLat - startLat) * t,
-          startLon + (endLon - startLon) * t
-        ]);
-      }
-      return steps;
+    function getOrderPointCoords() {
+      const restaurant = (SF.RESTAURANTS || []).find(r => r.id === order.restaurantId);
+      const rCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      return {
+        restLat: Number(order.restaurantLat) || rCoords.lat,
+        restLon: Number(order.restaurantLon) || rCoords.lon,
+        deliveryLat: Number(order.pinnedLat) || 10.0345,
+        deliveryLon: Number(order.pinnedLon) || 105.7876
+      };
     }
 
-    function animateShipper(routeCoordinates, onComplete) {
-      if (shipperAnimationInterval) {
-        clearInterval(shipperAnimationInterval);
+    function hasRealShipperGps(o) {
+      const lat = Number(o && o.shipperLat);
+      const lon = Number(o && o.shipperLon);
+      return Number.isFinite(lat) && Number.isFinite(lon) && !(lat === 0 && lon === 0);
+    }
+
+    function setGpsHint(visible, text) {
+      const hint = document.getElementById('map-gps-hint');
+      if (!hint) return;
+      if (text) hint.textContent = text;
+      hint.style.display = visible ? 'block' : 'none';
+    }
+
+    function setShipperPopup(html, statusKey, forceOpen = false) {
+      if (!shipperMarker) return;
+      shipperMarker.bindPopup(html);
+      if (forceOpen || lastPopupStatus !== statusKey) {
+        shipperMarker.openPopup();
+        lastPopupStatus = statusKey;
       }
-      
-      if (!routeCoordinates || routeCoordinates.length === 0) {
-        if (onComplete) onComplete();
+    }
+
+    function fitMapToMarkers(includeShipper) {
+      if (!trackingMap) return;
+      const markers = [restMarker, deliveryMarker];
+      if (includeShipper && shipperMarker && trackingMap.hasLayer(shipperMarker)) {
+        markers.push(shipperMarker);
+      }
+      const valid = markers.filter(Boolean);
+      if (!valid.length) return;
+      const group = new L.featureGroup(valid);
+      trackingMap.fitBounds(group.getBounds().pad(0.25));
+    }
+
+    function moveShipperMarkerSmooth(lat, lon) {
+      if (!shipperMarker || !window.L) return;
+      const newLatLng = L.latLng(lat, lon);
+      if (!trackingMap.hasLayer(shipperMarker)) {
+        shipperMarker.addTo(trackingMap);
+        shipperMarker.setLatLng(newLatLng);
+        fitMapToMarkers(true);
         return;
       }
-      
-      let index = 0;
-      shipperMarker.setLatLng(routeCoordinates[0]);
-      
-      // Calculate speed: total animation takes 5 seconds (5000ms)
-      const totalDuration = 5000;
-      const intervalTime = Math.max(50, Math.min(250, Math.floor(totalDuration / routeCoordinates.length)));
-      
-      shipperAnimationInterval = setInterval(() => {
-        index++;
-        if (index >= routeCoordinates.length) {
-          clearInterval(shipperAnimationInterval);
-          shipperAnimationInterval = null;
-          if (onComplete) onComplete();
+
+      const oldLatLng = shipperMarker.getLatLng();
+      const moved =
+        Math.abs(oldLatLng.lat - newLatLng.lat) > 0.00001 ||
+        Math.abs(oldLatLng.lng - newLatLng.lng) > 0.00001;
+      if (!moved) return;
+
+      if (shipperSmoothInterval) {
+        clearInterval(shipperSmoothInterval);
+        shipperSmoothInterval = null;
+      }
+
+      const stepCount = 12;
+      let currentStep = 0;
+      const latDiff = (newLatLng.lat - oldLatLng.lat) / stepCount;
+      const lngDiff = (newLatLng.lng - oldLatLng.lng) / stepCount;
+
+      shipperSmoothInterval = setInterval(() => {
+        currentStep++;
+        if (currentStep >= stepCount) {
+          shipperMarker.setLatLng(newLatLng);
+          clearInterval(shipperSmoothInterval);
+          shipperSmoothInterval = null;
+          // Giữ tài xế trong khung nhìn khi di chuyển
+          if (trackingMap && !trackingMap.getBounds().pad(-0.15).contains(newLatLng)) {
+            trackingMap.panTo(newLatLng, { animate: true });
+          }
         } else {
-          shipperMarker.setLatLng(routeCoordinates[index]);
+          shipperMarker.setLatLng([
+            oldLatLng.lat + latDiff * currentStep,
+            oldLatLng.lng + lngDiff * currentStep
+          ]);
         }
-      }, intervalTime);
+      }, 80);
     }
 
     async function initTrackingMap() {
       if (!order) return;
 
-      const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
-      restCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
-      
-      const restLat = order.restaurantLat || restCoords.lat;
-      const restLon = order.restaurantLon || restCoords.lon;
-
-      const deliveryLat = order.pinnedLat || 10.0345;
-      const deliveryLon = order.pinnedLon || 105.7876;
-
-      // Define a shipper starting coordinates (offset from restaurant)
-      const shipperStartLat = restLat + 0.005;
-      const shipperStartLon = restLon - 0.005;
+      const { restLat, restLon, deliveryLat, deliveryLon } = getOrderPointCoords();
 
       try {
         if (!window.L && SF.loadLeaflet) await SF.loadLeaflet();
         if (!window.L) throw new Error('Leaflet unavailable');
 
-        trackingMap = L.map('tracking-map', { preferCanvas: true }).setView([(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2], 14);
+        trackingMap = L.map('tracking-map', { preferCanvas: true }).setView(
+          [(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2],
+          14
+        );
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
@@ -1122,136 +1001,59 @@
           iconAnchor: [18, 18]
         });
 
-        restMarker = L.marker([restLat, restLon], { icon: restIcon }).addTo(trackingMap).bindPopup(`<b>Quán ăn:</b> ${order.restaurantName}`);
-        deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: destIcon }).addTo(trackingMap).bindPopup(`<b>Địa chỉ nhận:</b> ${order.deliveryAddress}`);
-        
-        // routeLine polyline removed to hide route line on map as requested
-        
-        shipperMarker = L.marker([restLat, restLon], { icon: shipIcon }).addTo(trackingMap);
-        
-        const group = new L.featureGroup([restMarker, deliveryMarker, shipperMarker]);
-        trackingMap.fitBounds(group.getBounds().pad(0.2));
+        restMarker = L.marker([restLat, restLon], { icon: restIcon })
+          .addTo(trackingMap)
+          .bindPopup(`<b>Quán ăn:</b> ${order.restaurantName || ''}`);
+        deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: destIcon })
+          .addTo(trackingMap)
+          .bindPopup(`<b>Địa chỉ nhận:</b> ${order.deliveryAddress || ''}`);
 
-        // Fetch actual street routes asynchronously
-        console.log('[Routing] Đang tối ưu lộ trình di chuyển của shipper...');
-        
-        const [routeToRest, routeToDelivery] = await Promise.all([
-          fetchRoute(shipperStartLat, shipperStartLon, restLat, restLon),
-          fetchRoute(restLat, restLon, deliveryLat, deliveryLon)
-        ]);
-
-        shipperToRestRoute = routeToRest;
-        restToDeliveryRoute = routeToDelivery;
-
-        // routeLine style update skipped since routeLine is removed
-
-        console.log('[Routing] Đã tối ưu hóa lộ trình đường đi thực tế thành công.');
+        // Marker tài xế chỉ hiện khi có GPS thật từ server
+        shipperMarker = L.marker([restLat, restLon], { icon: shipIcon });
+        fitMapToMarkers(false);
         updateShipperLocationOnMap(order.status);
       } catch (e) {
         console.error('Lỗi map tracking:', e);
       }
     }
 
-    let lastSimulatedMapStatus = null;
-    let lastPopupStatus = null;
-
-    function setShipperPopup(html, statusKey, forceOpen = false) {
-      if (!shipperMarker) return;
-      shipperMarker.bindPopup(html);
-      // Only force-open when status changes — avoid reopening popup every poll tick
-      if (forceOpen || lastPopupStatus !== statusKey) {
-        shipperMarker.openPopup();
-        lastPopupStatus = statusKey;
-      }
-    }
-
     function updateShipperLocationOnMap(status) {
       if (!trackingMap || !shipperMarker) return;
 
-      const restaurant = SF.RESTAURANTS.find(r => r.id === order.restaurantId);
-      const rCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
-      
-      const restLat = order.restaurantLat || rCoords.lat;
-      const restLon = order.restaurantLon || rCoords.lon;
-
-      const deliveryLat = order.pinnedLat || 10.0345;
-      const deliveryLon = order.pinnedLon || 105.7876;
-
-      // Nếu có tọa độ GPS thực tế từ shipper gửi lên server, sử dụng tọa độ này
-      if (order.shipperLat !== null && order.shipperLon !== null && order.shipperLat !== undefined && order.shipperLon !== undefined) {
-        if (shipperAnimationInterval) {
-          clearInterval(shipperAnimationInterval);
-          shipperAnimationInterval = null;
+      // Chưa có tài xế / chưa có GPS thật → không mô phỏng vị trí
+      if (!hasRealShipperGps(order)) {
+        if (trackingMap.hasLayer(shipperMarker)) {
+          trackingMap.removeLayer(shipperMarker);
         }
-        lastSimulatedMapStatus = null;
-        const newLatLng = L.latLng(order.shipperLat, order.shipperLon);
-        const oldLatLng = shipperMarker.getLatLng();
-        if (oldLatLng.lat !== newLatLng.lat || oldLatLng.lng !== newLatLng.lng) {
-          let stepCount = 15;
-          let currentStep = 0;
-          const latDiff = (newLatLng.lat - oldLatLng.lat) / stepCount;
-          const lngDiff = (newLatLng.lng - oldLatLng.lng) / stepCount;
-          
-          if (window.shipperSmoothInterval) clearInterval(window.shipperSmoothInterval);
-          window.shipperSmoothInterval = setInterval(() => {
-            currentStep++;
-            if (currentStep >= stepCount) {
-              shipperMarker.setLatLng(newLatLng);
-              clearInterval(window.shipperSmoothInterval);
-            } else {
-              shipperMarker.setLatLng([
-                oldLatLng.lat + latDiff * currentStep,
-                oldLatLng.lng + lngDiff * currentStep
-              ]);
-            }
-          }, 100);
-        }
-        
-        if (status === 'ACCEPTED') {
-          setShipperPopup('<b>Shipper:</b> Đang di chuyển đến quán...', 'gps-ACCEPTED');
-        } else if (status === 'PURCHASED') {
-          setShipperPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...', 'gps-PURCHASED');
-        } else if (status === 'DELIVERED') {
-          setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'gps-DELIVERED');
+        if (status === 'PENDING') {
+          setGpsHint(true, 'Đang tìm tài xế gần bạn...');
+        } else if (status === 'DELIVERED' || status === 'CANCELLED') {
+          setGpsHint(false);
+        } else {
+          setGpsHint(true, 'Đang chờ vị trí GPS từ tài xế...');
         }
         return;
       }
 
-      // Fallback simulation: only (re)start animation when status changes
-      if (lastSimulatedMapStatus === status) {
-        return;
+      setGpsHint(false);
+      const lat = Number(order.shipperLat);
+      const lon = Number(order.shipperLon);
+      const gpsKey = `${lat.toFixed(5)},${lon.toFixed(5)}`;
+      if (gpsKey !== lastShipperGpsKey) {
+        lastShipperGpsKey = gpsKey;
+        moveShipperMarkerSmooth(lat, lon);
+      } else if (!trackingMap.hasLayer(shipperMarker)) {
+        shipperMarker.setLatLng([lat, lon]);
+        shipperMarker.addTo(trackingMap);
+        fitMapToMarkers(true);
       }
 
-      if (status === 'PENDING') {
-        if (shipperAnimationInterval) {
-          clearInterval(shipperAnimationInterval);
-          shipperAnimationInterval = null;
-        }
-        shipperMarker.setLatLng([10.0345, 105.7876]);
-        setShipperPopup('<b>Shipper tự do:</b> Đang tìm tài xế lân cận...', 'sim-PENDING');
-        lastSimulatedMapStatus = status;
-      } else if (status === 'ACCEPTED') {
-        lastSimulatedMapStatus = status;
-        setShipperPopup('<b>Shipper:</b> Đang di chuyển đến quán...', 'sim-ACCEPTED');
-        animateShipper(shipperToRestRoute, () => {
-          shipperMarker.setLatLng([restLat, restLon]);
-          setShipperPopup('<b>Shipper:</b> Đã đến quán, đang chuẩn bị mua hàng...', 'sim-ACCEPTED-arrived', true);
-        });
+      if (status === 'ACCEPTED') {
+        setShipperPopup('<b>Shipper:</b> Đang di chuyển đến quán...', 'gps-ACCEPTED');
       } else if (status === 'PURCHASED') {
-        lastSimulatedMapStatus = status;
-        setShipperPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...', 'sim-PURCHASED');
-        animateShipper(restToDeliveryRoute, () => {
-          shipperMarker.setLatLng([deliveryLat, deliveryLon]);
-          setShipperPopup('<b>Shipper:</b> Đã đến địa điểm nhận hàng!', 'sim-PURCHASED-arrived', true);
-        });
+        setShipperPopup('<b>Shipper:</b> Đang giao món ăn đến bạn...', 'gps-PURCHASED');
       } else if (status === 'DELIVERED') {
-        if (shipperAnimationInterval) {
-          clearInterval(shipperAnimationInterval);
-          shipperAnimationInterval = null;
-        }
-        shipperMarker.setLatLng([deliveryLat, deliveryLon]);
-        setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'sim-DELIVERED');
-        lastSimulatedMapStatus = status;
+        setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'gps-DELIVERED');
       }
     }
 
@@ -1352,26 +1154,6 @@
         if (sPhone) sPhone.textContent  = order.shipperPhone  || '—';
       }
 
-      // Demo buttons
-      const stepLabels = {
-        PENDING: '1. Tìm Shipper',
-        ACCEPTED: '2. Shipper nhận đơn',
-        PURCHASED: '3. Đã mua hàng',
-        DELIVERED: '4. Giao thành công'
-      };
-      FLOW.forEach((s, i) => {
-        const btn = document.getElementById('demo-btn-' + s);
-        if (!btn) return;
-        btn.className = 'demo-step-btn ' +
-          (i < idx  ? 'done'   : '') +
-          (i === idx ? 'active' : '');
-        if (i < idx) {
-          btn.innerHTML = '✓ ' + stepLabels[s].replace(/^\d+\. /, '');
-        } else {
-          btn.innerHTML = stepLabels[s];
-        }
-      });
-
       // Rating section
       if (status === 'DELIVERED') {
         const rSec = document.getElementById('rating-section');
@@ -1400,63 +1182,6 @@
 
       // Update shipper icon on map
       updateShipperLocationOnMap(status);
-    }
-
-    // ── SIMULATE STEP (local only — production APIs require shipper JWT) ──
-    const IS_LOCAL_DEMO = ['localhost', '127.0.0.1'].includes(location.hostname);
-    (function initDemoBarVisibility() {
-      const bar = document.getElementById('demo-bar-container');
-      if (bar && IS_LOCAL_DEMO) bar.style.display = '';
-    })();
-
-    async function simulateStep(targetStatus) {
-      if (!IS_LOCAL_DEMO) {
-        SF.showToast('Demo tắt trên production', 'API trạng thái yêu cầu JWT tài xế.', 'warning');
-        return;
-      }
-
-      const currentIdx = FLOW.indexOf(order.status);
-      const targetIdx  = FLOW.indexOf(targetStatus);
-
-      if (targetIdx <= currentIdx) return; // Can't go back
-
-      for (let i = currentIdx + 1; i <= targetIdx; i++) {
-        const status = FLOW[i];
-        try {
-          if (status === 'ACCEPTED') {
-            await fetch(`${API_BASE}/api/orders/${order.id}/accept`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                shipperId: 'shipper-default',
-                shipperName: 'Nguyễn Văn Tài',
-                shipperPhone: '0901 234 567'
-              })
-            });
-          } else {
-            await fetch(`${API_BASE}/api/orders/${order.id}/status`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ status })
-            });
-          }
-          
-          order = SF.progressOrder();
-          renderUI(order.status);
-
-          const msgs = {
-            ACCEPTED:  ['🛵 Shipper đã nhận đơn!', 'Nguyễn Văn Tài đang di chuyển đến quán lấy hàng.'],
-            PURCHASED: ['🛒 Đã mua hàng tại quán!', 'Shipper đã ứng tiền trả giá gốc và đang giao đến bạn.'],
-            DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán COD và đánh giá tài xế nhé!']
-          };
-          if (msgs[order.status]) {
-            SF.showToast(msgs[order.status][0], msgs[order.status][1], 'success');
-          }
-        } catch (e) {
-          console.error('[Simulation] Failed to progress status on server:', e);
-        }
-        await new Promise(resolve => setTimeout(resolve, 600));
-      }
     }
 
     // ── RATING ──
@@ -1900,15 +1625,14 @@
         const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
         return urls.some(url => String(url || '').startsWith('turn:') || String(url || '').startsWith('turns:'));
       });
-      const apiUrl = localStorage.getItem('shipfee_api_url') || API_BASE;
       const usingHttpsPage = window.location.protocol === 'https:';
-      const usingHttpApi = String(apiUrl).startsWith('http://');
+      const usingHttpApi = String(API_BASE).startsWith('http://');
       return {
         secureContext: window.isSecureContext,
         hasMediaDevices: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
         hasTurn,
         mixedContentRisk: usingHttpsPage && usingHttpApi,
-        apiUrl
+        apiUrl: API_BASE
       };
     }
 
@@ -2509,7 +2233,6 @@
       remoteAudioNodes = [];
     }
 
-    window.simulateStep = simulateStep;
     window.setRating    = setRating;
     window.submitRating = submitRating;
     window.orderAgain   = orderAgain;
@@ -2596,22 +2319,6 @@
 
     window.showShipperProfileModal = showShipperProfileModal;
     window.closeShipperProfileModal = closeShipperProfileModal;
-
-    function configureApiUrl() {
-      const defaultApiUrl = 'https://shipfee-eo5s.onrender.com';
-      const currentUrl = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
-      const newUrl = prompt('Cấu hình URL Backend API (Ví dụ: https://shipfee-backend.onrender.com):', currentUrl);
-      if (newUrl !== null) {
-        const cleanedUrl = newUrl.trim().replace(/\/+$/, '');
-        if (cleanedUrl) {
-          localStorage.setItem('shipfee_api_url', cleanedUrl);
-        } else {
-          localStorage.removeItem('shipfee_api_url');
-        }
-        window.location.reload();
-      }
-    }
-    window.configureApiUrl = configureApiUrl;
 
     // Fetch ICE servers dynamically on page load
     fetchIceServers();

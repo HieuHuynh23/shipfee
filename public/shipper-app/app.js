@@ -1649,7 +1649,8 @@ function startGpsTracking() {
         tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
       }
       
-      if (now - lastGpsSendTime >= 5000) {
+      // Gửi GPS thường xuyên hơn để app khách theo dõi vị trí thật mượt hơn
+      if (now - lastGpsSendTime >= 3000) {
         lastGpsSendTime = now;
         sendLocationToServer(lat, lon);
       }
