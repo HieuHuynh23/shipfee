@@ -507,17 +507,16 @@
     document.addEventListener('DOMContentLoaded', async () => {
       SF.initNavScroll();
 
-      // Auto-redirect if there is an active order in progress
+      // Auto-redirect only for in-progress orders (not DELIVERED / CANCELLED)
       const state = SF.getState();
-      if (state.activeOrder && state.activeOrder.status !== 'DELIVERED') {
+      if (SF.isOrderInProgress(state.activeOrder)) {
         SF.navigate('tracking.html');
         return;
       }
-      
-      // Clear completed activeOrder from state so it does not persist as active forever
-      if (state.activeOrder && state.activeOrder.status === 'DELIVERED') {
-        state.activeOrder = null;
-        SF.saveState(state);
+
+      // Clear finished/cancelled activeOrder so home is reachable again
+      if (state.activeOrder && !SF.isOrderInProgress(state.activeOrder)) {
+        SF.clearActiveOrder();
       }
 
       loadSavedAddress();

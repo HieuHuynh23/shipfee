@@ -50,6 +50,29 @@
     .status-ACCEPTED  { background: rgba(59,130,246,0.15); color: #3B82F6; border: 1px solid rgba(59,130,246,0.3); }
     .status-PURCHASED { background: rgba(139,92,246,0.15); color: #8B5CF6; border: 1px solid rgba(139,92,246,0.3); }
     .status-DELIVERED { background: rgba(16,185,129,0.15); color: #10B981; border: 1px solid rgba(16,185,129,0.3); }
+    .status-CANCELLED { background: rgba(239,68,68,0.12); color: #DC2626; border: 1px solid rgba(239,68,68,0.35); }
+
+    .cancelled-exit {
+      display: none;
+      margin-bottom: var(--space-md);
+      text-align: center;
+    }
+    .cancelled-exit__btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      max-width: 360px;
+      padding: 14px 18px;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--clr-primary);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
 
     /* Map placeholder */
     .map-container {
@@ -427,6 +450,12 @@
       </div>
 
       <!-- ACTION PROMPT -->
+      <div class="cancelled-exit" id="cancelled-exit">
+        <button type="button" class="cancelled-exit__btn" id="cancelled-home-btn" onclick="goHomeAfterCancel()">
+          <i class="fa-solid fa-house"></i> Về trang chủ
+        </button>
+      </div>
+
       <div class="action-prompt animate-fade-in" id="action-prompt">
         <div class="action-prompt__icon"><i class="fa-solid fa-radar" id="prompt-icon"></i></div>
         <div>
@@ -732,19 +761,52 @@
       PENDING:   { label: 'Đang tìm shipper', badge: 'Đang tìm shipper', progress: 10, eta: '~20', etaText: 'Đang tìm tài xế gần bạn...', promptIcon: 'fa-radar', promptTitle: 'Đang phát tín hiệu đến shipper lân cận', promptDesc: 'Hệ thống đang tìm kiếm tài xế phù hợp trong khu vực. Vui lòng chờ trong giây lát.' },
       ACCEPTED:  { label: 'Shipper đã nhận',  badge: 'Shipper đang đến',  progress: 35, eta: '15',  etaText: 'Tài xế đang di chuyển đến quán...', promptIcon: 'fa-motorcycle', promptTitle: 'Tài xế đã nhận đơn và đang đi lấy hàng', promptDesc: 'Tài xế đang trên đường đến quán để mua món ăn của bạn. Họ sẽ thanh toán đúng giá gốc tại quán.' },
       PURCHASED: { label: 'Đang giao hàng',  badge: 'Đang giao đến bạn', progress: 70, eta: '8',   etaText: 'Tài xế đang trên đường đến bạn...', promptIcon: 'fa-bag-shopping', promptTitle: 'Shipper đã mua hàng & đang giao đến bạn', promptDesc: 'Tài xế đã ứng tiền mua đúng giá gốc tại quán. Họ đang di chuyển đến địa chỉ của bạn. Chuẩn bị tiền mặt!' },
-      DELIVERED: { label: 'Đã giao xong',    badge: 'Giao thành công',   progress: 100, eta: '0',  etaText: 'Đã giao hàng thành công! 🎉',     promptIcon: 'fa-circle-check', promptTitle: 'Đơn hàng đã được giao thành công!', promptDesc: 'Cảm ơn bạn đã sử dụng ShipFee. Tài xế đã hoàn thành nhiệm vụ xuất sắc!' }
+      DELIVERED: { label: 'Đã giao xong',    badge: 'Giao thành công',   progress: 100, eta: '0',  etaText: 'Đã giao hàng thành công! 🎉',     promptIcon: 'fa-circle-check', promptTitle: 'Đơn hàng đã được giao thành công!', promptDesc: 'Cảm ơn bạn đã sử dụng ShipFee. Tài xế đã hoàn thành nhiệm vụ xuất sắc!' },
+      CANCELLED: { label: 'Đã hủy',          badge: 'Đã hủy',            progress: 0,   eta: '0',  etaText: 'Đơn hàng đã bị hủy',             promptIcon: 'fa-circle-xmark', promptTitle: 'Đơn hàng đã bị hủy', promptDesc: 'Đơn của bạn không còn hiệu lực. Bạn có thể về trang chủ để đặt lại.' }
     };
 
     const STATUS_BADGE_CLASS = {
       PENDING:   'status-PENDING',
       ACCEPTED:  'status-ACCEPTED',
       PURCHASED: 'status-PURCHASED',
-      DELIVERED: 'status-DELIVERED'
+      DELIVERED: 'status-DELIVERED',
+      CANCELLED: 'status-CANCELLED'
     };
 
     const FLOW = ['PENDING', 'ACCEPTED', 'PURCHASED', 'DELIVERED'];
 
     let pollInterval = null;
+    let cancelledExitScheduled = false;
+
+    function goHomeAfterCancel() {
+      SF.clearActiveOrder();
+      SF.navigate('./');
+    }
+    window.goHomeAfterCancel = goHomeAfterCancel;
+
+    /** Khi admin/hệ thống hủy đơn: hiện UI, xóa activeOrder, thoát về trang chủ. */
+    function handleOrderCancelled(reason) {
+      if (cancelledExitScheduled) return;
+      cancelledExitScheduled = true;
+      stopOrderPolling();
+
+      const reasonText = (reason && String(reason).trim()) || 'Đơn hàng của bạn đã bị hủy.';
+      if (order) {
+        order.status = 'CANCELLED';
+        order.cancelReason = reasonText;
+      }
+      renderUI('CANCELLED');
+
+      const promptDesc = document.getElementById('prompt-desc');
+      if (promptDesc) promptDesc.textContent = reasonText;
+
+      const exitEl = document.getElementById('cancelled-exit');
+      if (exitEl) exitEl.style.display = 'block';
+
+      SF.clearActiveOrder();
+      SF.showToast('Đơn hàng đã hủy', reasonText, 'error');
+      setTimeout(() => SF.navigate('./'), 2500);
+    }
 
     function playMessageChimeSound() {
       try {
@@ -803,9 +865,7 @@
           if (response.status === 404) {
             stopOrderPolling();
             SF.showToast('Đơn hàng không tồn tại', 'Đơn hàng không tìm thấy hoặc đã bị hủy.', 'error');
-            const state = SF.getState();
-            state.activeOrder = null;
-            SF.saveState(state);
+            SF.clearActiveOrder();
             setTimeout(() => SF.navigate('./'), 2000);
             return;
           }
@@ -813,6 +873,13 @@
           const result = await response.json();
           if (result.success && result.data) {
             const updated = result.data;
+
+            // Admin/hệ thống hủy đơn → thoát tracking (tránh treo màn hình)
+            if (updated.status === 'CANCELLED') {
+              order = { ...order, ...updated };
+              handleOrderCancelled(updated.cancelReason);
+              return;
+            }
             
             // Check if status changed
             if (updated.status !== order.status) {
@@ -880,6 +947,13 @@
       if (!order) {
         SF.showToast('Không có đơn hàng', 'Hãy đặt đơn trước.', 'warning');
         setTimeout(() => SF.navigate('./'), 1500);
+        return;
+      }
+
+      // Đơn đã hủy còn lưu local → không treo tracking
+      if (order.status === 'CANCELLED') {
+        renderOrderInfo();
+        handleOrderCancelled(order.cancelReason);
         return;
       }
 
@@ -1307,6 +1381,20 @@
         if (aPrompt) {
           aPrompt.style.background = 'linear-gradient(135deg, #ECFDF5, #D1FAE5)';
           aPrompt.style.borderColor = '#6EE7B7';
+        }
+      }
+
+      if (status === 'CANCELLED') {
+        const aPrompt = document.getElementById('action-prompt');
+        if (aPrompt) {
+          aPrompt.style.background = 'linear-gradient(135deg, #FEF2F2, #FEE2E2)';
+          aPrompt.style.borderColor = '#FECACA';
+        }
+        const exitEl = document.getElementById('cancelled-exit');
+        if (exitEl) exitEl.style.display = 'block';
+        if (order && order.cancelReason) {
+          const pDesc = document.getElementById('prompt-desc');
+          if (pDesc) pDesc.textContent = order.cancelReason;
         }
       }
 
