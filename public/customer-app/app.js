@@ -1099,7 +1099,10 @@ document.addEventListener('gesturestart', function (event) {
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js', window.location.href).href;
-    navigator.serviceWorker.register(swUrl).catch(() => {});
+    // Bust SW URL so phones discard stale cached tracking/HTML builds
+    const swUrl = new URL('sw.js?v=2026-07-18b', window.location.href).href;
+    navigator.serviceWorker.register(swUrl).then((reg) => {
+      try { reg.update(); } catch (_) {}
+    }).catch(() => {});
   });
 }
