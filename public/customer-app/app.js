@@ -635,6 +635,23 @@ async function rateOrder(orderId, rating, comment) {
 
 function getActiveOrder() { return getState().activeOrder; }
 
+/** Đơn còn đang chạy (không phải đã giao / đã hủy). */
+function isOrderInProgress(orderOrStatus) {
+  const status = typeof orderOrStatus === 'string'
+    ? orderOrStatus
+    : (orderOrStatus && orderOrStatus.status);
+  if (!status) return false;
+  return status !== 'DELIVERED' && status !== 'CANCELLED';
+}
+
+/** Xóa activeOrder khỏi local state (giao xong / hủy / 404). */
+function clearActiveOrder() {
+  const state = getState();
+  if (!state.activeOrder) return;
+  state.activeOrder = null;
+  saveState(state);
+}
+
 // Simulate order progression (for demo purposes)
 function progressOrder() {
   const state = getState();
@@ -652,9 +669,7 @@ function progressOrder() {
 }
 
 function completeOrder() {
-  const state = getState();
-  state.activeOrder = null;
-  saveState(state);
+  clearActiveOrder();
 }
 
 /* --------------------------------------------------------------------------
@@ -1082,7 +1097,9 @@ window.SF = {
   navigate, getParam,
   formatCurrency, formatTime,
   showToast, updateCartBar,
-  initNavScroll
+  initNavScroll,
+  isOrderInProgress,
+  clearActiveOrder
 };
 
 /* --------------------------------------------------------------------------
