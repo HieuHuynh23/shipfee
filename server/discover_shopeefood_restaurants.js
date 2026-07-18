@@ -31,8 +31,11 @@ const DEFAULT_KEYWORDS = [
   'chè', 'xôi', 'hủ tiếu', 'mì', 'ốc', 'chay', 'kem', 'sushi', 'burger', 'lotteria',
   'jollibee', 'kfc', 'highlands', 'gà rán', 'bò né', 'nem nướng', 'cơm tấm', 'bún đậu',
   'đồ ăn vặt', 'mì cay', 'tokbokki', 'gỏi', 'bánh ngọt', 'sinh tố', 'bánh cuốn', 'bánh xèo',
-  'bún bò', 'cơm gà', 'cơm gà kim', 'gỏi cuốn', 'nướng', 'buffet', 'dimsum', 'hotpot', 'phúc long',
-  'tocotoco', 'highland', 'gà nướng', 'bánh canh', 'cháo', 'nem', 'cơm tấm', 'bún riêu'
+  'bún bò', 'cơm gà', 'cơm gà kim', 'cơm gà xối mỡ', 'gỏi cuốn', 'nướng', 'buffet', 'dimsum',
+  'hotpot', 'phúc long', 'tocotoco', 'highland', 'gà nướng', 'bánh canh', 'cháo', 'nem',
+  'bún riêu', 'bún thịt nướng', 'cơm chiên', 'cơm văn phòng', 'hủ tiếu nam vang', 'phở bò',
+  'mì quảng', 'lẩu thái', 'bánh tráng trộn', 'bánh ướt', 'ăn vặt', 'nước ép', 'sinh tố',
+  'five star', 'bún mắm', 'chả cá', 'gà ủ muối', 'cơm sườn', 'bánh hỏi'
 ];
 
 const BLOCKED_SLUGS = new Set([

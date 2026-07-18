@@ -266,8 +266,9 @@
     "latitude": 10.058333,
     "longitude": 105.766994,
     "sfRestaurantId": 955053,
-    "sfDiscoveredAt": "2026-07-18T02:04:17.270Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:46.796Z",
+    "source": "shopeefood",
+    "foodySlug": "ga-ran-va-mi-y-jollibee-cach-mang-thang-8"
   },
   {
     "id": "r_ct_ga_ran_va_mi_y_jollibee_ec_tran_hung_dao_can_tho",
@@ -351,8 +352,9 @@
     "latitude": 10.03825051,
     "longitude": 105.77636743,
     "sfRestaurantId": 1166217,
-    "sfDiscoveredAt": "2026-07-18T02:04:17.270Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:46.796Z",
+    "source": "shopeefood",
+    "foodySlug": "ga-ran-va-mi-y-jollibee-ec-tran-hung-dao-can-tho"
   },
   {
     "id": "r_ct_ga_ran_va_my_y_jollibee_ec_nguyen_van_cu_noi_dai_can_tho",
@@ -436,8 +438,9 @@
     "latitude": 10.023768,
     "longitude": 105.74528563,
     "sfRestaurantId": 1260709,
-    "sfDiscoveredAt": "2026-07-18T02:04:17.270Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:46.796Z",
+    "source": "shopeefood",
+    "foodySlug": "ga-ran-va-my-y-jollibee-ec-nguyen-van-cu-noi-dai-can-tho"
   },
   {
     "id": "r_ct_ga_ran_va_my_y_jollibee_ec_sts_tower_hoa_binh",
@@ -521,8 +524,9 @@
     "latitude": 10.03249675,
     "longitude": 105.7836286,
     "sfRestaurantId": 1269754,
-    "sfDiscoveredAt": "2026-07-18T02:04:17.270Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:46.796Z",
+    "source": "shopeefood",
+    "foodySlug": "ga-ran-va-my-y-jollibee-ec-sts-tower-hoa-binh"
   },
   {
     "id": "r_ct_pizza_hut_nguyen_thai_hoc",
@@ -713,11 +717,12 @@
       "Aquafina 500ml"
     ],
     "menuUpdatedAt": "2026-07-13T20:55:30.476Z",
-    "sfDiscoveredAt": "2026-07-18T01:59:52.266Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:27.394Z",
     "source": "shopeefood",
     "latitude": 10.032867,
     "longitude": 105.784717,
-    "sfRestaurantId": 631961
+    "sfRestaurantId": 631961,
+    "foodySlug": "pizza-hut-nguyen-thai-hoc"
   },
   {
     "id": "r_ct_dong_khoi_food_drink_ngo_van_so",
@@ -937,11 +942,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T20:59:18.308Z",
     "brandPortalId": "r_ct_com_ga_le_trang",
-    "sfDiscoveredAt": "2026-07-18T02:00:09.112Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:31.836Z",
     "source": "shopeefood",
     "latitude": 10.01566698,
     "longitude": 105.76343793,
-    "sfRestaurantId": 960599
+    "sfRestaurantId": 960599,
+    "foodySlug": "com-ga-le-trang-duong-30-thang-4"
   },
   {
     "id": "r_ct_com_ga_le_trang_quang_trung",
@@ -1003,11 +1009,12 @@
     ],
     "menuUpdatedAt": "2026-07-13T20:55:45.171Z",
     "brandPortalId": "r_ct_com_ga_le_trang",
-    "sfDiscoveredAt": "2026-07-18T02:00:09.112Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:31.836Z",
     "source": "shopeefood",
     "latitude": 10.0273708,
     "longitude": 105.7805293,
-    "sfRestaurantId": 1073080
+    "sfRestaurantId": 1073080,
+    "foodySlug": "com-ga-le-trang-quang-trung"
   },
   {
     "id": "r_ct_ga_ran_sot_cay_pho_mai_tuyet_pham_hem_12_duong_3_thang_2",
@@ -1113,8 +1120,9 @@
     "closedAt": "2026-07-13T21:00:03.157Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:00:03.157Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:20.774Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:55:17.486Z",
+    "source": "foody-detail",
+    "foodySlug": "ga-ran-sot-cay-pho-mai-tuyet-pham-hem-12-duong-3-thang-2"
   },
   {
     "id": "r_ct_magasin_coffee_ca_phe_latte_82a_nguyen_van_cu_noi_dai",
@@ -1233,8 +1241,9 @@
     ],
     "menuUpdatedAt": "2026-07-13T20:59:32.216Z",
     "brandPortalId": "r_ct_magasin_coffee",
-    "sfDiscoveredAt": "2026-07-18T02:06:59.867Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:52.890Z",
+    "source": "foody-brand",
+    "foodySlug": "magasin-coffee-ca-phe-latte-82a-nguyen-van-cu-noi-dai"
   },
   {
     "id": "r_ct_lam_hoi_ca_phe_muoi_ca_phe_kem_nau_ca_phe_kem_trung_110a_duong_3_2",
@@ -1364,8 +1373,9 @@
     "latitude": 10.017571,
     "longitude": 105.76111,
     "sfRestaurantId": 1000070438,
-    "sfDiscoveredAt": "2026-07-18T02:07:00.189Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:52.563Z",
+    "source": "shopeefood",
+    "foodySlug": "lam-hoi-ca-phe-muoi-ca-phe-kem-nau-ca-phe-kem-trung-110a-duong-3-2"
   },
   {
     "id": "r_ct_com_phan_bun_rieu_co_6_3_thang_2",
@@ -1536,8 +1546,9 @@
     "latitude": 10.04226,
     "longitude": 105.7632,
     "sfRestaurantId": 1169411,
-    "sfDiscoveredAt": "2026-07-18T01:55:51.538Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:58.169Z",
+    "source": "shopeefood",
+    "foodySlug": "bo-9999-nem-nuong-bo-la-lot-nguyen-van-cu-noi-dai"
   },
   {
     "id": "r_ct_tra_bi_dao_he_lo",
@@ -1681,8 +1692,9 @@
     "closedAt": "2026-07-13T20:56:47.836Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T20:56:47.836Z",
-    "sfDiscoveredAt": "2026-07-18T02:00:27.857Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:51:45.842Z",
+    "source": "foody-detail",
+    "foodySlug": "thaiexpress-vincom-can-tho"
   },
   {
     "id": "r_ct_ghe_go_food_beer",
@@ -2179,8 +2191,9 @@
     "closedAt": "2026-07-13T20:58:28.533Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T20:58:28.533Z",
-    "sfDiscoveredAt": "2026-07-18T02:01:49.694Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:53:03.262Z",
+    "source": "foody-detail",
+    "foodySlug": "lien-map-quan-nguyen-van-linh"
   },
   {
     "id": "r_ct_kim_tho_cafe_san_thuong",
@@ -2355,11 +2368,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T20:58:43.776Z",
     "brandPortalId": "r_ct_the_pizza_company",
-    "sfDiscoveredAt": "2026-07-18T02:00:20.859Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:29.473Z",
     "source": "shopeefood",
     "latitude": 10.0341076,
     "longitude": 105.7859695,
-    "sfRestaurantId": 230229
+    "sfRestaurantId": 230229,
+    "foodySlug": "the-pizza-company-hoa-binh"
   },
   {
     "id": "r_ct_king_bbq_buffet_vincom_hung_vuong",
@@ -2399,8 +2413,9 @@
     "menuUpdatedAt": "2026-07-18T00:47:02.893Z",
     "shopeefoodSlug": "king-bbq-buffet-vincom-hung-vuong",
     "brandPortalId": "r_ct_king_bbq",
-    "sfDiscoveredAt": "2026-07-18T02:00:21.686Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:29.820Z",
+    "source": "foody-brand",
+    "foodySlug": "king-bbq-buffet-vincom-hung-vuong"
   },
   {
     "id": "r_ct_hong_ky_mi_chu_luong",
@@ -2432,8 +2447,9 @@
     "closedAt": "2026-07-13T21:03:38.357Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:03:38.357Z",
-    "sfDiscoveredAt": "2026-07-18T02:00:35.140Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:51:53.302Z",
+    "source": "foody-detail",
+    "foodySlug": "hong-ky-mi-chu-luong"
   },
   {
     "id": "r_ct_bien_dong_2_am_thuc_gia_dinh",
@@ -2465,8 +2481,9 @@
     "closedAt": "2026-07-13T20:59:20.159Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T20:59:20.159Z",
-    "sfDiscoveredAt": "2026-07-18T02:00:44.194Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:52:02.236Z",
+    "source": "foody-detail",
+    "foodySlug": "bien-dong-2-am-thuc-gia-dinh"
   },
   {
     "id": "r_ct_banh_xeo_muoi_xiem_nguyen_chi_thanh",
@@ -2886,8 +2903,9 @@
     "closedAt": "2026-07-13T21:00:46.652Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:00:46.652Z",
-    "sfDiscoveredAt": "2026-07-18T02:02:09.436Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:53:20.314Z",
+    "source": "foody-detail",
+    "foodySlug": "com-phan-vua-kho-huynh-tuyen"
   },
   {
     "id": "r_ct_com_mai_la_2_36_nguyen_van_linh",
@@ -2976,8 +2994,9 @@
     "closedAt": "2026-07-13T21:05:23.511Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:05:23.511Z",
-    "sfDiscoveredAt": "2026-07-18T02:02:17.444Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:53:27.154Z",
+    "source": "foody-detail",
+    "foodySlug": "com-mai-la-2-36-nguyen-van-linh"
   },
   {
     "id": "r_ct_pho_nghia",
@@ -3014,8 +3033,9 @@
     "closedAt": "2026-07-13T21:06:04.723Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:06:04.723Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:19.262Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:22.491Z",
+    "source": "foody-detail",
+    "foodySlug": "pho-nghia"
   },
   {
     "id": "r_ct_pho_trinh",
@@ -3105,8 +3125,9 @@
     "closedAt": "2026-07-13T21:05:37.712Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 18:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:05:37.712Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:27.919Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:31.343Z",
+    "source": "foody-detail",
+    "foodySlug": "pho-van-91-nguyen-trai"
   },
   {
     "id": "r_ct_pho_mat_bo_tran_van_kheo",
@@ -3164,8 +3185,9 @@
     "closedAt": "2026-07-13T21:06:18.766Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:06:18.767Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:29.836Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:33.818Z",
+    "source": "foody-detail",
+    "foodySlug": "pho-mat-bo-tran-van-kheo"
   },
   {
     "id": "r_ct_pho_bun_bo_hue_tay_do",
@@ -3230,8 +3252,9 @@
     "closedAt": "2026-07-13T21:01:36.350Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:01:36.350Z",
-    "sfDiscoveredAt": "2026-07-18T02:02:57.109Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:02.964Z",
+    "source": "foody-detail",
+    "foodySlug": "pho-bun-bo-hue-tay-do"
   },
   {
     "id": "r_ct_bun_bo_to_ri",
@@ -3373,8 +3396,9 @@
     "closedAt": "2026-07-13T21:06:32.893Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:30 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:06:32.893Z",
-    "sfDiscoveredAt": "2026-07-18T02:02:55.834Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:01.699Z",
+    "source": "foody-detail",
+    "foodySlug": "bun-real-132-bun-rieu-cua-bun-thit-xao-132-26g-hem-132-duong-3-2-hung-loi-ninh-kieu-tpct.oghhlj"
   },
   {
     "id": "r_ct_bun_ca_chau_doc_ngoc_tran_nam_phu_an_uong_nguyen_van_cu",
@@ -3433,8 +3457,9 @@
     "closedAt": "2026-07-13T21:01:49.202Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:01:49.202Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:00.693Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:06.037Z",
+    "source": "foody-detail",
+    "foodySlug": "bun-ca-chau-doc-ngoc-tran-nam-phu-an-uong-nguyen-van-cu"
   },
   {
     "id": "r_ct_bun_bo_hue_phi_phi_89_huynh_cuong",
@@ -3680,7 +3705,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:06:46.618Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 05:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:06:46.618Z"
+    "menuUpdatedAt": "2026-07-13T21:06:46.618Z",
+    "foodySlug": "tiem-an-vat-huy-mi-xao-bo-bo-kho-ca-vien-chien-tran-quang-dieu",
+    "sfDiscoveredAt": "2026-07-18T07:00:17.582Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_mi_bo_nhat_hang_nguyen_viet_hong",
@@ -3715,7 +3743,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:02:02.332Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 18:30 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:02:02.332Z"
+    "menuUpdatedAt": "2026-07-13T21:02:02.332Z",
+    "foodySlug": "mi-bo-nhat-hang-nguyen-viet-hong",
+    "sfDiscoveredAt": "2026-07-18T07:00:18.199Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_mi_cay_mi_tron_quyen_quyen",
@@ -3763,8 +3794,9 @@
     "latitude": 10.0030966,
     "longitude": 105.7566188,
     "sfRestaurantId": 1246172,
-    "sfDiscoveredAt": "2026-07-18T02:06:10.698Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:57:05.481Z",
+    "source": "shopeefood",
+    "foodySlug": "mi-cay-mi-tron-quyen-quyen"
   },
   {
     "id": "r_ct_huynh_gia_food_mi_tron_chan_ga_ha_cao_cn_30_thang_04",
@@ -3813,7 +3845,10 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.764Z",
     "shopeefoodSlug": "huynh-gia-food-mi-tron-chan-ga-ha-cao-cn-30-thang-04",
-    "menuUpdatedAt": "2026-07-13T21:06:59.120Z"
+    "menuUpdatedAt": "2026-07-13T21:06:59.120Z",
+    "foodySlug": "huynh-gia-food-mi-tron-chan-ga-ha-cao-cn-30-thang-04",
+    "sfDiscoveredAt": "2026-07-18T07:00:24.606Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_hu_tieu_sa_dec_1979",
@@ -3867,8 +3902,9 @@
     "latitude": 10.03354,
     "longitude": 105.74836,
     "sfRestaurantId": 1244915,
-    "sfDiscoveredAt": "2026-07-18T01:51:17.122Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:59:32.243Z",
+    "source": "shopeefood",
+    "foodySlug": "hu-tieu-sa-dec-1979"
   },
   {
     "id": "r_ct_hu_tieu_muc_69_dang_van_day",
@@ -3946,7 +3982,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:06:32.490Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:06:32.490Z"
+    "menuUpdatedAt": "2026-07-13T21:06:32.490Z",
+    "foodySlug": "hu-tieu-muc-69-dang-van-day",
+    "sfDiscoveredAt": "2026-07-18T06:59:35.205Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_quan_tuan_nam_hu_tieu_muc_bun_thai_hai_san",
@@ -3993,7 +4032,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:07:13.677Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 05:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:07:13.677Z"
+    "menuUpdatedAt": "2026-07-13T21:07:13.677Z",
+    "foodySlug": "quan-tuan-nam-hu-tieu-muc-bun-thai-hai-san",
+    "sfDiscoveredAt": "2026-07-18T06:59:38.468Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_hu_tieu_go_mau_than",
@@ -4031,7 +4073,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:02:51.155Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "menuUpdatedAt": "2026-07-13T21:02:51.155Z"
+    "menuUpdatedAt": "2026-07-13T21:02:51.155Z",
+    "foodySlug": "hu-tieu-go-mau-than",
+    "sfDiscoveredAt": "2026-07-18T06:59:41.123Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_thanh_phat_hu_tieu_nam_vang",
@@ -4080,10 +4125,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.770Z",
     "shopeefoodSlug": "thanh-phat-hu-tieu-nam-vang",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:06:45.219Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:06:45.219Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:06:45.219Z",
+    "latitude": 10.033613,
+    "longitude": 105.782959,
+    "sfRestaurantId": 1037391,
+    "sfDiscoveredAt": "2026-07-18T06:59:51.197Z",
+    "source": "shopeefood",
+    "foodySlug": "thanh-phat-hu-tieu-nam-vang"
   },
   {
     "id": "r_ct_chao_dinh_duong_viet_soup",
@@ -4317,8 +4366,9 @@
     "menuProcessedAt": "2026-06-30T16:55:48.782Z",
     "shopeefoodSlug": "xoi-xa-xiu-nguyen-trai",
     "menuUpdatedAt": "2026-07-13T21:07:42.588Z",
-    "sfDiscoveredAt": "2026-07-18T02:08:46.508Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:58:59.207Z",
+    "source": "foody-detail",
+    "foodySlug": "xoi-xa-xiu-nguyen-trai"
   },
   {
     "id": "r_ct_xoi_ga_la_chuoi_co_bon_nguyen_van_cu",
@@ -4355,7 +4405,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:03:17.020Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 16:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:03:17.020Z"
+    "menuUpdatedAt": "2026-07-13T21:03:17.020Z",
+    "foodySlug": "xoi-ga-la-chuoi-co-bon-nguyen-van-cu",
+    "sfDiscoveredAt": "2026-07-18T06:59:14.001Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_diem_xoi_ga_quay_lu",
@@ -4425,8 +4478,9 @@
     "latitude": 10.01422488,
     "longitude": 105.76292213,
     "sfRestaurantId": 1115130,
-    "sfDiscoveredAt": "2026-07-18T02:08:06.825Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:58:54.667Z",
+    "source": "shopeefood",
+    "foodySlug": "xoi-che-hoang-yen-tran-hoang-na"
   },
   {
     "id": "r_ct_banh_canh_cha_cua_phu_quoc_tran_nam_phu",
@@ -4499,7 +4553,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:07:48.831Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:07:48.831Z"
+    "menuUpdatedAt": "2026-07-13T21:07:48.831Z",
+    "foodySlug": "banh-canh-ca-loc-thao-ngoc-tran-ngoc-que",
+    "sfDiscoveredAt": "2026-07-18T07:06:28.030Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_banh_uot_nong_banh_cuon_nong_86",
@@ -4554,8 +4611,9 @@
     "latitude": 10.03392,
     "longitude": 105.78065,
     "sfRestaurantId": 1282117,
-    "sfDiscoveredAt": "2026-07-18T01:54:00.144Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:03:58.666Z",
+    "source": "shopeefood",
+    "foodySlug": "banh-uot-nong-banh-cuon-nong-86"
   },
   {
     "id": "r_ct_banh_mi_nuong_muoi_ot_phuong",
@@ -4596,7 +4654,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:03:42.631Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:03:42.631Z"
+    "menuUpdatedAt": "2026-07-13T21:03:42.631Z",
+    "foodySlug": "banh-mi-nuong-muoi-ot-phuong",
+    "sfDiscoveredAt": "2026-07-18T06:56:23.364Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_banh_mi_cha_lua_phuc_anh",
@@ -4676,8 +4737,9 @@
     "closedAt": "2026-07-13T21:08:01.818Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:08:01.818Z",
-    "sfDiscoveredAt": "2026-07-18T02:05:30.695Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:56:30.159Z",
+    "source": "foody-detail",
+    "foodySlug": "banh-mi-cha-lua-phuc-anh"
   },
   {
     "id": "r_ct_banh_mi_cha_ca_390",
@@ -4709,12 +4771,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.803Z",
     "shopeefoodSlug": "banh-mi-cha-ca-390",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:08:22.964Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
+    "isClosed": false,
     "menuUpdatedAt": "2026-07-13T21:08:22.964Z",
-    "sfDiscoveredAt": "2026-07-18T02:05:32.592Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:56:33.385Z",
+    "source": "shopeefood",
+    "latitude": 10.03649554,
+    "longitude": 105.75811942,
+    "sfRestaurantId": 1082082,
+    "foodySlug": "banh-mi-cha-ca-390"
   },
   {
     "id": "r_ct_banh_xeo_banh_khot_gion_218",
@@ -4742,7 +4806,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:03:55.397Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 02:00 Ngày mai\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:03:55.397Z"
+    "menuUpdatedAt": "2026-07-13T21:03:55.397Z",
+    "foodySlug": "banh-xeo-banh-khot-gion-218",
+    "sfDiscoveredAt": "2026-07-18T07:04:52.030Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_s_house_banh_trang_tay_ninh",
@@ -5224,10 +5291,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.844Z",
     "shopeefoodSlug": "com-ga-xoi-mo-chan-tinh",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:09:56.641Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:09:56.641Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:09:56.641Z",
+    "latitude": 10.01198,
+    "longitude": 105.74532,
+    "sfRestaurantId": 1281262,
+    "sfDiscoveredAt": "2026-07-18T06:34:44.678Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_bep_sing_com_chien_ca_man_ga_xe_mien_xao_singapore",
@@ -5466,10 +5536,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.852Z",
     "shopeefoodSlug": "com-nieu-phuong-nam-com-van-phong-41d-mau-than-can-tho",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:09:42.029Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:09:42.029Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:09:42.029Z",
+    "latitude": 10.04161112,
+    "longitude": 105.76670189,
+    "sfRestaurantId": 1220215,
+    "sfDiscoveredAt": "2026-07-18T06:36:43.039Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_quan_chay_nhat_tam_tiem_an_chay_nguyen_van_cu_noi_dai",
@@ -5538,8 +5611,9 @@
     "latitude": 10.021,
     "longitude": 105.741861,
     "sfRestaurantId": 1238437,
-    "sfDiscoveredAt": "2026-07-18T01:51:39.777Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:01:32.817Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-chay-nhat-tam-tiem-an-chay-nguyen-van-cu-noi-dai"
   },
   {
     "id": "r_ct_alo_cho_quan",
@@ -5727,8 +5801,9 @@
     "latitude": 10.02697704,
     "longitude": 105.7709758,
     "sfRestaurantId": 960168,
-    "sfDiscoveredAt": "2026-07-18T01:51:39.381Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:01:41.615Z",
+    "source": "shopeefood",
+    "foodySlug": "com-chay-bach-thao-4"
   },
   {
     "id": "r_ct_giao_com_van_phong_dinh_tien_hoang",
@@ -5951,7 +6026,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:11:13.676Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:11:13.676Z"
+    "menuUpdatedAt": "2026-07-13T21:11:13.676Z",
+    "foodySlug": "hoang-oanh-pho-bun-bo-kv7-hung-phu",
+    "sfDiscoveredAt": "2026-07-18T07:08:13.557Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_rieu_cua_tran_khanh_du",
@@ -5994,7 +6072,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:10:22.817Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:10:22.817Z"
+    "menuUpdatedAt": "2026-07-13T21:10:22.817Z",
+    "foodySlug": "bun-rieu-cua-tran-khanh-du",
+    "sfDiscoveredAt": "2026-07-18T07:08:16.804Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_rieu_co_ba",
@@ -6037,7 +6118,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:07:29.004Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 06:00 Ngày mai\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:07:29.004Z"
+    "menuUpdatedAt": "2026-07-13T21:07:29.004Z",
+    "foodySlug": "bun-rieu-co-ba",
+    "sfDiscoveredAt": "2026-07-18T07:08:19.323Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_rieu_co_nga",
@@ -6081,7 +6165,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:11:26.540Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:11:26.540Z"
+    "menuUpdatedAt": "2026-07-13T21:11:26.540Z",
+    "foodySlug": "bun-rieu-co-nga",
+    "sfDiscoveredAt": "2026-07-18T07:08:42.117Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_mam_bun_rieu_ho_xuan_huong",
@@ -6219,7 +6306,7 @@
     "latitude": 10.0102033780161,
     "longitude": 105.759597919449,
     "sfRestaurantId": 1069331,
-    "sfDiscoveredAt": "2026-07-18T01:49:33.515Z",
+    "sfDiscoveredAt": "2026-07-18T06:29:39.456Z",
     "source": "shopeefood"
   },
   {
@@ -6316,7 +6403,12 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.885Z",
     "shopeefoodSlug": "bun-mam-ut-teo-hoa-binh",
-    "menuUpdatedAt": "2026-07-13T21:07:55.862Z"
+    "menuUpdatedAt": "2026-07-13T21:07:55.862Z",
+    "latitude": 10.034337,
+    "longitude": 105.784345,
+    "sfRestaurantId": 1116602,
+    "sfDiscoveredAt": "2026-07-18T06:37:57.047Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_ut_hen_bun_mam_hu_tieu_mi_banh_lot",
@@ -6427,10 +6519,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.894Z",
     "shopeefoodSlug": "bun-thit-nuong-4p",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:08:09.820Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:08:09.820Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:08:09.820Z",
+    "latitude": 10.049111,
+    "longitude": 105.770611,
+    "sfRestaurantId": 1054261,
+    "sfDiscoveredAt": "2026-07-18T06:36:28.206Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_thuc_an_khuya_chi_uyen_bun_xao_bun_thit_nuong_banh_mi",
@@ -6575,10 +6670,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.907Z",
     "shopeefoodSlug": "pho-bo-khanh-ngan-pho-dong-trung-ha-thao-kdc-nam-long",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:13:06.075Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:13:06.075Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:13:06.075Z",
+    "latitude": 10.00644049,
+    "longitude": 105.78763763,
+    "sfRestaurantId": 1152967,
+    "sfDiscoveredAt": "2026-07-18T06:36:57.951Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_hue_thanh_pho_bo_bun_bo_hue",
@@ -6921,11 +7019,12 @@
     "latitude": 10.039083,
     "longitude": 105.776833,
     "sfRestaurantId": 1050445,
-    "sfDiscoveredAt": "2026-07-18T01:52:01.968Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:57.221Z",
     "source": "shopeefood",
     "closedAt": "2026-07-18T02:41:29.927Z",
     "closedReason": "Đóng cửa\nBạn có thể hẹn đơn giao sau 16:00 20/07/2026",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "burger-lam-hamburger-drinks"
   },
   {
     "id": "r_ct_ga_ran_popeyes_tran_hung_dao_can_tho",
@@ -7010,8 +7109,9 @@
     "latitude": 10.03516633,
     "longitude": 105.77565675,
     "sfRestaurantId": 1186379,
-    "sfDiscoveredAt": "2026-07-18T02:04:25.147Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:55:21.759Z",
+    "source": "shopeefood",
+    "foodySlug": "ga-ran-popeyes-tran-hung-dao-can-tho"
   },
   {
     "id": "r_ct_ga_ran_halloween_chi_nhanh_can_tho",
@@ -7079,8 +7179,9 @@
     "closedAt": "2026-07-13T21:14:09.803Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 07:00 21/07/2026\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:14:09.803Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:19.521Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:55:16.902Z",
+    "source": "foody-detail",
+    "foodySlug": "ga-ran-halloween-chi-nhanh-can-tho"
   },
   {
     "id": "r_ct_ga_ran_tra_sua_sam_chicken_nguyen_van_cu_noi_dai",
@@ -7545,8 +7646,9 @@
     "closedAt": "2026-07-13T21:14:09.008Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:14:09.008Z",
-    "sfDiscoveredAt": "2026-07-18T02:06:15.046Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:57:09.382Z",
+    "source": "foody-detail",
+    "foodySlug": "an-khanh-coffee-tea-nguyen-tri-phuong"
   },
   {
     "id": "r_ct_4cs_cafe",
@@ -7726,7 +7828,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:14:23.240Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:14:23.240Z"
+    "menuUpdatedAt": "2026-07-13T21:14:23.240Z",
+    "foodySlug": "tra-sua-an-vat-deadline-233-nguyen-van-cu",
+    "sfDiscoveredAt": "2026-07-18T07:02:48.425Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_sushi_87",
@@ -7925,7 +8030,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:11:07.455Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 15:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:11:07.455Z"
+    "menuUpdatedAt": "2026-07-13T21:11:07.455Z",
+    "foodySlug": "coffee-tea-an-vat-nha-bot",
+    "sfDiscoveredAt": "2026-07-18T07:07:13.100Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_danhi_s_food_am_thuc_han_quoc",
@@ -7988,7 +8096,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:16:05.571Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 12:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:16:05.571Z"
+    "menuUpdatedAt": "2026-07-13T21:16:05.571Z",
+    "foodySlug": "danhi-s-food-am-thuc-han-quoc",
+    "sfDiscoveredAt": "2026-07-18T07:07:23.111Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_co_3_la_tra_sua",
@@ -8030,8 +8141,9 @@
     "closedAt": "2026-07-13T21:15:11.938Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:15:11.938Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:51.764Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:53.297Z",
+    "source": "foody-detail",
+    "foodySlug": "co-3-la-tra-sua"
   },
   {
     "id": "r_ct_sop_chee_mi_cay_lau_nuong",
@@ -8290,8 +8402,9 @@
     "closedAt": "2026-07-13T21:15:26.247Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:15:26.247Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:27.723Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:55:23.621Z",
+    "source": "foody-detail",
+    "foodySlug": "ga-metro"
   },
   {
     "id": "r_ct_ga_sot_happy",
@@ -8335,8 +8448,9 @@
     "closedAt": "2026-07-13T21:11:34.218Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:11:34.218Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:29.084Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:55:24.998Z",
+    "source": "foody-detail",
+    "foodySlug": "ga-sot-happy"
   },
   {
     "id": "r_ct_trung_cut_lon_hot_vit_lon_rang_me_chien_bot",
@@ -8463,10 +8577,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.976Z",
     "shopeefoodSlug": "ngo-gia-banh-hoi-heo-quay-va-com",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:11:46.845Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:30 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:11:46.845Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:11:46.845Z",
+    "latitude": 10.02758567,
+    "longitude": 105.78556213,
+    "sfRestaurantId": 1127992,
+    "sfDiscoveredAt": "2026-07-18T06:38:26.641Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_co_dao_sup_cua_oc_heo",
@@ -8578,8 +8695,9 @@
     "closedAt": "2026-07-13T21:12:23.144Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:12:23.144Z",
-    "sfDiscoveredAt": "2026-07-18T02:05:13.667Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:56:07.191Z",
+    "source": "foody-detail",
+    "foodySlug": "lau-bo-42"
   },
   {
     "id": "r_ct_ca_vien_chien_su_su",
@@ -8614,7 +8732,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:17:23.082Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:17:23.082Z"
+    "menuUpdatedAt": "2026-07-13T21:17:23.082Z",
+    "foodySlug": "ca-vien-chien-su-su",
+    "sfDiscoveredAt": "2026-07-18T07:06:21.545Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bep_an_nha_ut_bun_rieu_tom_kho_tran_vinh_kiet",
@@ -8681,7 +8802,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:12:36.077Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:12:36.077Z"
+    "menuUpdatedAt": "2026-07-13T21:12:36.077Z",
+    "foodySlug": "che-diem-goi-cuon-tom-thit-xo-viet-nghe-tinh",
+    "sfDiscoveredAt": "2026-07-18T07:05:19.188Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_dau_mam_tom_2_dung",
@@ -8739,7 +8863,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:17:37.188Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:17:37.188Z"
+    "menuUpdatedAt": "2026-07-13T21:17:37.188Z",
+    "foodySlug": "bun-dau-mam-tom-2-dung",
+    "sfDiscoveredAt": "2026-07-18T07:07:50.640Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_dau_mam_tom_tuong_vy",
@@ -8801,7 +8928,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:16:22.268Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:16:22.268Z"
+    "menuUpdatedAt": "2026-07-13T21:16:22.268Z",
+    "foodySlug": "bun-dau-mam-tom-tuong-vy",
+    "sfDiscoveredAt": "2026-07-18T07:07:51.327Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_quan_nuong_kieu_cua_chuyen_mon_nuong",
@@ -9052,7 +9182,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:17:11.892Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "menuUpdatedAt": "2026-07-13T21:17:11.892Z"
+    "menuUpdatedAt": "2026-07-13T21:17:11.892Z",
+    "foodySlug": "oc-ha-tien",
+    "sfDiscoveredAt": "2026-07-18T07:00:28.055Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_oc_mam",
@@ -9088,7 +9221,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:14:02.014Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "menuUpdatedAt": "2026-07-13T21:14:02.014Z"
+    "menuUpdatedAt": "2026-07-13T21:14:02.014Z",
+    "foodySlug": "oc-mam",
+    "sfDiscoveredAt": "2026-07-18T07:00:30.033Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_so_oc_77_nhau_binh_dan",
@@ -9261,7 +9397,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:17:24.899Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:17:24.899Z"
+    "menuUpdatedAt": "2026-07-13T21:17:24.899Z",
+    "foodySlug": "oc-nguyen-binh-dien-pham-son-khai",
+    "sfDiscoveredAt": "2026-07-18T07:00:40.311Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_oc_ngon_quan_hai_san",
@@ -9298,8 +9437,9 @@
     "closedAt": "2026-07-13T21:14:38.237Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:14:38.237Z",
-    "sfDiscoveredAt": "2026-07-18T02:06:34.642Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:57:27.131Z",
+    "source": "foody-detail",
+    "foodySlug": "oc-ngon-quan-hai-san"
   },
   {
     "id": "r_ct_ga_nuong_muoi_ot_mr_hon",
@@ -9376,7 +9516,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:17:37.986Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 26/09/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:17:37.987Z"
+    "menuUpdatedAt": "2026-07-13T21:17:37.987Z",
+    "foodySlug": "ga-nuong-vit-nuong-nhat-nhat",
+    "sfDiscoveredAt": "2026-07-18T07:03:46.912Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_quan_com_lau_nuong_3ce_mac_thien_tich",
@@ -9446,10 +9589,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.022Z",
     "shopeefoodSlug": "hu-tieu-com-suon-khai-minh-2",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:19:54.135Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:19:54.135Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:19:54.135Z",
+    "latitude": 10.0027474,
+    "longitude": 105.7727856,
+    "sfRestaurantId": 1278355,
+    "sfDiscoveredAt": "2026-07-18T06:38:20.068Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_com_mi_tron_ca_phe_sua_bot_nha_tia",
@@ -9900,8 +10046,9 @@
     "closedAt": "2026-07-13T21:18:03.833Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:18:03.833Z",
-    "sfDiscoveredAt": "2026-07-18T02:06:22.595Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:57:15.938Z",
+    "source": "foody-detail",
+    "foodySlug": "alo-dzo-100-lau-nuong-hai-san"
   },
   {
     "id": "r_ct_hai_san_binh_ba_quan_nhau",
@@ -9938,8 +10085,9 @@
     "closedAt": "2026-07-13T21:15:40.856Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:15:40.856Z",
-    "sfDiscoveredAt": "2026-07-18T02:06:30.731Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:57:23.263Z",
+    "source": "foody-detail",
+    "foodySlug": "hai-san-binh-ba-quan-nhau"
   },
   {
     "id": "r_ct_oc_nhe",
@@ -10014,8 +10162,9 @@
     "closedAt": "2026-07-13T21:20:21.471Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 00:01 21/07/2026\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:20:21.471Z",
-    "sfDiscoveredAt": "2026-07-18T02:06:54.921Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:57:45.304Z",
+    "source": "foody-detail",
+    "foodySlug": "oc-nhe"
   },
   {
     "id": "r_ct_he_pho_91b_nhau_binh_dan",
@@ -10549,8 +10698,9 @@
     "closedAt": "2026-07-13T21:20:21.239Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:20:21.239Z",
-    "sfDiscoveredAt": "2026-07-18T02:05:09.602Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:56:03.331Z",
+    "source": "foody-detail",
+    "foodySlug": "xum-lai-nuong-nuong-lau-hoang-van-thu"
   },
   {
     "id": "r_ct_combo_com_bo_ran_sot_hoang_quoc_viet",
@@ -10736,10 +10886,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.059Z",
     "shopeefoodSlug": "lau-thai-tiny-an-uong-be-van-dan",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:20:35.880Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:20:35.880Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:20:35.880Z",
+    "latitude": 10.04861,
+    "longitude": 105.769587,
+    "sfRestaurantId": 1000063096,
+    "sfDiscoveredAt": "2026-07-18T06:37:12.643Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_ut_ha_lau_thai_lau_me_bo_nuong_tang_ho_bun_xang",
@@ -10792,10 +10945,13 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.060Z",
     "shopeefoodSlug": "ut-ha-lau-thai-lau-me-bo-nuong-tang-ho-bun-xang",
-    "isClosed": true,
-    "closedAt": "2026-07-13T21:17:49.070Z",
-    "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:17:49.070Z"
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-13T21:17:49.070Z",
+    "latitude": 10.02586,
+    "longitude": 105.76558,
+    "sfRestaurantId": 1182538,
+    "sfDiscoveredAt": "2026-07-18T06:37:13.033Z",
+    "source": "shopeefood"
   },
   {
     "id": "r_ct_quan_chay_thien_tam_nguyen_van_linh",
@@ -10859,7 +11015,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:24:38.742Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:24:38.742Z"
+    "menuUpdatedAt": "2026-07-13T21:24:38.742Z",
+    "foodySlug": "quan-chay-thien-tam-nguyen-van-linh",
+    "sfDiscoveredAt": "2026-07-18T07:01:32.234Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_am_thuc_chay_3_mien",
@@ -10894,7 +11053,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:20:48.943Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:20:48.943Z"
+    "menuUpdatedAt": "2026-07-13T21:20:48.943Z",
+    "foodySlug": "am-thuc-chay-3-mien",
+    "sfDiscoveredAt": "2026-07-18T07:01:39.080Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_thai_hung_phu_kdc_hung_phu",
@@ -11107,8 +11269,9 @@
     "latitude": 10.0338785,
     "longitude": 105.7825877,
     "sfRestaurantId": 1063764,
-    "sfDiscoveredAt": "2026-07-18T01:51:54.516Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:56.271Z",
+    "source": "shopeefood",
+    "foodySlug": "sushi-sugi-de-tham"
   },
   {
     "id": "r_ct_quan_com_van_phong_281_vo_van_kiet",
@@ -11276,8 +11439,9 @@
     "closedAt": "2026-07-13T21:26:05.748Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:26:05.748Z",
-    "sfDiscoveredAt": "2026-07-18T02:03:50.348Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:54:51.982Z",
+    "source": "foody-detail",
+    "foodySlug": "tra-sua-ben"
   },
   {
     "id": "r_ct_hong_tra_lao_vuong_nguyen_van_cu",
@@ -11601,7 +11765,7 @@
     "latitude": 10.02622606,
     "longitude": 105.77180682,
     "sfRestaurantId": 1115387,
-    "sfDiscoveredAt": "2026-07-18T01:47:25.547Z",
+    "sfDiscoveredAt": "2026-07-18T06:27:33.500Z",
     "source": "shopeefood"
   },
   {
@@ -11741,7 +11905,7 @@
     "latitude": 10.011107,
     "longitude": 105.76444,
     "sfRestaurantId": 1000068956,
-    "sfDiscoveredAt": "2026-07-18T01:53:52.898Z",
+    "sfDiscoveredAt": "2026-07-18T06:33:59.628Z",
     "source": "shopeefood"
   },
   {
@@ -11948,7 +12112,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:24:23.461Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:24:23.461Z"
+    "menuUpdatedAt": "2026-07-13T21:24:23.461Z",
+    "foodySlug": "keo-coffe-milk-matcha-latte-cacao-muoi-matcha-kem-deo",
+    "sfDiscoveredAt": "2026-07-18T07:02:04.672Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_du_yen_coffee_tea_matcha_tra_trai_cay_tuoi_do_an_vat",
@@ -12570,7 +12737,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:28:52.641Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:28:52.641Z"
+    "menuUpdatedAt": "2026-07-13T21:28:52.641Z",
+    "foodySlug": "goi-du-du-co-mai-nguyen-van-cu",
+    "sfDiscoveredAt": "2026-07-18T07:05:20.397Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_rc_cafe",
@@ -12938,7 +13108,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:26:34.938Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:26:34.938Z"
+    "menuUpdatedAt": "2026-07-13T21:26:34.938Z",
+    "foodySlug": "hien-vinh-kem-que",
+    "sfDiscoveredAt": "2026-07-18T07:02:11.897Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_kem_kunkon",
@@ -13011,8 +13184,9 @@
     "closedAt": "2026-07-13T21:29:56.069Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:29:56.069Z",
-    "sfDiscoveredAt": "2026-07-18T02:07:51.298Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:58:39.033Z",
+    "source": "foody-detail",
+    "foodySlug": "da-ly-che-sam-bo-luong-tran-hoang-na"
   },
   {
     "id": "r_ct_che_buoi_co_lan",
@@ -13051,8 +13225,9 @@
     "closedAt": "2026-07-13T21:27:11.394Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:27:11.394Z",
-    "sfDiscoveredAt": "2026-07-18T02:07:54.538Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:58:44.600Z",
+    "source": "foody-detail",
+    "foodySlug": "che-buoi-co-lan"
   },
   {
     "id": "r_ct_xuan_bui_duong_so_1",
@@ -13890,7 +14065,7 @@
     "latitude": 10.03774,
     "longitude": 105.760834,
     "sfRestaurantId": 1073402,
-    "sfDiscoveredAt": "2026-07-18T01:53:45.436Z",
+    "sfDiscoveredAt": "2026-07-18T06:33:52.456Z",
     "source": "shopeefood"
   },
   {
@@ -14209,7 +14384,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:31:33.261Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:31:33.261Z"
+    "menuUpdatedAt": "2026-07-13T21:31:33.261Z",
+    "foodySlug": "goi-du-du-thai-panda",
+    "sfDiscoveredAt": "2026-07-18T07:05:10.329Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_pho_hieu_hu_tieu_bo_vien_bun_bo_hue",
@@ -14245,7 +14423,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:29:31.766Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:29:31.766Z"
+    "menuUpdatedAt": "2026-07-13T21:29:31.766Z",
+    "foodySlug": "pho-hieu-hu-tieu-bo-vien-bun-bo-hue",
+    "sfDiscoveredAt": "2026-07-18T07:06:09.635Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_ha_cao_chi_ba_duong_3_thang_2",
@@ -14527,7 +14708,10 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.212Z",
     "shopeefoodSlug": "nem-nuong-cai-rang-bun-rieu-cua-co-trang-tran-chien",
-    "menuUpdatedAt": "2026-07-13T21:27:34.260Z"
+    "menuUpdatedAt": "2026-07-13T21:27:34.260Z",
+    "foodySlug": "nem-nuong-cai-rang-bun-rieu-cua-co-trang-tran-chien",
+    "sfDiscoveredAt": "2026-07-18T07:05:29.385Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_hien_li_359_nem_nuong",
@@ -14563,7 +14747,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:32:34.438Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "menuUpdatedAt": "2026-07-13T21:32:34.438Z"
+    "menuUpdatedAt": "2026-07-13T21:32:34.438Z",
+    "foodySlug": "hien-li-359-nem-nuong",
+    "sfDiscoveredAt": "2026-07-18T07:05:32.530Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_nem_nuong_co_ba_nguyen_van_linh",
@@ -14601,7 +14788,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:30:10.964Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 15:30 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:30:10.964Z"
+    "menuUpdatedAt": "2026-07-13T21:30:10.964Z",
+    "foodySlug": "nem-nuong-co-ba-nguyen-van-linh",
+    "sfDiscoveredAt": "2026-07-18T07:05:36.299Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_bun_bi_nem_nuong_banh_uot_minh_nhu_le_binh",
@@ -14638,7 +14828,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:27:48.216Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:27:48.216Z"
+    "menuUpdatedAt": "2026-07-13T21:27:48.216Z",
+    "foodySlug": "bun-bi-nem-nuong-banh-uot-minh-nhu-le-binh",
+    "sfDiscoveredAt": "2026-07-18T07:05:48.505Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_quan_chay_kim_chuc_tran_van_hoai",
@@ -14756,8 +14949,9 @@
     "latitude": 10.026722,
     "longitude": 105.773028,
     "sfRestaurantId": 1153354,
-    "sfDiscoveredAt": "2026-07-18T01:51:39.381Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:01:31.599Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-chay-kim-chuc-tran-van-hoai"
   },
   {
     "id": "r_ct_di_hang_goi_cuon",
@@ -14795,7 +14989,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:30:47.259Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
-    "menuUpdatedAt": "2026-07-13T21:30:47.259Z"
+    "menuUpdatedAt": "2026-07-13T21:30:47.259Z",
+    "foodySlug": "di-hang-goi-cuon",
+    "sfDiscoveredAt": "2026-07-18T07:05:05.292Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_cam_ep_goi_cuon",
@@ -14900,7 +15097,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:31:00.686Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:31:00.686Z"
+    "menuUpdatedAt": "2026-07-13T21:31:00.686Z",
+    "foodySlug": "an-vat-gi-cung-duoc",
+    "sfDiscoveredAt": "2026-07-18T07:04:19.724Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_nha_hang_i_love_basa_vo_van_kiet",
@@ -15507,8 +15707,9 @@
     "latitude": 10.012519,
     "longitude": 105.760307,
     "sfRestaurantId": 1069682,
-    "sfDiscoveredAt": "2026-07-18T01:49:33.515Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:01:37.260Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-chay-sen-hong-duong-30-4"
   },
   {
     "id": "r_ct_quan_chay_tinh_chay_79_nam_ky_khoi_nghia",
@@ -15565,8 +15766,9 @@
     "latitude": 10.03200152,
     "longitude": 105.7837808,
     "sfRestaurantId": 1277290,
-    "sfDiscoveredAt": "2026-07-18T01:51:39.777Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T07:01:35.396Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-chay-tinh-chay-79-nam-ky-khoi-nghia"
   },
   {
     "id": "r_ct_quan_com_phuc_ky",
@@ -16164,7 +16366,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:36:33.138Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:36:33.138Z"
+    "menuUpdatedAt": "2026-07-13T21:36:33.138Z",
+    "foodySlug": "dontea-s-house-tea-milk-tea",
+    "sfDiscoveredAt": "2026-07-18T06:51:07.336Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_tiem_tra_nuong",
@@ -16427,8 +16632,9 @@
     "closedAt": "2026-07-13T21:37:24.797Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:37:24.797Z",
-    "sfDiscoveredAt": "2026-07-18T02:08:28.128Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:58:56.528Z",
+    "source": "foody-detail",
+    "foodySlug": "che-phuc-phat-nha-van-hoa-thieu-nhi"
   },
   {
     "id": "r_ct_banh_mi_co_ba_sai_gon",
@@ -16556,8 +16762,9 @@
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
     "menuUpdatedAt": "2026-07-18T03:09:40.880Z",
     "brandPortalId": "r_ct_bun_dau_nang_bep",
-    "lastCrawlError": "not_on_shopeefood",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "foodySlug": "bun-dau-nang-bep-tran-binh-trong",
+    "sfDiscoveredAt": "2026-07-18T06:51:01.345Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_dac_san_mien_tay_huong_phu_sa",
@@ -18593,7 +18800,10 @@
     "isClosed": true,
     "closedAt": "2026-07-13T21:48:48.548Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:08 20/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T21:48:48.548Z"
+    "menuUpdatedAt": "2026-07-13T21:48:48.548Z",
+    "foodySlug": "bep-chay-thanh-yen-thanh-yen-tra-quan",
+    "sfDiscoveredAt": "2026-07-18T07:01:53.936Z",
+    "source": "foody-detail"
   },
   {
     "id": "r_ct_chipmunk_healthy_chuyen_mon_yen_mach_mac_thien_tich",
@@ -20562,8 +20772,9 @@
     "closedAt": "2026-07-13T21:50:36.635Z",
     "closedReason": "Cửa hàng hiện đang tạm ngưng dịch vụ trực tuyến.",
     "menuUpdatedAt": "2026-07-13T21:50:36.635Z",
-    "sfDiscoveredAt": "2026-07-18T02:01:25.004Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:35.216Z",
+    "source": "foody-brand",
+    "foodySlug": "pho-nuong-102"
   },
   {
     "id": "r_ct_tuyet_trang_cafe",
@@ -20779,7 +20990,10 @@
     "closedAt": "2026-07-13T21:51:25.923Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:51:25.923Z",
-    "brandPortalId": "r_ct_rybokki_an_vat_duong_pho"
+    "brandPortalId": "r_ct_rybokki_an_vat_duong_pho",
+    "foodySlug": "rybokki-an-vat-duong-pho-nguyen-van-cu-noi-dai",
+    "sfDiscoveredAt": "2026-07-18T06:51:00.713Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_an_vat_phuc_tho_tra_an",
@@ -21938,8 +22152,9 @@
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 11:00 21/07/2026\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:55:59.933Z",
     "brandPortalId": "r_ct_mr_thinh_ga_ran_khoai_lang_lac_ct",
-    "sfDiscoveredAt": "2026-07-18T02:04:38.422Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:48.048Z",
+    "source": "foody-brand",
+    "foodySlug": "mr-thinh-ga-ran-khoai-lang-lac-le-hong-phong"
   },
   {
     "id": "r_ct_chao_long_ma_7_hai_ba_trung",
@@ -22126,7 +22341,10 @@
     "closedAt": "2026-07-13T22:02:18.449Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
     "menuUpdatedAt": "2026-07-13T22:02:18.449Z",
-    "brandPortalId": "r_ct_banh_ca_kit"
+    "brandPortalId": "r_ct_banh_ca_kit",
+    "foodySlug": "banh-ca-kit-taiyaki-de-tham",
+    "sfDiscoveredAt": "2026-07-18T06:51:00.056Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_coffee_take_away",
@@ -22758,8 +22976,9 @@
     "latitude": 10.02949295,
     "longitude": 105.77443246,
     "sfRestaurantId": 1000070799,
-    "sfDiscoveredAt": "2026-07-18T02:02:31.581Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:53:39.701Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-nha-bong-banh-canh-com-bun-rieu"
   },
   {
     "id": "r_ct_sau_dien_tu_com_binh_dan",
@@ -23055,8 +23274,9 @@
     "closedAt": "2026-07-13T21:59:20.368Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-13T21:59:20.368Z",
-    "sfDiscoveredAt": "2026-07-18T02:07:46.703Z",
-    "source": "foody-detail"
+    "sfDiscoveredAt": "2026-07-18T06:58:35.160Z",
+    "source": "foody-detail",
+    "foodySlug": "che-pho-co"
   },
   {
     "id": "r_ct_thinh_binh_kitchen_food_and_coffee",
@@ -23473,8 +23693,9 @@
     "latitude": 10.03802692,
     "longitude": 105.7763108,
     "sfRestaurantId": 1188363,
-    "sfDiscoveredAt": "2026-07-18T02:06:56.854Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:57:47.146Z",
+    "source": "shopeefood",
+    "foodySlug": "ca-phe-muoi-chu-long-can-tho"
   },
   {
     "id": "r_ct_ca_phe_tra_bun_thit_xao_huy_s_kitchen_cach_mang_thang_tam",
@@ -23651,7 +23872,7 @@
     "latitude": 10.03924,
     "longitude": 105.77706,
     "sfRestaurantId": 1189357,
-    "sfDiscoveredAt": "2026-07-18T01:52:46.359Z",
+    "sfDiscoveredAt": "2026-07-18T06:32:53.079Z",
     "source": "shopeefood"
   },
   {
@@ -23723,7 +23944,10 @@
       "Pepsi chai",
       "7up  chai"
     ],
-    "menuFromSiblingId": "r_ct_five_star_chicken_hoa_binh"
+    "menuFromSiblingId": "r_ct_five_star_chicken_hoa_binh",
+    "foodySlug": "five-star-vietnam-cach-mang-thang-8",
+    "sfDiscoveredAt": "2026-07-18T06:51:07.706Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_healthy_meal_com_lut_salad_banh_ngot_eat_clean_giam_can_tran_binh_trong",
@@ -23782,7 +24006,7 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T01:28:03.668Z",
-    "sfDiscoveredAt": "2026-07-18T01:59:56.984Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:27.726Z",
     "source": "shopeefood",
     "dishNames": [
       "Bún Thái",
@@ -23827,7 +24051,8 @@
     ],
     "latitude": 10.021078,
     "longitude": 105.7603987,
-    "sfRestaurantId": 242454
+    "sfRestaurantId": 242454,
+    "foodySlug": "bun-thai-68-phuong-tam"
   },
   {
     "id": "r_ct_banh_trang_thao_meo_an_vat_nguyen_van_cu_noi_dai",
@@ -23970,7 +24195,10 @@
     "menuUpdatedAt": "2026-07-18T00:52:20.894Z",
     "closedAt": "2026-07-18T00:52:20.894Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "banh-trang-thao-meo-an-vat-nguyen-van-cu-noi-dai",
+    "sfDiscoveredAt": "2026-07-18T06:51:10.259Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_tiem_banh_co_van_u_duong_so_3",
@@ -24053,8 +24281,9 @@
     "closedAt": "2026-07-18T01:00:52.022Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:30 Hôm nay\n\nOk",
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:07.280Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:45.517Z",
+    "source": "foody-brand",
+    "foodySlug": "tra-sua-mixue-59-duong-3-thang-2"
   },
   {
     "id": "r_ct_quan_cuoi_bun_dau_mam_tom_nguyen_van_cu_noi_dai",
@@ -24100,8 +24329,9 @@
     "latitude": 10.03187348,
     "longitude": 105.75352022,
     "sfRestaurantId": 1139815,
-    "sfDiscoveredAt": "2026-07-18T02:02:55.189Z",
-    "source": "shopeefood"
+    "sfDiscoveredAt": "2026-07-18T06:50:41.297Z",
+    "source": "shopeefood",
+    "foodySlug": "quan-cuoi-bun-dau-mam-tom-nguyen-van-cu-noi-dai"
   },
   {
     "id": "r_ct_tiem_nha_bong_3_thang_2_tra_sua_mi_cay_mi_tron",
@@ -24174,7 +24404,10 @@
     "menuUpdatedAt": "2026-07-18T01:11:23.141Z",
     "closedAt": "2026-07-18T01:11:23.141Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:30 Hôm nay\n\nOk",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "tiem-nha-bong-3-thang-2-tra-sua-mi-cay-mi-tron",
+    "sfDiscoveredAt": "2026-07-18T06:50:55.650Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_tra_sua_dufang_2_nguyen_van_cu",
@@ -24231,8 +24464,9 @@
     "closedAt": "2026-07-18T01:15:29.908Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
-    "sfDiscoveredAt": "2026-07-18T02:04:11.246Z",
-    "source": "foody-brand"
+    "sfDiscoveredAt": "2026-07-18T06:50:45.822Z",
+    "source": "foody-brand",
+    "foodySlug": "tra-sua-dufang-2-nguyen-van-cu"
   },
   {
     "id": "r_ct_viva_reserve_can_tho",
@@ -24411,7 +24645,10 @@
     "menuUpdatedAt": "2026-07-18T02:43:39.397Z",
     "closedAt": "2026-07-18T02:43:39.397Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "rybokki-an-vat-duong-pho-mau-than",
+    "sfDiscoveredAt": "2026-07-18T06:51:00.713Z",
+    "source": "foody-brand"
   },
   {
     "id": "r_ct_i_m_good_tea_tra_sua_chiet_xuat_may_tran_hoang_na",
@@ -24424,7 +24661,7 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": true,
-    "sfDiscoveredAt": "2026-07-18T02:04:07.641Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:44.857Z",
     "source": "foody-brand",
     "dishNames": [
       "[must try] TRÀ SỮA GẠO RANG",
@@ -24487,7 +24724,8 @@
     "menuUpdatedAt": "2026-07-18T02:27:16.016Z",
     "closedAt": "2026-07-18T02:27:16.016Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 09:30 Hôm nay",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "i-m-good-tea-tra-sua-chiet-xuat-may-tran-hoang-na"
   },
   {
     "id": "r_ct_1893_dalat_garden_flower_tea_more_nguyen_van_cu_noi_dai",
@@ -24527,7 +24765,7 @@
     "latitude": 10.03671805,
     "longitude": 105.78376774,
     "sfRestaurantId": 704438,
-    "sfDiscoveredAt": "2026-07-18T01:53:01.137Z",
+    "sfDiscoveredAt": "2026-07-18T06:51:01.992Z",
     "source": "shopeefood",
     "dishNames": [
       "Cơm tấm mẵn Long Xuyên",
@@ -24568,7 +24806,8 @@
       "Bắp heo khìa",
       "Thịt lụi"
     ],
-    "menuUpdatedAt": "2026-07-18T02:27:18.975Z"
+    "menuUpdatedAt": "2026-07-18T02:27:18.975Z",
+    "foodySlug": "sau-phuong-com-van-phong"
   },
   {
     "id": "r_ct_quan_com_thuan_phat_duong_b21",
@@ -24581,7 +24820,7 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "sfDiscoveredAt": "2026-07-18T02:02:11.051Z",
+    "sfDiscoveredAt": "2026-07-18T06:50:38.258Z",
     "source": "foody-brand",
     "dishNames": [
       "CƠM GÀ XÀO SẢ ỚT",
@@ -24649,7 +24888,8 @@
       "TRÀ ĐƯỜNG NHỎ",
       "CAFE SỮA NHỎ"
     ],
-    "menuUpdatedAt": "2026-07-18T02:27:24.431Z"
+    "menuUpdatedAt": "2026-07-18T02:27:24.431Z",
+    "foodySlug": "quan-com-thuan-phat-duong-b21"
   },
   {
     "id": "r_ct_quan_com_tien_ky_nguyen_van_cu_noi_dai",
@@ -24662,8 +24902,8 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "sfDiscoveredAt": "2026-07-18T02:02:24.753Z",
-    "source": "foody-brand",
+    "sfDiscoveredAt": "2026-07-18T06:53:11.880Z",
+    "source": "shopeefood",
     "dishNames": [
       "Cơm Sườn ram Mặn",
       "Cơm Thịt Kho tiêu",
@@ -24731,7 +24971,11 @@
       "1 chai coca -cola+ đá",
       "2chai coca-cola +đá"
     ],
-    "menuUpdatedAt": "2026-07-18T02:27:59.519Z"
+    "menuUpdatedAt": "2026-07-18T02:27:59.519Z",
+    "latitude": 10.039249,
+    "longitude": 105.760471,
+    "sfRestaurantId": 162788,
+    "foodySlug": "quan-com-tien-ky-nguyen-van-cu-noi-dai"
   },
   {
     "id": "r_ct_banh_tacos_nha_labubu_nguyen_van_cu",
@@ -24839,7 +25083,7 @@
     "latitude": 10.03021544,
     "longitude": 105.7523355,
     "sfRestaurantId": 1148743,
-    "sfDiscoveredAt": "2026-07-18T01:55:29.261Z",
+    "sfDiscoveredAt": "2026-07-18T06:51:03.229Z",
     "source": "shopeefood",
     "dishNames": [
       "Gà nướng muối ớt nguyên con( chặt sẵn)",
@@ -24854,7 +25098,8 @@
     "menuUpdatedAt": "2026-07-18T02:27:26.836Z",
     "closedAt": "2026-07-18T02:27:26.836Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "foodySlug": "ga-nuong-muoi-ot-mr-hon-nguyen-van-linh"
   },
   {
     "id": "r_ct_banh_tam_cay_27_nguyen_van_cu_noi_dai",
@@ -24885,7 +25130,7 @@
     "shopeefoodSlug": "gao-quan-tran-van-hoai",
     "sfRestaurantId": 1115148,
     "source": "shopeefood",
-    "sfDiscoveredAt": "2026-07-18T01:47:03.639Z",
+    "sfDiscoveredAt": "2026-07-18T06:27:17.446Z",
     "hasRealMenu": false,
     "menuTemplateFallback": true,
     "dishNames": [],
@@ -24905,7 +25150,7 @@
     "shopeefoodSlug": "dao-vien-quan-nuoc-sam-24-vi",
     "sfRestaurantId": 1030395,
     "source": "shopeefood",
-    "sfDiscoveredAt": "2026-07-18T01:47:25.547Z",
+    "sfDiscoveredAt": "2026-07-18T06:27:33.500Z",
     "hasRealMenu": true,
     "dishNames": [
       "Sâm rong biển hoa cúc",
@@ -24928,7 +25173,7 @@
     "shopeefoodSlug": "banh-ngot-le-trang",
     "sfRestaurantId": 753713,
     "source": "shopeefood",
-    "sfDiscoveredAt": "2026-07-18T01:53:45.721Z",
+    "sfDiscoveredAt": "2026-07-18T06:33:52.798Z",
     "hasRealMenu": true,
     "dishNames": [
       "Bông lan trứng muối (1 cái)",
@@ -24977,7 +25222,7 @@
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwavc1g6fc9n73@resize_ss640x400",
     "shopeefoodSlug": "nha-hang-tiec-cuoi-tay-do",
     "foodySlug": "nha-hang-tiec-cuoi-tay-do",
-    "sfDiscoveredAt": "2026-07-18T02:00:54.809Z",
+    "sfDiscoveredAt": "2026-07-18T06:52:12.604Z",
     "source": "foody-detail",
     "hasRealMenu": false,
     "menuTemplateFallback": true,
@@ -24985,9 +25230,9 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:17:57.890Z",
     "lastCrawlError": "not_on_shopeefood",
-    "crawlNextAttempt": "2026-07-25T02:28:15.727Z",
-    "menuUpdatedAt": "2026-07-18T02:28:15.830Z"
+    "crawlNextAttempt": "2026-07-25T08:17:57.803Z"
   },
   {
     "id": "r_ct_kim-tho-cafe-san-thuong",
@@ -24996,7 +25241,7 @@
     "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwb7s3ia1eqhf7@resize_ss640x400",
     "shopeefoodSlug": "kim-ngoc-coffee-thuc-uong-kdc-nong-tho-san.cikqgk",
     "foodySlug": "kim-tho-cafe-san-thuong",
-    "sfDiscoveredAt": "2026-07-18T02:01:16.875Z",
+    "sfDiscoveredAt": "2026-07-18T06:52:32.283Z",
     "source": "foody-detail",
     "hasRealMenu": true,
     "dishNames": [
@@ -25020,7 +25265,7 @@
     "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv9a4la0pspe3@resize_ss640x400",
     "shopeefoodSlug": "com-tam-toan-duong-3-thang-2",
     "foodySlug": "com-tam-toan-duong-3-thang-2",
-    "sfDiscoveredAt": "2026-07-18T02:02:08.096Z",
+    "sfDiscoveredAt": "2026-07-18T06:53:18.192Z",
     "source": "foody-detail",
     "hasRealMenu": true,
     "dishNames": [
@@ -25078,7 +25323,7 @@
     "img": "https://down-vn.img.susercontent.com/vn-11134259-820l4-mgdec7a5baq4b4@resize_ss640x400",
     "shopeefoodSlug": "com-ga-loc-xoay-sot-bo-trung",
     "foodySlug": "com-ga-loc-xoay-sot-bo-trung",
-    "sfDiscoveredAt": "2026-07-18T02:02:19.350Z",
+    "sfDiscoveredAt": "2026-07-18T06:53:29.000Z",
     "source": "foody-detail",
     "hasRealMenu": true,
     "dishNames": [
@@ -25128,5 +25373,1312 @@
     "closedAt": "2026-07-18T02:28:09.143Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:00 27/07/2026",
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+  },
+  {
+    "id": "1141329",
+    "name": "Cơm Gà Xối Mỡ Huỳnh Phát - Nguyễn Tri Phương",
+    "address": "34 Nguyễn Tri Phương, KDC Thới Nhựt, P. An Khánh, Quận Ninh Kiều, Cần Thơ",
+    "latitude": 10.04001991,
+    "longitude": 105.7577855,
+    "img": "https://mms.img.susercontent.com/vn-11134513-7r98o-lsv8w2nydpl022@resize_ss60x60!@crop_w60_h60_cT",
+    "shopeefoodSlug": "com-ga-xoi-mo-huynh-phat-nguyen-tri-phuong",
+    "sfRestaurantId": 1141329,
+    "source": "shopeefood",
+    "sfDiscoveredAt": "2026-07-18T06:34:44.537Z",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Combo cơm má đùi  + nước ngọt SPVB",
+      "Combo cơm đùi gà + nước ngọt SPVB",
+      "Combo góc 4 đùi - nước ngọt spvp",
+      "Combo cơm trứng xúc xích + nước ngọt SPVB",
+      "Canh Rong Biển",
+      "Combo cơm má đùi  + nước ngọt SPVB",
+      "Combo cơm đùi gà + nước ngọt SPVB",
+      "Combo góc 4 đùi - nước ngọt spvp",
+      "Combo cơm trứng xúc xích + nước ngọt SPVB",
+      "Cơm Đùi Góc Tư sốt mắm tỏi",
+      "Cơm   Đùi  gà  góc   tư xối mỡ",
+      "Cơm gà mắm tỏi má đùi",
+      "Cơm Gà xối mỡ Má Đùi",
+      "cơm đùi tỏi gà xối mỡ",
+      "cơm đùi tỏi gà mắm tỏi",
+      "Cơm Trứng+ xúc xích",
+      "Cơm xúc xích",
+      "Canh Rong Biển",
+      "Com Goc 4 sốt thái",
+      "cơm Gà sốt Thái cay",
+      "Cơm Bò tươi xào hành tây + 1 trứng",
+      "Cơm gà - canh rong biển",
+      "cơm xúc xích trứng _ 1coca",
+      "Cơm thêm",
+      "Trứng thêm",
+      "xúc xích",
+      "Dưa cải Thêm",
+      "Gà Thêm",
+      "Gà Góc 4 Không Cơm",
+      "Trà Đường",
+      "Sâm lạnh lục vị",
+      "Sting",
+      "nước suối",
+      "Pepsi",
+      "trà olong",
+      "Coca",
+      "7up",
+      "REBULL THÁI",
+      "Pepsi",
+      "7up",
+      "wake-up 247",
+      "trà Olong tea+",
+      "Trà Chanh Tea+Plus",
+      "Trà C2 chanh 500ml",
+      "Combo 2 cơm ức gà + 2 Pepsi"
+    ],
+    "menuUpdatedAt": "2026-07-18T08:04:37.711Z"
+  },
+  {
+    "id": "r_ct_tiem-mi-oc-hen-di-bay",
+    "name": "Tiệm Mì Ốc Hến Dì Bảy",
+    "address": "121/3A Đường Số 1, Khu Giảng Viên ĐHCT, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-81ztc-mpvulnlhqyvh5a@resize_ss640x400",
+    "shopeefoodSlug": "tiem-mi-oc-hen-di-bay",
+    "foodySlug": "tiem-mi-oc-hen-di-bay",
+    "sfDiscoveredAt": "2026-07-18T06:47:16.376Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bún Ốc Hến Đặc Biệt",
+      "Mì Ốc Hến Bò",
+      "Mì Trộn ốc Hến Đặc Biệt",
+      "Bún Ốc Hến Hải Sản",
+      "Mực Thêm",
+      "Tôm Thêm",
+      "Rau Thêm",
+      "Bún Ốc Hến Bò",
+      "Mì Ốc Hến Đặc Biệt",
+      "Hến Thêm",
+      "Bún Thêm",
+      "Mì Thêm",
+      "Bún Ốc Hến",
+      "Mì Trộn Ốc Hến Thịt Bằm",
+      "Mì Trộn Ốc Hến",
+      "Mì Trộn Ốc Hến Hải Sản",
+      "Bún Ốc Hến Thịt Bằm",
+      "Ốc Thêm",
+      "Thịt Bằm Thêm",
+      "Mì Ốc Hến",
+      "Mì Trộn Ốc Hến Bò",
+      "Thịt Bò Thêm",
+      "Mì Ốc Hến Thịt Bằm",
+      "Mì Ốc Hến Hải Sản"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:04:45.483Z"
+  },
+  {
+    "id": "r_ct_banh-xeo-com-nieu-bep-mini-nha-xury-khu-dan-cu-binh-nhut",
+    "name": "BÁNH XÈO & CƠM NIÊU - Bếp Mini Nhà XuRy - Khu Dân Cư Bình Nhựt",
+    "address": "437A/14 Khu Dân Cư Bình Nhựt, P. Long Hòa, Quận Bình Thủy , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-81ztc-mqpuj3jioq3305@resize_ss640x400",
+    "shopeefoodSlug": "banh-xeo-com-nieu-bep-mini-nha-xury-khu-dan-cu-binh-nhut",
+    "foodySlug": "banh-xeo-com-nieu-bep-mini-nha-xury-khu-dan-cu-binh-nhut",
+    "sfDiscoveredAt": "2026-07-18T06:47:21.493Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "BÁNH XÈO",
+      "BÁNH XÈO"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:04:48.222Z"
+  },
+  {
+    "id": "r_ct_bun-dau-me-ca",
+    "name": "Bún Đậu Mẹ Cà",
+    "address": "95/11 Mậu Thân, P. Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv0ybiae1eh48@resize_ss640x400",
+    "shopeefoodSlug": "bun-dau-me-ca",
+    "foodySlug": "bun-dau-me-ca",
+    "sfDiscoveredAt": "2026-07-18T06:47:26.560Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Phần 1 người",
+      "Phần 2 người",
+      "Phần 1 Người Đặc Biệt",
+      "Phần 2 người đặc biệt",
+      "Dồi Sụn",
+      "Chân Gà Sả Tắc Rút Xương",
+      "Chân Gà Sốt Thái Rút Xương",
+      "Chả Giò",
+      "Đậu Hủ Chiên",
+      "Sâm Cúc Hạt Chia",
+      "Nước Sấu",
+      "Coca",
+      "Sting",
+      "Trà Xanh",
+      "Pepsi"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:04:53.118Z"
+  },
+  {
+    "id": "r_ct_bun-dau-trang-nguyen-mau-than",
+    "name": "Bún Đậu Trạng Nguyên - Mậu Thân",
+    "address": "68 Mậu Thân, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv6uucyam55ba@resize_ss640x400",
+    "shopeefoodSlug": "bun-dau-trang-nguyen-mau-than",
+    "foodySlug": "bun-dau-trang-nguyen-mau-than",
+    "sfDiscoveredAt": "2026-07-18T06:47:28.939Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Nước mơ",
+      "Nước suối",
+      "Nước sấu",
+      "Chanh dây",
+      "Sting",
+      "Pepsi Lon",
+      "Coca    Lon",
+      "7 up Lon",
+      "Atiso ",
+      "Phần Số 1 Mẹt Đôi",
+      "Phần Số 2 Mẹt Đôi",
+      "Phần Số 1 Mẹt Đơn",
+      "Phần Số 2 Mẹt Đơn",
+      "Phần Số 3 Mẹt Nhỏ",
+      "Phần Số 3 Mẹt Đôi"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:04:55.939Z"
+  },
+  {
+    "id": "r_ct_tra-sua-tra-trai-cay-tiem-tui-tui-duong-so-3",
+    "name": "Order Food - Cơm, Mì Trộn & Mì Cay - KDC Đại Ngân",
+    "address": "54 Đường Số 3, KDC Đại Ngân, P. Tân An, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-81ztc-mqrbtqews4xvb2@resize_ss640x400",
+    "shopeefoodSlug": "tra-sua-tra-trai-cay-tiem-tui-tui-duong-so-3",
+    "foodySlug": "tra-sua-tra-trai-cay-tiem-tui-tui-duong-so-3",
+    "sfDiscoveredAt": "2026-07-18T06:47:33.966Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Cơm Trắng Thịt Chiên Nhà Ngoại",
+      "Cơm Tàu Hủ Sốt",
+      "Cơm Dương Châu Cá Viên",
+      "Cơm Dương Châu Ốp La",
+      "Mì Trộn Tàu Hủ Sốt",
+      "Mì Trộn Cá Viên Căng Đét",
+      "Mì Trộn Bò Xúc Xích",
+      "Mì Cay Thập Cẩm",
+      "Mì Cay Cá Viên",
+      "Mì Cay Bò Xúc Xích",
+      "Tàu Hủ Sốt",
+      "Vắt Mì Cay Thêm",
+      "Cơm Chiên Thêm",
+      "Mì Thêm",
+      "Cơm Trắng Thêm",
+      "Thịt Chiên Thêm",
+      "Tàu Hủ Sốt Thêm",
+      "Trứng Lòng Đào Thêm",
+      "Soup Rong Biển",
+      "Coca",
+      "Pepsi",
+      "7 Up",
+      "Mirinda Xá Xị",
+      "Bò Cụng",
+      "Olong",
+      "Sting",
+      "0 Độ",
+      "Trà Tắc",
+      "Trà Tắc Mật Ong",
+      "Trà Lai",
+      "Trà Đường",
+      "Cà Phê Phin",
+      "Cà Phê Sữa",
+      "Bạc Xỉu",
+      "Ép Táo",
+      "Ép Cam",
+      "Ép Khóm",
+      "Ép Dưa Hấu"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:00.933Z"
+  },
+  {
+    "id": "r_ct_ghien-mi-cay",
+    "name": "Ghiền - Mì Cay",
+    "address": "84 Trần Hưng Đạo, P. Châu Văn Liêm, Quận Ô Môn , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwer0bwdueopd2@resize_ss640x400",
+    "shopeefoodSlug": "ghien-tra-sua-my-cay-tron-an-vat-hoang-quoc-viet",
+    "foodySlug": "ghien-mi-cay",
+    "sfDiscoveredAt": "2026-07-18T06:47:38.050Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Cá viên chiên nước mắm thập cẩm",
+      "Chân gà chiên giòn xốc mắm tỏi",
+      "Bánh tráng trộn",
+      "Gà viên rán",
+      "Cá viên chiên thập cẩm",
+      "Cá viên chiên thập cẩm",
+      "Mỳ cay trộn Hải sản",
+      "Mỳ cay trộn ba chỉ bò Mỹ, xúc xích",
+      "Mỳ cay trộn cá viên",
+      "Mỳ cay trộn thập cẩm",
+      "Sinh  tố dâu",
+      "Sinh tố mãng cầu",
+      "Trà trái cây nhiệt đới",
+      "Trà đào",
+      "Trà mãng cầu chanh leo",
+      "Trà dâu tây",
+      "Trà  mãng cầu",
+      "Trà ổi hồng",
+      "Trà dưa lưới",
+      "Chân gà sốt Thái",
+      "Chân gà sốt Thái mix  trứng non",
+      "Chân gà sốt Thái mix sứa",
+      "Sứa sốt Thái",
+      "Chân gà sốt Thái mix sứa, trứng non",
+      "Trứng non sốt Thái",
+      "Trà sữa không topping",
+      "Trà sữa truyền thống",
+      "Matcha latte",
+      "Trà sữa sốt khoai môn tươi",
+      "Trà sữa phô mai viên",
+      "Sữa tươi  trân châu đường đen"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:36.225Z"
+  },
+  {
+    "id": "r_ct_com-ga-dung-ky-nguyen-van-linh",
+    "name": "Cơm Gà Dung Ký - Nguyễn Văn Linh",
+    "address": "305G/8 Nguyễn Văn Linh, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvcz9zxg69wff@resize_ss640x400",
+    "shopeefoodSlug": "com-ga-dung-ky-nguyen-van-linh",
+    "foodySlug": "com-ga-dung-ky-nguyen-van-linh",
+    "sfDiscoveredAt": "2026-07-18T06:47:40.666Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Com Ga Xối Mỡ",
+      "Chân gà chiên",
+      "Nữa con gà luoc",
+      "Nữa con gà chiên",
+      "Cơm gà xối mỡ",
+      "Cơm Gà Luộc",
+      "Gà Cúng",
+      "Chân Gà Luộc ",
+      "Cơm gà góc tư hấp cải thìa",
+      "Ga hấp cải thìa"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:05.050Z"
+  },
+  {
+    "id": "r_ct_lau-nuong-256",
+    "name": "Lẩu & Nướng 256",
+    "address": "91 Nguyễn Đệ, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwgy6iavu66z91@resize_ss640x400",
+    "shopeefoodSlug": "tra-sua-an-vat-lau-nuong-huynh-nhu",
+    "foodySlug": "lau-nuong-256",
+    "sfDiscoveredAt": "2026-07-18T06:48:08.050Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Lẩu mini",
+      "Combo 1",
+      "Combo 4",
+      "Combo 2",
+      "Combo 3",
+      "Cơm tấm long xuyên",
+      "Cơm sườn trứng",
+      "Cơm chiên dương châu",
+      "Trà sữa truyền thống",
+      "Trà sữa khoai môn",
+      "Trà sữa matcha",
+      "Sữa tươi trân châu đường đen",
+      "Trà mẵng cầu",
+      "Sinh tố bơ",
+      "Soda blue",
+      "Trà đào",
+      "Trà dâu",
+      "Rau má sữa",
+      "Trà vải",
+      "Milo dầm",
+      "Trà sữa phô mai kem dẻo",
+      "Sinh tố mẵng cầu",
+      "Cà phê muối",
+      "Sinh tố việt quốc",
+      "Trà dưa lưới",
+      "Trà ổi hồng",
+      "Mì cay bò",
+      "Mì cay hải sản",
+      "Mì cay thập cẩm",
+      "Bún Thái Đặc Biệt",
+      "Bún Thái",
+      "Bánh tráng cuộn",
+      "Bánh tráng trộn",
+      "Chân gà sốt thái",
+      "Bánh Mì Bơ Béo",
+      "Bánh Mì Chảo Đặc biệt",
+      "Bánh mì xíu mại trứng",
+      "Bánh Mì Chảo Thường",
+      "Mì xào hải sản",
+      "Mì xào bò"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:36.600Z"
+  },
+  {
+    "id": "r_ct_tiem-nha-vivu-hem-51-duong-3-thang-2",
+    "name": "Tiệm Nhà ViVu - Hẻm 51 Đường 3 Tháng 2",
+    "address": "57C3D Khu Vực 2 Hẻm 51 Đường 3 Tháng 2, P. An Khánh, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7ras8-m2t56r92ay0q82@resize_ss640x400",
+    "shopeefoodSlug": "tiem-nha-vivu-hem-51-duong-3-thang-2",
+    "foodySlug": "tiem-nha-vivu-hem-51-duong-3-thang-2",
+    "sfDiscoveredAt": "2026-07-18T06:48:11.934Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Ếch nướng  muối ớt",
+      "Bò nướng satế",
+      "Bò cuôn kim châm",
+      "Sườn nướng",
+      "Sụn gà chiên nước mắm",
+      "Lẩu Thái",
+      "Combo lẩu nướng vivu",
+      "Lẩu Kimchi",
+      "Lẩu Tứ Xuyên",
+      "Lẩu gà chanh ớt",
+      "Lẩu gà Tứ Xuyên",
+      "Lẩu ếch chanh ớt",
+      "Lẩu mực Tứ Xuyên",
+      "Lẩu 2 ngăn Vivu",
+      "Bún thêm",
+      "Trứng muối thêm",
+      "Chân gà rút xương sốt thái",
+      "Combo nướng",
+      "Chả giò Vivu",
+      "Lẩu 2 ngăn Vivu",
+      "Tôm nướng  muối ớt",
+      "Tôm sốt thái",
+      "Ốc hương sốt trứng muối",
+      "Mì xào hải sản",
+      "Khoai môn chiên nước mắm",
+      "Cơm chiên hải sản",
+      "Cơm chiên tỏi"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:08.749Z"
+  },
+  {
+    "id": "r_ct_nha-minh-nuong-lau",
+    "name": "Nhà Mình - Nướng & Lẩu",
+    "address": "Hẻm 1 Nguyễn Việt Hồng, P. Xuân Khánh, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwe1y6rc7fff9f@resize_ss640x400",
+    "shopeefoodSlug": "com-nha-minh-com-trua-hamburger",
+    "foodySlug": "nha-minh-nuong-lau",
+    "sfDiscoveredAt": "2026-07-18T06:48:12.536Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "1 Cơm Cà ri Gà Kiểu Nhật + 1 Coca-Cola",
+      "1 cơm chiên kim chi + 1 Coca-Cola",
+      "1 Cơm gà chiên xù + 1 Coca-Cola",
+      "01 Coca-Cola ly",
+      "2 Cơm gà chiên xù + 2 Coca-Cola",
+      "1 Cơm Cà ri Gà Kiểu Nhật + 1 Coca-Cola",
+      "1 cơm chiên kim chi + 1 Coca-Cola",
+      "1 Cơm gà chiên xù + 1 Coca-Cola",
+      "01 Coca-Cola ly",
+      "2 Cơm gà chiên xù + 2 Coca-Cola",
+      "Kimbap Thịt Bò",
+      "Kimbap Thập Cẩm",
+      "Kimbap Healthy Không Cơm",
+      "KimBap Chiên",
+      "Kimbap Bò Phomai Tan Chảy",
+      "Kimbap Thanh Cua Trứng",
+      "Kimbap Xúc Xích",
+      "Kimbap Trứng Xúc Xích",
+      "Kimbap Lá Cẩm (Chiên)",
+      "Kimbap Mini",
+      "Mỳ Tokbokki Siêu Phomai",
+      "Mỳ Trộn Tương Đen Jjajangmen + Trứng Ngâm Tương",
+      "Mỳ Trộn Tương Đen Jjajangmen Mandu",
+      "Bò Viên Sốt Sa Tế Cay",
+      "Mandu Chiên + Sốt Cay Ngọt Hàn Quốc",
+      "Mandu Chiên + Sốt Đặc Biệt Hàn Quốc",
+      "Cơm Bò Viên Sốt Sa Tế Cay",
+      "Da Hoành Thánh Chiên + Sốt Mayo",
+      "Cơm Chiên Mandu + Sốt Hàn Quốc",
+      "Cơm Gà Mắm Tỏi",
+      "Mỳ Bò Viên Sốt Sa Tế Cay",
+      "Mỳ Xào Trứng",
+      "Set Viên Chiên Hoàng Gia",
+      "Soup Kim Chi",
+      "Cơm trộn Hàn Quốc Bibimbap",
+      "Tokbokki Sauce Phô mai Cay Hàn Quốc",
+      "Tôm chiên xù kiểu Nhật Tartar Sauce",
+      "Tokbokki Sauce Curry kieu Nhat",
+      "Mỳ Trộn Tương Đen Jjajangmen",
+      "Mỳ Trộn Cay 7 Cấp Độ",
+      "Cơm Trứng Gà Lòng Đào Ngâm Tương",
+      "Mỳ Trộn Gà Cay Phomai Bulgogi",
+      "Cá Viên Sốt Thái",
+      "Cá Viên Sốt Cay",
+      "Hamburger Bò Úc",
+      "Hamburger Gà Giòn",
+      "Hamburger Xúc Xích Đức",
+      "Hamburger Tôm Tempura",
+      "Mỳ Bò Xào Hành Tây sốt Tiêu đen",
+      "Mỳ Trộn Xúc Xích Opla",
+      "Mỳ Trộn Gà Giòn Opla",
+      "Mỳ Trộn Gà Giòn",
+      "Mỳ Trộn Trứng Chiên",
+      "Mỳ Trộn Xúc Xích",
+      "Cơm Gà Chiên Xù",
+      "Cơm Gà Sốt Cay Hàn Quốc",
+      "Cơm Gà Giòn Phomai Cheddar",
+      "Kim Chi thêm",
+      "Cơm Gà Sốt Thái",
+      "Cơm Gà Sốt Chua Ngọt",
+      "Gà Cay Siêu Phô Mai",
+      "Gà Sốt 3 vị (Cay + Phomai Cheddar + Mayo)",
+      "Gà lắc phomai size L",
+      "Gà Giòn Sốt Phomai Cheddar",
+      "Gà Giòn Sốt Cay Hàn Quốc",
+      "Gà Giòn Sốt Mayo",
+      "Gà Sốt Chua Ngọt",
+      "Bánh Mì Chả Cá Dây",
+      "Bánh Mì Chả Cá Opla",
+      "Cơm Bò Xào Hành Tây Sốt Tiêu Đen",
+      "Cơm Trứng Quậy",
+      "Cơm Chiên Kim Chi",
+      "Cơm Rang Trứng Opla",
+      "Cơm Chiên Bò Rau Củ",
+      "Cơm Chiên Bò Om Trứng",
+      "Cơm Chiên Thanh Cua",
+      "Cơm Curry Gà kiểu Nhật",
+      "Cơm Curry Tôm Chiên Xù kiểu Nhật",
+      "Cá Viên Cà Ri Kiểu Nhật",
+      "Combo hamburger + ly coca",
+      "Hamburger + trà",
+      "Cơm Cà Ri Gà + Coca",
+      "Cơm gà chiên xù +Coca",
+      "combo tiết kiệm",
+      "Hamburger + Coca",
+      "Bánh gạo lắc phô mai",
+      "Xúc xích phô mai khổng lồ",
+      "Combo 2 Trứng Gà Lòng Đào",
+      "Trứng Gà ngâm nước tương Hàn Quốc",
+      "Chả cá dây chiên 100gr",
+      "Xúc Xích Đức",
+      "Salad Gà Sauce Mayonnaise",
+      "Salad Rau Củ Sốt Mayo",
+      "Trà Chanh Hà Nội Phố",
+      "Trà tắc bạc hà",
+      "Cà phê",
+      "Sữa tươi thạch thảo mộc Healthy",
+      "Hồng Trà Sữa",
+      "Cà Phê Muối",
+      "Trà đường khổng lồ",
+      "Matcha Latte Khổng Lồ",
+      "Trà Lai Miền Tây",
+      "Cà Phê Sữa Khổng Lồ",
+      "Sốt Phomai Cheddar",
+      "Sốt Cay Hàn Quốc",
+      "Phô mai thêm",
+      "Trứng thêm"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:43.869Z"
+  },
+  {
+    "id": "r_ct_milano-coffee-hung-phu-1",
+    "name": "Milano Coffee - Hưng Phú 1",
+    "address": "23 Đường A9, KDC Hưng Phú 1, P. Hưng Phú, Quận Cái Răng , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-820l4-mjs6832i1qtfba@resize_ss640x400",
+    "shopeefoodSlug": "milano-coffee-hung-phu-1",
+    "foodySlug": "milano-coffee-hung-phu-1",
+    "sfDiscoveredAt": "2026-07-18T06:48:23.308Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Sữa Chua Đá",
+      "Cà phê đá truyền thống",
+      "Cà phê sữa truyền thống",
+      "Cacao sữa",
+      "Cà phê sữa pha máy",
+      "Bạc xỉu pha máy sữa gấu",
+      "Cacao sữa cà phê",
+      "Cà phê pha máy",
+      "Bạc xỉu pha máy sữa tươi",
+      "Bạc xỉu (pha thường sữa tươi)",
+      "Chanh Dây - Mật ong - Hạt Chia",
+      "Cam tươi - hạt chia",
+      "Cam - mật ong - hạt chia",
+      "Chanh dây - hạt chia",
+      "Trà đường",
+      "Hồng trà sữa",
+      "Trà  Tắc",
+      "Trà lipton Tắc",
+      "Hồng trà  Tắc",
+      "Hồng trà mật ong",
+      "Trà sữa (lipton)",
+      "Trà lai",
+      "Cacao Latte sữa gấu",
+      "Matcha Latte Sữa Gấu",
+      "Matcha Latte sữa tươi",
+      "Cacao Latte sữa tươi"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:16.538Z"
+  },
+  {
+    "id": "r_ct_bun-dau-mam-tom-nang-thom",
+    "name": "Bún Đậu Mắm Tôm Nàng Thơm",
+    "address": "132/42/48 Lê Anh Xuân, P. Thới Bình, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv2tbwe5a55c8@resize_ss640x400",
+    "shopeefoodSlug": "bun-dau-mam-tom-nang-thom",
+    "foodySlug": "bun-dau-mam-tom-nang-thom",
+    "sfDiscoveredAt": "2026-07-18T06:48:44.383Z",
+    "source": "foody-detail",
+    "hasRealMenu": false,
+    "menuTemplateFallback": true,
+    "dishNames": [],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": true,
+    "lastCrawlError": "closed_no_menu",
+    "closedAt": "2026-07-18T08:07:58.575Z",
+    "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
+    "menuUpdatedAt": "2026-07-18T08:07:58.664Z"
+  },
+  {
+    "id": "r_ct_ngan-tuyen-tra-sua-nha-lam",
+    "name": "Ngân Tuyền - Trà Sữa Nhà Làm",
+    "address": "411 Nguyễn Văn Cừ Nối Dài, P. An Bình, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwakpc55ufa37b@resize_ss640x400",
+    "shopeefoodSlug": "quan-nuoc-co-hai-tra-sua-nha-lam-tra-trai-cay-tuoi-coffee-230-nguyen-de.ewizbk",
+    "foodySlug": "ngan-tuyen-tra-sua-nha-lam",
+    "sfDiscoveredAt": "2026-07-18T06:48:51.954Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "TRÀ SỮA CÔ HAI Size L",
+      "TRÀ SỮA GẠO RANG Size L",
+      "TRÀ SỮA NHÃN TÁO (MUST TRY) Size L",
+      "TRÀ SỮA OLONG LÀI Size M",
+      "TRÀ SỮA OLONG LÀI Size L",
+      "TRÀ SỮA CÔ HAI Size M",
+      "TRÀ SỮA MATCHA Size L",
+      "TRÀ SỮA MATCHA Size M",
+      "TRÀ SỮA NHÃN TÁO (MUST TRY) Size M",
+      "TRÀ SỮA GẠO RANG Size M",
+      "TRÀ LÀI ĐÁC THƠM",
+      "LỤC TRÀ ỔI HỒNG",
+      "LỤC TRÀ MÃNG CẦU",
+      "LỤC TRÀ NHIỆT ĐỚI",
+      "TRÀ LÀI VẢI HỒNG",
+      "LỤC TRÀ TẮC",
+      "TRÀ ĐÀO",
+      "HỒNG TRÀ SỦI BỌT",
+      "HỒNG TRÀ TẮC",
+      "TRÀ SEN VÀNG",
+      "HỒNG TRÀ MACCHIATO",
+      "SỮA TƯƠI TRÂN CHÂU ĐƯỜNG ĐEN",
+      "MATCHA LATTE",
+      "BẠC XỈU",
+      "CAFE SỮA",
+      "CAFE CÔ HAI",
+      "THẠCH PHÔ MAI",
+      "KHÚC BẠCH PHÔ MAI MẶN",
+      "THẠCH CỦ NĂNG",
+      "KHOAI PHÔ MAI",
+      "CHEESE BALL",
+      "PUDDING DƯA LƯỚI",
+      "TRÂN CHÂU ĐEN",
+      "SƯƠNG SÁO",
+      "Trái cây thêm",
+      "PUDDING TRỨNG",
+      "TRÂN CHÂU TRẮNG",
+      "KEM MACCHIATO",
+      "THẠCH RAU CÂU"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:07:57.944Z"
+  },
+  {
+    "id": "r_ct_phuong-phuong-cafe-tra-sua-nha-lam",
+    "name": "Phương Phương - Cafe & Trà Sữa Nhà Làm",
+    "address": "182 Phạm Hùng, P. Lê Bình, Quận Cái Răng , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8f072xsue300@resize_ss640x400",
+    "shopeefoodSlug": "tra-sua-tocotoco-sense-city-can-tho",
+    "foodySlug": "phuong-phuong-cafe-tra-sua-nha-lam",
+    "sfDiscoveredAt": "2026-07-18T06:48:57.037Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Deal Best Seller 1K",
+      " Combo Best Seller - Trà Sữa ToCoToCo size M",
+      "Combo Gấp Đôi Niềm Vui ⭐ (Trà Sữa ToCoToCo)",
+      "Combo Càng Đông Càng Vui",
+      "Deal Trà Chiều  - Sôi động cùng WorldCup",
+      "Combo Dai Dai 1",
+      "Combo Dai Dai 2",
+      "ToCo Mời Bạn Nhâm Nhi",
+      "Trà sữa trân châu hoàng gia",
+      "Trà sữa kim cương đen Okinawa",
+      "Trà sữa Ba Anh Em",
+      "Tiger Sugar",
+      "Trà xanh sữa vị nhài",
+      "Trà sữa",
+      "Trà sữa dâu tây",
+      "Trà Sữa Trân Châu Hoàng Gia - Size L",
+      "Trà Sữa Hạnh Phúc",
+      "Trà sữa ba anh em - size L",
+      "Trà Sữa Kim Cương Đen Okinawa - size L",
+      "Trà sữa yến mạch",
+      "Nhài sữa phô mai tươi sương sáo",
+      "Trà Sữa Khoai Môn Đường Hổ",
+      "Xanh Sữa Nhài Đào Tiên",
+      "Xanh Nhài Matcha Tươi Kem Phô Mai",
+      "Bánh tráng Hỏa diệm sơn",
+      "Xanh Sữa Nhài Matcha Tươi",
+      "Ô Long Dứa Băng Tuyết",
+      "Trà sữa Caramel Muối hồng Himalaya",
+      "Xanh nhài mơ mặn khổng lồ",
+      "Xanh nhài mơ mặn",
+      "ToCoToCo Khao Bạn Món Khổng Lồ",
+      "Trà sữa ô long",
+      "Trà dứa thạch konjac",
+      "Trà Sữa Trân Châu Đường Hổ",
+      "Trà Sữa Đậu Đỏ",
+      "Xanh Nhài Chanh Vàng",
+      "Ô long mận Mộc Châu thạch quế hoa",
+      "Ô Long Dâu Tây",
+      "Xanh Nhài Mãng Cầu",
+      "Trà Xanh Nhài Đào Tiên",
+      "Ô Long Vải Quế Hoa",
+      "Ô long đào tiên",
+      "Xanh Nhài Vải Quế Hoa",
+      "Trà Xanh Đào Chanh Leo",
+      " Xanh Nhài Mận Năng Nổ",
+      " Xanh Sữa Nhài Năng Nổ",
+      "Hồng trà kem phô mai",
+      "Ô long kem phô mai",
+      "Trà xanh kem phô mai",
+      "Oolong Mộc Sen Kem Phô Mai size L",
+      "Ô long mận kem phô mai",
+      "Trà Xanh Chanh Leo Kem Phô Mai",
+      "Xanh Nhài Vải Kem Phô Mai",
+      "Dâu tằm Kem phô mai",
+      "Xanh Nhài Sữa Tươi ToCoToCo",
+      "Olong sữa tươi",
+      "Sữa Tươi Yến Mạch",
+      "Oolong Dâu Tây Kem Phô Mai",
+      "Olong đào quế hoa kem cheese",
+      "Người Bạn Xanh Sữa Nhài Khổng Lồ - 1000ml",
+      "Sữa tươi Trân Châu Đường Hổ Khổng Lồ - 1000ml",
+      "Chiến Thần Topping Khổng Lồ",
+      "Hồng trà mận quế hoa khổng lồ - 1000ml",
+      "Thạch Đào Tiên - Peach Jelly",
+      "Thạch Dâu Tây  (Strawberry Jelly)",
+      "TRÙM DEAL ToCoToCo",
+      "Trùm Deal - Trà Sữa Ba Anh Em",
+      "Trùm Deal - Trà Dứa Thạch Konjac"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:07:58.142Z"
+  },
+  {
+    "id": "r_ct_com-tra-sua-nha-lam-ba-muoi-thang-tu",
+    "name": "Cơm - Trà Sữa Nhà Làm - Ba Mươi Tháng Tư",
+    "address": "534/16 Ba Mươi Tháng Tư, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv96yu6heah01@resize_ss640x400",
+    "shopeefoodSlug": "com-tra-sua-nha-lam-ba-muoi-thang-tu",
+    "foodySlug": "com-tra-sua-nha-lam-ba-muoi-thang-tu",
+    "sfDiscoveredAt": "2026-07-18T06:48:58.347Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Khoai Mỡ Chiên/ Phan Lớn",
+      "Khoai Mì Cay-1phan Lon",
+      "Khoai Lang Kén Chiên",
+      "Khoai Tây -1phan",
+      "Sữa ChuA Hạt Đác Dâu Tằm",
+      "Trà Tắc",
+      "Ca Cao Sữa Đá",
+      "Sinh Tố Bơ",
+      "Đá Chanh",
+      "Sữa Chua Đá",
+      "Coffee Đá. ",
+      "Lipton Đá"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:51.955Z"
+  },
+  {
+    "id": "r_ct_bep-co-bi-sua-chua-nha-lam",
+    "name": "Bếp Cô Bi - Sữa Chua Nhà Làm",
+    "address": "Số 197 Phan Huy Chú, P. Cái Khế, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-81ztc-mqfvvon31moc64@resize_ss640x400",
+    "shopeefoodSlug": "bep-co-bi-sua-chua-nha-lam",
+    "foodySlug": "bep-co-bi-sua-chua-nha-lam",
+    "sfDiscoveredAt": "2026-07-18T06:49:02.093Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Sữa chua phô mai (1 hủ )",
+      "Truyền thống set 10 hủ",
+      "Sữa chua nếp cẩm (1 hủ )",
+      "Sốt Kem Matcha set 10 hủ",
+      "Sữa chua sốt kem matcha (1 hủ )",
+      "Sữa chua truyền thống (1 hủ)",
+      "Phô Mai set 10 hủ",
+      "Nếp Cẩm set 10 hủ"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:05:59.458Z"
+  },
+  {
+    "id": "r_ct_banh-trang-tron-nha-bap-nguyen-van-cu-noi-dai",
+    "name": "Bánh Tráng Trộn Nhà Bắp - Nguyễn Văn Cừ Nối Dài",
+    "address": "345T Nguyễn Văn Cừ Nối Dài, P. An Bình, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-81ztc-mlqg65y49og30b@resize_ss640x400",
+    "shopeefoodSlug": "banh-trang-tron-nha-bap-nguyen-van-cu-noi-dai",
+    "foodySlug": "banh-trang-tron-nha-bap-nguyen-van-cu-noi-dai",
+    "sfDiscoveredAt": "2026-07-18T06:49:13.174Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bánh tráng nướng",
+      "Bánh trúng cút nướng",
+      "Bánh mì nướng muối ớt",
+      "Bánh tráng trộn",
+      "Trứng cút hấp thảo mộc trung hoa",
+      "Bánh tráng cuốn bơ",
+      "Bánh mì bơ trứng nướng muối ớt"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:06:07.055Z"
+  },
+  {
+    "id": "r_ct_an-vat-khoai-tron",
+    "name": "Ăn Vặt Khoái Trộn",
+    "address": "20/12 Võ Nguyên Giáp, P. Phú Thứ, Quận Cái Răng , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-m04e7nnmft73ee@resize_ss640x400",
+    "shopeefoodSlug": "an-vat-khoai-tron",
+    "foodySlug": "an-vat-khoai-tron",
+    "sfDiscoveredAt": "2026-07-18T06:49:18.978Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bánh tráng cuộn",
+      "Trứng cút nướng",
+      "Bánh mì nướng sate",
+      "Bánh tráng nướng ( thịt băm)",
+      "Bánh Tráng Trộn ( bánh thường)",
+      "Bánh tráng nướng ( khô bò)",
+      "Cơm cháy chà bông",
+      "Sting Đỏ",
+      "Tăng Lực Number 1",
+      "Pepsi",
+      "Tăng Lực Redbull Thái Lan",
+      "Trà Xanh 0 Độ",
+      "Cà phê sữa",
+      "C2 Vị Chanh",
+      "Tăng Lực Cà Phê 247",
+      "Mirinda Xá Xị",
+      "Cà phê đá"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:06:14.335Z"
+  },
+  {
+    "id": "r_ct_com-chay-viet",
+    "name": "Cơm Chay Việt",
+    "address": "17 Đề Thám, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu1n07danyce6@resize_ss640x400",
+    "shopeefoodSlug": "com-chay-bach-thao-de-tham",
+    "foodySlug": "com-chay-viet",
+    "sfDiscoveredAt": "2026-07-18T06:49:28.835Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Hủ tiếu lứt",
+      "Bì cuốn",
+      "Chả giò",
+      "Bánh mì",
+      "Cháo",
+      "Cơm Thập Cẩm + Sâm Rong Biển",
+      "Cơm thập cẩm",
+      "Cơm rang cá mặn",
+      "Cơm xào  sốt nấm rau củ",
+      "Cơm rang Dương  Châu ( Hải sản)",
+      "Bánh tằm xíu mại",
+      "Kim  Tiền",
+      "Cơm tấm Bách Thảo",
+      "Hủ tiếu",
+      "Phở",
+      "Mì nước",
+      "Bún chả Kim Tiền",
+      "Bún bò Huế",
+      "Bún riêu",
+      "Bún Thái",
+      "Mì xào mềm",
+      "Mì cay Hàn Quốc",
+      "Hủ tiếu xào",
+      "Bún xào",
+      "Bún cá Châu Đốc",
+      "Bún măng",
+      "Bánh lọt",
+      "Cà ri Ấn Độ",
+      "Bún mắm",
+      "bò kho",
+      "Mì vịt tiềm",
+      "Bún Thố nấu tiêu",
+      "Cơm hấp nồi đất",
+      "cơm rang hạt sen",
+      "Bún Thái lứt",
+      "Bún riêu lứt",
+      "Mì tiềm lứt",
+      "Hủ tiếu lứt",
+      "Bún măng lứt",
+      "Bún cá gạo lứt",
+      "phở lứt",
+      "huế lứt",
+      "mắm lứt",
+      "Mắm chưn",
+      "Lẩu Thái",
+      "Lẩu nấm",
+      "Lẩu Bách Thảo",
+      "Lẩu riêu",
+      "Lẩu bao tử nấu tiêu",
+      "Lẩu chua ngọt",
+      "Lẩu kim chi Hàn Quốc",
+      "Lẩu  mắm",
+      "Lẩu giả dương",
+      "Lẩu Tiềm"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:07:58.339Z"
+  },
+  {
+    "id": "r_ct_bun-ca-dai-duong",
+    "name": "Bún Cá Đại Dương",
+    "address": "162 Phạm Ngũ Lão, P. An Hòa, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsu55nz8ma3d27@resize_ss640x400",
+    "shopeefoodSlug": "bun-ca-ngu-dai-duong-quang-trung",
+    "foodySlug": "bun-ca-dai-duong",
+    "sfDiscoveredAt": "2026-07-18T06:49:46.756Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bún cá đại dương",
+      "Bún đầy đủ đặc biệt",
+      "Bún đầy đủ",
+      "Bún 2 loại cá",
+      "Bún mắt cá ngừ",
+      "Bún chả cá",
+      "Bún cá ngừ hoặc bún cá kiếm",
+      "Coca",
+      "Sting",
+      "Pepsi",
+      "Fanta",
+      "Sprite",
+      "Lẩu mang về",
+      "Mắt cá ngừ đại dương",
+      "Tôm giòn (20-40c/kg)",
+      "Chả cá Nha Trang",
+      "Ba khía Cà Mau"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:08:38.148Z"
+  },
+  {
+    "id": "r_ct_bun-ca-chau-doc-08-nguyen-viet-hong",
+    "name": "Bún Cá Châu Đốc - 08 Nguyễn Việt Hồng",
+    "address": "08 Nguyễn Việt Hồng, P. An Phú, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsv44k9hvbfde4@resize_ss640x400",
+    "shopeefoodSlug": "bun-ca-chau-doc-08-nguyen-viet-hong",
+    "foodySlug": "bun-ca-chau-doc-08-nguyen-viet-hong",
+    "sfDiscoveredAt": "2026-07-18T06:49:56.222Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bún cá Châu Đốc",
+      "Nước cam lớn",
+      "Bún thịt xào",
+      "Nước cam nhỏ"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:08:07.712Z"
+  },
+  {
+    "id": "r_ct_an-vat-bibi-ga-u-muoi-nha-lam-chan-ga-sot-thai-quang-trung",
+    "name": "Ăn Vặt Bibi - Gà Ủ Muối Nhà Làm & Chân Gà Sốt Thái - Quang Trung",
+    "address": "9/17 Quang Trung, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134513-7r98o-lsvgj5cuznpg56@resize_ss640x400",
+    "shopeefoodSlug": "an-vat-bibi-ga-u-muoi-nha-lam-chan-ga-sot-thai-quang-trung",
+    "foodySlug": "an-vat-bibi-ga-u-muoi-nha-lam-chan-ga-sot-thai-quang-trung",
+    "sfDiscoveredAt": "2026-07-18T06:50:15.876Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Chân Gà Ủ Muối Nhà Làm",
+      "Chân gà rút xương sốt thái",
+      "Gà Ủ Muối Nữa Con Nhà Làm",
+      "Mì Trộn Bò Viên",
+      "Chân gà ngâm .",
+      "Sữa Chua   10 Túi"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:08:08.772Z"
+  },
+  {
+    "id": "r_ct_an_vat_chon_lon_xon_cn_duong_3_2",
+    "name": "Ăn Vặt Chộn Lộn Xộn - CN Đường 3/2",
+    "address": "43/1 Hẻm 43 Đường 3/2, P. Xuân Khánh, Quận Ninh Kiều, Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-81ztc-mqlnxagy6cr234@resize_ss640x400",
+    "shopeefoodSlug": "an-vat-chon-lon-xon-cn-duong-3-2",
+    "foodySlug": "an-vat-chon-lon-xon-cn-duong-3-2",
+    "sfDiscoveredAt": "2026-07-18T06:51:09.942Z",
+    "source": "foody-brand",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Snack Chộn Lộn Xộn",
+      "Keo Bánh tráng vừa CUỐN vừa TRỘN",
+      "Bánh Mì Que nướng Pate Bơ",
+      "Bánh tráng CHỘN LỘN XỘN (có tốp mỡ)",
+      "Bánh tráng cuộn trứng chấm me bơ",
+      "Bánh mì BƠ CHẢY nướng muối ớt hot trend",
+      "Rễ Tranh ướp lạnh",
+      "Bánh tráng lụi đặc biệt",
+      "Bánh tráng trộn Đặc biệt",
+      "Bánh Snack Swing siêu ngon",
+      "Cái xô bánh tráng dẻo vị khô BÒ/GÀ sấy BƠ GIÒN",
+      "Bịch bánh tráng dẻo MUỐI DỪA (đóng gói sẵn)",
+      "Bt ủ bơ trộn khô bò giòn/khô gà xé bơ",
+      "Bánh tráng dẻo mỡ hành x trứng",
+      "Bánh tráng Bơ cuốn x trứng",
+      "Bánh tráng trộn Truyền thống",
+      "Bánh tráng hành bơ chanh dây",
+      "Bánh tráng lụi ( thường)",
+      "Bánh tráng cuộn sốt me",
+      "Cái ly Ủ BƠ",
+      "Ly BT vừa cuốn vừa trộn",
+      "Bánh tráng Xéppp",
+      "Cơm cháy mỡ hành chà bông (miếng)",
+      "Cơm cháy mỡ hành khô bò (miếng)",
+      "Bánh Mì nướng muối ớt Mayonaise",
+      "Bánh Mì Que nướng Bơ Pate Chà bông",
+      "Bánh Mì Que nướng Bơ Pate Chà bông thêm phô mai",
+      "Bánh Mì Que nướng bơ pate thêm phô mai",
+      "Bánh Cút Nướng",
+      "Chân gà sốt thái",
+      "Chân gà Trứng non sốt thái",
+      "Tré trộn",
+      "Tré trộn VIP đặc biệt tặng trứng viên",
+      "Combo 3 món hot tiktok",
+      "Combo 4 món best seller",
+      "Combo năng lượng (1 b.mì + 1rt)",
+      "Combo GHIỀN (1 chân gà sốt thái + 1 rt)",
+      "Combo NGON RẺ (1 lụi tt + 1 chai rt)"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:08:08.451Z"
+  },
+  {
+    "id": "r_ct_kem-trang-tien-can-tho",
+    "name": "Kem Tràng Tiền - Cần Thơ",
+    "address": "15/11A Hẻm 13 Lê Hồng Phong, P. Bình Thủy, Quận Bình Thủy , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8tw6d1hsyj2b@resize_ss640x400",
+    "shopeefoodSlug": "tra-sua-tocotoco-sense-city-can-tho",
+    "foodySlug": "kem-trang-tien-can-tho",
+    "sfDiscoveredAt": "2026-07-18T07:02:34.131Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Deal Best Seller 1K",
+      " Combo Best Seller - Trà Sữa ToCoToCo size M",
+      "Combo Gấp Đôi Niềm Vui ⭐ (Trà Sữa ToCoToCo)",
+      "Combo Càng Đông Càng Vui",
+      "Deal Trà Chiều  - Sôi động cùng WorldCup",
+      "Combo Dai Dai 1",
+      "Combo Dai Dai 2",
+      "ToCo Mời Bạn Nhâm Nhi",
+      "Trà sữa trân châu hoàng gia",
+      "Trà sữa kim cương đen Okinawa",
+      "Trà sữa Ba Anh Em",
+      "Tiger Sugar",
+      "Trà xanh sữa vị nhài",
+      "Trà sữa",
+      "Trà sữa dâu tây",
+      "Trà Sữa Trân Châu Hoàng Gia - Size L",
+      "Trà Sữa Hạnh Phúc",
+      "Trà sữa ba anh em - size L",
+      "Trà Sữa Kim Cương Đen Okinawa - size L",
+      "Trà sữa yến mạch",
+      "Nhài sữa phô mai tươi sương sáo",
+      "Trà Sữa Khoai Môn Đường Hổ",
+      "Xanh Sữa Nhài Đào Tiên",
+      "Xanh Nhài Matcha Tươi Kem Phô Mai",
+      "Bánh tráng Hỏa diệm sơn",
+      "Xanh Sữa Nhài Matcha Tươi",
+      "Ô Long Dứa Băng Tuyết",
+      "Trà sữa Caramel Muối hồng Himalaya",
+      "Xanh nhài mơ mặn khổng lồ",
+      "Xanh nhài mơ mặn",
+      "ToCoToCo Khao Bạn Món Khổng Lồ",
+      "Trà sữa ô long",
+      "Trà dứa thạch konjac",
+      "Trà Sữa Trân Châu Đường Hổ",
+      "Trà Sữa Đậu Đỏ",
+      "Xanh Nhài Chanh Vàng",
+      "Ô long mận Mộc Châu thạch quế hoa",
+      "Ô Long Dâu Tây",
+      "Xanh Nhài Mãng Cầu",
+      "Trà Xanh Nhài Đào Tiên",
+      "Ô Long Vải Quế Hoa",
+      "Ô long đào tiên",
+      "Xanh Nhài Vải Quế Hoa",
+      "Trà Xanh Đào Chanh Leo",
+      " Xanh Nhài Mận Năng Nổ",
+      " Xanh Sữa Nhài Năng Nổ",
+      "Hồng trà kem phô mai",
+      "Ô long kem phô mai",
+      "Trà xanh kem phô mai",
+      "Oolong Mộc Sen Kem Phô Mai size L",
+      "Ô long mận kem phô mai",
+      "Trà Xanh Chanh Leo Kem Phô Mai",
+      "Xanh Nhài Vải Kem Phô Mai",
+      "Dâu tằm Kem phô mai",
+      "Xanh Nhài Sữa Tươi ToCoToCo",
+      "Olong sữa tươi",
+      "Sữa Tươi Yến Mạch",
+      "Oolong Dâu Tây Kem Phô Mai",
+      "Olong đào quế hoa kem cheese",
+      "Người Bạn Xanh Sữa Nhài Khổng Lồ - 1000ml",
+      "Sữa tươi Trân Châu Đường Hổ Khổng Lồ - 1000ml",
+      "Chiến Thần Topping Khổng Lồ",
+      "Hồng trà mận quế hoa khổng lồ - 1000ml",
+      "Thạch Đào Tiên - Peach Jelly",
+      "Thạch Dâu Tây  (Strawberry Jelly)",
+      "TRÙM DEAL ToCoToCo",
+      "Trùm Deal - Trà Sữa Ba Anh Em",
+      "Trùm Deal - Trà Dứa Thạch Konjac"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:09:14.308Z"
+  },
+  {
+    "id": "r_ct_banh-xeo-thu",
+    "name": "Bánh Xèo Thu",
+    "address": "Công Binh, Quận Bình Thủy , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw7juasf6c4b76@resize_ss640x400",
+    "shopeefoodSlug": "muoi-coffee-banh-xeo-mekong",
+    "foodySlug": "banh-xeo-thu",
+    "sfDiscoveredAt": "2026-07-18T07:04:43.054Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bánh xèo vịt + tôm củ sắn",
+      "Bánh Xèo Chay",
+      "Bánh Xèo Da",
+      "Bánh Xèo Ức Vịt",
+      "Bánh xèo hến + tôm",
+      "Bánh xèo Mêkong",
+      "Bánh xèo Mêkong Đặc Biệt",
+      "Bánh khọt đậu nước cốt dừa",
+      "Bánh khọt tôm thịt",
+      "Bánh khọt Mêkong",
+      "Bún nước lèo Sóc Trăng",
+      "Bún nước lèo Sóc Trăng Đặc Biệt- thịt- tôm-cá",
+      "Bún nước lèo đầu cá",
+      "Beefsteak  thập cẩm",
+      "Beefsteak + trứng",
+      "Beefsteak",
+      "Beefsteak  + xíu mại",
+      "Bánh Tầm Bì Xíu Mại",
+      "Bánh Tầm Xíu Mại",
+      "Bún Xào",
+      "Bánh Tầm Bì",
+      "Củ hủ dừa",
+      "Nước Cốt Dừa",
+      "Cà Phê Muối",
+      "Cà Phê Sữa Đá/Nóng",
+      "Cà Phê Đá/Nóng",
+      "Soda Cà Phê",
+      "Soda Blue Ocean",
+      "Soda Halloween"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:08:48.633Z"
+  },
+  {
+    "id": "r_ct_ba-tu-vung-liem-nem-nuong",
+    "name": "Bà Tư Vũng Liêm - Nem Nướng",
+    "address": "68 Lê Lợi, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwddxiyk4lp582@resize_ss640x400",
+    "shopeefoodSlug": "ba-tu-vung-liem-nem-nuong",
+    "foodySlug": "ba-tu-vung-liem-nem-nuong",
+    "sfDiscoveredAt": "2026-07-18T07:05:50.969Z",
+    "source": "foody-detail",
+    "hasRealMenu": false,
+    "menuTemplateFallback": true,
+    "dishNames": [],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "lastCrawlError": "not_on_shopeefood",
+    "crawlNextAttempt": "2026-07-25T08:08:46.010Z",
+    "menuUpdatedAt": "2026-07-18T08:08:46.130Z"
+  },
+  {
+    "id": "r_ct_bun-dau-co-3",
+    "name": "Bún Đậu Cô 3",
+    "address": "Hẻm 108 Đường 30 Tháng 4, P. An Phú, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lwdk081cobtndb@resize_ss640x400",
+    "shopeefoodSlug": "bun-dau-mam-tom-xua-2-duong-3-2",
+    "foodySlug": "bun-dau-co-3",
+    "sfDiscoveredAt": "2026-07-18T07:07:47.496Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Bún đậu Trung 1 người",
+      "BÚN ĐẬU ĐẶC BIỆT 1 NGƯỜI",
+      "Bún chả Hà Nội",
+      "Bún đậu Trung 2 người",
+      "Bún đậu đặc biệt 2 người",
+      "Bún chả đặc biệt",
+      "Bún đậu phổ thông 1 người",
+      "Bún đậu phổ thông 2 người",
+      "Dồi sụn",
+      "Bún đậu khổng lồ Trung ( 4 người )",
+      "Bún đậu đặc biệt 3 người",
+      "Bún đậu khổng lồ phổ thông(4 người)",
+      "Chả cốm thêm",
+      "Bún thêm",
+      "Nem chua rán",
+      "Nem rán",
+      "Cà pháo",
+      "Đậu thêm",
+      "Bánh tráng",
+      "Thịt luộc",
+      "Tai heo",
+      "Dồi thêm",
+      "Trà tắc hà nội",
+      "Nước sấu",
+      "Coca",
+      "Trà chanh Hà Nội",
+      "Nước dâu tằm nguyên chất",
+      "Nước Atiso",
+      "Sprite",
+      "Nước suối",
+      "Nước mơ",
+      "Bún chả cốm"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:09:17.646Z"
+  },
+  {
+    "id": "r_ct_ha-noi-quan-bun-dau-mam-tom",
+    "name": "Hà Nội Quán - Bún Đậu Mắm Tôm",
+    "address": "Phan Đăng Lưu, P. Thới Bình, Quận Ninh Kiều , Cần Thơ",
+    "img": "https://down-vn.img.susercontent.com/vn-11134259-7r98o-lw8i1f4zr17f50@resize_ss640x400",
+    "shopeefoodSlug": "quan-xua-2-bun-dau-mam-tom-bun-cha-ha-noi",
+    "foodySlug": "ha-noi-quan-bun-dau-mam-tom",
+    "sfDiscoveredAt": "2026-07-18T07:07:52.578Z",
+    "source": "foody-detail",
+    "hasRealMenu": true,
+    "dishNames": [
+      "Met  1 người Đặc  Biệt",
+      "Mẹt Phổ Thông",
+      "Mẹt Trung",
+      "Mẹt Trung 2 Người",
+      "Đặc Biệt 2 Người Ăn",
+      "Mẹt Phổ Thông 2 Người Ăn",
+      "Mẹt Khổng Lồ Trung ( 4 Người Ăn)",
+      "Khổng Lồ Phổ Thông ( 4 Người Ăn )",
+      "Đặc Biệt 3 Người Ăn",
+      "Bún chả Hà Nội",
+      "Bún chả Đặc Biệt",
+      "Chả cốm thêm",
+      "Nem chua rán thêm",
+      "Đậu thêm",
+      "Cà  pháo",
+      "Nem rán thêm",
+      "Thịt luộc thêm",
+      "Dồi sụn thêm",
+      "Dồi tiết thêm",
+      "Tai heo thêm",
+      "Trà tắc",
+      "Nước sấu",
+      "Trà chanh Hà Nội",
+      "Nước mơ",
+      "Coca",
+      "Pepsi",
+      "Nước atiso",
+      "7up",
+      "Nước dâu tằm",
+      "Nước suối",
+      "Bún chả cốm"
+    ],
+    "rating": 4.6,
+    "reviews": 50,
+    "isClosed": false,
+    "menuUpdatedAt": "2026-07-18T08:09:25.191Z"
   }
 ]

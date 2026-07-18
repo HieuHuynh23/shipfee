@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * Quét Foody Cần Thơ (nhiều category + từ khóa + trang) → resolve ShopeeFood → MERGE DB.
+ * Quét Foody Cần Thơ (category + từ khóa rộng + gap-fill) → resolve ShopeeFood → MERGE DB.
+ *
+ * Ưu tiên resolve quán CHƯA có trong DB (tránh bỏ sót kiểu "Cơm Gà Kim - Nguyễn Văn Cừ"
+ * khi detail-limit cắt danh sách dài).
  *
  *   node discover_foody_shopeefood.js
- *   node discover_foody_shopeefood.js --pages=15 --detail-limit=800
+ *   node discover_foody_shopeefood.js --pages=15 --detail-limit=2000
+ *   node discover_foody_shopeefood.js --gap-fill
  *   node discover_foody_shopeefood.js --dry-run
  */
 'use strict';
@@ -15,10 +19,11 @@ const { rewriteSlug } = require('./slugMap');
 const { resolveBrandBranches, resolveShopeefoodSlugFromFoody } = require('./brandResolver');
 
 const DRY_RUN = process.argv.includes('--dry-run');
+const GAP_FILL = process.argv.includes('--gap-fill') || !process.argv.includes('--no-gap-fill');
 const pagesArg = process.argv.find(a => a.startsWith('--pages='));
 const detailArg = process.argv.find(a => a.startsWith('--detail-limit='));
-const MAX_PAGES = Math.max(1, parseInt(pagesArg ? pagesArg.split('=')[1] : '12', 10) || 12);
-const DETAIL_LIMIT = Math.max(1, parseInt(detailArg ? detailArg.split('=')[1] : '800', 10) || 800);
+const MAX_PAGES = Math.max(1, parseInt(pagesArg ? pagesArg.split('=')[1] : '15', 10) || 15);
+const DETAIL_LIMIT = Math.max(1, parseInt(detailArg ? detailArg.split('=')[1] : '2000', 10) || 2000);
 
 const HEADERS = {
   'User-Agent':
@@ -33,19 +38,44 @@ const LIST_SEEDS = [
   'https://www.foody.vn/can-tho/food/dia-diem',
   'https://www.foody.vn/can-tho/nha-hang',
   'https://www.foody.vn/can-tho/cafe',
-  'https://www.foody.vn/can-tho/quan-an'
+  'https://www.foody.vn/can-tho/quan-an',
+  'https://www.foody.vn/can-tho/an-vat',
+  'https://www.foody.vn/can-tho/an-vat/dia-diem'
 ];
 
+/** Từ khóa rộng + cụm 2 từ để bắt quán đặt tên theo món (vd: cơm gà kim). */
 const SEARCH_KEYWORDS = [
+  // món phổ biến
   'cơm', 'bún', 'phở', 'trà sữa', 'gà', 'lẩu', 'bánh mì', 'pizza', 'hải sản', 'cà phê',
   'chè', 'xôi', 'hủ tiếu', 'mì', 'ốc', 'chay', 'kem', 'sushi', 'burger', 'nướng',
   'bánh cuốn', 'bánh xèo', 'gỏi', 'nem', 'bò', 'cá', 'dimsum', 'hotpot', 'tokbokki',
+  'bún đậu', 'bún bò', 'bún riêu', 'bún thịt nướng', 'hủ tiếu', 'mì cay', 'gỏi cuốn',
+  'cơm gà', 'cơm tấm', 'cơm chiên', 'cơm văn phòng', 'gà rán', 'gà nướng', 'bò né',
+  'nem nướng', 'bánh canh', 'cháo', 'sinh tố', 'nước ép', 'bánh ngọt', 'đồ ăn vặt',
+  'ăn vặt', 'xiên que', 'lẩu nướng', 'buffet', 'dimsum', 'hotpot',
+  // chuỗi / thương hiệu
   'highlands', 'kfc', 'jollibee', 'lotteria', 'phúc long', 'tocotoco', 'highland',
-  'cơm gà', 'cơm gà kim', 'cơm tấm', 'bún riêu', 'trà sữa'
+  'five star', 'ong vàng', 'milano', 'passio', 'starbucks', 'the coffee house',
+  // cụm hay bị sót (tên quán = món + tên riêng)
+  'cơm gà kim', 'cơm gà xối mỡ', 'cơm gà rút xương', 'bún đậu mắm tôm',
+  'trà sữa nhà làm', 'chè khúc bạch', 'bánh tráng trộn', 'bánh ướt', 'bánh hỏi',
+  'hủ tiếu nam vang', 'phở bò', 'mì quảng', 'bánh canh cua', 'lẩu thái',
+  'cơm niêu', 'cơm sườn', 'bún mắm', 'bún cá', 'chả cá', 'gà ủ muối'
 ];
 
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
+}
+
+function normKey(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 async function fetchHtml(url) {
@@ -118,8 +148,61 @@ async function crawlListUrl(baseUrl, maxPages, seenHref, listed) {
       emptyStreak += 1;
       if (emptyStreak >= 2) break;
     }
-    await sleep(350);
+    await sleep(300);
   }
+}
+
+function buildDbIndex(existing) {
+  const bySlug = new Set();
+  const byFoody = new Set();
+  const byName = new Set();
+  for (const r of existing) {
+    if (!r) continue;
+    if (r.shopeefoodSlug) bySlug.add(String(r.shopeefoodSlug).split('?')[0].toLowerCase());
+    if (r.foodySlug) byFoody.add(String(r.foodySlug).toLowerCase());
+    const nk = normKey(r.name);
+    if (nk) byName.add(nk);
+    // id dạng r_ct_<slug>
+    const id = String(r.id || '');
+    if (id.startsWith('r_ct_')) bySlug.add(id.slice(5).replace(/_/g, '-'));
+  }
+  return { bySlug, byFoody, byName };
+}
+
+function isAlreadyInDb(item, index) {
+  if (item.foodySlug && index.byFoody.has(item.foodySlug.toLowerCase())) return true;
+  if (item.foodySlug && index.bySlug.has(item.foodySlug.toLowerCase())) return true;
+  const nk = normKey(item.name);
+  if (nk && index.byName.has(nk)) return true;
+  // khớp gần: tên Foody chứa trong DB hoặc ngược lại (chi nhánh)
+  if (nk && nk.length >= 8) {
+    for (const n of index.byName) {
+      if (n.includes(nk) || nk.includes(n)) {
+        // tránh match quá rộng với tên ngắn
+        if (Math.min(n.length, nk.length) >= 10) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/** Ưu tiên quán chưa có trong DB (gap-fill), rồi brand, rồi còn lại. */
+function prioritizeForResolve(listed, index) {
+  const missing = [];
+  const brands = [];
+  const known = [];
+  for (const it of listed) {
+    if (it.isBrand) {
+      brands.push(it);
+      continue;
+    }
+    if (GAP_FILL && !isAlreadyInDb(it, index)) missing.push(it);
+    else known.push(it);
+  }
+  console.log(
+    `  gap-fill queue: missing=${missing.length} brands=${brands.length} known=${known.length} (limit=${DETAIL_LIMIT})`
+  );
+  return [...missing, ...brands, ...known].slice(0, DETAIL_LIMIT);
 }
 
 async function resolvePlace(item) {
@@ -177,6 +260,10 @@ function mergeIntoDb(discovered) {
         hit.shopeefoodSlug = d.shopeefoodSlug;
         changed = true;
       }
+      if (d.foodySlug && !hit.foodySlug) {
+        hit.foodySlug = d.foodySlug;
+        changed = true;
+      }
       if (d.address && d.address !== 'Cần Thơ' && (!hit.address || /^\d+\s*chi\s*nh/i.test(hit.address))) {
         hit.address = d.address;
         changed = true;
@@ -215,9 +302,9 @@ function mergeIntoDb(discovered) {
 async function main() {
   console.log('');
   console.log('╔══════════════════════════════════════════════════════════╗');
-  console.log('║  ShipFee — Foody đa nguồn → ShopeeFood (MERGE)          ║');
+  console.log('║  ShipFee — Foody gap-fill → ShopeeFood (MERGE)          ║');
   console.log('╚══════════════════════════════════════════════════════════╝');
-  console.log(`pages/seed=${MAX_PAGES} detail-limit=${DETAIL_LIMIT} dry-run=${DRY_RUN}`);
+  console.log(`pages/seed=${MAX_PAGES} detail-limit=${DETAIL_LIMIT} gap-fill=${GAP_FILL} dry-run=${DRY_RUN}`);
 
   const listed = [];
   const seenHref = new Set();
@@ -227,30 +314,39 @@ async function main() {
     await crawlListUrl(seed, MAX_PAGES, seenHref, listed);
   }
 
-  console.log('\n📍 Search từ khóa...');
+  console.log(`\n📍 Search ${SEARCH_KEYWORDS.length} từ khóa (ưu tiên Delivery)...`);
   for (const kw of SEARCH_KEYWORDS) {
     const base = `https://www.foody.vn/can-tho/dia-diem?q=${encodeURIComponent(kw)}&ds=Delivery`;
-    await crawlListUrl(base, Math.min(MAX_PAGES, 6), seenHref, listed);
+    await crawlListUrl(base, Math.min(MAX_PAGES, 8), seenHref, listed);
   }
 
-  const toResolve = listed.slice(0, DETAIL_LIMIT);
-  console.log(`\n🔎 Resolve SF cho ${toResolve.length}/${listed.length} mục...`);
+  const existing = dbHelper.read();
+  const index = buildDbIndex(existing);
+  const toResolve = prioritizeForResolve(listed, index);
+  console.log(`\n🔎 Resolve SF cho ${toResolve.length}/${listed.length} mục (missing-first)...`);
 
   const found = new Map();
+  let newResolved = 0;
   for (let i = 0; i < toResolve.length; i++) {
     const item = toResolve[i];
+    const wasMissing = !item.isBrand && !isAlreadyInDb(item, index);
     try {
       const resolved = await resolvePlace(item);
       for (const r of resolved) {
-        if (r.shopeefoodSlug) found.set(r.shopeefoodSlug, r);
+        if (r.shopeefoodSlug) {
+          if (!found.has(r.shopeefoodSlug)) {
+            found.set(r.shopeefoodSlug, r);
+            if (wasMissing) newResolved += 1;
+          }
+        }
       }
     } catch (e) {
       console.log(`  fail ${item.name}: ${e.message}`);
     }
     if ((i + 1) % 25 === 0 || i === toResolve.length - 1) {
-      console.log(`  progress ${i + 1}/${toResolve.length} → unique ${found.size}`);
+      console.log(`  progress ${i + 1}/${toResolve.length} → unique ${found.size} (new-ish ${newResolved})`);
     }
-    await sleep(200);
+    await sleep(180);
   }
 
   const discovered = [...found.values()];
@@ -277,3 +373,5 @@ if (require.main === module) {
     process.exit(1);
   });
 }
+
+module.exports = { main };

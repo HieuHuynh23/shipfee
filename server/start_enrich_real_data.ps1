@@ -37,8 +37,8 @@ if (-not $SkipDiscover) {
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   Write-Host ""
-  Write-Host "[2/4] Discover Foody (category + keyword + brand)..." -ForegroundColor Cyan
-  $foodyArgs = @("discover_foody_shopeefood.js", "--pages=12", "--detail-limit=800")
+  Write-Host "[2/4] Discover Foody (gap-fill missing shops first)..." -ForegroundColor Cyan
+  $foodyArgs = @("discover_foody_shopeefood.js", "--pages=15", "--detail-limit=2000", "--gap-fill")
   if ($DryRun) { $foodyArgs += "--dry-run" }
   node @foodyArgs
   if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
