@@ -3831,7 +3831,8 @@ function shortRestaurantName(name) {
 
 /**
  * Chuẩn hóa địa chỉ VN cho Google Maps — dạng:
- * "BINBIN, 274 Đ. Cách Mạng Tháng 8, Bình Thủy, Cần Thơ, Việt Nam"
+ * "140B/4B Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ, Việt Nam"
+ * (không kèm tên quán — tránh Google lệch sang listing/tên thương hiệu)
  */
 function formatRestaurantMapsDestination(name, address) {
   const shortName = shortRestaurantName(name);
@@ -3850,8 +3851,12 @@ function formatRestaurantMapsDestination(name, address) {
     .trim();
 
   const parts = [];
-  if (shortName) parts.push(shortName);
-  if (addr) parts.push(addr);
+  // Chỉ thêm tên khi không có địa chỉ (fallback hiếm)
+  if (addr) {
+    parts.push(addr);
+  } else if (shortName) {
+    parts.push(shortName);
+  }
   let dest = parts.join(', ');
   if (dest && !/việt\s*nam|vietnam/i.test(dest)) {
     dest += ', Việt Nam';
@@ -3890,8 +3895,8 @@ function navigateToPoint(target) {
   let preferLabel = false;
 
   if (target === 'restaurant') {
-    // Ưu tiên chuỗi "Tên, số nhà + đường, quận, TP, Việt Nam" giống cách Google hiểu địa chỉ VN.
-    // Không dùng restaurantLat/Lon heuristic (thường chỉ ra giữa đường, lệch số nhà).
+    // Chỉ gửi địa chỉ (số nhà + đường + quận/TP) — không kèm tên quán.
+    // Ví dụ: "140B/4B Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ, Việt Nam"
     label = formatRestaurantMapsDestination(
       activeOrder.restaurantName,
       activeOrder.restaurantAddress
@@ -3947,7 +3952,7 @@ window.navigateToPoint = navigateToPoint;
    -------------------------------------------------------------------------- */
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=2.8', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2.9', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});
