@@ -2017,18 +2017,30 @@ function fastSearch(query) {
   const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
   if (tokens.length === 0) return [];
 
-  const results = [];
+  // Không ghép token chéo giữa nhiều món/trường (tránh "cơm"+"gà"+"kim" → hàng trăm quán nhiễu).
+  // Mỗi tiêu chí phải chứa ĐỦ mọi token; ưu tiên cụm từ trong tên quán.
+  const scored = [];
   for (const entry of searchIndex) {
-    const matches = tokens.every(token =>
-      entry.normName.includes(token) ||
-      entry.normCategory.includes(token) ||
-      entry.normAddress.includes(token) ||
-      entry.normDishNames.some(d => d.includes(token))
-    );
-    if (matches) {
-      results.push(cachedRestaurants[entry.idx]);
-    }
+    const phraseName = !!normQuery && entry.normName.includes(normQuery);
+    const nameAll = tokens.every(t => entry.normName.includes(t));
+    const addrAll = tokens.every(t => entry.normAddress.includes(t));
+    const catAll = tokens.every(t => entry.normCategory.includes(t));
+    const dishAll = entry.normDishNames.some(d => tokens.every(t => d.includes(t)));
+    if (!phraseName && !nameAll && !addrAll && !catAll && !dishAll) continue;
+
+    let score = 0;
+    if (phraseName) score += 100;
+    if (nameAll) score += 50;
+    if (addrAll) score += 15;
+    if (catAll) score += 10;
+    if (dishAll) score += 8;
+    if (!entry.isClosed) score += 5;
+    score += tokens.filter(t => entry.normName.includes(t)).length * 3;
+    scored.push({ idx: entry.idx, score });
   }
+
+  scored.sort((a, b) => b.score - a.score);
+  const results = scored.map(s => cachedRestaurants[s.idx]);
   const elapsed = Date.now() - startMs;
   console.log(`[FastSearch] "${query}" → ${results.length} results in ${elapsed}ms`);
   return results;

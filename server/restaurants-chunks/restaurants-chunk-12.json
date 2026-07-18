@@ -5054,17 +5054,16 @@
   {
     "id": "r_ct_com_ga_kim_phuc",
     "name": "Cơm Gà Kim Phúc",
-    "category": "Cơm tấm",
-    "rating": 4.2,
-    "reviews": 79,
+    "category": "Cơm",
+    "rating": 4.5,
+    "reviews": 100,
     "distance": "0.4 km",
     "time": "12-22 phút",
-    "address": "132/2 Hẻm 132 Đường 3 Tháng 2, P. Hưng Lợi, Quận Ninh Kiều , Cần Thơ",
+    "address": "132/2 Hẻm 132 Đường 3 Tháng 2, P. Hưng Lợi, Quận Ninh Kiều, Cần Thơ",
     "phone": "0292 3220185",
-    "img": "https://down-vn.img.susercontent.com/vn-11134513-7ra0g-m7nvxvuahannc3@resize_ss640x400",
+    "img": "",
     "tags": [
-      "Đang mở",
-      "Mới mở"
+      "Đang mở"
     ],
     "minOrder": 30000,
     "hasRealMenu": true,
@@ -5097,10 +5096,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.842Z",
     "shopeefoodSlug": "com-ga-kim-phuc",
-    "isClosed": true,
+    "isClosed": false,
     "closedAt": "2026-07-13T18:58:36.294Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:58:36.294Z"
+    "menuUpdatedAt": "2026-07-18T06:17:42.334Z",
+    "latitude": 10.02,
+    "longitude": 105.76,
+    "source": "shopeefood",
+    "sfDiscoveredAt": "2026-07-18T06:17:42.334Z"
   },
   {
     "id": "r_ct_bep_nha_ut_minh_com_tam_com_chien_an_vat",

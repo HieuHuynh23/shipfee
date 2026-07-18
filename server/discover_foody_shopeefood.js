@@ -40,7 +40,8 @@ const SEARCH_KEYWORDS = [
   'cơm', 'bún', 'phở', 'trà sữa', 'gà', 'lẩu', 'bánh mì', 'pizza', 'hải sản', 'cà phê',
   'chè', 'xôi', 'hủ tiếu', 'mì', 'ốc', 'chay', 'kem', 'sushi', 'burger', 'nướng',
   'bánh cuốn', 'bánh xèo', 'gỏi', 'nem', 'bò', 'cá', 'dimsum', 'hotpot', 'tokbokki',
-  'highlands', 'kfc', 'jollibee', 'lotteria', 'phúc long', 'tocotoco', 'highland'
+  'highlands', 'kfc', 'jollibee', 'lotteria', 'phúc long', 'tocotoco', 'highland',
+  'cơm gà', 'cơm gà kim', 'cơm tấm', 'bún riêu', 'trà sữa'
 ];
 
 function sleep(ms) {
