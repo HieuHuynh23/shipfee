@@ -41,6 +41,7 @@ let cachedOrderStats = null;
 let cachedCustomers = [];
 let restaurantHasMore = false;
 let restaurantTotal = 0;
+let restaurantStats = null;
 let lastPollHash = '';
 let pricingMarkupRate = 0.28;
 let orderLiveMap = null;
@@ -319,6 +320,10 @@ async function fetchAllData() {
     const orderCountEl = document.getElementById('nav-order-count');
     if (shipperCountEl) shipperCountEl.textContent = cachedShippers.length;
     if (orderCountEl) orderCountEl.textContent = cachedOpsLive?.activeCount ?? cachedOrders.length;
+    const restaurantCountEl = document.getElementById('nav-restaurant-count');
+    if (restaurantCountEl && cachedDashboard?.totalRestaurants) {
+      restaurantCountEl.textContent = cachedDashboard.totalRestaurants;
+    }
 
     if (changed || currentPage === 'dashboard' || currentPage === 'fleet') {
       if (currentPage === 'dashboard') {
@@ -1397,17 +1402,17 @@ function renderRestaurants() {
               <th style="text-align: right;">Thao tác</th>
             </tr>
             <tr class="filter-row">
-              <th><input type="text" id="restaurant-filter-name" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 28px; background: rgba(39,39,42,0.4);" placeholder="Lọc tên/địa chỉ..." onkeyup="filterRestaurantsLocal()"></th>
-              <th><input type="text" id="restaurant-filter-category" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 28px; background: rgba(39,39,42,0.4);" placeholder="Lọc danh mục..." onkeyup="filterRestaurantsLocal()"></th>
+              <th><input type="text" id="restaurant-filter-name" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 28px; background: rgba(39,39,42,0.4);" placeholder="Lọc tên/địa chỉ..." onkeyup="filterRestaurantsDebounced()"></th>
+              <th><input type="text" id="restaurant-filter-category" class="form-input" style="padding: 4px 8px; font-size: 12px; height: 28px; background: rgba(39,39,42,0.4);" placeholder="Lọc danh mục..." onkeyup="filterRestaurantsDebounced()"></th>
               <th>
-                <select id="restaurant-filter-status" class="form-input" style="padding: 2px 8px; font-size: 12px; height: 28px; background: rgba(39, 39, 42, 0.4); border-color: var(--border);" onchange="filterRestaurantsLocal()">
+                <select id="restaurant-filter-status" class="form-input" style="padding: 2px 8px; font-size: 12px; height: 28px; background: rgba(39, 39, 42, 0.4); border-color: var(--border);" onchange="filterRestaurantsDebounced()">
                   <option value="">Tất cả</option>
                   <option value="open">Đang mở</option>
                   <option value="closed">Đóng cửa</option>
                 </select>
               </th>
               <th>
-                <select id="restaurant-filter-menu" class="form-input" style="padding: 2px 8px; font-size: 12px; height: 28px; background: rgba(39, 39, 42, 0.4); border-color: var(--border);" onchange="filterRestaurantsLocal()">
+                <select id="restaurant-filter-menu" class="form-input" style="padding: 2px 8px; font-size: 12px; height: 28px; background: rgba(39, 39, 42, 0.4); border-color: var(--border);" onchange="filterRestaurantsDebounced()">
                   <option value="">Tất cả</option>
                   <option value="yes">Có menu</option>
                   <option value="no">Chưa có</option>
@@ -1522,7 +1527,7 @@ async function loadRestaurantChanges() {
         </table>`;
     }
 
-    if (restaurantFilter === 'changed') filterRestaurantsLocal();
+    if (restaurantFilter === 'changed') renderRestaurantsTable();
   } catch (e) {
     body.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm">Không tải được danh sách biến động</p></div>`;
   }
@@ -1535,13 +1540,17 @@ function focusRestaurantChange(restaurantId) {
   document.querySelectorAll('#restaurant-filter-tabs .tab').forEach((t, i) => {
     t.classList.toggle('active', i === 1);
   });
+  const searchInput = document.getElementById('restaurant-search');
   const filterInput = document.getElementById('restaurant-filter-name');
-  if (filterInput && restaurantName) filterInput.value = restaurantName;
-  filterRestaurantsLocal();
-  setTimeout(() => {
-    const row = document.querySelector(`tr[data-restaurant-id="${CSS.escape(String(restaurantId))}"]`);
-    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 80);
+  if (searchInput) searchInput.value = '';
+  if (filterInput) filterInput.value = restaurantName;
+  restaurantSearchPage = 1;
+  loadRestaurants().then(() => {
+    setTimeout(() => {
+      const row = document.querySelector(`tr[data-restaurant-id="${CSS.escape(String(restaurantId))}"]`);
+      if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  });
 }
 
 async function syncAllRestaurants(scope) {
@@ -1707,6 +1716,16 @@ window.focusRestaurantChange = focusRestaurantChange;
 
 let restaurantFilter = 'all';
 let searchDebounceTimer = null;
+let restaurantFilterDebounceTimer = null;
+
+function filterRestaurantsDebounced() {
+  clearTimeout(restaurantFilterDebounceTimer);
+  restaurantFilterDebounceTimer = setTimeout(() => {
+    restaurantSearchPage = 1;
+    loadRestaurants();
+  }, 350);
+}
+window.filterRestaurantsDebounced = filterRestaurantsDebounced;
 
 function filterRestaurants(btn, filter) {
   restaurantFilter = filter;
@@ -1726,35 +1745,50 @@ function searchRestaurantsDebounced() {
 
 async function loadRestaurants() {
   const query = (document.getElementById('restaurant-search')?.value || '').trim();
+  const filterName = (document.getElementById('restaurant-filter-name')?.value || '').trim();
+  const filterCategory = (document.getElementById('restaurant-filter-category')?.value || '').trim();
+  const filterStatus = document.getElementById('restaurant-filter-status')?.value || '';
+  const filterMenu = document.getElementById('restaurant-filter-menu')?.value || '';
   const tbody = document.getElementById('restaurants-tbody');
   if (!tbody) return;
 
   try {
-    let url = `${API_BASE}/api/restaurants?limit=50&page=${restaurantSearchPage || 1}`;
-    if (query) url += `&q=${encodeURIComponent(query)}`;
+    const params = new URLSearchParams({
+      page: String(restaurantSearchPage || 1),
+      limit: '50',
+      tab: restaurantFilter || 'all'
+    });
+    if (query) params.set('q', query);
+    if (filterName) params.set('filterName', filterName);
+    if (filterCategory) params.set('filterCategory', filterCategory);
+    if (filterStatus) params.set('filterStatus', filterStatus);
+    if (filterMenu) params.set('filterMenu', filterMenu);
 
-    const res = await fetch(url).then(r => r.json());
-    let restaurants = [];
+    const res = await apiFetch(`/api/admin/restaurants?${params.toString()}`);
+    if (!res.success) throw new Error(res.error || 'Không tải được danh sách quán');
 
-    if (Array.isArray(res)) {
-      restaurants = res;
-      restaurantHasMore = false;
-      restaurantTotal = restaurants.length;
-    } else if (res?.data && Array.isArray(res.data)) {
-      restaurants = res.data;
-      restaurantHasMore = !!res.hasMore;
-      restaurantTotal = res.total || restaurants.length;
-    } else if (res?.restaurants && Array.isArray(res.restaurants)) {
-      restaurants = res.restaurants;
-      restaurantHasMore = false;
-      restaurantTotal = restaurants.length;
+    cachedRestaurants = Array.isArray(res.data) ? res.data : [];
+    restaurantHasMore = !!res.hasMore;
+    restaurantTotal = res.total || cachedRestaurants.length;
+    restaurantStats = res.stats || null;
+
+    const navCountEl = document.getElementById('nav-restaurant-count');
+    if (navCountEl && restaurantStats?.total) {
+      navCountEl.textContent = restaurantStats.total;
     }
 
-    cachedRestaurants = restaurants;
-    filterRestaurantsLocal();
+    const tabBadge = document.getElementById('restaurant-changed-tab-badge');
+    if (tabBadge && restaurantStats?.changed != null) {
+      if (restaurantStats.changed > 0) {
+        tabBadge.style.display = 'inline-flex';
+        tabBadge.textContent = restaurantStats.changed;
+      }
+    }
+
+    renderRestaurantsTable();
     renderRestaurantPagination();
   } catch (e) {
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">Lỗi tải dữ liệu quán ăn</p></div></td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">${escapeHtml(e.message || 'Lỗi tải dữ liệu quán ăn')}</p></div></td></tr>`;
   }
 }
 
@@ -1771,7 +1805,7 @@ function renderRestaurantPagination() {
   const page = restaurantSearchPage || 1;
   el.innerHTML = `
     <button class="pagination__btn" ${page <= 1 ? 'disabled' : ''} onclick="changeRestaurantPage(${page - 1})">← Trước</button>
-    <span class="pagination__info">Trang ${page}${restaurantTotal ? ` · ${restaurantTotal} quán` : ''}</span>
+    <span class="pagination__info">Trang ${page}${restaurantTotal ? ` · ${restaurantTotal} kết quả` : ''}${restaurantStats?.total ? ` / ${restaurantStats.total} quán` : ''}</span>
     <button class="pagination__btn" ${!restaurantHasMore ? 'disabled' : ''} onclick="changeRestaurantPage(${page + 1})">Sau →</button>
   `;
 }
@@ -1860,54 +1894,17 @@ async function saveRestaurantMetadata() {
 window.openRestaurantEditModal = openRestaurantEditModal;
 window.saveRestaurantMetadata = saveRestaurantMetadata;
 
-function filterRestaurantsLocal() {
+function renderRestaurantsTable() {
   const tbody = document.getElementById('restaurants-tbody');
   const infoEl = document.getElementById('restaurant-result-info');
   if (!tbody) return;
 
-  const filterName = (document.getElementById('restaurant-filter-name')?.value || '').toLowerCase();
-  const filterCategory = (document.getElementById('restaurant-filter-category')?.value || '').toLowerCase();
-  const filterStatus = document.getElementById('restaurant-filter-status')?.value || '';
-  const filterMenu = document.getElementById('restaurant-filter-menu')?.value || '';
+  const filtered = cachedRestaurants;
 
-  let filtered = cachedRestaurants;
-
-  // Lọc theo tab
-  if (restaurantFilter === 'open') {
-    filtered = filtered.filter(r => !r.isClosed);
-  } else if (restaurantFilter === 'closed') {
-    filtered = filtered.filter(r => r.isClosed);
-  } else if (restaurantFilter === 'changed') {
-    filtered = filtered.filter(r => restaurantChangedMap.has(String(r.id)));
+  if (infoEl) {
+    const totalLabel = restaurantStats?.total ? `${restaurantTotal}/${restaurantStats.total}` : `${restaurantTotal}`;
+    infoEl.textContent = `${totalLabel} kết quả`;
   }
-
-  // Lọc theo bộ lọc riêng từng cột
-  if (filterName) {
-    filtered = filtered.filter(r => 
-      (r.name || '').toLowerCase().includes(filterName) || 
-      (r.address || '').toLowerCase().includes(filterName)
-    );
-  }
-  if (filterCategory) {
-    filtered = filtered.filter(r => (r.category || '').toLowerCase().includes(filterCategory));
-  }
-  if (filterStatus) {
-    if (filterStatus === 'open') {
-      filtered = filtered.filter(r => !r.isClosed);
-    } else if (filterStatus === 'closed') {
-      filtered = filtered.filter(r => r.isClosed);
-    }
-  }
-  if (filterMenu) {
-    if (filterMenu === 'yes') {
-      filtered = filtered.filter(r => r.hasRealMenu);
-    } else if (filterMenu === 'no') {
-      filtered = filtered.filter(r => !r.hasRealMenu);
-    }
-  }
-
-  if (infoEl) infoEl.textContent = `${filtered.length} quán`;
-  document.getElementById('nav-restaurant-count').textContent = filtered.length;
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
@@ -1928,6 +1925,9 @@ function filterRestaurantsLocal() {
       ? `<span class="restaurant-change-badge ${(!change.read || change.unreadCount > 0) ? 'restaurant-change-badge--unread' : ''}" title="${escapeHtml(change.title || 'Có biến động')}">${change.type === 'price_change' ? 'Giá' : 'TT'}</span>`
       : '';
     const rowClass = change && (!change.read || change.unreadCount > 0) ? 'restaurant-row--changed' : '';
+    const menuLabel = r.hasRealMenu
+      ? `✓ ${r.menuItemCount ? `${r.menuItemCount} món` : 'Có menu'}`
+      : (r.menuTemplateFallback ? 'Mẫu' : '—');
     return `
     <tr class="${rowClass}" data-restaurant-id="${escapeHtml(r.id)}">
       <td>
@@ -1948,7 +1948,7 @@ function filterRestaurantsLocal() {
         </span>
       </td>
       <td>
-        <span class="mono text-sm">${r.hasRealMenu ? '✓ Có menu' : '—'}</span>
+        <span class="mono text-sm ${r.hasRealMenu ? '' : 'text-muted'}">${menuLabel}</span>
       </td>
       <td class="text-xs text-muted">${r.menuUpdatedAt ? formatTime(r.menuUpdatedAt) : '—'}</td>
       <td style="text-align: right;">
@@ -3436,7 +3436,8 @@ function viewRestaurantInCRM(restaurantId, restaurantName) {
     const filterInput = document.getElementById('restaurant-filter-name');
     if (filterInput) {
       filterInput.value = restaurantName;
-      filterRestaurantsLocal();
+      restaurantSearchPage = 1;
+      loadRestaurants();
     }
     
     // 3. Tự động mở Modal Menu của quán ăn đó luôn để Admin xem nhanh món/giá thay đổi!

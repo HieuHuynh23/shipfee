@@ -3717,6 +3717,147 @@ function getRestaurantChangeSummaries(limit = 50) {
     .slice(0, limit);
 }
 
+function inferRestaurantCategory(r) {
+  if (r?.category && String(r.category).trim()) return String(r.category).trim();
+  if (Array.isArray(r?.tags) && r.tags.length) {
+    return r.tags.filter(Boolean).slice(0, 2).join(', ');
+  }
+  return '';
+}
+
+function restaurantHasMenuOnDisk(restaurantId) {
+  try {
+    const menuPath = getMenuFilePath(restaurantId);
+    if (!fs.existsSync(menuPath)) return false;
+    const raw = fs.readFileSync(menuPath, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0;
+  } catch (_) {
+    return false;
+  }
+}
+
+function enrichAdminRestaurantRow(r) {
+  if (!r || !r.id) return null;
+
+  let menuItemCount = 0;
+  let hasMenuOnDisk = false;
+  let menuFileUpdatedAt = null;
+  const menuPath = getMenuFilePath(r.id);
+
+  try {
+    if (fs.existsSync(menuPath)) {
+      const stat = fs.statSync(menuPath);
+      menuFileUpdatedAt = new Date(stat.mtimeMs).toISOString();
+      const raw = fs.readFileSync(menuPath, 'utf8');
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        hasMenuOnDisk = true;
+        menuItemCount = parsed.length;
+      }
+    }
+  } catch (_) {}
+
+  const hasRealMenu = r.hasRealMenu === true || hasMenuOnDisk;
+
+  return {
+    id: r.id,
+    name: r.name || '',
+    category: inferRestaurantCategory(r),
+    address: r.address || '',
+    phone: r.phone || '',
+    img: r.img || '',
+    isClosed: !!r.isClosed,
+    closedAt: r.closedAt || null,
+    closedReason: r.closedReason || null,
+    hasRealMenu,
+    menuItemCount,
+    menuUpdatedAt: r.menuUpdatedAt || menuFileUpdatedAt || null,
+    menuTemplateFallback: hasRealMenu ? false : r.menuTemplateFallback === true,
+    shopeefoodSlug: r.shopeefoodSlug || null,
+    rating: r.rating,
+    updatedAt: r.updatedAt || null
+  };
+}
+
+function getAdminRestaurantsList(options = {}) {
+  const page = Math.max(1, parseInt(options.page, 10) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(options.limit, 10) || 50));
+  const q = String(options.q || '').trim().toLowerCase();
+  const tab = options.tab || 'all';
+  const filterName = String(options.filterName || '').trim().toLowerCase();
+  const filterCategory = String(options.filterCategory || '').trim().toLowerCase();
+  const filterStatus = options.filterStatus || '';
+  const filterMenu = options.filterMenu || '';
+
+  const source = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
+  const changedSummaries = getRestaurantChangeSummaries(500);
+  const changedIds = new Set(changedSummaries.map(c => String(c.restaurantId)));
+
+  let rows = source.filter(r => r && r.id);
+
+  if (q) {
+    rows = rows.filter(r => {
+      const haystack = [
+        r.name,
+        r.address,
+        r.category,
+        r.id,
+        inferRestaurantCategory(r)
+      ].map(v => String(v || '').toLowerCase()).join(' ');
+      return haystack.includes(q);
+    });
+  }
+
+  if (tab === 'open') rows = rows.filter(r => !r.isClosed);
+  else if (tab === 'closed') rows = rows.filter(r => !!r.isClosed);
+  else if (tab === 'changed') rows = rows.filter(r => changedIds.has(String(r.id)));
+
+  if (filterName) {
+    rows = rows.filter(r =>
+      (r.name || '').toLowerCase().includes(filterName) ||
+      (r.address || '').toLowerCase().includes(filterName)
+    );
+  }
+  if (filterCategory) {
+    rows = rows.filter(r => inferRestaurantCategory(r).toLowerCase().includes(filterCategory));
+  }
+  if (filterStatus === 'open') rows = rows.filter(r => !r.isClosed);
+  else if (filterStatus === 'closed') rows = rows.filter(r => !!r.isClosed);
+  if (filterMenu === 'yes') {
+    rows = rows.filter(r => r.hasRealMenu === true || restaurantHasMenuOnDisk(r.id));
+  } else if (filterMenu === 'no') {
+    rows = rows.filter(r => r.hasRealMenu !== true && !restaurantHasMenuOnDisk(r.id));
+  }
+
+  rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi'));
+
+  const total = rows.length;
+  const start = (page - 1) * limit;
+  const pageRows = rows.slice(start, start + limit);
+  const data = pageRows.map(enrichAdminRestaurantRow).filter(Boolean);
+
+  let withMenuCount = 0;
+  for (const r of source) {
+    if (r?.hasRealMenu === true || restaurantHasMenuOnDisk(r.id)) withMenuCount++;
+  }
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    hasMore: start + pageRows.length < total,
+    stats: {
+      total: source.length,
+      open: source.filter(r => !r.isClosed).length,
+      closed: source.filter(r => !!r.isClosed).length,
+      changed: changedIds.size,
+      withMenu: withMenuCount
+    }
+  };
+}
+
 const BULK_SYNC_CONCURRENCY = Math.max(1, Math.min(5, parseInt(process.env.BULK_SYNC_CONCURRENCY || '3', 10) || 3));
 let bulkSyncJob = null;
 
@@ -5476,6 +5617,9 @@ app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
     
     const totalRevenue = todayCompleted.reduce((sum, o) => sum + (o.appTotal || 0), 0);
     const totalEarnings = todayCompleted.reduce((sum, o) => sum + (o.shipperEarning || 0), 0);
+    const restaurantSource = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
+    const totalRestaurants = restaurantSource.filter(r => r && r.id).length;
+    const openRestaurants = restaurantSource.filter(r => r && r.id && !r.isClosed).length;
 
     res.json({
       success: true,
@@ -5487,7 +5631,9 @@ app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
         totalRevenue,
         totalEarnings,
         allTimeOrders: orders.length,
-        allTimeCompleted: completedOrders.length
+        allTimeCompleted: completedOrders.length,
+        totalRestaurants,
+        openRestaurants
       }
     });
   } catch (e) {
@@ -5956,6 +6102,28 @@ app.get('/api/shippers/profile', (req, res) => {
       avatarUrl: normalizeImageUrl(shipper.avatarUrl, req)
     };
     res.json({ success: true, shipper: responseShipper });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/admin/restaurants
+ * Danh sách quán cho CRM — toàn bộ database, không giới hạn bán kính 3km
+ */
+app.get('/api/admin/restaurants', authenticateAdmin, (req, res) => {
+  try {
+    const result = getAdminRestaurantsList({
+      page: req.query.page,
+      limit: req.query.limit,
+      q: req.query.q,
+      tab: req.query.tab,
+      filterName: req.query.filterName,
+      filterCategory: req.query.filterCategory,
+      filterStatus: req.query.filterStatus,
+      filterMenu: req.query.filterMenu
+    });
+    res.json({ success: true, ...result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
