@@ -441,8 +441,15 @@ async function scrapeMenu(slug, options = {}) {
     console.log('[menuScraper] ℹ️ Không phát hiện Chrome/Edge. Dùng Chromium tích hợp.');
   }
 
-  const WATCHDOG_MS = Math.max(45000, parseInt(process.env.CRAWL_TIMEOUT_MS || '90000', 10) || 90000);
-  const API_WAIT_MS = Math.min(WATCHDOG_MS - 15000, Math.max(12000, parseInt(process.env.CRAWL_API_WAIT_MS || '20000', 10) || 20000));
+  const fast = options.fast === true;
+  const defaultWatchdog = parseInt(process.env.CRAWL_TIMEOUT_MS || '90000', 10) || 90000;
+  const bulkWatchdog = parseInt(process.env.BULK_SYNC_TIMEOUT_MS || '45000', 10) || 45000;
+  const WATCHDOG_MS = fast
+    ? Math.max(25000, bulkWatchdog)
+    : Math.max(45000, defaultWatchdog);
+  const API_WAIT_MS = fast
+    ? Math.min(12000, parseInt(process.env.BULK_SYNC_API_WAIT_MS || '10000', 10) || 10000)
+    : Math.min(WATCHDOG_MS - 15000, Math.max(12000, parseInt(process.env.CRAWL_API_WAIT_MS || '20000', 10) || 20000));
 
   const trySlugs = [
     slug,
@@ -454,44 +461,35 @@ async function scrapeMenu(slug, options = {}) {
   const uniqueSlugs = trySlugs.filter(s => (seenSlug.has(s) ? false : (seenSlug.add(s), true)));
 
   console.log(
-    `[menuScraper] 🚀 Cào menu: ${uniqueSlugs[0]} (candidates=${uniqueSlugs.length}, timeout=${WATCHDOG_MS}ms)`
+    `[menuScraper] 🚀 Cào menu: ${uniqueSlugs[0]} (candidates=${uniqueSlugs.length}, timeout=${WATCHDOG_MS}ms${fast ? ', fast' : ''})`
   );
 
-  const launchOptions = {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--disable-web-security',
-      '--disable-features=IsolateOrigins,site-per-process,TrackingPrevention',
-      '--lang=vi-VN,vi,en-US,en',
-      '--window-size=1280,900'
-    ]
-  };
-  if (executablePath) launchOptions.executablePath = executablePath;
-
-  const browser = await puppeteer.launch(launchOptions);
-  let watchdog = setTimeout(async () => {
-    console.warn(`[menuScraper] 🕒 Watchdog ${Math.round(WATCHDOG_MS / 1000)}s — đóng browser.`);
-    try {
-      const proc = browser.process();
-      if (proc) proc.kill('SIGKILL');
-      else await browser.close();
-    } catch (_) {}
-  }, WATCHDOG_MS);
+  const launchOptions = buildLaunchOptions(executablePath);
+  const ownsBrowser = !options.browser;
+  const browser = options.browser || await puppeteer.launch(launchOptions);
+  let watchdog = null;
+  if (ownsBrowser) {
+    watchdog = setTimeout(async () => {
+      console.warn(`[menuScraper] 🕒 Watchdog ${Math.round(WATCHDOG_MS / 1000)}s — đóng browser.`);
+      try {
+        const proc = browser.process();
+        if (proc) proc.kill('SIGKILL');
+        else await browser.close();
+      } catch (_) {}
+    }, WATCHDOG_MS);
+  }
 
   const discoveredAlts = [];
+  let page = null;
 
   try {
-    const page = await browser.newPage();
+    page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 900 });
     await page.setExtraHTTPHeaders({ 'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7' });
 
     // Warm cookies
-    await page.goto('https://shopeefood.vn/can-tho', { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => {});
-    await new Promise(r => setTimeout(r, 800));
+    await page.goto('https://shopeefood.vn/can-tho', { waitUntil: 'domcontentloaded', timeout: fast ? 12000 : 20000 }).catch(() => {});
+    await new Promise(r => setTimeout(r, fast ? 350 : 800));
 
     const scrapeOneSlug = async (currentSlug, { blockMedia = true } = {}) => {
       let apiData = null;
@@ -589,12 +587,16 @@ async function scrapeMenu(slug, options = {}) {
 
         const url = `https://shopeefood.vn/can-tho/${currentSlug}`;
         console.log(`[menuScraper] 📄 ${url}`);
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 }).catch(async () => {
-          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
-        });
+        if (fast) {
+          await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 }).catch(() => {});
+        } else {
+          await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 }).catch(async () => {
+            await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+          });
+        }
 
         // Cho response handler async kịp gán apiCapturedCount
-        await new Promise(r => setTimeout(r, 1500));
+        await new Promise(r => setTimeout(r, fast ? 900 : 1500));
         for (let i = 0; i < 10 && apiCapturedCount === 0; i++) {
           await new Promise(r => setTimeout(r, 200));
         }
@@ -606,7 +608,7 @@ async function scrapeMenu(slug, options = {}) {
         }
 
         // Retry reload tự nhiên khi bị chặn / chưa bắt được dishes (KHÔNG fetch giả → 403)
-        if (apiCapturedCount === 0 && (apiBlocked || requestId || detailOk)) {
+        if (!fast && apiCapturedCount === 0 && (apiBlocked || requestId || detailOk)) {
           const retries = apiBlocked ? 2 : 1;
           for (let r = 0; r < retries && apiCapturedCount === 0; r++) {
             const waitMs = 1500 + r * 1500 + Math.floor(Math.random() * 800);
@@ -709,9 +711,10 @@ async function scrapeMenu(slug, options = {}) {
       const s = uniqueSlugs[i];
       let attempt = await scrapeOneSlug(s, { blockMedia: true });
       // Retry bỏ chặn media khi empty hoặc bị 403 (script menu đôi khi cần asset đầy đủ)
-      const needMediaRetry =
+      const needMediaRetry = !fast && (
         (!attempt.ok && attempt.empty && !attempt.notFound) ||
-        (attempt.ok && attempt.result && attempt.result.blocked === true);
+        (attempt.ok && attempt.result && attempt.result.blocked === true)
+      );
       if (needMediaRetry) {
         console.log('[menuScraper] 🔁 Retry không chặn media...');
         const retry = await scrapeOneSlug(s, { blockMedia: false });
@@ -775,14 +778,51 @@ async function scrapeMenu(slug, options = {}) {
     console.error(`[menuScraper] ❌ Thất bại "${slug}":`, err.message);
     return [];
   } finally {
-    clearTimeout(watchdog);
+    if (watchdog) clearTimeout(watchdog);
     try {
-      await browser.close();
+      if (page) await page.close();
     } catch (_) {}
+    if (ownsBrowser) {
+      try {
+        await browser.close();
+      } catch (_) {}
+    }
   }
+}
+
+function buildLaunchOptions(executablePath) {
+  const launchOptions = {
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-features=IsolateOrigins,site-per-process,TrackingPrevention',
+      '--lang=vi-VN,vi,en-US,en',
+      '--window-size=1280,900'
+    ]
+  };
+  if (executablePath) launchOptions.executablePath = executablePath;
+  return launchOptions;
+}
+
+async function launchBrowser() {
+  const executablePath = getBrowserPath();
+  return puppeteer.launch(buildLaunchOptions(executablePath));
+}
+
+async function closeBrowserSafe(browser) {
+  if (!browser) return;
+  try {
+    await browser.close();
+  } catch (_) {}
 }
 
 module.exports = {
   scrapeMenu,
+  launchBrowser,
+  closeBrowserSafe,
   extractMenuFromApiData
 };

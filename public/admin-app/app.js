@@ -1635,8 +1635,13 @@ async function pollBulkSyncStatus(silent) {
         panel.classList.remove('hidden');
         panel.classList.toggle('restaurant-sync-progress--paused', !!res.paused);
       }
-      const pct = res.total > 0 ? Math.round((res.completed / res.total) * 100) : 0;
-      if (textEl) textEl.textContent = `${res.completed} / ${res.total}${res.failed ? ` · lỗi ${res.failed}` : ''}`;
+      const processed = res.completed || 0;
+      const synced = res.synced != null ? res.synced : processed;
+      const pct = res.total > 0 ? Math.round((processed / res.total) * 100) : 0;
+      const parts = [`${synced} đã lưu`, `${processed}/${res.total} xử lý`];
+      if (res.failed) parts.push(`lỗi ${res.failed}`);
+      if (res.skipped) parts.push(`bỏ qua ${res.skipped}`);
+      if (textEl) textEl.textContent = parts.join(' · ');
       if (fillEl) fillEl.style.width = `${pct}%`;
       if (labelEl) {
         labelEl.innerHTML = res.paused
@@ -1649,8 +1654,14 @@ async function pollBulkSyncStatus(silent) {
         if (res.paused) {
           currentEl.textContent = `Còn ${res.remaining || 0} quán chưa đồng bộ — bấm Tiếp tục để chạy lại.`;
         } else {
-          currentEl.textContent = res.current
-            ? `Đang xử lý: ${res.current.name} (${res.current.index}/${res.total})`
+          const activeNames = Array.isArray(res.active) && res.active.length
+            ? res.active.map(a => a.name).join(', ')
+            : (res.current ? res.current.name : '');
+          const etaText = res.etaMs && res.running
+            ? ` · còn ~${Math.max(1, Math.round(res.etaMs / 60000))} phút`
+            : '';
+          currentEl.textContent = activeNames
+            ? `Đang xử lý: ${activeNames}${etaText}`
             : 'Đang chuẩn bị...';
         }
       }
@@ -1664,7 +1675,7 @@ async function pollBulkSyncStatus(silent) {
       }
       if (btnAll) btnAll.disabled = true;
       if (btnChanged) btnChanged.disabled = true;
-      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(res.running ? false : silent), res.running ? 2500 : 4000);
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(res.running ? false : silent), res.running ? 1500 : 4000);
     } else {
       if (panel) {
         panel.classList.add('hidden');
@@ -1675,8 +1686,8 @@ async function pollBulkSyncStatus(silent) {
       if (btnAll && menuScrapeEnabled !== false) btnAll.disabled = false;
       if (btnChanged && menuScrapeEnabled !== false) btnChanged.disabled = false;
       if (res.completed > 0 && !silent) {
-        const synced = Math.max(0, res.completed - (res.failed || 0));
-        showToast(`Hoàn tất đồng bộ: ${synced}/${res.total} quán${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
+        const syncedCount = res.synced != null ? res.synced : Math.max(0, res.completed - (res.failed || 0));
+        showToast(`Hoàn tất đồng bộ: ${syncedCount}/${res.total} quán đã lưu${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
         loadRestaurants();
         loadRestaurantChanges();
         fetchNotifications().then(() => renderNotificationsList());
