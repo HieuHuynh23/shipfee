@@ -4493,7 +4493,17 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(order), req) });
+    // Nếu đơn chưa có GPS gắn sẵn, fallback vị trí live của tài xế đang online
+    const payload = { ...order };
+    const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
+    if (!hasGps && payload.shipperPhone) {
+      const liveLoc = onlineShipperLocations.get(cleanPhone(payload.shipperPhone));
+      if (liveLoc && Number.isFinite(liveLoc.lat) && Number.isFinite(liveLoc.lon)) {
+        payload.shipperLat = liveLoc.lat;
+        payload.shipperLon = liveLoc.lon;
+      }
+    }
+    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(payload), req) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -4550,6 +4560,12 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
         orders[idx].shipperId = matchedShipper.id || 'shipper-default';
         orders[idx].shipperName = matchedShipper.name;
         orders[idx].shipperPhone = matchedShipper.phone;
+        // Gắn GPS hiện tại của tài xế (nếu đang online) để khách thấy vị trí thật ngay
+        const liveLoc = onlineShipperLocations.get(authPhone);
+        if (liveLoc && Number.isFinite(liveLoc.lat) && Number.isFinite(liveLoc.lon)) {
+          orders[idx].shipperLat = liveLoc.lat;
+          orders[idx].shipperLon = liveLoc.lon;
+        }
         clearOrderOffer(orders[idx]);
         updatedOrder = orders[idx];
       } else {
@@ -4669,10 +4685,11 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
 app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
-    const { lat, lon } = req.body;
+    const lat = Number(req.body?.lat);
+    const lon = Number(req.body?.lon);
     const authPhone = req.shipperPhone;
 
-    if (typeof lat !== 'number' || typeof lon !== 'number') {
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return res.status(400).json({ error: 'Tọa độ không hợp lệ' });
     }
 
@@ -5169,8 +5186,10 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
  */
 app.post('/api/shippers/location', authenticateShipper, (req, res) => {
   try {
-    const { phone, lat, lon } = req.body;
-    if (!phone || typeof lat !== 'number' || typeof lon !== 'number') {
+    const { phone } = req.body;
+    const lat = Number(req.body?.lat);
+    const lon = Number(req.body?.lon);
+    if (!phone || !Number.isFinite(lat) || !Number.isFinite(lon)) {
       return res.status(400).json({ success: false, error: 'Dữ liệu vị trí không hợp lệ!' });
     }
 
