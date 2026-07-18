@@ -1093,201 +1093,225 @@
       }
     }
 
-    // ── CATEGORY FILTER ──
+    // ── SEARCH & CATEGORY (server catalog + relaxed local preview) ──
+    let searchRequestId = 0;
+    let activeSearchQuery = '';
+
+    function normalizeText(text) {
+      if (!text) return '';
+      return text.toString().toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[đĐ]/g, 'd')
+        .replace(/y/g, 'i')
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .trim()
+        .replace(/\s+/g, ' ');
+    }
+
+    /** Khớp mềm giống server: mỗi token nằm trong chuỗi (prefix/substring). */
+    function matchSearch(normQuery, cleanStr) {
+      if (!cleanStr) return false;
+      const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
+      if (tokens.length === 0) return false;
+      return tokens.every(token => cleanStr.includes(token));
+    }
+
+    function restaurantMatchesQuery(r, normQuery) {
+      if (!r || !normQuery) return false;
+      if (matchSearch(normQuery, normalizeText(r.name))) return true;
+      if (matchSearch(normQuery, normalizeText(r.category))) return true;
+      if (matchSearch(normQuery, normalizeText(r.address))) return true;
+      if (Array.isArray(r.tags) && r.tags.some(t => matchSearch(normQuery, normalizeText(t)))) return true;
+      if (Array.isArray(r.dishNames) && r.dishNames.some(d => matchSearch(normQuery, normalizeText(d)))) return true;
+      if (Array.isArray(r.menu) && r.menu.some(m =>
+        matchSearch(normQuery, normalizeText(m && m.name)) ||
+        matchSearch(normQuery, normalizeText(m && m.category))
+      )) return true;
+      return false;
+    }
+
+    function localSearchRestaurants(query) {
+      const normQuery = normalizeText(query);
+      if (!normQuery) return [];
+      const open = [];
+      const closed = [];
+      (ALL_DATA || []).forEach(r => {
+        if (!restaurantMatchesQuery(r, normQuery)) return;
+        if (r.isClosed) closed.push(r);
+        else open.push(r);
+      });
+      // Ưu tiên tên quán khớp trước
+      const rank = (list) => list.slice().sort((a, b) => {
+        const aName = matchSearch(normQuery, normalizeText(a.name)) ? 0 : 1;
+        const bName = matchSearch(normQuery, normalizeText(b.name)) ? 0 : 1;
+        if (aName !== bName) return aName - bName;
+        return (a.distanceValue || 99) - (b.distanceValue || 99);
+      });
+      return rank(open).concat(rank(closed));
+    }
+
+    function setSearchChrome(query, { searching = false, count = null, label = null } = {}) {
+      const titleEl = document.getElementById('restaurant-section-title');
+      const featuredWrap = document.getElementById('featured-section-wrap');
+      const nearWrap = document.getElementById('near-section-wrap');
+      if (featuredWrap) featuredWrap.style.display = 'none';
+      if (nearWrap) nearWrap.style.display = 'none';
+      if (label) {
+        titleEl.innerHTML = label;
+        return;
+      }
+      if (searching) {
+        titleEl.textContent = `🔎 Đang tìm: "${query}"...`;
+      } else if (count != null) {
+        titleEl.textContent = `🔎 Kết quả: "${query}" (${count} quán)`;
+      } else {
+        titleEl.textContent = `🔎 Kết quả: "${query}"`;
+      }
+    }
+
+    async function fetchServerSearch(query, reqId) {
+      const state = SF.getState();
+      const queryLat = state.userLat || lastQueryLat || 10.0345;
+      const queryLon = state.userLon || lastQueryLon || 105.7876;
+      const res = await fetch(
+        `${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}&limit=120`,
+        { signal: AbortSignal.timeout(12000) }
+      );
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (reqId !== searchRequestId) return null; // stale
+      const json = await res.json();
+      return json;
+    }
+
+    async function runCatalogSearch(query, { showSkeleton = false, source = 'search' } = {}) {
+      const q = (query || '').trim();
+      activeSearchQuery = q;
+      if (!q) return;
+
+      const reqId = ++searchRequestId;
+      if (showSkeleton) showLoadingSkeleton();
+
+      // 1) Preview ngay từ dữ liệu đang có (gần bạn)
+      const localPreview = localSearchRestaurants(q);
+      if (!showSkeleton && localPreview.length > 0) {
+        setSearchChrome(q, { count: localPreview.length });
+        renderRestaurants(localPreview, false, { mode: 'local' });
+      } else {
+        setSearchChrome(q, { searching: true });
+      }
+
+      // 2) Luôn hỏi server (full catalog) để đủ quán, không chỉ 20 quán gần
+      try {
+        const json = await fetchServerSearch(q, reqId);
+        if (!json || reqId !== searchRequestId) return;
+
+        const results = Array.isArray(json.data) ? json.data : [];
+        results.forEach(r => {
+          if (SF.upsertRestaurant) SF.upsertRestaurant(r);
+        });
+        upsertIntoAllData(results);
+
+        const total = typeof json.total === 'number' ? json.total : results.length;
+        if (results.length > 0) {
+          setSearchChrome(q, { count: total > results.length ? `${results.length}+` : results.length });
+          renderRestaurants(results, false, { mode: 'local' });
+        } else if (localPreview.length > 0) {
+          setSearchChrome(q, { count: localPreview.length });
+          renderRestaurants(localPreview, false, { mode: 'local' });
+        } else {
+          setSearchChrome(q, {
+            label: `🔎 Không tìm thấy quán cho "<b>${SF.escapeHtml(q)}</b>". Thử từ khóa khác (vd. hủ tiếu, bánh mì, cơm tấm).`
+          });
+          renderRestaurants([], false, { mode: 'local' });
+        }
+      } catch (err) {
+        if (reqId !== searchRequestId) return;
+        console.warn(`[Search] ${source} server failed:`, err.message);
+        if (localPreview.length > 0) {
+          setSearchChrome(q, {
+            label: `🔎 Kết quả gần bạn: "${SF.escapeHtml(q)}" (${localPreview.length} quán) · không kết nối được máy chủ`
+          });
+          renderRestaurants(localPreview, false, { mode: 'local' });
+        } else {
+          setSearchChrome(q, {
+            label: `🔎 Không kết nối được máy chủ. Thử lại sau.`
+          });
+          renderRestaurants([], false, { mode: 'local' });
+        }
+      }
+    }
+
     function filterCategory(cat, btn) {
       document.querySelectorAll('#category-row .chip').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
-
-      // Reset search bar when selecting category
       document.getElementById('search-input').value = '';
 
       const titleEl = document.getElementById('restaurant-section-title');
       const featuredWrap = document.getElementById('featured-section-wrap');
       const nearWrap = document.getElementById('near-section-wrap');
-      let filtered;
 
       if (cat === 'all') {
-        filtered = (ALL_DATA || []).filter(r => r && !r.isClosed);
+        searchRequestId += 1; // hủy request search đang chạy
+        activeSearchQuery = '';
+        const filtered = (ALL_DATA || []).filter(r => r && !r.isClosed);
         titleEl.textContent = 'Tất cả cửa hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
         renderRestaurants(filtered, false, { mode: 'server' });
-      } else {
-        filtered = (ALL_DATA || []).filter(r =>
-          r && (
-            (r.name && r.name.toLowerCase().includes(cat.toLowerCase())) ||
-            (r.category && r.category.toLowerCase().includes(cat.toLowerCase())) ||
-            (r.menu && (r.menu || []).some(m => m.category?.toLowerCase().includes(cat.toLowerCase())))
-          )
-        );
-        titleEl.textContent = `🔎 Kết quả: ${cat}`;
-        if (featuredWrap) featuredWrap.style.display = 'none';
-        if (nearWrap) nearWrap.style.display = 'none';
-        renderRestaurants(filtered, false, { mode: 'local' });
+        return;
       }
+
+      // Chip danh mục → tìm trên toàn bộ catalog server (không chỉ trang gần bạn)
+      runCatalogSearch(cat, { showSkeleton: false, source: 'category' });
     }
 
-    // ── SEARCH ──
-    function normalizeText(text) {
-      if (!text) return '';
-      return text.toString().toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[đĐ]/g, 'd')
-        .replace(/y/g, 'i') // Chuẩn hoá y thành i để đồng nhất mì/mỳ, lý/lí
-        .replace(/[^a-z0-9\s]/g, '')
-        .trim();
-    }
-
-    function matchSearch(normQuery, cleanStr) {
-      const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
-      if (tokens.length === 0) return false;
-      
-      if (tokens.length === 1) {
-        // Đối với từ khoá đơn (ví dụ: "mi", "bo", "ga"), yêu cầu khớp nguyên từ chính xác
-        const words = cleanStr.split(/\s+/);
-        return words.some(w => w === tokens[0]);
-      }
-      
-      // Đối với từ khoá ghép từ 2 từ trở lên (ví dụ: "mi cai", "mi cai bo", "bun bo"):
-      // 1. Hai từ đầu tiên phải đi liền kề nhau làm cụm từ cốt lõi (Core Phrase)
-      const corePhrase = tokens[0] + ' ' + tokens[1];
-      if (!cleanStr.includes(corePhrase)) return false;
-      
-      // 2. Tất cả các từ còn lại trong truy vấn phải có mặt trong chuỗi (chấp nhận rời rạc)
-      for (let i = 2; i < tokens.length; i++) {
-        if (!cleanStr.includes(tokens[i])) return false;
-      }
-      
-      return true;
-    }
-
-    const onSearch = SF.debounce ? SF.debounce(_doSearch, 200) : _doSearch; // Giảm debounce xuống 200ms vì tìm kiếm local phản hồi ngay lập tức
+    const onSearch = SF.debounce ? SF.debounce(_doSearch, 280) : _doSearch;
     async function _doSearch(q) {
-      const query = q.trim();
+      const query = (q || '').trim();
       const titleEl = document.getElementById('restaurant-section-title');
       const featuredWrap = document.getElementById('featured-section-wrap');
       const nearWrap = document.getElementById('near-section-wrap');
 
-      // Reset category chips to "Tất cả" when a query is entered
       if (query) {
         document.querySelectorAll('#category-row .chip').forEach(c => {
-          if (c.getAttribute('onclick').includes("'all'")) {
-            c.classList.add('active');
-          } else {
-            c.classList.remove('active');
-          }
+          const isAll = (c.getAttribute('onclick') || '').includes("'all'");
+          c.classList.toggle('active', isAll);
         });
       }
 
       if (!query) {
+        searchRequestId += 1;
+        activeSearchQuery = '';
         titleEl.textContent = 'Tất cả cửa hàng';
         if (featuredWrap) featuredWrap.style.display = 'block';
         if (nearWrap) nearWrap.style.display = 'block';
-        renderRestaurants(ALL_DATA, false, { mode: 'server' });
+        renderRestaurants((ALL_DATA || []).filter(r => r && !r.isClosed), false, { mode: 'server' });
         return;
       }
 
-      // Early-return BEFORE filtering to avoid O(n×dishNames) work on first keystroke / IME
       if (query.length < 2) {
         if (featuredWrap) featuredWrap.style.display = 'none';
         if (nearWrap) nearWrap.style.display = 'none';
-        titleEl.textContent = `🔎 Nhập ít nhất 2 ký tự để tìm kiếm...`;
-        renderRestaurants([], false, { mode: 'local' });
-        return;
-      }
-      
-      if (featuredWrap) featuredWrap.style.display = 'none';
-      if (nearWrap) nearWrap.style.display = 'none';
-
-      const normQuery = normalizeText(query);
-      const tokens = normQuery.split(/\s+/).filter(t => t.length > 0);
-
-      if (tokens.length === 0) {
-        titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
+        titleEl.textContent = '🔎 Nhập ít nhất 2 ký tự để tìm kiếm...';
         renderRestaurants([], false, { mode: 'local' });
         return;
       }
 
-      // 1. Thực hiện tìm kiếm nhanh trong RAM trình duyệt (<1ms)
-      let results = (ALL_DATA || []).filter(r => {
-        if (!r) return false;
-        const normName = normalizeText(r.name);
-        const normCategory = normalizeText(r.category);
-        const normAddress = normalizeText(r.address);
-        
-        // Tất cả từ khoá phải khớp theo thuật toán matchSearch
-        if (matchSearch(normQuery, normName)) return true;
-        if (matchSearch(normQuery, normCategory)) return true;
-        if (matchSearch(normQuery, normAddress)) return true;
-        if (Array.isArray(r.dishNames)) {
-          const matchDish = r.dishNames.some(dish => {
-            const normDish = normalizeText(dish);
-            return matchSearch(normQuery, normDish);
-          });
-          if (matchDish) return true;
-        }
-
-        return false;
-      });
-
-      titleEl.textContent = `🔎 Kết quả tìm kiếm: "${query}"`;
-      
-      if (results.length > 0) {
-        renderRestaurants(results, false, { mode: 'local' });
-      } else {
-        titleEl.innerHTML = `🔎 Không có cửa hàng ở gần phù hợp. <span style="color:var(--clr-primary);font-weight:600;cursor:pointer;" onclick="onSearchExpand(document.getElementById('search-input').value)">Nhấn vào đây</span> hoặc <b>gõ Enter</b> để tìm trên toàn thành phố.`;
-        renderRestaurants([], false, { mode: 'local' });
-      }
+      await runCatalogSearch(query, { showSkeleton: false, source: 'input' });
     }
 
-    // Tìm kiếm mở rộng trên toàn thành phố (gọi trực tiếp lên server để tìm các quán ngoài 3km)
-    // Chỉ kích hoạt khi gõ Enter hoặc click nút tìm kiếm/gợi ý.
+    // Enter / nút kính lúp: ép tìm lại trên server (full catalog)
     async function onSearchExpand(q) {
-      const query = q.trim();
+      const query = (q || '').trim();
       if (!query) return;
-
-      const titleEl = document.getElementById('restaurant-section-title');
-      const featuredWrap = document.getElementById('featured-section-wrap');
-      const nearWrap = document.getElementById('near-section-wrap');
-
-      if (featuredWrap) featuredWrap.style.display = 'none';
-      if (nearWrap) nearWrap.style.display = 'none';
-
-      titleEl.textContent = `🔎 Đang tìm kiếm trên toàn thành phố: "${query}"...`;
-      showLoadingSkeleton();
-
-      try {
-        const state = SF.getState();
-        const queryLat = state.userLat || 10.0345;
-        const queryLon = state.userLon || 105.7876;
-        
-        const res = await fetch(`${API_BASE}/api/restaurants?q=${encodeURIComponent(query)}&lat=${queryLat}&lon=${queryLon}`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const json = await res.json();
-        
-        if (json.data && json.data.length > 0) {
-          titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (${json.data.length} quán)`;
-          
-          // Upsert theo id — không append vô hạn làm phình cache
-          json.data.forEach(newRes => {
-            if (SF.upsertRestaurant) SF.upsertRestaurant(newRes);
-          });
-          upsertIntoAllData(json.data);
-          
-          renderRestaurants(json.data, false, { mode: 'local' });
-        } else {
-          titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Không tìm thấy)`;
-          renderRestaurants([], false, { mode: 'local' });
-        }
-      } catch (err) {
-        console.warn('[Search Expand] Lỗi kết nối tìm kiếm mở rộng:', err.message);
-        titleEl.textContent = `🔎 Kết quả tìm kiếm mở rộng: "${query}" (Lỗi kết nối)`;
-        renderRestaurants([], false, { mode: 'local' });
-      }
+      document.querySelectorAll('#category-row .chip').forEach(c => {
+        const isAll = (c.getAttribute('onclick') || '').includes("'all'");
+        c.classList.toggle('active', isAll);
+      });
+      await runCatalogSearch(query, { showSkeleton: true, source: 'expand' });
     }
-    
-    // Expose cho sự kiện onclick hoặc onkeydown ngoài phạm vi module
+
     window.onSearchExpand = onSearchExpand;
 
     // ── ADDRESS MODAL ──

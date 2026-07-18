@@ -3193,8 +3193,11 @@ app.get('/api/restaurants', async (req, res) => {
     // Không spawn Puppeteer hàng loạt từ search — scrape chỉ khi khách mở trang detail (queue toàn cục)
 
     const processedResults = processRestaurantsWithLocation(mergedResults, req.query.lat, req.query.lon, !!query);
-    // Cap search payload — slim objects already; avoid huge JSON that can OOM Render
-    const SEARCH_RESULT_CAP = 80;
+    // Cap search payload — slim objects; allow higher limit from client (?limit=)
+    const rawCap = parseInt(req.query.limit, 10);
+    const SEARCH_RESULT_CAP = Number.isFinite(rawCap) && rawCap > 0
+      ? Math.min(rawCap, 200)
+      : 120;
     const cappedResults = processedResults.length > SEARCH_RESULT_CAP
       ? processedResults.slice(0, SEARCH_RESULT_CAP)
       : processedResults;
