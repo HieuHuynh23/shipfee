@@ -1,7 +1,7 @@
-/* ShipFee customer PWA — v2026-07-19c
+/* ShipFee customer PWA — v2026-07-19d
    Minimal SW for installability. Cleared caches so clients pick up
-   geolocation OS-vs-site permission diagnostics. */
-const SW_VERSION = 'shipfee-customer-2026-07-19c';
+   Chrome/Windows two-step location permission + gesture-safe GPS. */
+const SW_VERSION = 'shipfee-customer-2026-07-19d';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
