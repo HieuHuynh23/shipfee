@@ -1,7 +1,7 @@
-/* ShipFee customer PWA — v2026-07-19b
+/* ShipFee customer PWA — v2026-07-19c
    Minimal SW for installability. Cleared caches so clients pick up
-   precise browser geolocation (no IP fallback). */
-const SW_VERSION = 'shipfee-customer-2026-07-19b';
+   geolocation OS-vs-site permission diagnostics. */
+const SW_VERSION = 'shipfee-customer-2026-07-19c';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
