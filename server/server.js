@@ -4243,6 +4243,7 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
       finishedAt: null,
       pausedAt: null,
       errors: [],
+      fatalError: null,
       restaurants
     };
   } else {
@@ -4251,6 +4252,7 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
     bulkSyncJob.pauseRequested = false;
     bulkSyncJob.pausedAt = null;
     bulkSyncJob.finishedAt = null;
+    bulkSyncJob.fatalError = null;
     bulkSyncJob.active = bulkSyncJob.active || [];
   }
 
@@ -4316,6 +4318,9 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
       () => worker()
     );
     await Promise.all(workers);
+  } catch (err) {
+    bulkSyncJob.fatalError = err.message || 'Không khởi động được trình duyệt đồng bộ trên server.';
+    console.error('[Bulk Sync] ❌ Lỗi nghiêm trọng:', err.message);
   } finally {
     await menuScraper.closeBrowserSafe(sharedBrowser);
   }
@@ -6761,6 +6766,7 @@ app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
     finishedAt: bulkSyncJob.finishedAt,
     pausedAt: bulkSyncJob.pausedAt,
     errors: bulkSyncJob.errors.slice(-10),
+    fatalError: bulkSyncJob.fatalError || null,
     menuScrapeEnabled: MENU_SCRAPE_ENABLED,
     concurrency: BULK_SYNC_CONCURRENCY
   });

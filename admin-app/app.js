@@ -1824,13 +1824,19 @@ async function pollBulkSyncStatus(silent) {
       if (btnAll && menuScrapeEnabled !== false) btnAll.disabled = false;
       if (btnChanged && menuScrapeEnabled !== false) btnChanged.disabled = false;
       const shouldNotifyDone = bulkSyncSeenActive || (res.completed > 0 && !silent);
-      if (shouldNotifyDone && res.completed > 0) {
+      if (shouldNotifyDone) {
         bulkSyncSeenActive = false;
-        const syncedCount = res.synced != null ? res.synced : Math.max(0, res.completed - (res.failed || 0));
-        const doneParts = [`${syncedCount}/${res.total} quán đã lưu`];
-        if (res.skipped) doneParts.push(`${res.skipped} bỏ qua`);
-        if (res.failed) doneParts.push(`${res.failed} lỗi`);
-        showToast(`Hoàn tất đồng bộ: ${doneParts.join(' · ')}`, res.failed ? 'warning' : 'success');
+        if (res.fatalError) {
+          showToast(`Đồng bộ dừng do lỗi máy chủ: ${res.fatalError}`, 'error');
+        } else if (res.completed > 0) {
+          const syncedCount = res.synced != null ? res.synced : Math.max(0, res.completed - (res.failed || 0));
+          const doneParts = [`${syncedCount}/${res.total} quán đã lưu`];
+          if (res.skipped) doneParts.push(`${res.skipped} bỏ qua`);
+          if (res.failed) doneParts.push(`${res.failed} lỗi`);
+          showToast(`Hoàn tất đồng bộ: ${doneParts.join(' · ')}`, res.failed ? 'warning' : 'success');
+        } else {
+          showToast('Đồng bộ kết thúc nhưng chưa xử lý được quán nào. Vui lòng thử lại.', 'warning');
+        }
         if (currentPage === 'restaurants') {
           loadRestaurants();
           loadRestaurantChanges();
