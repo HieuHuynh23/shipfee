@@ -1540,7 +1540,7 @@
       }
       const hintEl = document.getElementById('address-map-hint-text');
       if (hintEl && isDesktop) {
-        hintEl.innerHTML = '<strong>Máy tính:</strong> Cần <em>Cho phép</em> trên trình duyệt <strong>và</strong> bật Location Services trong Windows/macOS. Nếu vẫn lỗi dù đã cho phép trang web — thường do OS đang tắt định vị. Hoặc kéo ghim đỏ trên bản đồ.';
+        hintEl.innerHTML = '<strong>Máy tính (Chrome 144+ / Windows):</strong> Cần <em>Cho phép</em> trang web <strong>và</strong> cho phép Location của <em>Google Chrome</em> trong Windows → Settings → Privacy &amp; security → Location. Dialog Windows chỉ hiện 1 lần — nếu từng chặn thì phải bật lại ở đó. Hoặc kéo ghim đỏ trên bản đồ.';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
