@@ -439,18 +439,18 @@
         </div>
       </div>
 
-      <button class="btn btn--secondary btn--full address-gps-btn" onclick="detectUserLocation()">
-        <i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại
+      <button class="btn btn--secondary btn--full address-gps-btn" id="btn-detect-location" onclick="detectUserLocation()">
+        <i class="fa-solid fa-location-crosshairs"></i> <span id="btn-detect-location-label">Sử dụng vị trí hiện tại</span>
       </button>
       
       <!-- Hint for dragging pin -->
       <div class="address-map-hint">
         <i class="fa-solid fa-circle-info"></i>
-        <span><strong>Gợi ý:</strong> Kéo thả ghim đỏ trên bản đồ đến đúng vị trí nhà bạn để Shipper giao hàng chính xác nhất!</span>
+        <span id="address-map-hint-text"><strong>Gợi ý:</strong> Kéo thả ghim đỏ trên bản đồ đến đúng vị trí nhà bạn để Shipper giao hàng chính xác nhất!</span>
       </div>
 
-      <!-- Leaflet map container for dragging pin -->
-      <div id="modal-map" class="address-modal-map" style="display: none;"></div>
+      <!-- Leaflet map container for dragging pin — hiện sẵn để máy tính kéo ghim khi không có GPS -->
+      <div id="modal-map" class="address-modal-map" style="display: block; min-height: 220px;"></div>
       
       <!-- Precise pin indicator -->
       <div id="map-pin-badge" class="address-pin-badge" style="display: none;">
@@ -1442,7 +1442,7 @@
 
         mapMarker = L.marker(coords, { draggable: true }).addTo(leafletMap);
 
-        mapMarker.on('dragend', function () {
+        mapMarker.on('dragend', async function () {
           const position = mapMarker.getLatLng();
           tempGpsCoords = { lat: position.lat, lon: position.lng };
           
@@ -1452,11 +1452,21 @@
             pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}!`;
           }
 
-          const addrVal = document.getElementById('modal-address-input').value.trim();
-          if (!addrVal || addrVal.includes('GPS') || addrVal.includes('Ghim')) {
-            document.getElementById('modal-address-input').value = `Vị trí Ghim Bản Đồ (${position.lat.toFixed(4)}, ${position.lng.toFixed(4)})`;
+          const addrInput = document.getElementById('modal-address-input');
+          const addrVal = (addrInput && addrInput.value || '').trim();
+          const shouldFill = !addrVal || /GPS|Ghim|Vị trí|Đang lấy địa chỉ/i.test(addrVal);
+          if (shouldFill && addrInput) {
+            addrInput.value = 'Đang lấy địa chỉ...';
+            const nice = SF.reverseGeocodeAddress
+              ? await SF.reverseGeocodeAddress(position.lat, position.lng)
+              : null;
+            addrInput.value = nice || `Vị trí Ghim Bản Đồ (${position.lat.toFixed(4)}, ${position.lng.toFixed(4)})`;
           }
-          SF.showToast('📍 Đã ghim vị trí', `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`, 'info');
+          SF.showToast(
+            '📍 Đã ghim vị trí',
+            `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)} — kéo ghim nếu cần chỉnh thêm.`,
+            'info'
+          );
         });
       } else {
         const cur = leafletMap.getCenter();
@@ -1517,14 +1527,20 @@
       selectedOrderType = state.isRelative ? 'relative' : (state.deliveryAddress ? 'self' : null);
       setOrderType(selectedOrderType);
 
-      // Reset GPS button state
-      const gpsBtn = document.querySelector('button[onclick="detectUserLocation()"]');
+      // Reset location button state
+      const gpsBtn = document.getElementById('btn-detect-location') || document.querySelector('button[onclick="detectUserLocation()"]');
+      const isDesktop = SF.isDesktopBrowser && SF.isDesktopBrowser();
       if (gpsBtn) {
-        gpsBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> Sử dụng vị trí GPS hiện tại`;
+        const label = isDesktop ? 'Lấy vị trí hiện tại (Wi‑Fi / mạng)' : 'Sử dụng vị trí GPS hiện tại';
+        gpsBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> <span id="btn-detect-location-label">${label}</span>`;
         gpsBtn.classList.remove('is-success');
         gpsBtn.style.background = '';
         gpsBtn.style.color = '';
         gpsBtn.style.borderColor = '';
+      }
+      const hintEl = document.getElementById('address-map-hint-text');
+      if (hintEl && isDesktop) {
+        hintEl.innerHTML = '<strong>Máy tính:</strong> Cho phép vị trí khi trình duyệt hỏi, hoặc kéo ghim đỏ trên bản đồ tới đúng nhà — cách chính xác nhất!';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
@@ -1563,7 +1579,7 @@
 
     let detectingLocation = false;
     async function detectUserLocation() {
-      const btn = document.querySelector('button[onclick="detectUserLocation()"]');
+      const btn = document.getElementById('btn-detect-location') || document.querySelector('button[onclick="detectUserLocation()"]');
       if (!btn || detectingLocation) return;
       detectingLocation = true;
       const originalText = btn.innerHTML;
@@ -1591,26 +1607,41 @@
           finalLon = 105.7876;
           SF.showToast(
             '📍 Ngoài vùng phục vụ',
-            'GPS đang ở ngoài Cần Thơ. Đã đặt tạm tại Ninh Kiều — hãy kéo ghim trên bản đồ tới đúng điểm giao.',
+            'Vị trí đang ở ngoài Cần Thơ. Đã đặt tạm tại Ninh Kiều — hãy kéo ghim trên bản đồ tới đúng điểm giao.',
             'info',
             6000
+          );
+        } else if (loc.source === 'ip') {
+          SF.showToast(
+            '📍 Vị trí gần đúng (theo IP)',
+            'Trình duyệt chưa cho phép GPS. Đã ước lượng theo mạng — kéo ghim đỏ tới đúng nhà bạn.',
+            'warning',
+            7000
           );
         } else {
           const acc = loc.accuracy != null ? Math.round(loc.accuracy) : null;
           const accText = acc != null ? ` (±${acc}m)` : '';
           SF.showToast(
             '📍 Đã định vị',
-            (loc.coarse ? 'Đã lấy vị trí gần đúng' : 'Đã lấy vị trí GPS') + accText + '. Kéo ghim nếu cần chỉnh.',
+            (loc.coarse ? 'Đã lấy vị trí gần đúng' : 'Đã lấy vị trí') + accText + '. Kéo ghim nếu cần chỉnh.',
             loc.coarse || (acc != null && acc > 100) ? 'warning' : 'success',
             4500
           );
         }
 
         tempGpsCoords = { lat: finalLat, lon: finalLon };
-        document.getElementById('modal-address-input').value =
-          `Vị trí GPS (${finalLat.toFixed(5)}, ${finalLon.toFixed(5)})`;
 
-        btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí GPS!`;
+        // Điền địa chỉ chữ từ tọa độ (không chỉ hiện lat/lon)
+        const addrInput = document.getElementById('modal-address-input');
+        if (addrInput) {
+          addrInput.value = 'Đang lấy địa chỉ...';
+          const nice = SF.reverseGeocodeAddress
+            ? await SF.reverseGeocodeAddress(finalLat, finalLon)
+            : null;
+          addrInput.value = nice || `Vị trí đã ghim (${finalLat.toFixed(5)}, ${finalLon.toFixed(5)})`;
+        }
+
+        btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã nhận vị trí!`;
         btn.disabled = false;
         btn.classList.add('is-success');
         btn.style.background = '';
@@ -1623,23 +1654,28 @@
         if (pinBadge) {
           pinBadge.style.display = 'flex';
           const acc = loc.accuracy != null ? ` · ±${Math.round(loc.accuracy)}m` : '';
-          const label = loc.desktop ? 'Vị trí' : 'GPS';
+          const label = loc.source === 'ip' ? 'IP' : (loc.desktop ? 'Vị trí' : 'GPS');
           pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${label}: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
         }
+
+        try {
+          const mapEl = document.getElementById('modal-map');
+          if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (_) {}
       } catch (error) {
         console.error('[GPS]', error);
         btn.innerHTML = originalText;
         btn.disabled = false;
         const formatted = SF.formatGeoError
           ? SF.formatGeoError(error)
-          : { title: 'Lỗi định vị', message: 'Không thể lấy vị trí. Hãy ghim tay trên bản đồ.' };
+          : { title: 'Lỗi định vị', message: 'Không thể lấy vị trí. Hãy kéo ghim trên bản đồ.' };
         SF.showToast(formatted.title, formatted.message, 'error', 10000);
-        // Desktop fallback: keep map visible so user can drag the pin
+        // Luôn hiện bản đồ để kéo ghim thủ công
         try {
-          const mapEl = document.getElementById('address-map');
-          if (mapEl && mapEl.offsetParent !== null) {
-            mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          }
+          const state = SF.getState();
+          await showMapAt(state.userLat || 10.0345, state.userLon || 105.7876, false);
+          const mapEl = document.getElementById('modal-map');
+          if (mapEl) mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } catch (_) {}
       } finally {
         detectingLocation = false;
