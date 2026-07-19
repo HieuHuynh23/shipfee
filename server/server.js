@@ -182,10 +182,16 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
 }
 
 /**
- * Gửi email xác nhận Supabase sau khi CRM duyệt tài xế.
- * - Chưa confirm email → resend signup confirmation link
- * - Đã confirm (tài khoản cũ) → magic link OTP
- * - Nếu SMTP fail → generateLink (trả link cho CRM copy thủ công)
+ * Gửi email xác nhận Supabase SAU KHI CRM duyệt tài xế (không gửi lúc đăng ký).
+ *
+ * Luồng chuẩn:
+ * 1) Chưa confirm → resend signup confirmation (template Confirm signup)
+ * 2) Nếu SMTP/resend fail → generateLink(type: signup) để CRM copy gửi tay
+ * 3) Đã confirm từ trước → chỉ báo có thể đăng nhập (không gửi magic-link "Sign in"
+ *    — tránh trùng / nhầm với email lúc đăng ký)
+ *
+ * Lưu ý: KHÔNG dùng signInWithOtp ở đây (email "Your sign-in link" gây nhầm lẫn
+ * với bước chờ duyệt admin).
  */
 async function sendShipperApprovalConfirmationEmail(shipper) {
   if (!supabase) {
@@ -194,15 +200,17 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
 
   let email = (shipper?.email || '').trim().toLowerCase();
   let emailConfirmed = false;
+  let userId = shipper?.id || null;
 
   try {
-    if (shipper?.id) {
-      const { data: userData, error: getErr } = await supabase.auth.admin.getUserById(shipper.id);
+    if (userId) {
+      const { data: userData, error: getErr } = await supabase.auth.admin.getUserById(userId);
       if (getErr) {
         console.warn('[Approve Email] Không lấy được user Auth:', getErr.message);
       } else if (userData?.user) {
         email = email || (userData.user.email || '').trim().toLowerCase();
         emailConfirmed = !!userData.user.email_confirmed_at;
+        userId = userData.user.id;
       }
     }
 
@@ -213,7 +221,19 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
     const emailRedirectTo = `${SHIPPER_APP_URL}?approved=1`;
     const errors = [];
 
-    if (supabaseAnon && !emailConfirmed) {
+    // Đã confirm email sẵn → không gửi thêm magic link (tránh email "Sign in" thừa)
+    if (emailConfirmed) {
+      console.log(`[Approve Email] ${email} đã confirm — bỏ qua gửi email Auth`);
+      return {
+        sent: false,
+        error: null,
+        method: 'already_confirmed',
+        confirmationLink: null
+      };
+    }
+
+    // Gửi email Confirm signup — CHỈ sau khi admin duyệt (không phải magic-link "Sign in")
+    if (supabaseAnon) {
       const { error: resendErr } = await supabaseAnon.auth.resend({
         type: 'signup',
         email,
@@ -225,47 +245,28 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
       }
       errors.push('resend: ' + resendErr.message);
       console.warn('[Approve Email] resend signup thất bại:', resendErr.message);
-    } else if (!supabaseAnon) {
+    } else {
       errors.push('Thiếu SUPABASE_ANON_KEY');
     }
 
-    if (supabaseAnon) {
-      const { error: otpErr } = await supabaseAnon.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo
-        }
-      });
-      if (!otpErr) {
-        console.log(`[Approve Email] Đã gửi magic link tới ${email}`);
-        return { sent: true, error: null, method: 'magic_link', confirmationLink: null };
+    // Fallback an toàn: không gửi magic-link. Auto-confirm để tài xế đăng nhập bằng mật khẩu đã tạo lúc đăng ký.
+    if (userId) {
+      try {
+        await supabase.auth.admin.updateUserById(userId, { email_confirm: true });
+        console.warn(`[Approve Email] Đã auto-confirm ${email} (không gửi được email Confirm signup)`);
+        return {
+          sent: false,
+          error: (errors.join(' | ') || 'Không gửi được email xác nhận') +
+            ' — đã xác nhận email giúp tài xế; họ có thể đăng nhập bằng mật khẩu đã đăng ký',
+          method: 'auto_confirm',
+          confirmationLink: null
+        };
+      } catch (confirmErr) {
+        errors.push('auto_confirm: ' + confirmErr.message);
       }
-      errors.push('otp: ' + otpErr.message);
-      console.warn('[Approve Email] magic link OTP thất bại:', otpErr.message);
     }
 
-    // Fallback: tạo link bằng Admin API (không phụ thuộc SMTP) — CRM có thể copy gửi tay
-    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-      options: { redirectTo: emailRedirectTo }
-    });
-
-    if (linkErr) {
-      errors.push('generateLink: ' + linkErr.message);
-      console.error('[Approve Email] generateLink thất bại:', linkErr.message);
-      return { sent: false, error: errors.join(' | '), method: null, confirmationLink: null };
-    }
-
-    const actionLink = linkData?.properties?.action_link || null;
-    console.warn(`[Approve Email] SMTP không gửi được — đã tạo link thủ công cho ${email}`);
-    return {
-      sent: false,
-      error: (errors.join(' | ') || 'SMTP không gửi được email') + ' — dùng confirmationLink gửi tay',
-      method: 'manual_link',
-      confirmationLink: actionLink
-    };
+    return { sent: false, error: errors.join(' | '), method: null, confirmationLink: null };
   } catch (err) {
     console.error('[Approve Email] Exception:', err.message);
     return { sent: false, error: err.message, method: null, confirmationLink: null };
@@ -5353,9 +5354,10 @@ app.post('/api/shippers/register', async (req, res) => {
       avatarUrl = await uploadShipperAvatar(cleanedPhone, avatar, req);
     }
 
-    // Tạo user chưa confirm email — link xác nhận chỉ gửi sau khi CRM duyệt (bảo mật + thông báo duyệt)
+    // Tạo Auth user bằng Admin API — KHÔNG gửi email.
+    // Email xác nhận Supabase chỉ được gửi trong approveShipperAccount() sau khi CRM/Telegram duyệt.
     const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
-      email: email.trim(),
+      email: email.trim().toLowerCase(),
       password: password,
       email_confirm: false,
       user_metadata: {
@@ -5364,7 +5366,12 @@ app.post('/api/shippers/register', async (req, res) => {
         role: 'shipper',
         is_approved: false,
         avatar_url: avatarUrl,
-        cccd: cleanedCccd
+        cccd: cleanedCccd,
+        pending_crm_approval: true
+      },
+      app_metadata: {
+        role: 'shipper',
+        pending_crm_approval: true
       }
     });
 
@@ -5373,6 +5380,11 @@ app.post('/api/shippers/register', async (req, res) => {
     }
 
     const user = signUpData.user;
+    // Đảm bảo email vẫn chưa confirm (tránh project hook/auto-confirm)
+    if (user.email_confirmed_at) {
+      console.warn(`[Register] User ${user.id} bị confirm sớm — không mong muốn ở bước đăng ký`);
+    }
+    console.log(`[Register] Tạo Auth user ${user.id} cho ${email.trim().toLowerCase()} — chưa gửi email (chờ CRM duyệt)`);
     const newShipper = {
       id: user.id,
       phone: cleanedPhone,

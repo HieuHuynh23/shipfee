@@ -792,18 +792,73 @@ async function queryGeoPermissionState() {
   }
 }
 
+/** Reverse-geocode lat/lon → địa chỉ đọc được (Nominatim). */
+async function reverseGeocodeAddress(lat, lon) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&accept-language=vi&addressdetails=1`;
+    const res = await fetch(url, {
+      headers: { Accept: 'application/json' }
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && data.display_name) return String(data.display_name);
+  } catch (e) {
+    console.warn('[reverseGeocode]', e.message || e);
+  }
+  return null;
+}
+
+/**
+ * Fallback vị trí theo IP khi trình duyệt chặn GPS (thường gặp trên máy tính).
+ * Độ chính xác thấp — chỉ để đặt ghim gần khu vực, user kéo chỉnh.
+ */
+function fetchWithTimeout(url, ms = 8000) {
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = setTimeout(() => { try { ctrl && ctrl.abort(); } catch (_) {} }, ms);
+  return fetch(url, ctrl ? { signal: ctrl.signal } : undefined).finally(() => clearTimeout(timer));
+}
+
+async function getIpApproximateLocation() {
+  const parsers = [
+    async () => {
+      const res = await fetchWithTimeout('https://ipwho.is/', 8000);
+      if (!res.ok) throw new Error('ipwho.is failed');
+      const d = await res.json();
+      if (!d || d.success === false) throw new Error('ipwho.is invalid');
+      return { lat: Number(d.latitude), lon: Number(d.longitude), label: d.city || d.region || '' };
+    },
+    async () => {
+      const res = await fetchWithTimeout('https://ipapi.co/json/', 8000);
+      if (!res.ok) throw new Error('ipapi.co failed');
+      const d = await res.json();
+      if (!d || d.error) throw new Error('ipapi.co invalid');
+      return { lat: Number(d.latitude), lon: Number(d.longitude), label: d.city || d.region || '' };
+    }
+  ];
+
+  for (const parse of parsers) {
+    try {
+      const loc = await parse();
+      if (Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
+        return { ...loc, accuracy: 5000, coarse: true, source: 'ip' };
+      }
+    } catch (_) { /* try next */ }
+  }
+  return null;
+}
+
 let _geoInFlight = null;
 
 /**
- * User location with desktop Wi‑Fi / iOS Safari fallbacks.
+ * User location with desktop Wi‑Fi / IP / iOS Safari fallbacks.
  * Must be called from a user gesture (button tap).
  *
  * Desktop notes:
  * - PCs rarely have GPS; enableHighAccuracy:true often fails or times out
  * - Prefer network/Wi‑Fi fix first; skip long GPS refine watches
- * - Chrome may report PERMISSION_DENIED if OS Location Services are off
+ * - If browser permission denied → IP approximate location (then user drags pin)
  */
-async function getUserLocation({ onProgress } = {}) {
+async function getUserLocation({ onProgress, allowIpFallback = true } = {}) {
   // Coalesce concurrent calls (double-clicks / stacked handlers)
   if (_geoInFlight) return _geoInFlight;
 
@@ -814,7 +869,27 @@ async function getUserLocation({ onProgress } = {}) {
       if (typeof onProgress === 'function') onProgress(msg);
     };
 
+    const finishWithIpFallback = async (reasonErr) => {
+      if (!allowIpFallback || !desktop) throw reasonErr;
+      progress('Trình duyệt chặn GPS — đang ước lượng theo IP...');
+      const ipLoc = await getIpApproximateLocation();
+      if (!ipLoc) throw reasonErr;
+      return {
+        lat: ipLoc.lat,
+        lon: ipLoc.lon,
+        accuracy: ipLoc.accuracy,
+        coarse: true,
+        apple,
+        desktop,
+        source: 'ip',
+        timestamp: Date.now()
+      };
+    };
+
     if (!navigator.geolocation) {
+      if (desktop && allowIpFallback) {
+        return finishWithIpFallback(Object.assign(new Error('unsupported'), { code: 0 }));
+      }
       const err = new Error('unsupported');
       err.code = 0;
       throw err;
@@ -834,7 +909,8 @@ async function getUserLocation({ onProgress } = {}) {
       err.permissionPermanentlyDenied = true;
       err.desktopHint = desktop;
       err.iosHint = apple;
-      throw err;
+      // Desktop: đừng dừng ở toast lỗi — fallback IP để vẫn đặt được ghim
+      return finishWithIpFallback(err);
     }
 
     // Desktop / Apple: network-first. Desktop has no GPS chip.
@@ -864,11 +940,10 @@ async function getUserLocation({ onProgress } = {}) {
         });
         coarse = (position.coords.accuracy || 9999) > 80;
       } catch (netErr) {
-        // Permission denied / unavailable — don't keep retrying the same denial
         if (netErr && netErr.code === 1) {
           netErr.desktopHint = desktop;
           netErr.iosHint = apple;
-          throw netErr;
+          return finishWithIpFallback(netErr);
         }
         // continue to high-accuracy attempt
       }
@@ -899,7 +974,7 @@ async function getUserLocation({ onProgress } = {}) {
             const err = lowErr || highErr;
             err.iosHint = apple;
             err.desktopHint = desktop;
-            throw err;
+            return finishWithIpFallback(err);
           }
         }
       }
@@ -930,6 +1005,7 @@ async function getUserLocation({ onProgress } = {}) {
       coarse,
       apple,
       desktop,
+      source: 'browser',
       timestamp: position.timestamp
     };
   })();
@@ -1150,6 +1226,8 @@ window.SF = {
   isAppleMobile,
   isDesktopBrowser,
   getUserLocation,
+  reverseGeocodeAddress,
+  getIpApproximateLocation,
   formatGeoError,
   loadLeaflet,
   lockBodyScroll,
@@ -1180,7 +1258,7 @@ document.addEventListener('gesturestart', function (event) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-18c', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-19a', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});

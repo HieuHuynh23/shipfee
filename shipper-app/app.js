@@ -540,7 +540,7 @@ async function registerDriver() {
   }
 
   try {
-    // 1. Tạo tài khoản thông qua API Backend (sử dụng signUp để gửi email xác nhận)
+    // 1. Đăng ký qua Backend (Admin createUser — không gửi email ngay)
     const response = await apiFetch(`${API_BASE}/api/shippers/register`, {
       method: 'POST',
       headers: {
@@ -555,10 +555,10 @@ async function registerDriver() {
       return;
     }
 
-    // 2. Chờ CRM duyệt → Supabase gửi email xác nhận; shipper bấm link rồi mới đăng nhập được
+    // 2. Chờ CRM/Telegram duyệt → lúc đó mới nhận email xác nhận Supabase
     showToast(
       'Đăng ký thành công!',
-      'Hồ sơ đang chờ CRM duyệt. Khi được duyệt, bạn sẽ nhận email xác nhận từ Supabase — mở link trong email rồi đăng nhập để nhận đơn.',
+      'Hồ sơ đang chờ admin duyệt. Bạn chưa nhận email lúc này. Sau khi được duyệt, Supabase mới gửi link xác nhận — mở link rồi đăng nhập bằng email/mật khẩu.',
       'success'
     );
     toggleAuthMode();
