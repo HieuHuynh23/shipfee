@@ -116,6 +116,33 @@ function getShopeeFoodKeywords() {
   ]);
 }
 
+/** GrabFood full: food + khu vực + đường + prefix tên. */
+function getGrabFoodKeywords() {
+  return [
+    '', // nearby feed — giữ đầu danh sách
+    ...unique([
+      ...FOOD_KEYWORDS,
+      ...AREA_KEYWORDS,
+      ...STREET_KEYWORDS,
+      ...NAME_PREFIX_KEYWORDS.slice(0, 40),
+      'ăn gì', 'gần đây', 'ưu đãi', 'đồ uống', 'cơm văn phòng'
+    ])
+  ];
+}
+
+/** GrabFood mặc định nhanh hơn — đủ để gap-fill đa dạng. */
+function getGrabFoodKeywordsQuick() {
+  return [
+    '',
+    ...unique([
+      ...FOOD_KEYWORDS,
+      ...AREA_KEYWORDS,
+      ...STREET_KEYWORDS.slice(0, 30),
+      'ăn gì', 'ưu đãi', 'đồ uống'
+    ])
+  ];
+}
+
 module.exports = {
   FOOD_KEYWORDS,
   AREA_KEYWORDS,
@@ -123,5 +150,7 @@ module.exports = {
   NAME_PREFIX_KEYWORDS,
   ALPHA_PREFIXES,
   getFoodyKeywords,
-  getShopeeFoodKeywords
+  getShopeeFoodKeywords,
+  getGrabFoodKeywords,
+  getGrabFoodKeywordsQuick
 };

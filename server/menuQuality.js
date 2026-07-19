@@ -24,7 +24,9 @@ function analyzeMenuQuality(menu) {
       img.includes('shopee') ||
       img.includes('foody.vn') ||
       img.includes('down-bs') ||
-      img.includes('down-vn')
+      img.includes('down-vn') ||
+      img.includes('food-cms.grab.com') ||
+      img.includes('grab.com')
     ) {
       cdnImg += 1;
     }

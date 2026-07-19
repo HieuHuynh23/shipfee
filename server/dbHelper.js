@@ -196,12 +196,46 @@ function getCrawlQueue() {
   });
 }
 
+function deleteRestaurantMenu(restaurantId) {
+  const filePath = getMenuFilePath(restaurantId);
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return true;
+  } catch (err) {
+    console.error(`[DB Menu] Lỗi xóa menu ${restaurantId}:`, err.message);
+    return false;
+  }
+}
+
+/** Xóa quán theo id (chunks + file menu). Trả về số quán đã bỏ. */
+function removeRestaurantsByIds(ids) {
+  const idSet = new Set((ids || []).map(id => String(id)));
+  if (idSet.size === 0) return 0;
+  const all = readAll();
+  const kept = [];
+  let removed = 0;
+  for (const r of all) {
+    if (r && idSet.has(String(r.id))) {
+      deleteRestaurantMenu(r.id);
+      removed += 1;
+    } else if (r) {
+      kept.push(r);
+    }
+  }
+  if (removed > 0) writeAll(kept);
+  return removed;
+}
+
 module.exports = {
   read: readAll,
   readActive,
   getCrawlQueue,
   write: writeAll,
   updateRestaurant,
+  removeRestaurantsByIds,
+  deleteRestaurantMenu,
+  getMenuFilePath,
+  writeRestaurantMenu,
   getChunkIndex,
   getChunkPath,
   NUM_CHUNKS
