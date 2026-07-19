@@ -1228,6 +1228,19 @@ ul, ol {
   gap: var(--space-md);
 }
 
+.shipper-card__avatar-wrap {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+}
+
+.shipper-card__avatar-wrap:focus-visible {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 2px;
+}
+
 .shipper-card__avatar {
   width: 52px;
   height: 52px;
@@ -1235,6 +1248,7 @@ ul, ol {
   object-fit: cover;
   border: 3px solid var(--clr-primary);
   flex-shrink: 0;
+  display: block;
 }
 
 .shipper-card__avatar-placeholder {
