@@ -824,18 +824,20 @@ function isEmbeddedFrame() {
  * - osLocationOff: site đã Allow nhưng OS/Chrome system permission chặn → vẫn code 1
  *   (Chrome 144+ trên Windows: thêm dialog cho phép Location của hệ thống cho Chrome)
  */
-function annotateGeoError(err, { apple, desktop, permState, inIframe } = {}) {
+function annotateGeoError(err, { apple, desktop, permState, inIframe, pageHost } = {}) {
   if (!err) return err;
   err.iosHint = !!apple;
   err.desktopHint = !!desktop;
   err.permState = permState || null;
   err.inIframe = !!inIframe;
+  err.pageHost = pageHost || '';
   err.browserMessage = err.message || '';
 
   if (err.code === 1) {
     if (inIframe) {
       err.iframeBlocked = true;
     } else if (permState === 'granted') {
+      // Giữ flag cũ cho tương thích; thực tế có thể là site/provider chứ không phải OS tắt
       err.osLocationOff = true;
     } else if (permState === 'denied') {
       err.permissionPermanentlyDenied = true;
@@ -847,6 +849,7 @@ function annotateGeoError(err, { apple, desktop, permState, inIframe } = {}) {
     code: err.code,
     message: err.message,
     permState,
+    pageHost: pageHost || '',
     inIframe: !!inIframe,
     osLocationOff: !!err.osLocationOff,
     siteDenied: !!err.permissionPermanentlyDenied
@@ -855,14 +858,14 @@ function annotateGeoError(err, { apple, desktop, permState, inIframe } = {}) {
 }
 
 /**
- * Lấy vị trí chính xác từ Geolocation API (khi đã cấp phép). Không ước lượng IP.
+ * Lấy vị trí từ Geolocation API (không ước lượng IP).
  *
- * QUAN TRỌNG — phải gọi từ click/tap:
- * 1) getCurrentPosition phải được schedule ĐỒNG BỘ trong stack user gesture.
- *    Nếu await Permissions API trước rồi mới gọi GPS, Chrome có thể trả code 1
- *    dù site đã Allow (mất transient user activation).
- * 2) Chrome 144+ trên Windows: sau khi Allow website còn cần Allow Location
- *    cho app Chrome ở Windows Settings (dialog hệ thống, chỉ hiện 1 lần).
+ * QUAN TRỌNG — gọi từ click/tap:
+ * 1) getCurrentPosition phải schedule ĐỒNG BỘ trong stack user gesture
+ *    (không await Permissions API trước).
+ * 2) Desktop Windows: máy không có GPS chip — dùng Wi‑Fi/cache của Chrome.
+ *    maximumAge: 0 + high-accuracy dễ fail dù Windows Location đã On;
+ *    ưu tiên lấy bản cache/network trước, rồi mới ép fresh.
  */
 async function getUserLocation({ onProgress } = {}) {
   if (_geoInFlight) return _geoInFlight;
@@ -870,6 +873,7 @@ async function getUserLocation({ onProgress } = {}) {
   const apple = isAppleMobile();
   const desktop = isDesktopBrowser();
   const inIframe = isEmbeddedFrame();
+  const pageHost = (typeof location !== 'undefined' && location.hostname) || '';
   const progress = (msg) => {
     if (typeof onProgress === 'function') onProgress(msg);
   };
@@ -887,21 +891,24 @@ async function getUserLocation({ onProgress } = {}) {
     throw err;
   }
 
-  // Fresh fix options
   const highOpts = {
     enableHighAccuracy: true,
     maximumAge: 0,
     timeout: apple ? 28000 : (desktop ? 20000 : 18000)
   };
-  const lowOpts = {
+  const lowFreshOpts = {
     enableHighAccuracy: false,
     maximumAge: 0,
     timeout: apple ? 18000 : 15000
   };
+  // Desktop: chấp nhận vị trí Chrome/Windows lấy gần đây (tránh ép sensor mới → code 1/2 giả).
+  const desktopCachedOpts = {
+    enableHighAccuracy: false,
+    maximumAge: 10 * 60 * 1000,
+    timeout: 12000
+  };
 
   // ── BẮT BUỘC: kick off getCurrentPosition TRƯỚC mọi await ──
-  // Desktop: bắt đầu bằng high-accuracy (Wi‑Fi precise trên Windows khi OS cho phép).
-  // Apple: network-first rồi nâng cấp.
   let firstPromise;
   if (apple) {
     progress('Đang lấy vị trí nhanh (mạng)...');
@@ -910,39 +917,57 @@ async function getUserLocation({ onProgress } = {}) {
       maximumAge: 15_000,
       timeout: 12000
     });
+  } else if (desktop) {
+    progress('Đang lấy vị trí từ trình duyệt...');
+    firstPromise = geoGetOnce(desktopCachedOpts);
   } else {
     progress('Đang lấy vị trí chính xác từ trình duyệt...');
     firstPromise = geoGetOnce(highOpts);
   }
 
   _geoInFlight = (async () => {
-    // Diagnostic only — sau khi đã schedule GPS
     const permState = await queryGeoPermissionState();
 
     let position = null;
     let coarse = false;
+    let lastErr = null;
 
     try {
       position = await firstPromise;
       coarse = (position.coords.accuracy || 9999) > 80;
     } catch (firstErr) {
-      // Lần 1: Apple = low, còn lại = high → thử chiều ngược lại trước khi fail
-      progress('Đang thử lại định vị...');
-      try {
-        position = await geoGetOnce(apple ? highOpts : lowOpts);
-        coarse = true;
-      } catch (secondErr) {
-        // Ưu tiên annotate lỗi sau cùng; giữ permState để phân biệt site Allow vs OS chặn
-        throw annotateGeoError(secondErr || firstErr, {
+      lastErr = firstErr;
+      // Thử thêm các chế độ còn lại trước khi kết luận fail
+      const retries = desktop
+        ? [lowFreshOpts, highOpts]
+        : apple
+          ? [highOpts]
+          : [lowFreshOpts];
+
+      for (const opts of retries) {
+        progress('Đang thử lại định vị...');
+        try {
+          position = await geoGetOnce(opts);
+          coarse = true;
+          lastErr = null;
+          break;
+        } catch (retryErr) {
+          lastErr = retryErr || lastErr;
+        }
+      }
+
+      if (!position) {
+        throw annotateGeoError(lastErr || firstErr, {
           apple,
           desktop,
           permState,
-          inIframe
+          inIframe,
+          pageHost
         });
       }
     }
 
-    // Apple: nếu mới có fix mạng thô, cố nâng bằng high-accuracy
+    // Apple: nâng độ chính xác nếu mới có fix mạng thô
     if (apple && position && (position.coords.accuracy || 9999) > 60) {
       progress('Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...');
       try {
@@ -954,13 +979,13 @@ async function getUserLocation({ onProgress } = {}) {
       } catch (_) { /* giữ fix mạng */ }
     }
 
-    // Tinh chỉnh khi còn lệch
+    // Desktop: chỉ refine ngắn nếu lệch lớn — không bắt buộc GPS chip
     const accuracy = position.coords.accuracy || 9999;
-    if (accuracy > 60) {
+    if (accuracy > 60 && !desktop) {
       progress('Đang tinh chỉnh vị trí chính xác hơn...');
       try {
         const refined = await geoRefineWatch({
-          timeoutMs: apple ? 18000 : (desktop ? 12000 : 10000),
+          timeoutMs: apple ? 18000 : 10000,
           targetAccuracy: 35
         });
         if ((refined.coords.accuracy || 9999) <= accuracy) {
@@ -968,6 +993,8 @@ async function getUserLocation({ onProgress } = {}) {
         }
         coarse = (position.coords.accuracy || 9999) > 100;
       } catch (_) { /* giữ fix tốt nhất */ }
+    } else if (desktop && accuracy > 150) {
+      coarse = true;
     }
 
     return {
@@ -993,6 +1020,9 @@ async function getUserLocation({ onProgress } = {}) {
 function formatGeoError(error) {
   const apple = isAppleMobile() || error?.iosHint;
   const desktop = isDesktopBrowser() || error?.desktopHint;
+  const host = error?.pageHost || (typeof location !== 'undefined' ? location.hostname : '');
+  const hostHint = host ? ` (đang mở: ${host})` : '';
+
   if (error?.insecure) {
     return {
       title: 'Cần mở bằng HTTPS',
@@ -1012,15 +1042,16 @@ function formatGeoError(error) {
         message: 'Trang đang mở trong iframe/preview nên bị chặn GPS. Hãy mở trực tiếp https://shipfee.vercel.app/customer-app/ trên Chrome/Edge, rồi thử lại.'
       };
     }
-    // Site Allow nhưng OS/Chrome system permission chặn (Chrome 144+ Windows)
+    // Site = Allow nhưng getCurrentPosition vẫn code 1.
+    // OS Location có thể đã On — thường do quyền SITE lệch, hoặc Windows chưa có default location / provider lỗi.
     if (error.osLocationOff || error.permState === 'granted') {
       return {
-        title: 'Chrome chưa được Windows/macOS cho phép vị trí',
+        title: 'Trình duyệt từ chối trả vị trí',
         message: apple
-          ? 'Safari đã được phép trang web, nhưng Dịch vụ định vị iPhone đang tắt. Cài đặt → Quyền riêng tư → Dịch vụ định vị → bật.'
+          ? 'Trang đã được phép nhưng iPhone vẫn chặn định vị. Cài đặt → Quyền riêng tư → Dịch vụ định vị → bật, rồi thử lại.'
           : desktop
-            ? 'Trang web đã Allow, nhưng còn thiếu quyền hệ thống cho trình duyệt (Chrome 144+ trên Windows hỏi thêm 1 lần). Vào Windows → Settings → Privacy & security → Location → On, bật “Location services”, và cho phép Google Chrome / Microsoft Edge. Nếu từng bấm Block ở dialog Windows thì phải bật lại ở đây. Rồi nhấn lại nút vị trí — hoặc kéo ghim trên bản đồ.'
-            : 'Hệ thống đang chặn định vị dù trang đã được phép. Bật Location Services rồi thử lại, hoặc kéo ghim trên bản đồ.'
+            ? `Windows Location có thể đã On nhưng Chrome vẫn không trả tọa độ cho trang này${hostHint}. Thử lần lượt: (1) bấm ổ khóa cạnh thanh địa chỉ → Vị trí → Cho phép / Reset rồi Allow lại; (2) mở chrome://settings/content/location — xóa chặn với shipfee.vercel.app; (3) Windows Location → Set default location (Cần Thơ); (4) kéo ghim đỏ trên bản đồ (cách chắc nhất trên máy tính).`
+            : 'Trang đã được phép nhưng hệ thống vẫn chặn định vị. Reset quyền vị trí của trang rồi thử lại, hoặc kéo ghim trên bản đồ.'
       };
     }
     return {
@@ -1028,7 +1059,7 @@ function formatGeoError(error) {
       message: apple
         ? 'Trên iPhone: Cài đặt → Safari → Vị trí → Cho phép, hoặc chạm aA trên thanh địa chỉ → Website Settings → Location → Allow. Sau đó nhấn lại nút GPS.'
         : desktop
-          ? 'Bấm ổ khóa cạnh thanh địa chỉ → Vị trí → Cho phép. Sau đó còn cần bật Location cho Chrome/Edge trong Windows Settings. Hoặc kéo ghim trên bản đồ.'
+          ? `Bấm ổ khóa cạnh thanh địa chỉ${hostHint} → Vị trí → Cho phép. Nếu vẫn lỗi: chrome://settings/content/location → gỡ chặn site. Máy tính nên kéo ghim trên bản đồ nếu GPS không ổn định.`
           : 'Hãy cho phép quyền vị trí trong trình duyệt, rồi nhấn lại nút GPS. Hoặc kéo ghim trên bản đồ.'
     };
   }
@@ -1038,7 +1069,7 @@ function formatGeoError(error) {
       message: apple
         ? 'Bật Dịch vụ định vị (Cài đặt → Quyền riêng tư → Dịch vụ định vị) và thử lại ngoài trời, hoặc ghim tay trên bản đồ.'
         : desktop
-          ? 'Máy tính chưa lấy được vị trí. Bật Location Services, kết nối Wi‑Fi, rồi thử lại — hoặc kéo ghim trên bản đồ.'
+          ? 'Chrome/Windows không xác định được vị trí (máy tính không có GPS). Kết nối Wi‑Fi, đặt Default location trong Windows Location Settings, hoặc kéo ghim trên bản đồ.'
           : 'Không lấy được tín hiệu GPS. Thử lại hoặc ghim tay trên bản đồ.'
     };
   }
@@ -1247,7 +1278,7 @@ document.addEventListener('gesturestart', function (event) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-19d', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-19e', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});
