@@ -68,6 +68,7 @@ let restaurantSearchPage = 1;
 let restaurantSearchQuery = '';
 let restaurantChangedMap = new Map();
 let bulkSyncPollTimer = null;
+let bulkSyncSeenActive = false;
 let menuScrapeEnabled = null;
 let currentEditingMenu = [];
 let apiOnlinePromise = null;
@@ -1695,6 +1696,7 @@ async function syncAllRestaurants(scope) {
     });
     if (res.success) {
       showToast(res.message || 'Đã bắt đầu đồng bộ', 'success');
+      bulkSyncSeenActive = true;
       pollBulkSyncStatus(false);
     } else {
       showToast(res.error || 'Không thể đồng bộ', 'error');
@@ -1763,6 +1765,7 @@ async function pollBulkSyncStatus(silent) {
     const isActive = res.running || res.paused;
 
     if (isActive) {
+      if (res.running) bulkSyncSeenActive = true;
       if (panel) {
         panel.classList.remove('hidden');
         panel.classList.toggle('restaurant-sync-progress--paused', !!res.paused);
@@ -1820,9 +1823,14 @@ async function pollBulkSyncStatus(silent) {
       if (btnResume) btnResume.classList.add('hidden');
       if (btnAll && menuScrapeEnabled !== false) btnAll.disabled = false;
       if (btnChanged && menuScrapeEnabled !== false) btnChanged.disabled = false;
-      if (res.completed > 0 && !silent) {
+      const shouldNotifyDone = bulkSyncSeenActive || (res.completed > 0 && !silent);
+      if (shouldNotifyDone && res.completed > 0) {
+        bulkSyncSeenActive = false;
         const syncedCount = res.synced != null ? res.synced : Math.max(0, res.completed - (res.failed || 0));
-        showToast(`Hoàn tất đồng bộ: ${syncedCount}/${res.total} quán đã lưu${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
+        const doneParts = [`${syncedCount}/${res.total} quán đã lưu`];
+        if (res.skipped) doneParts.push(`${res.skipped} bỏ qua`);
+        if (res.failed) doneParts.push(`${res.failed} lỗi`);
+        showToast(`Hoàn tất đồng bộ: ${doneParts.join(' · ')}`, res.failed ? 'warning' : 'success');
         if (currentPage === 'restaurants') {
           loadRestaurants();
           loadRestaurantChanges();
@@ -1831,8 +1839,8 @@ async function pollBulkSyncStatus(silent) {
       }
     }
   } catch (e) {
-    if (currentPage === 'restaurants') {
-      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(true), 8000);
+    if (currentPage === 'restaurants' && (bulkSyncSeenActive || !silent)) {
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(silent), 8000);
     }
   }
 }
