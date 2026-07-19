@@ -34,6 +34,7 @@ let supabaseClient = null;
 let currentPage = 'dashboard';
 let adminUser = null;
 let pollTimer = null;
+let pollInFlight = false;
 let editingShipperPhone = null;
 let adminShipperAvatarBase64 = null;
 let cachedDashboard = null;
@@ -45,6 +46,9 @@ let restaurantStats = null;
 let lastPollHash = '';
 let pricingMarkupRate = 0.28;
 let orderLiveMap = null;
+let orderLiveMarkers = { restaurant: null, delivery: null, shipper: null };
+let fleetMarkerLayer = null;
+let restaurantLoadAbort = null;
 let orderLivePollTimer = null;
 let fleetMap = null;
 let cachedOpsLive = null;
@@ -184,6 +188,14 @@ async function handleAdminLogout() {
     } catch (e) {}
   }
   if (pollTimer) clearInterval(pollTimer);
+  stopBulkSyncPolling();
+  stopOrderLivePoll();
+  if (typeof stopShipperSupportPolling === 'function') stopShipperSupportPolling();
+  if (fleetMap) {
+    try { fleetMap.remove(); } catch (e) {}
+    fleetMap = null;
+    fleetMarkerLayer = null;
+  }
   document.getElementById('app-shell').classList.add('hidden');
   document.getElementById('login-page').classList.remove('hidden');
   showToast('Đã đăng xuất', 'info');
@@ -279,21 +291,25 @@ function refreshCurrentPage() {
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   fetchAllData();
-  pollTimer = setInterval(fetchAllData, 10000);
+  pollTimer = setInterval(fetchAllData, 15000);
 }
 
 async function fetchAllData() {
+  if (pollInFlight) return;
+  pollInFlight = true;
   try {
     const hasJwt = !!localStorage.getItem('shipfee_jwt');
+    const needsOps = currentPage === 'dashboard' || currentPage === 'fleet';
+    const needsOrdersList = currentPage === 'dashboard' || currentPage === 'orders' || currentPage === 'fleet';
     const requests = [
       apiFetch('/api/shippers').catch(() => ({ data: [] })),
-      hasJwt
-        ? apiFetch('/api/admin/orders?limit=200').catch(() => ({ data: [] }))
-        : fetch(`${API_BASE}/api/orders`).then(r => r.json()).catch(() => ({ data: [] })),
-      hasJwt
+      hasJwt && needsOrdersList
+        ? apiFetch('/api/admin/orders?limit=50').catch(() => ({ data: [] }))
+        : Promise.resolve({ data: cachedOrders }),
+      hasJwt && needsOps
         ? apiFetch('/api/admin/dashboard').catch(() => null)
-        : Promise.resolve(null),
-      hasJwt
+        : Promise.resolve(cachedDashboard ? { success: true, stats: cachedDashboard } : null),
+      hasJwt && needsOps
         ? apiFetch('/api/admin/ops/live').catch(() => null)
         : Promise.resolve(null)
     ];
@@ -332,10 +348,14 @@ async function fetchAllData() {
       }
       if (currentPage === 'orders') renderOrdersTable();
       if (currentPage === 'shippers') renderShippersTable();
-      if (currentPage === 'fleet') renderFleetMap();
+      if (currentPage === 'fleet') {
+        loadFleetData();
+      }
     }
   } catch (e) {
     console.warn('Polling error:', e);
+  } finally {
+    pollInFlight = false;
   }
 }
 
@@ -465,6 +485,7 @@ function closeModal(id) {
     if (orderLiveMap) {
       try { orderLiveMap.remove(); } catch (e) {}
       orderLiveMap = null;
+      orderLiveMarkers = { restaurant: null, delivery: null, shipper: null };
     }
   }
 }
@@ -1665,6 +1686,7 @@ async function resumeBulkSync() {
 
 async function pollBulkSyncStatus(silent) {
   clearTimeout(bulkSyncPollTimer);
+  bulkSyncPollTimer = null;
   const panel = document.getElementById('restaurant-sync-progress');
   const labelEl = document.getElementById('restaurant-sync-progress-label');
   const textEl = document.getElementById('restaurant-sync-progress-text');
@@ -1724,7 +1746,7 @@ async function pollBulkSyncStatus(silent) {
       }
       if (btnAll) btnAll.disabled = true;
       if (btnChanged) btnChanged.disabled = true;
-      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(res.running ? false : silent), res.running ? 1500 : 4000);
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(res.running ? false : silent), res.running ? 2000 : 5000);
     } else {
       if (panel) {
         panel.classList.add('hidden');
@@ -1737,15 +1759,25 @@ async function pollBulkSyncStatus(silent) {
       if (res.completed > 0 && !silent) {
         const syncedCount = res.synced != null ? res.synced : Math.max(0, res.completed - (res.failed || 0));
         showToast(`Hoàn tất đồng bộ: ${syncedCount}/${res.total} quán đã lưu${res.failed ? ` (${res.failed} lỗi)` : ''}`, res.failed ? 'warning' : 'success');
-        loadRestaurants();
-        loadRestaurantChanges();
+        if (currentPage === 'restaurants') {
+          loadRestaurants();
+          loadRestaurantChanges();
+        }
         fetchNotifications().then(() => renderNotificationsList());
       }
     }
   } catch (e) {
-    bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(true), 5000);
+    if (currentPage === 'restaurants') {
+      bulkSyncPollTimer = setTimeout(() => pollBulkSyncStatus(true), 8000);
+    }
   }
 }
+
+function stopBulkSyncPolling() {
+  clearTimeout(bulkSyncPollTimer);
+  bulkSyncPollTimer = null;
+}
+window.stopBulkSyncPolling = stopBulkSyncPolling;
 
 window.pauseBulkSync = pauseBulkSync;
 window.resumeBulkSync = resumeBulkSync;
@@ -1763,7 +1795,7 @@ function filterRestaurantsDebounced() {
   restaurantFilterDebounceTimer = setTimeout(() => {
     restaurantSearchPage = 1;
     loadRestaurants();
-  }, 350);
+  }, 550);
 }
 window.filterRestaurantsDebounced = filterRestaurantsDebounced;
 
@@ -1780,7 +1812,7 @@ function searchRestaurantsDebounced() {
   searchDebounceTimer = setTimeout(() => {
     restaurantSearchPage = 1;
     loadRestaurants();
-  }, 400);
+  }, 550);
 }
 
 async function loadRestaurants() {
@@ -1791,6 +1823,10 @@ async function loadRestaurants() {
   const filterMenu = document.getElementById('restaurant-filter-menu')?.value || '';
   const tbody = document.getElementById('restaurants-tbody');
   if (!tbody) return;
+
+  if (restaurantLoadAbort) restaurantLoadAbort.abort();
+  restaurantLoadAbort = new AbortController();
+  const signal = restaurantLoadAbort.signal;
 
   try {
     const params = new URLSearchParams({
@@ -1804,7 +1840,8 @@ async function loadRestaurants() {
     if (filterStatus) params.set('filterStatus', filterStatus);
     if (filterMenu) params.set('filterMenu', filterMenu);
 
-    const res = await apiFetch(`/api/admin/restaurants?${params.toString()}`);
+    const res = await apiFetch(`/api/admin/restaurants?${params.toString()}`, { signal });
+    if (signal.aborted) return;
     if (!res.success) throw new Error(res.error || 'Không tải được danh sách quán');
 
     cachedRestaurants = Array.isArray(res.data) ? res.data : [];
@@ -1828,6 +1865,7 @@ async function loadRestaurants() {
     renderRestaurantsTable();
     renderRestaurantPagination();
   } catch (e) {
+    if (e.name === 'AbortError') return;
     tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">${escapeHtml(e.message || 'Lỗi tải dữ liệu quán ăn')}</p></div></td></tr>`;
   }
 }
@@ -2241,13 +2279,13 @@ function renderFleetMap() {
       <span class="text-muted text-xs">Cập nhật ${data.updatedAt ? formatTime(data.updatedAt) : '—'}</span>`;
   }
 
-  if (fleetMap) {
-    try { fleetMap.remove(); } catch (e) {}
-    fleetMap = null;
+  if (!fleetMap) {
+    fleetMap = L.map(mapEl).setView([10.7769, 106.7009], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(fleetMap);
+    fleetMarkerLayer = L.layerGroup().addTo(fleetMap);
+  } else {
+    fleetMarkerLayer.clearLayers();
   }
-
-  fleetMap = L.map(mapEl).setView([10.7769, 106.7009], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(fleetMap);
 
   const points = [];
   (data.shippers || []).forEach(s => {
@@ -2260,7 +2298,7 @@ function renderFleetMap() {
       iconAnchor: [14, 14]
     });
     L.marker([s.lat, s.lon], { icon })
-      .addTo(fleetMap)
+      .addTo(fleetMarkerLayer)
       .bindPopup(`<strong>${escapeHtml(s.name || 'Shipper')}</strong><br>${escapeHtml(s.phone || '')}${s.activeOrderId ? `<br><button onclick="showOrderDetail('${escapeHtml(s.activeOrderId)}')" style="margin-top:6px;cursor:pointer;">Xem đơn ${escapeHtml(s.activeOrderId)}</button>` : ''}`);
   });
 
@@ -2268,7 +2306,7 @@ function renderFleetMap() {
     if (typeof o.deliveryLat === 'number' && typeof o.deliveryLon === 'number') {
       points.push([o.deliveryLat, o.deliveryLon]);
       L.circleMarker([o.deliveryLat, o.deliveryLon], { radius: 6, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 0.8 })
-        .addTo(fleetMap)
+        .addTo(fleetMarkerLayer)
         .bindPopup(`<strong>${escapeHtml(o.id)}</strong> — ${statusLabel(o.status)}<br>${escapeHtml(o.restaurantName || '')}<br><button onclick="showOrderDetail('${escapeHtml(o.id)}')" style="margin-top:6px;cursor:pointer;">Chi tiết</button>`);
     }
   });
@@ -2744,8 +2782,8 @@ function startOrderLivePoll(orderId) {
           : `<div class="text-xs text-muted">Chưa có tin nhắn</div>`;
       }
 
-      if (typeof live.shipperLat === 'number' && orderLiveMap) {
-        initOrderLiveMap({ ...cachedOrders.find(x => x.id === orderId), ...live });
+      if (typeof live.shipperLat === 'number' && typeof live.shipperLon === 'number') {
+        updateOrderLiveShipper(live.shipperLat, live.shipperLon);
       }
     } catch (e) {
       console.warn('order live poll', e);
@@ -2756,22 +2794,39 @@ function startOrderLivePoll(orderId) {
 function initOrderLiveMap(o) {
   const el = document.getElementById('order-live-map');
   if (!el || typeof L === 'undefined') return;
-  if (orderLiveMap) {
-    try { orderLiveMap.remove(); } catch (e) {}
-    orderLiveMap = null;
-  }
+
   const points = [];
   if (typeof o.restaurantLat === 'number' && typeof o.restaurantLon === 'number') points.push([o.restaurantLat, o.restaurantLon]);
   if (typeof o.pinnedLat === 'number' && typeof o.pinnedLon === 'number') points.push([o.pinnedLat, o.pinnedLon]);
   if (typeof o.shipperLat === 'number' && typeof o.shipperLon === 'number') points.push([o.shipperLat, o.shipperLon]);
   if (!points.length) return;
 
-  orderLiveMap = L.map(el).setView(points[0], 14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(orderLiveMap);
-  if (typeof o.restaurantLat === 'number') L.marker([o.restaurantLat, o.restaurantLon]).addTo(orderLiveMap).bindPopup('Quán');
-  if (typeof o.pinnedLat === 'number') L.marker([o.pinnedLat, o.pinnedLon]).addTo(orderLiveMap).bindPopup('Giao');
-  if (typeof o.shipperLat === 'number') L.marker([o.shipperLat, o.shipperLon]).addTo(orderLiveMap).bindPopup('Shipper');
-  if (points.length > 1) orderLiveMap.fitBounds(points, { padding: [24, 24] });
+  if (!orderLiveMap) {
+    orderLiveMap = L.map(el).setView(points[0], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(orderLiveMap);
+    orderLiveMarkers = { restaurant: null, delivery: null, shipper: null };
+    if (typeof o.restaurantLat === 'number') {
+      orderLiveMarkers.restaurant = L.marker([o.restaurantLat, o.restaurantLon]).addTo(orderLiveMap).bindPopup('Quán');
+    }
+    if (typeof o.pinnedLat === 'number') {
+      orderLiveMarkers.delivery = L.marker([o.pinnedLat, o.pinnedLon]).addTo(orderLiveMap).bindPopup('Giao');
+    }
+    if (typeof o.shipperLat === 'number') {
+      orderLiveMarkers.shipper = L.marker([o.shipperLat, o.shipperLon]).addTo(orderLiveMap).bindPopup('Shipper');
+    }
+    if (points.length > 1) orderLiveMap.fitBounds(points, { padding: [24, 24] });
+  } else {
+    updateOrderLiveShipper(o.shipperLat, o.shipperLon);
+  }
+}
+
+function updateOrderLiveShipper(lat, lon) {
+  if (typeof lat !== 'number' || typeof lon !== 'number' || !orderLiveMap) return;
+  if (orderLiveMarkers.shipper) {
+    orderLiveMarkers.shipper.setLatLng([lat, lon]);
+  } else {
+    orderLiveMarkers.shipper = L.marker([lat, lon]).addTo(orderLiveMap).bindPopup('Shipper');
+  }
 }
 
 async function adminAdvanceOrderStatus(orderId, status) {

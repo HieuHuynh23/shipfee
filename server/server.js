@@ -1944,6 +1944,9 @@ let dbQueuePromise = Promise.resolve();
 let cachedRestaurants = [];      // Dữ liệu restaurant đầy đủ trong RAM
 let searchIndex = [];            // Pre-normalized search index
 let cacheLoadedAt = 0;           // Timestamp lần load gần nhất
+let adminRestaurantStats = { total: 0, open: 0, closed: 0, withMenu: 0 };
+let adminChangedCache = { at: 0, ids: new Set(), count: 0 };
+const ADMIN_CHANGED_CACHE_TTL_MS = 30 * 1000;
 
 // Declared before loadRestaurantsIntoMemory() — used during boot precompute
 const geocodeCache = new Map();
@@ -1975,6 +1978,8 @@ function loadRestaurantsIntoMemory() {
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
       cacheLoadedAt = Date.now();
+      recomputeAdminRestaurantStats(data);
+      adminChangedCache = { at: 0, ids: new Set(), count: 0 };
       try { nearbyListCache.clear(); } catch (_) {}
       // Warm geocode for all restaurants once — list requests then only do haversine
       try { precomputeRestaurantCoordinates(); } catch (geoErr) {
@@ -3993,40 +3998,46 @@ function inferRestaurantCategory(r) {
   return '';
 }
 
-function restaurantHasMenuOnDisk(restaurantId) {
-  try {
-    const menuPath = getMenuFilePath(restaurantId);
-    if (!fs.existsSync(menuPath)) return false;
-    const raw = fs.readFileSync(menuPath, 'utf8');
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0;
-  } catch (_) {
-    return false;
+function restaurantHasMenuMeta(r) {
+  if (!r) return false;
+  if (r.hasRealMenu === true) return true;
+  if (Array.isArray(r.dishNames) && r.dishNames.length > 0) return true;
+  return false;
+}
+
+function recomputeAdminRestaurantStats(source) {
+  const rows = Array.isArray(source) ? source.filter(r => r && r.id) : [];
+  adminRestaurantStats = {
+    total: rows.length,
+    open: rows.filter(r => !r.isClosed).length,
+    closed: rows.filter(r => !!r.isClosed).length,
+    withMenu: rows.filter(r => restaurantHasMenuMeta(r)).length
+  };
+}
+
+function getCachedRestaurantChangeIds() {
+  const now = Date.now();
+  if (adminChangedCache.at && (now - adminChangedCache.at) < ADMIN_CHANGED_CACHE_TTL_MS) {
+    return adminChangedCache;
   }
+  const summaries = getRestaurantChangeSummaries(500);
+  adminChangedCache = {
+    at: now,
+    ids: new Set(summaries.map(c => String(c.restaurantId))),
+    count: summaries.length
+  };
+  return adminChangedCache;
+}
+
+function invalidateAdminChangedCache() {
+  adminChangedCache = { at: 0, ids: new Set(), count: 0 };
 }
 
 function enrichAdminRestaurantRow(r) {
   if (!r || !r.id) return null;
 
-  let menuItemCount = 0;
-  let hasMenuOnDisk = false;
-  let menuFileUpdatedAt = null;
-  const menuPath = getMenuFilePath(r.id);
-
-  try {
-    if (fs.existsSync(menuPath)) {
-      const stat = fs.statSync(menuPath);
-      menuFileUpdatedAt = new Date(stat.mtimeMs).toISOString();
-      const raw = fs.readFileSync(menuPath, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        hasMenuOnDisk = true;
-        menuItemCount = parsed.length;
-      }
-    }
-  } catch (_) {}
-
-  const hasRealMenu = r.hasRealMenu === true || hasMenuOnDisk;
+  const dishCount = Array.isArray(r.dishNames) ? r.dishNames.length : 0;
+  const hasRealMenu = restaurantHasMenuMeta(r);
 
   return {
     id: r.id,
@@ -4039,8 +4050,8 @@ function enrichAdminRestaurantRow(r) {
     closedAt: r.closedAt || null,
     closedReason: r.closedReason || null,
     hasRealMenu,
-    menuItemCount,
-    menuUpdatedAt: r.menuUpdatedAt || menuFileUpdatedAt || null,
+    menuItemCount: dishCount,
+    menuUpdatedAt: r.menuUpdatedAt || null,
     menuTemplateFallback: hasRealMenu ? false : r.menuTemplateFallback === true,
     shopeefoodSlug: r.shopeefoodSlug || null,
     rating: r.rating,
@@ -4059,8 +4070,12 @@ function getAdminRestaurantsList(options = {}) {
   const filterMenu = options.filterMenu || '';
 
   const source = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
-  const changedSummaries = getRestaurantChangeSummaries(500);
-  const changedIds = new Set(changedSummaries.map(c => String(c.restaurantId)));
+  if (adminRestaurantStats.total !== source.length) {
+    recomputeAdminRestaurantStats(source);
+  }
+
+  const changedCache = getCachedRestaurantChangeIds();
+  const changedIds = changedCache.ids;
 
   let rows = source.filter(r => r && r.id);
 
@@ -4093,9 +4108,9 @@ function getAdminRestaurantsList(options = {}) {
   if (filterStatus === 'open') rows = rows.filter(r => !r.isClosed);
   else if (filterStatus === 'closed') rows = rows.filter(r => !!r.isClosed);
   if (filterMenu === 'yes') {
-    rows = rows.filter(r => r.hasRealMenu === true || restaurantHasMenuOnDisk(r.id));
+    rows = rows.filter(r => restaurantHasMenuMeta(r));
   } else if (filterMenu === 'no') {
-    rows = rows.filter(r => r.hasRealMenu !== true && !restaurantHasMenuOnDisk(r.id));
+    rows = rows.filter(r => !restaurantHasMenuMeta(r));
   }
 
   rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'vi'));
@@ -4105,11 +4120,6 @@ function getAdminRestaurantsList(options = {}) {
   const pageRows = rows.slice(start, start + limit);
   const data = pageRows.map(enrichAdminRestaurantRow).filter(Boolean);
 
-  let withMenuCount = 0;
-  for (const r of source) {
-    if (r?.hasRealMenu === true || restaurantHasMenuOnDisk(r.id)) withMenuCount++;
-  }
-
   return {
     data,
     total,
@@ -4117,11 +4127,11 @@ function getAdminRestaurantsList(options = {}) {
     limit,
     hasMore: start + pageRows.length < total,
     stats: {
-      total: source.length,
-      open: source.filter(r => !r.isClosed).length,
-      closed: source.filter(r => !!r.isClosed).length,
-      changed: changedIds.size,
-      withMenu: withMenuCount
+      total: adminRestaurantStats.total,
+      open: adminRestaurantStats.open,
+      closed: adminRestaurantStats.closed,
+      changed: changedCache.count,
+      withMenu: adminRestaurantStats.withMenu
     }
   };
 }
@@ -4245,6 +4255,8 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
   bulkSyncJob.paused = false;
   bulkSyncJob.finishedAt = Date.now();
   bulkSyncJob.remaining = 0;
+  recomputeAdminRestaurantStats(cachedRestaurants);
+  invalidateAdminChangedCache();
   console.log(`[Bulk Sync] Hoàn tất: ${bulkSyncJob.synced}/${bulkSyncJob.total} synced, ${bulkSyncJob.completed} processed, lỗi ${bulkSyncJob.failed}`);
 }
 
@@ -5953,8 +5965,11 @@ app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
     const totalRevenue = todayCompleted.reduce((sum, o) => sum + (o.appTotal || 0), 0);
     const totalEarnings = todayCompleted.reduce((sum, o) => sum + (o.shipperEarning || 0), 0);
     const restaurantSource = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
-    const totalRestaurants = restaurantSource.filter(r => r && r.id).length;
-    const openRestaurants = restaurantSource.filter(r => r && r.id && !r.isClosed).length;
+    if (adminRestaurantStats.total !== restaurantSource.length) {
+      recomputeAdminRestaurantStats(restaurantSource);
+    }
+    const totalRestaurants = adminRestaurantStats.total;
+    const openRestaurants = adminRestaurantStats.open;
 
     res.json({
       success: true,

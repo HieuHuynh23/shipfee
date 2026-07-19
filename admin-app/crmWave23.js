@@ -572,6 +572,12 @@ renderSettings = function() {
 const _origNavigateTo = navigateTo;
 navigateTo = function(page) {
   if (page !== 'support') stopShipperSupportPolling();
+  if (page !== 'restaurants' && typeof stopBulkSyncPolling === 'function') stopBulkSyncPolling();
+  if (page !== 'fleet' && fleetMap) {
+    try { fleetMap.remove(); } catch (e) {}
+    fleetMap = null;
+    fleetMarkerLayer = null;
+  }
   currentPage = page;
   document.querySelectorAll('.sidebar__link').forEach(link => {
     link.classList.toggle('active', link.dataset.page === page);
