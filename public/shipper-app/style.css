@@ -52,6 +52,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background:
@@ -64,8 +70,11 @@ body {
   justify-content: center;
   overflow: hidden;
   touch-action: manipulation;
+  -ms-touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Mobile Wrapper max-width */

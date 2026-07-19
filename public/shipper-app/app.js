@@ -3358,10 +3358,37 @@ window.addEventListener('pagehide', () => {
 // Fetch ICE servers dynamically on page load
 fetchIceServers();
 
-// Mobile Zoom Prevention — prefer CSS touch-action; avoid non-passive touchend
-document.addEventListener('gesturestart', function (event) {
-  event.preventDefault();
-}, { passive: false });
+// Mobile Zoom Prevention — khóa pinch + double-tap zoom (iOS/Android)
+(function lockViewportZoom() {
+  const block = (event) => {
+    if (event.cancelable) event.preventDefault();
+  };
+
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((type) => {
+    document.addEventListener(type, block, { passive: false });
+  });
+
+  // Chặn pinch (2 ngón)
+  document.addEventListener('touchmove', (event) => {
+    if (event.touches && event.touches.length > 1) block(event);
+  }, { passive: false });
+
+  // Chặn double-tap zoom (khoảng cách 2 lần chạm < 300ms)
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) block(event);
+    lastTouchEnd = now;
+  }, { passive: false });
+
+  // Giữ scale=1 nếu trình duyệt cố zoom (một số WebView)
+  const meta = document.querySelector('meta[name="viewport"]');
+  if (meta) {
+    const locked =
+      'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content';
+    meta.setAttribute('content', locked);
+  }
+})();
 
 async function initSupabase() {
   let retries = 3;
