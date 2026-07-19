@@ -624,6 +624,37 @@ async function rejectShipperAccount(phone) {
 const createTelegramBot = require('./telegramBot');
 let telegramBot = null;
 
+async function toggleRestaurantStatusForTelegram(restaurantId, close) {
+  const isClosed = !!close;
+  let updatedRestaurant = null;
+  await updateLocalDatabase((restaurants) => {
+    const idx = restaurants.findIndex(r => String(r.id) === String(restaurantId));
+    if (idx === -1) return false;
+    restaurants[idx].isClosed = isClosed;
+    if (isClosed) {
+      restaurants[idx].closedAt = new Date().toISOString();
+      restaurants[idx].closedReason = 'Admin đóng cửa qua Telegram';
+    } else {
+      delete restaurants[idx].closedAt;
+      delete restaurants[idx].closedReason;
+    }
+    restaurants[idx].updatedAt = Date.now();
+    updatedRestaurant = restaurants[idx];
+    return true;
+  });
+  if (updatedRestaurant) {
+    // Chỉ ghi CRM notification — tránh echo alert Telegram khi admin vừa thao tác từ bot
+    addNotification(
+      'status_change',
+      restaurantId,
+      updatedRestaurant.name,
+      isClosed ? 'Quán đóng cửa (Telegram)' : 'Quán mở cửa (Telegram)',
+      `Admin đổi trạng thái qua Telegram → ${isClosed ? 'CLOSED' : 'OPEN'}`
+    );
+  }
+  return updatedRestaurant;
+}
+
 function initTelegramBot() {
   telegramBot = createTelegramBot({
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
@@ -648,7 +679,13 @@ function initTelegramBot() {
     readShipperSupportThreads: () => crm.readShipperSupportThreads(),
     writeShipperSupportThreads: (list) => crm.writeShipperSupportThreads(list),
     appendShipperSupportMessage: (id, msg) => crm.appendShipperSupportMessage(id, msg),
-    markShipperSupportRead: (id, reader) => crm.markShipperSupportRead(id, reader)
+    markShipperSupportRead: (id, reader) => crm.markShipperSupportRead(id, reader),
+    readNotifications,
+    readDisputes: () => crm.readDisputes(),
+    writeDisputes: (list) => crm.writeDisputes(list),
+    isBlacklisted: (phone) => crm.isBlacklisted(phone),
+    addToBlacklist: (phone, reason) => crm.addToBlacklist(phone, reason, 'telegram-admin'),
+    toggleRestaurantStatus: toggleRestaurantStatusForTelegram
   });
   return telegramBot;
 }
@@ -7752,6 +7789,9 @@ app.post('/api/admin/disputes', authenticateAdmin, crm.requireAdminRole('admin',
     disputes.unshift(ticket);
     crm.writeDisputes(disputes);
     crm.logAdminAudit(req, 'dispute_create', { disputeId: ticket.id, orderId });
+    if (telegramBot) {
+      telegramBot.sendDisputeNotification(ticket).catch(e => console.error('Lỗi Telegram dispute:', e.message));
+    }
     res.json({ success: true, data: ticket });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

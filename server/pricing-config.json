@@ -13,6 +13,8 @@
     "enableEmergencyAlert": true,
     "enableSlaAlert": true,
     "enableRestaurantAlert": false,
+    "enableCancelAlert": true,
+    "enableDisputeAlert": true,
     "reportIntervalHours": 6
   }
 }

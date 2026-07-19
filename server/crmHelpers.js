@@ -171,6 +171,22 @@ function isBlacklisted(phone) {
   return readBlacklist().find(b => cleanPhone(b.phone) === p) || null;
 }
 
+function addToBlacklist(phone, reason = 'Admin', by = 'telegram-admin') {
+  const cleaned = cleanPhone(phone);
+  if (!cleaned) return null;
+  const list = readBlacklist();
+  if (list.some(b => cleanPhone(b.phone) === cleaned)) return null;
+  const entry = {
+    phone: cleaned,
+    reason: reason || 'Admin',
+    blacklistedAt: Date.now(),
+    blacklistedBy: by
+  };
+  list.unshift(entry);
+  writeBlacklist(list);
+  return entry;
+}
+
 function readDisputes() {
   return readJson(DISPUTES_FILE, []);
 }
@@ -504,6 +520,7 @@ module.exports = {
   readBlacklist,
   writeBlacklist,
   isBlacklisted,
+  addToBlacklist,
   cleanPhone,
   readDisputes,
   writeDisputes,

@@ -3025,6 +3025,14 @@ function renderSettings() {
           <input type="checkbox" id="tg-enable-restaurant">
         </div>
         <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Đơn hủy</label>
+          <input type="checkbox" id="tg-enable-cancel" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <label class="form-label" style="margin:0;">Khiếu nại mới</label>
+          <input type="checkbox" id="tg-enable-dispute" checked>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <label class="form-label" style="margin:0;">Báo cáo định kỳ CRM</label>
           <input type="checkbox" id="tg-enable-periodic" checked>
         </div>
@@ -3123,6 +3131,8 @@ function renderSettings() {
         setCheck('tg-enable-sla', tg.enableSlaAlert !== false);
         setCheck('tg-enable-emergency', tg.enableEmergencyAlert !== false);
         setCheck('tg-enable-restaurant', tg.enableRestaurantAlert === true);
+        setCheck('tg-enable-cancel', tg.enableCancelAlert !== false);
+        setCheck('tg-enable-dispute', tg.enableDisputeAlert !== false);
         setCheck('tg-enable-periodic', tg.enablePeriodicReport !== false);
         set('tg-report-hours', tg.reportIntervalHours || 6);
       }
@@ -3263,6 +3273,8 @@ async function saveTelegramSettings() {
     enableSlaAlert: getCheck('tg-enable-sla'),
     enableEmergencyAlert: getCheck('tg-enable-emergency'),
     enableRestaurantAlert: getCheck('tg-enable-restaurant'),
+    enableCancelAlert: getCheck('tg-enable-cancel'),
+    enableDisputeAlert: getCheck('tg-enable-dispute'),
     enablePeriodicReport: getCheck('tg-enable-periodic'),
     reportIntervalHours: isNaN(reportHours) ? 6 : Math.min(24, Math.max(1, reportHours))
   };
