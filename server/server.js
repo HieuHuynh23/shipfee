@@ -549,7 +549,8 @@ async function approveShipperAccount(phone, options = {}) {
 
       if (supabase && shipper.id) {
         await supabase.auth.admin.updateUserById(shipper.id, {
-          user_metadata: { is_approved: true }
+          user_metadata: { is_approved: true, pending_crm_approval: false },
+          app_metadata: { role: 'shipper', pending_crm_approval: false }
         });
         try {
           await supabase
