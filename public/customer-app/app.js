@@ -1020,8 +1020,6 @@ async function getUserLocation({ onProgress } = {}) {
 function formatGeoError(error) {
   const apple = isAppleMobile() || error?.iosHint;
   const desktop = isDesktopBrowser() || error?.desktopHint;
-  const host = error?.pageHost || (typeof location !== 'undefined' ? location.hostname : '');
-  const hostHint = host ? ` (đang mở: ${host})` : '';
 
   if (error?.insecure) {
     return {
@@ -1032,58 +1030,52 @@ function formatGeoError(error) {
   if (!error || error.code === 0) {
     return {
       title: 'Không hỗ trợ GPS',
-      message: 'Trình duyệt không hỗ trợ định vị. Hãy kéo ghim trên bản đồ để chọn điểm giao.'
+      message: 'Trình duyệt không hỗ trợ định vị. Bạn vui lòng di chuyển ghim đỏ trên bản đồ để chọn điểm giao.'
     };
   }
   if (error.code === 1) {
     if (error.iframeBlocked || error.inIframe) {
       return {
-        title: 'Không lấy vị trí trong khung nhúng',
-        message: 'Trang đang mở trong iframe/preview nên bị chặn GPS. Hãy mở trực tiếp https://shipfee.vercel.app/customer-app/ trên Chrome/Edge, rồi thử lại.'
+        title: 'Chế độ xem trước',
+        message: 'Trang đang mở trong khung xem trước nên bị giới hạn GPS. Bạn vui lòng kéo ghim trên bản đồ hoặc mở trang trực tiếp.'
       };
     }
-    // Site = Allow nhưng getCurrentPosition vẫn code 1.
-    // OS Location có thể đã On — thường do quyền SITE lệch, hoặc Windows chưa có default location / provider lỗi.
     if (error.osLocationOff || error.permState === 'granted') {
       return {
-        title: 'Trình duyệt từ chối trả vị trí',
+        title: 'Chưa đọc được vị trí GPS',
         message: apple
-          ? 'Trang đã được phép nhưng iPhone vẫn chặn định vị. Cài đặt → Quyền riêng tư → Dịch vụ định vị → bật, rồi thử lại.'
+          ? 'Cài đặt vị trí trên thiết bị chưa cho phép. Bạn vui lòng kéo ghim đỏ trên bản đồ để chọn vị trí giao hàng.'
           : desktop
-            ? `Windows Location có thể đã On nhưng Chrome vẫn không trả tọa độ cho trang này${hostHint}. Thử lần lượt: (1) bấm ổ khóa cạnh thanh địa chỉ → Vị trí → Cho phép / Reset rồi Allow lại; (2) mở chrome://settings/content/location — xóa chặn với shipfee.vercel.app; (3) Windows Location → Set default location (Cần Thơ); (4) kéo ghim đỏ trên bản đồ (cách chắc nhất trên máy tính).`
-            : 'Trang đã được phép nhưng hệ thống vẫn chặn định vị. Reset quyền vị trí của trang rồi thử lại, hoặc kéo ghim trên bản đồ.'
+            ? 'Máy tính không có phần cứng GPS hoặc định vị Windows/Chrome chưa sẵn sàng. Bạn vui lòng di chuyển ghim đỏ trên bản đồ hoặc nhập địa chỉ bên dưới.'
+            : 'Hệ thống chưa đọc được tọa độ GPS. Bạn vui lòng kéo ghim đỏ trên bản đồ để chọn điểm giao hàng.'
       };
     }
     return {
       title: 'Chưa cấp quyền vị trí',
       message: apple
-        ? 'Trên iPhone: Cài đặt → Safari → Vị trí → Cho phép, hoặc chạm aA trên thanh địa chỉ → Website Settings → Location → Allow. Sau đó nhấn lại nút GPS.'
+        ? 'Bạn chưa cho phép Safari đọc vị trí. Vui lòng di chuyển ghim đỏ trên bản đồ hoặc bật vị trí trong Cài đặt.'
         : desktop
-          ? `Bấm ổ khóa cạnh thanh địa chỉ${hostHint} → Vị trí → Cho phép. Nếu vẫn lỗi: chrome://settings/content/location → gỡ chặn site. Máy tính nên kéo ghim trên bản đồ nếu GPS không ổn định.`
-          : 'Hãy cho phép quyền vị trí trong trình duyệt, rồi nhấn lại nút GPS. Hoặc kéo ghim trên bản đồ.'
+          ? 'Trình duyệt chưa được cấp vị trí. Bạn vui lòng di chuyển ghim đỏ trên bản đồ hoặc bấm biểu tượng khóa cạnh thanh địa chỉ để Cho Phép.'
+          : 'Trình duyệt chưa được cấp quyền vị trí. Vui lòng kéo ghim đỏ trên bản đồ để chọn vị trí giao hàng.'
     };
   }
   if (error.code === 2) {
     return {
-      title: 'Không đọc được vị trí',
-      message: apple
-        ? 'Bật Dịch vụ định vị (Cài đặt → Quyền riêng tư → Dịch vụ định vị) và thử lại ngoài trời, hoặc ghim tay trên bản đồ.'
-        : desktop
-          ? 'Chrome/Windows không xác định được vị trí (máy tính không có GPS). Kết nối Wi‑Fi, đặt Default location trong Windows Location Settings, hoặc kéo ghim trên bản đồ.'
-          : 'Không lấy được tín hiệu GPS. Thử lại hoặc ghim tay trên bản đồ.'
+      title: 'Không tìm thấy vị trí',
+      message: desktop
+        ? 'Trình duyệt không xác định được tọa độ (máy tính không có GPS). Vui lòng di chuyển ghim đỏ trên bản đồ hoặc nhập địa chỉ bên dưới.'
+        : 'Không bắt được tín hiệu GPS. Bạn vui lòng di chuyển ghim đỏ trên bản đồ để chọn điểm giao hàng.'
     };
   }
   if (error.code === 3) {
     return {
-      title: 'Định vị quá chậm',
-      message: desktop
-        ? 'Trình duyệt mất quá lâu để định vị. Hãy kéo ghim trên bản đồ để chọn điểm giao hàng.'
-        : 'Máy mất quá lâu để định vị. Ra chỗ thoáng hoặc kéo ghim trên bản đồ để chọn vị trí giao hàng.'
+      title: 'Định vị phản hồi chậm',
+      message: 'Tín hiệu GPS phản hồi quá chậm. Vui lòng di chuyển ghim đỏ trên bản đồ để chọn điểm giao nhanh chóng.'
     };
   }
   return {
-    title: 'Lỗi định vị',
-    message: 'Không thể lấy vị trí. Vui lòng kéo ghim trên bản đồ.'
+    title: 'Chưa lấy được vị trí',
+    message: 'Không thể lấy tọa độ tự động. Vui lòng di chuyển ghim đỏ trên bản đồ để chọn điểm giao.'
   };
 }
 

@@ -1386,7 +1386,7 @@
         const formatted = SF.formatGeoError
           ? SF.formatGeoError(err)
           : { title: 'Lỗi vị trí', message: 'Không lấy được GPS.' };
-        SF.showToast(formatted.title, formatted.message, 'error', 8000);
+        SF.showToast(formatted.title, formatted.message, 'warning', 5000);
       }
     }
 

@@ -1540,7 +1540,7 @@
       }
       const hintEl = document.getElementById('address-map-hint-text');
       if (hintEl && isDesktop) {
-        hintEl.innerHTML = '<strong>Máy tính:</strong> Windows Location đã On vẫn có thể lỗi nếu Chrome chặn <em>đúng trang này</em> — bấm ổ khóa → Vị trí → Allow. Nên đặt <em>Default location</em> trong Windows Location. Cách chắc nhất: kéo ghim đỏ trên bản đồ.';
+        hintEl.innerHTML = '<strong>Mẹo trên máy tính:</strong> Di chuyển ghim đỏ trên bản đồ hoặc nhập số nhà, tên đường bên dưới để chọn điểm giao hàng nhanh chóng.';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
@@ -1661,7 +1661,7 @@
         const formatted = SF.formatGeoError
           ? SF.formatGeoError(error)
           : { title: 'Lỗi định vị', message: 'Không thể lấy vị trí. Hãy kéo ghim trên bản đồ.' };
-        SF.showToast(formatted.title, formatted.message, 'error', 10000);
+        SF.showToast(formatted.title, formatted.message, 'warning', 5000);
         // Luôn hiện bản đồ để kéo ghim thủ công
         try {
           const state = SF.getState();
