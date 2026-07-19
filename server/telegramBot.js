@@ -1140,11 +1140,17 @@ async function processUpdates(updates) {
             const phone = data.split(':')[1];
             const shippersBefore = deps.readShippersDatabase();
             const shipperBefore = shippersBefore.find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
-            const ok = await deps.approveShipperAccount(phone);
+            const result = await deps.approveShipperAccount(phone);
+            const ok = result && (result.success === true || result === true);
             if (ok) {
               notifyShipperAction('approved', shipperBefore || { phone, name: phone });
-              await answer('Phê duyệt tài xế thành công!');
-              await edit(`✅ *Đã duyệt tài xế thành công!*\nSố điện thoại: ${phone}`);
+              const emailLine = result.emailSent
+                ? '\n📧 Đã gửi email xác nhận Supabase tới tài xế.'
+                : result.emailError
+                  ? `\n⚠️ Duyệt OK nhưng gửi email lỗi: ${result.emailError}`
+                  : '';
+              await answer(result.emailSent ? 'Duyệt OK — đã gửi email xác nhận!' : 'Phê duyệt tài xế thành công!');
+              await edit(`✅ *Đã duyệt tài xế thành công!*\nSố điện thoại: ${phone}${emailLine}`);
             } else await answer('Lỗi phê duyệt!');
           } else if (data.startsWith('reject_shipper:')) {
             const phone = data.split(':')[1];
@@ -1383,13 +1389,19 @@ async function processUpdates(updates) {
           } else if (data.startsWith('shipper_approve:')) {
             const phone = data.split(':')[1];
             const shipperBefore = deps.readShippersDatabase().find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
-            const ok = await deps.approveShipperAccount(phone);
+            const result = await deps.approveShipperAccount(phone);
+            const ok = result && (result.success === true || result === true);
             if (ok) {
               notifyShipperAction('approved', shipperBefore);
               const shipper = deps.readShippersDatabase().find(s => s.phone.trim().replace(/\s+/g, '') === phone.trim().replace(/\s+/g, ''));
               const report = generateShipperDetailMessage(shipper);
-              await answer('Đã phê duyệt!');
-              await edit(`✅ *Đã phê duyệt!*\n\n${report.text}`, report.keyboard);
+              const emailLine = result.emailSent
+                ? '\n📧 Đã gửi email xác nhận Supabase.'
+                : result.emailError
+                  ? `\n⚠️ Email lỗi: ${result.emailError}`
+                  : '';
+              await answer(result.emailSent ? 'Duyệt OK — đã gửi email!' : 'Đã phê duyệt!');
+              await edit(`✅ *Đã phê duyệt!*${emailLine}\n\n${report.text}`, report.keyboard);
             } else await answer('Lỗi phê duyệt!');
           } else if (data.startsWith('shipper_reject:') || data.startsWith('shipper_delete:')) {
             const phone = data.split(':')[1];

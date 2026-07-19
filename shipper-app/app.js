@@ -339,6 +339,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadStats();
   initApp();
 
+  // Sau khi shipper bấm link xác nhận email (CRM đã duyệt) → ?approved=1
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('approved') === '1') {
+      showToast(
+        'Email đã xác nhận!',
+        'Đăng ký thành công. Đăng nhập bằng email và mật khẩu để bắt đầu nhận đơn.',
+        'success'
+      );
+      params.delete('approved');
+      const qs = params.toString();
+      const cleanUrl = window.location.pathname + (qs ? `?${qs}` : '') + window.location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  } catch (e) { /* ignore */ }
+
   window.addEventListener('online', () => {
     setConnectionStatus(true, 'Đã có mạng trở lại');
     if (currentDriver) {
@@ -539,10 +555,10 @@ async function registerDriver() {
       return;
     }
 
-    // 2. Thông báo đăng ký thành công (email được tự động kích hoạt) và chờ Admin duyệt SĐT
+    // 2. Chờ CRM duyệt → Supabase gửi email xác nhận; shipper bấm link rồi mới đăng nhập được
     showToast(
-      'Đăng ký thành công!', 
-      'Tài khoản của bạn đã được khởi tạo và tự động xác thực email. Vui lòng chờ Admin duyệt Số điện thoại để bắt đầu nhận đơn!', 
+      'Đăng ký thành công!',
+      'Hồ sơ đang chờ CRM duyệt. Khi được duyệt, bạn sẽ nhận email xác nhận từ Supabase — mở link trong email rồi đăng nhập để nhận đơn.',
       'success'
     );
     toggleAuthMode();
@@ -635,7 +651,16 @@ async function loginDriver() {
   try {
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
-      showToast('Đăng nhập thất bại', error.message, 'error');
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+        showToast(
+          'Chưa xác nhận email',
+          'Sau khi CRM duyệt, mở email và bấm link xác nhận Supabase, rồi đăng nhập lại.',
+          'warning'
+        );
+      } else {
+        showToast('Đăng nhập thất bại', error.message, 'error');
+      }
       return;
     }
 

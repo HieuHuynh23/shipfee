@@ -151,6 +151,10 @@ const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
 const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
 
 let supabase = null;
+/** Anon client — dùng gửi email Auth (resend signup / magic link) vì SMTP đi qua Auth API public. */
+let supabaseAnon = null;
+const SHIPPER_APP_URL = (process.env.SHIPPER_APP_URL || 'https://shipfee.vercel.app/shipper-app/').replace(/\/?$/, '/');
+
 if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase_url_here') {
   supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
@@ -159,6 +163,15 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
     }
   });
   console.log('[Supabase] Client initialized successfully via Service Role Key');
+
+  if (SUPABASE_ANON_KEY) {
+    supabaseAnon = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
   
   // Tự động kiểm tra và tạo tài khoản Admin mặc định
   seedAdminUser();
@@ -166,6 +179,71 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
   initSupabaseStorage();
 } else {
   console.log('[Supabase] Supabase is NOT configured. Operating in LOCAL/BYPASS mode.');
+}
+
+/**
+ * Gửi email xác nhận Supabase sau khi CRM duyệt tài xế.
+ * - Chưa confirm email → resend signup confirmation link
+ * - Đã confirm (tài khoản cũ) → magic link OTP để báo đăng ký/duyệt thành công
+ */
+async function sendShipperApprovalConfirmationEmail(shipper) {
+  if (!supabase) {
+    return { sent: false, error: 'Supabase chưa cấu hình', method: null };
+  }
+  if (!supabaseAnon) {
+    return { sent: false, error: 'Thiếu SUPABASE_ANON_KEY — không gửi được email Auth', method: null };
+  }
+
+  let email = (shipper?.email || '').trim().toLowerCase();
+  let emailConfirmed = false;
+
+  try {
+    if (shipper?.id) {
+      const { data: userData, error: getErr } = await supabase.auth.admin.getUserById(shipper.id);
+      if (getErr) {
+        console.warn('[Approve Email] Không lấy được user Auth:', getErr.message);
+      } else if (userData?.user) {
+        email = email || (userData.user.email || '').trim().toLowerCase();
+        emailConfirmed = !!userData.user.email_confirmed_at;
+      }
+    }
+
+    if (!email) {
+      return { sent: false, error: 'Tài xế chưa có email liên kết', method: null };
+    }
+
+    const emailRedirectTo = `${SHIPPER_APP_URL}?approved=1`;
+
+    if (!emailConfirmed) {
+      const { error: resendErr } = await supabaseAnon.auth.resend({
+        type: 'signup',
+        email,
+        options: { emailRedirectTo }
+      });
+      if (!resendErr) {
+        console.log(`[Approve Email] Đã gửi signup confirmation tới ${email}`);
+        return { sent: true, error: null, method: 'signup_confirm' };
+      }
+      console.warn('[Approve Email] resend signup thất bại, thử magic link:', resendErr.message);
+    }
+
+    const { error: otpErr } = await supabaseAnon.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo
+      }
+    });
+    if (otpErr) {
+      console.error('[Approve Email] Gửi email thất bại:', otpErr.message);
+      return { sent: false, error: otpErr.message, method: null };
+    }
+    console.log(`[Approve Email] Đã gửi magic link tới ${email}`);
+    return { sent: true, error: null, method: 'magic_link' };
+  } catch (err) {
+    console.error('[Approve Email] Exception:', err.message);
+    return { sent: false, error: err.message, method: null };
+  }
 }
 
 async function seedAdminUser() {
@@ -429,10 +507,14 @@ async function approveShipperAccount(phone) {
     const shippers = readShippersDatabase();
     const cleanedPhone = phone.trim().replace(/\s+/g, '');
     const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
-    if (shipperIndex === -1) return false;
+    if (shipperIndex === -1) {
+      return { success: false, emailSent: false, emailError: null, alreadyApproved: false };
+    }
 
     const shipper = shippers[shipperIndex];
-    if (shipper.isApproved) return true;
+    if (shipper.isApproved) {
+      return { success: true, emailSent: false, emailError: null, alreadyApproved: true, shipper };
+    }
 
     shipper.isApproved = true;
     shippers[shipperIndex] = shipper;
@@ -451,11 +533,21 @@ async function approveShipperAccount(phone) {
         console.warn('[Supabase Error] Lỗi cập nhật is_approved trong table shipper_profiles:', err.message);
       }
     }
-    console.log(`[Approve Shipper] Đã phê duyệt tài xế: ${shipper.name} (${shipper.phone})`);
-    return true;
+
+    // Gửi email xác nhận Supabase — shipper biết đăng ký đã được duyệt thành công
+    const emailResult = await sendShipperApprovalConfirmationEmail(shipper);
+    console.log(`[Approve Shipper] Đã phê duyệt tài xế: ${shipper.name} (${shipper.phone}) | emailSent=${emailResult.sent}`);
+    return {
+      success: true,
+      emailSent: !!emailResult.sent,
+      emailError: emailResult.error || null,
+      emailMethod: emailResult.method || null,
+      alreadyApproved: false,
+      shipper
+    };
   } catch (err) {
     console.error('[Approve Shipper Error]:', err.message);
-    return false;
+    return { success: false, emailSent: false, emailError: err.message, alreadyApproved: false };
   }
 }
 
@@ -5174,12 +5266,11 @@ app.post('/api/shippers/register', async (req, res) => {
       avatarUrl = await uploadShipperAvatar(cleanedPhone, avatar, req);
     }
 
-    // Sử dụng Supabase Admin Client để tạo user trực tiếp và tự động xác thực email (email_confirm: true)
-    // Việc này giúp tránh lỗi Supabase không gửi email xác thực do giới hạn SMTP miễn phí
+    // Tạo user chưa confirm email — link xác nhận chỉ gửi sau khi CRM duyệt (bảo mật + thông báo duyệt)
     const { data: signUpData, error: signUpError } = await supabase.auth.admin.createUser({
       email: email.trim(),
       password: password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: {
         full_name: name.trim(),
         phone: cleanedPhone,
@@ -6221,16 +6312,31 @@ app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, re
   const { phone } = req.params;
   const shippersBefore = readShippersDatabase();
   const shipperBefore = shippersBefore.find(s => cleanPhone(s.phone) === cleanPhone(phone));
-  const success = await approveShipperAccount(phone);
-  if (success) {
+  const result = await approveShipperAccount(phone);
+  if (result && result.success) {
+    const emailNote = result.alreadyApproved
+      ? ' (đã duyệt trước đó)'
+      : result.emailSent
+        ? ' — đã gửi email xác nhận Supabase'
+        : result.emailError
+          ? ` — duyệt OK nhưng gửi email lỗi: ${result.emailError}`
+          : '';
     addNotification(
       'shipper_action',
       null,
       shipperBefore?.name || phone,
       'Tài xế đã được duyệt',
-      `${shipperBefore?.name || phone} (${phone}) — duyệt qua CRM Admin`
+      `${shipperBefore?.name || phone} (${phone}) — duyệt qua CRM Admin${emailNote}`
     );
-    res.json({ success: true, message: 'Đã phê duyệt tài xế thành công!' });
+    res.json({
+      success: true,
+      message: result.emailSent
+        ? 'Đã phê duyệt và gửi email xác nhận tới tài xế!'
+        : 'Đã phê duyệt tài xế thành công!',
+      emailSent: !!result.emailSent,
+      emailError: result.emailError || null,
+      alreadyApproved: !!result.alreadyApproved
+    });
   } else {
     res.status(400).json({ success: false, error: 'Phê duyệt tài xế thất bại hoặc không tìm thấy tài xế!' });
   }

@@ -1154,13 +1154,19 @@ function renderShippersTable() {
 }
 
 async function approveShipper(phone) {
-  if (!confirm('Bạn có chắc chắn muốn phê duyệt kích hoạt tài xế này?')) return;
+  if (!confirm('Duyệt tài xế này? Hệ thống sẽ gửi email xác nhận Supabase để tài xế biết đăng ký thành công.')) return;
   try {
     const res = await apiFetch(`/api/admin/shippers/${encodeURIComponent(phone)}/approve`, {
       method: 'POST'
     });
     if (res.success) {
-      showToast('Phê duyệt tài xế thành công!', 'success');
+      if (res.emailSent) {
+        showToast('Đã duyệt và gửi email xác nhận tới tài xế!', 'success');
+      } else if (res.emailError) {
+        showToast(`Đã duyệt tài xế, nhưng gửi email thất bại: ${res.emailError}`, 'warning');
+      } else {
+        showToast(res.message || 'Phê duyệt tài xế thành công!', 'success');
+      }
       await fetchAllData();
       renderShippersTable();
     } else {

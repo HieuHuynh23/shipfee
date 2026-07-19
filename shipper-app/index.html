@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=3.0">
+  <link rel="stylesheet" href="style.css?v=3.1">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -654,11 +654,12 @@
     <div class="modal approval-modal">
       <div class="approval-modal__badge"><i class="fa-solid fa-clock-rotate-left"></i></div>
       <h3>Chờ CRM phê duyệt</h3>
-      <p>Tài khoản đã đăng ký thành công. Admin CRM cần <strong>Duyệt</strong> trên hệ thống quản trị trước khi bạn nhận đơn.</p>
+      <p>Hồ sơ đã gửi. Sau khi Admin <strong>Duyệt</strong>, bạn sẽ nhận <strong>email xác nhận Supabase</strong> — mở link trong email rồi đăng nhập để nhận đơn.</p>
       <ul class="approval-steps">
-        <li><i class="fa-solid fa-check"></i> Đăng ký &amp; xác thực email</li>
-        <li class="is-active"><i class="fa-solid fa-spinner fa-spin"></i> CRM duyệt hồ sơ (CCCD, ảnh)</li>
-        <li><i class="fa-regular fa-circle"></i> Bật nhận đơn &amp; bắt đầu chạy</li>
+        <li><i class="fa-solid fa-check"></i> Đăng ký hồ sơ (CCCD, ảnh)</li>
+        <li class="is-active"><i class="fa-solid fa-spinner fa-spin"></i> CRM duyệt tài khoản</li>
+        <li><i class="fa-regular fa-circle"></i> Xác nhận email (link Supabase)</li>
+        <li><i class="fa-regular fa-circle"></i> Đăng nhập &amp; nhận đơn</li>
       </ul>
       <button type="button" class="btn btn--primary btn--full" onclick="logoutApprovalPending()">
         <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
@@ -684,6 +685,6 @@
       }
     });
   </script>
-  <script src="app.js?v=3.0"></script>
+  <script src="app.js?v=3.1"></script>
 </body>
 </html>
