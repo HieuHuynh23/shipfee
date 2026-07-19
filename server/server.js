@@ -184,14 +184,12 @@ if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY && SUPABASE_URL !== 'your_supabase
 /**
  * Gửi email xác nhận Supabase sau khi CRM duyệt tài xế.
  * - Chưa confirm email → resend signup confirmation link
- * - Đã confirm (tài khoản cũ) → magic link OTP để báo đăng ký/duyệt thành công
+ * - Đã confirm (tài khoản cũ) → magic link OTP
+ * - Nếu SMTP fail → generateLink (trả link cho CRM copy thủ công)
  */
 async function sendShipperApprovalConfirmationEmail(shipper) {
   if (!supabase) {
-    return { sent: false, error: 'Supabase chưa cấu hình', method: null };
-  }
-  if (!supabaseAnon) {
-    return { sent: false, error: 'Thiếu SUPABASE_ANON_KEY — không gửi được email Auth', method: null };
+    return { sent: false, error: 'Supabase chưa cấu hình', method: null, confirmationLink: null };
   }
 
   let email = (shipper?.email || '').trim().toLowerCase();
@@ -209,12 +207,13 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
     }
 
     if (!email) {
-      return { sent: false, error: 'Tài xế chưa có email liên kết', method: null };
+      return { sent: false, error: 'Tài xế chưa có email liên kết', method: null, confirmationLink: null };
     }
 
     const emailRedirectTo = `${SHIPPER_APP_URL}?approved=1`;
+    const errors = [];
 
-    if (!emailConfirmed) {
+    if (supabaseAnon && !emailConfirmed) {
       const { error: resendErr } = await supabaseAnon.auth.resend({
         type: 'signup',
         email,
@@ -222,27 +221,54 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
       });
       if (!resendErr) {
         console.log(`[Approve Email] Đã gửi signup confirmation tới ${email}`);
-        return { sent: true, error: null, method: 'signup_confirm' };
+        return { sent: true, error: null, method: 'signup_confirm', confirmationLink: null };
       }
-      console.warn('[Approve Email] resend signup thất bại, thử magic link:', resendErr.message);
+      errors.push('resend: ' + resendErr.message);
+      console.warn('[Approve Email] resend signup thất bại:', resendErr.message);
+    } else if (!supabaseAnon) {
+      errors.push('Thiếu SUPABASE_ANON_KEY');
     }
 
-    const { error: otpErr } = await supabaseAnon.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo
+    if (supabaseAnon) {
+      const { error: otpErr } = await supabaseAnon.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo
+        }
+      });
+      if (!otpErr) {
+        console.log(`[Approve Email] Đã gửi magic link tới ${email}`);
+        return { sent: true, error: null, method: 'magic_link', confirmationLink: null };
       }
-    });
-    if (otpErr) {
-      console.error('[Approve Email] Gửi email thất bại:', otpErr.message);
-      return { sent: false, error: otpErr.message, method: null };
+      errors.push('otp: ' + otpErr.message);
+      console.warn('[Approve Email] magic link OTP thất bại:', otpErr.message);
     }
-    console.log(`[Approve Email] Đã gửi magic link tới ${email}`);
-    return { sent: true, error: null, method: 'magic_link' };
+
+    // Fallback: tạo link bằng Admin API (không phụ thuộc SMTP) — CRM có thể copy gửi tay
+    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
+      email,
+      options: { redirectTo: emailRedirectTo }
+    });
+
+    if (linkErr) {
+      errors.push('generateLink: ' + linkErr.message);
+      console.error('[Approve Email] generateLink thất bại:', linkErr.message);
+      return { sent: false, error: errors.join(' | '), method: null, confirmationLink: null };
+    }
+
+    const actionLink = linkData?.properties?.action_link || null;
+    console.warn(`[Approve Email] SMTP không gửi được — đã tạo link thủ công cho ${email}`);
+    return {
+      sent: false,
+      error: (errors.join(' | ') || 'SMTP không gửi được email') + ' — dùng confirmationLink gửi tay',
+      method: 'manual_link',
+      confirmationLink: actionLink
+    };
   } catch (err) {
     console.error('[Approve Email] Exception:', err.message);
-    return { sent: false, error: err.message, method: null };
+    return { sent: false, error: err.message, method: null, confirmationLink: null };
   }
 }
 
@@ -502,52 +528,64 @@ async function lockShipperAccount(phone) {
   }
 }
 
-async function approveShipperAccount(phone) {
+async function approveShipperAccount(phone, options = {}) {
+  const forceEmail = !!options.forceEmail;
   try {
     const shippers = readShippersDatabase();
     const cleanedPhone = phone.trim().replace(/\s+/g, '');
     const shipperIndex = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
     if (shipperIndex === -1) {
-      return { success: false, emailSent: false, emailError: null, alreadyApproved: false };
+      return { success: false, emailSent: false, emailError: null, alreadyApproved: false, confirmationLink: null };
     }
 
     const shipper = shippers[shipperIndex];
-    if (shipper.isApproved) {
-      return { success: true, emailSent: false, emailError: null, alreadyApproved: true, shipper };
-    }
+    const wasApproved = !!shipper.isApproved;
 
-    shipper.isApproved = true;
-    shippers[shipperIndex] = shipper;
-    writeShippersDatabase(shippers);
+    if (!wasApproved) {
+      shipper.isApproved = true;
+      shippers[shipperIndex] = shipper;
+      writeShippersDatabase(shippers);
 
-    if (supabase && shipper.id) {
-      await supabase.auth.admin.updateUserById(shipper.id, {
-        user_metadata: { is_approved: true }
-      });
-      try {
-        await supabase
-          .from('shipper_profiles')
-          .update({ is_approved: true })
-          .eq('id', shipper.id);
-      } catch (err) {
-        console.warn('[Supabase Error] Lỗi cập nhật is_approved trong table shipper_profiles:', err.message);
+      if (supabase && shipper.id) {
+        await supabase.auth.admin.updateUserById(shipper.id, {
+          user_metadata: { is_approved: true }
+        });
+        try {
+          await supabase
+            .from('shipper_profiles')
+            .update({ is_approved: true })
+            .eq('id', shipper.id);
+        } catch (err) {
+          console.warn('[Supabase Error] Lỗi cập nhật is_approved trong table shipper_profiles:', err.message);
+        }
       }
+    } else if (!forceEmail) {
+      // Đã duyệt trước đó — không gửi lại trừ khi force (tránh spam khi bấm duyệt 2 lần)
+      return {
+        success: true,
+        emailSent: false,
+        emailError: 'Tài xế đã duyệt trước đó — bấm lại với gửi lại email nếu cần',
+        alreadyApproved: true,
+        confirmationLink: null,
+        shipper
+      };
     }
 
     // Gửi email xác nhận Supabase — shipper biết đăng ký đã được duyệt thành công
     const emailResult = await sendShipperApprovalConfirmationEmail(shipper);
-    console.log(`[Approve Shipper] Đã phê duyệt tài xế: ${shipper.name} (${shipper.phone}) | emailSent=${emailResult.sent}`);
+    console.log(`[Approve Shipper] Đã phê duyệt tài xế: ${shipper.name} (${shipper.phone}) | emailSent=${emailResult.sent} | method=${emailResult.method}`);
     return {
       success: true,
       emailSent: !!emailResult.sent,
       emailError: emailResult.error || null,
       emailMethod: emailResult.method || null,
-      alreadyApproved: false,
+      confirmationLink: emailResult.confirmationLink || null,
+      alreadyApproved: wasApproved,
       shipper
     };
   } catch (err) {
     console.error('[Approve Shipper Error]:', err.message);
-    return { success: false, emailSent: false, emailError: err.message, alreadyApproved: false };
+    return { success: false, emailSent: false, emailError: err.message, alreadyApproved: false, confirmationLink: null };
   }
 }
 
@@ -6310,35 +6348,72 @@ app.delete('/api/admin/shippers/:phone', authenticateAdmin, async (req, res) => 
  */
 app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, res) => {
   const { phone } = req.params;
+  const forceEmail = !!(req.body && (req.body.forceEmail || req.body.resendEmail));
   const shippersBefore = readShippersDatabase();
   const shipperBefore = shippersBefore.find(s => cleanPhone(s.phone) === cleanPhone(phone));
-  const result = await approveShipperAccount(phone);
+  const result = await approveShipperAccount(phone, { forceEmail });
   if (result && result.success) {
-    const emailNote = result.alreadyApproved
-      ? ' (đã duyệt trước đó)'
-      : result.emailSent
-        ? ' — đã gửi email xác nhận Supabase'
+    const emailNote = result.emailSent
+      ? ' — đã gửi email xác nhận Supabase'
+      : result.confirmationLink
+        ? ' — SMTP fail, đã tạo link thủ công'
         : result.emailError
           ? ` — duyệt OK nhưng gửi email lỗi: ${result.emailError}`
-          : '';
-    addNotification(
-      'shipper_action',
-      null,
-      shipperBefore?.name || phone,
-      'Tài xế đã được duyệt',
-      `${shipperBefore?.name || phone} (${phone}) — duyệt qua CRM Admin${emailNote}`
-    );
+          : result.alreadyApproved
+            ? ' (đã duyệt trước đó)'
+            : '';
+    if (!result.alreadyApproved || result.emailSent || result.confirmationLink) {
+      addNotification(
+        'shipper_action',
+        null,
+        shipperBefore?.name || phone,
+        'Tài xế đã được duyệt',
+        `${shipperBefore?.name || phone} (${phone}) — duyệt qua CRM Admin${emailNote}`
+      );
+    }
     res.json({
       success: true,
       message: result.emailSent
         ? 'Đã phê duyệt và gửi email xác nhận tới tài xế!'
-        : 'Đã phê duyệt tài xế thành công!',
+        : result.confirmationLink
+          ? 'Đã phê duyệt. SMTP chưa gửi được — dùng confirmationLink gửi tay cho tài xế.'
+          : 'Đã phê duyệt tài xế thành công!',
       emailSent: !!result.emailSent,
       emailError: result.emailError || null,
+      emailMethod: result.emailMethod || null,
+      confirmationLink: result.confirmationLink || null,
       alreadyApproved: !!result.alreadyApproved
     });
   } else {
     res.status(400).json({ success: false, error: 'Phê duyệt tài xế thất bại hoặc không tìm thấy tài xế!' });
+  }
+});
+
+/**
+ * POST /api/admin/shippers/:phone/resend-approval-email
+ * Gửi lại email / lấy link xác nhận cho tài xế đã duyệt (debug SMTP)
+ */
+app.post('/api/admin/shippers/:phone/resend-approval-email', authenticateAdmin, async (req, res) => {
+  try {
+    const { phone } = req.params;
+    const result = await approveShipperAccount(phone, { forceEmail: true });
+    if (!result || !result.success) {
+      return res.status(400).json({ success: false, error: 'Không tìm thấy tài xế!' });
+    }
+    res.json({
+      success: true,
+      emailSent: !!result.emailSent,
+      emailError: result.emailError || null,
+      emailMethod: result.emailMethod || null,
+      confirmationLink: result.confirmationLink || null,
+      message: result.emailSent
+        ? 'Đã gửi lại email xác nhận!'
+        : result.confirmationLink
+          ? 'SMTP chưa gửi được — copy confirmationLink gửi tay.'
+          : (result.emailError || 'Không gửi được email')
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
   }
 });
 
