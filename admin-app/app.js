@@ -1792,9 +1792,12 @@ async function pollBulkSyncStatus(silent) {
           const etaText = res.etaMs && res.running
             ? ` · còn ~${Math.max(1, Math.round(res.etaMs / 60000))} phút`
             : '';
+          const errHint = Array.isArray(res.errors) && res.errors.length
+            ? `\nLỗi gần nhất: ${res.errors.slice(-2).map(e => `${e.name}: ${e.error}`).join(' · ')}`
+            : '';
           currentEl.textContent = activeNames
-            ? `Đang xử lý: ${activeNames}${etaText}`
-            : 'Đang chuẩn bị...';
+            ? `Đang xử lý: ${activeNames}${etaText}${errHint}`
+            : `Đang chuẩn bị...${errHint}`;
         }
       }
       if (btnPause) {

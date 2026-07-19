@@ -3935,21 +3935,69 @@ async function applySyncScrapeResult(restaurant, realMenu) {
   return { restaurant, outcome: 'failed' };
 }
 
+function isSyncMenuEmpty(realMenu) {
+  if (!realMenu) return true;
+  if (realMenu.blocked === true || realMenu.closed === true) return false;
+  return Array.isArray(realMenu) && realMenu.length === 0;
+}
+
+function buildScrapeMenuOptions(restaurant, scrapeOptions = {}) {
+  return {
+    ...scrapeOptions,
+    name: restaurant.name,
+    address: restaurant.address
+  };
+}
+
 async function scrapeRestaurantForSync(restaurant, scrapeOptions = {}) {
   const fresh = findRestaurantById(restaurant.id) || restaurant;
   if (!fresh || !fresh.id) return { restaurant: fresh, outcome: 'failed' };
 
+  const { isGenericBrandPortal } = require('./slugMap');
+  if (fresh.isBrandPortal || isGenericBrandPortal(fresh.name, fresh.address)) {
+    console.log(`[Sync Scraper] ⏭️ Bỏ qua portal thương hiệu: "${fresh.name}"`);
+    return { restaurant: fresh, outcome: 'brand_portal' };
+  }
+
   const skipFoody = scrapeOptions.skipFoody !== false;
   let finalSlug = await resolveRestaurantSlugForSync(fresh, { skipFoody });
-  let realMenu = await menuScraper.scrapeMenu(finalSlug, scrapeOptions);
+  let realMenu = await menuScraper.scrapeMenu(finalSlug, buildScrapeMenuOptions(fresh, scrapeOptions));
 
-  const menuEmpty = !realMenu
-    || (realMenu.blocked !== true && realMenu.closed !== true && Array.isArray(realMenu) && realMenu.length === 0);
+  let menuEmpty = isSyncMenuEmpty(realMenu);
 
   if (menuEmpty && skipFoody && !fresh.shopeefoodSlug) {
     console.log(`[Sync Scraper] 🔁 Thử lại với Foody slug: "${fresh.name}"`);
     finalSlug = await resolveRestaurantSlugForSync(fresh, { skipFoody: false });
-    realMenu = await menuScraper.scrapeMenu(finalSlug, scrapeOptions);
+    realMenu = await menuScraper.scrapeMenu(finalSlug, buildScrapeMenuOptions(fresh, { ...scrapeOptions, skipFoody: false }));
+    menuEmpty = isSyncMenuEmpty(realMenu);
+  }
+
+  if (menuEmpty && scrapeOptions.fast === true) {
+    console.log(`[Sync Scraper] 🔁 Retry chế độ đầy đủ: "${fresh.name}"`);
+    finalSlug = await resolveRestaurantSlugForSync(fresh, { skipFoody: false });
+    realMenu = await menuScraper.scrapeMenu(finalSlug, buildScrapeMenuOptions(fresh, {
+      ...scrapeOptions,
+      fast: false,
+      skipFoody: false
+    }));
+    menuEmpty = isSyncMenuEmpty(realMenu);
+  }
+
+  if (menuEmpty && fresh.isClosed === true && restaurantHasMenuMeta(fresh)) {
+    const localMenu = readRestaurantMenu(fresh.id);
+    if (Array.isArray(localMenu) && localMenu.length > 0) {
+      console.log(`[Sync Scraper] 📦 Giữ menu local cho quán đóng cửa: "${fresh.name}"`);
+      realMenu = {
+        closed: true,
+        reason: fresh.closedReason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.',
+        menu: localMenu
+      };
+    } else {
+      realMenu = {
+        closed: true,
+        reason: fresh.closedReason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.'
+      };
+    }
   }
 
   return applySyncScrapeResult(fresh, realMenu);
@@ -4169,7 +4217,7 @@ function getAdminRestaurantsList(options = {}) {
   };
 }
 
-const BULK_SYNC_CONCURRENCY = Math.max(1, Math.min(5, parseInt(process.env.BULK_SYNC_CONCURRENCY || '3', 10) || 3));
+const BULK_SYNC_CONCURRENCY = Math.max(1, Math.min(5, parseInt(process.env.BULK_SYNC_CONCURRENCY || '2', 10) || 2));
 let bulkSyncJob = null;
 
 function isBulkSyncSuccessOutcome(outcome) {
@@ -4234,7 +4282,7 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
           });
           if (isBulkSyncSuccessOutcome(outcome)) {
             bulkSyncJob.synced++;
-          } else if (outcome === 'blocked') {
+          } else if (outcome === 'blocked' || outcome === 'brand_portal') {
             bulkSyncJob.skipped++;
           } else {
             bulkSyncJob.failed++;
@@ -6803,10 +6851,11 @@ app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) 
     let restaurants = [];
 
     if (scope === 'changed') {
+      const { isGenericBrandPortal } = require('./slugMap');
       const changes = getRestaurantChangeSummaries(200);
       restaurants = changes
         .map(c => findRestaurantById(c.restaurantId))
-        .filter(Boolean);
+        .filter(r => r && r.id && !r.isBrandPortal && !isGenericBrandPortal(r.name, r.address));
     } else {
       restaurants = dbHelper.read().filter(r => r && r.id);
     }
