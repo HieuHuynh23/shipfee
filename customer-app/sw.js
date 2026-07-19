@@ -1,7 +1,7 @@
-/* ShipFee customer PWA — v2026-07-18b
-   Minimal SW for installability. Cleared caches so phones pick up
-   tracking/map/security UI updates instead of stale HTML. */
-const SW_VERSION = 'shipfee-customer-2026-07-18b';
+/* ShipFee customer PWA — v2026-07-18c
+   Minimal SW for installability. Cleared caches so clients pick up
+   desktop GPS / tracking UI updates instead of stale HTML. */
+const SW_VERSION = 'shipfee-customer-2026-07-18c';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
