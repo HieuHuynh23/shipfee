@@ -808,51 +808,18 @@ async function reverseGeocodeAddress(lat, lon) {
   return null;
 }
 
-/**
- * Fallback vị trí theo IP khi trình duyệt chặn GPS (thường gặp trên máy tính).
- * Độ chính xác thấp — chỉ để đặt ghim gần khu vực, user kéo chỉnh.
- */
-async function getIpApproximateLocation() {
-  const parsers = [
-    async () => {
-      const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error('ipwho.is failed');
-      const d = await res.json();
-      if (!d || d.success === false) throw new Error('ipwho.is invalid');
-      return { lat: Number(d.latitude), lon: Number(d.longitude), label: d.city || d.region || '' };
-    },
-    async () => {
-      const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) throw new Error('ipapi.co failed');
-      const d = await res.json();
-      if (!d || d.error) throw new Error('ipapi.co invalid');
-      return { lat: Number(d.latitude), lon: Number(d.longitude), label: d.city || d.region || '' };
-    }
-  ];
-
-  for (const parse of parsers) {
-    try {
-      const loc = await parse();
-      if (Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
-        return { ...loc, accuracy: 5000, coarse: true, source: 'ip' };
-      }
-    } catch (_) { /* try next */ }
-  }
-  return null;
-}
-
 let _geoInFlight = null;
 
 /**
- * User location with desktop Wi‑Fi / IP / iOS Safari fallbacks.
- * Must be called from a user gesture (button tap).
+ * Lấy vị trí chính xác từ Geolocation API của trình duyệt (khi đã cấp phép).
+ * Không ước lượng theo IP.
  *
- * Desktop notes:
- * - PCs rarely have GPS; enableHighAccuracy:true often fails or times out
- * - Prefer network/Wi‑Fi fix first; skip long GPS refine watches
- * - If browser permission denied → IP approximate location (then user drags pin)
+ * Must be called from a user gesture (button tap).
+ * - Ưu tiên enableHighAccuracy + maximumAge:0
+ * - Tinh chỉnh bằng watchPosition nếu độ lệch còn lớn
+ * - Nếu bị từ chối quyền → báo lỗi rõ (kéo ghim trên bản đồ)
  */
-async function getUserLocation({ onProgress, allowIpFallback = true } = {}) {
+async function getUserLocation({ onProgress } = {}) {
   // Coalesce concurrent calls (double-clicks / stacked handlers)
   if (_geoInFlight) return _geoInFlight;
 
@@ -863,27 +830,7 @@ async function getUserLocation({ onProgress, allowIpFallback = true } = {}) {
       if (typeof onProgress === 'function') onProgress(msg);
     };
 
-    const finishWithIpFallback = async (reasonErr) => {
-      if (!allowIpFallback || !desktop) throw reasonErr;
-      progress('Trình duyệt chặn GPS — đang ước lượng theo IP...');
-      const ipLoc = await getIpApproximateLocation();
-      if (!ipLoc) throw reasonErr;
-      return {
-        lat: ipLoc.lat,
-        lon: ipLoc.lon,
-        accuracy: ipLoc.accuracy,
-        coarse: true,
-        apple,
-        desktop,
-        source: 'ip',
-        timestamp: Date.now()
-      };
-    };
-
     if (!navigator.geolocation) {
-      if (desktop && allowIpFallback) {
-        return finishWithIpFallback(Object.assign(new Error('unsupported'), { code: 0 }));
-      }
       const err = new Error('unsupported');
       err.code = 0;
       throw err;
@@ -903,92 +850,86 @@ async function getUserLocation({ onProgress, allowIpFallback = true } = {}) {
       err.permissionPermanentlyDenied = true;
       err.desktopHint = desktop;
       err.iosHint = apple;
-      // Desktop: đừng dừng ở toast lỗi — fallback IP để vẫn đặt được ghim
-      return finishWithIpFallback(err);
+      throw err;
     }
 
-    // Desktop / Apple: network-first. Desktop has no GPS chip.
+    // Fresh high-accuracy fix — không dùng cache cũ / IP
     const highOpts = {
       enableHighAccuracy: true,
-      maximumAge: desktop ? 30_000 : 0,
-      timeout: apple ? 28000 : (desktop ? 12000 : 18000)
+      maximumAge: 0,
+      timeout: apple ? 28000 : (desktop ? 20000 : 18000)
     };
     const lowOpts = {
       enableHighAccuracy: false,
-      maximumAge: desktop ? 120_000 : 60_000,
-      timeout: apple ? 18000 : (desktop ? 20000 : 12000)
+      maximumAge: 0,
+      timeout: apple ? 18000 : 15000
     };
 
     let position = null;
     let coarse = false;
 
-    if (desktop || apple) {
-      progress(desktop
-        ? 'Đang lấy vị trí qua Wi‑Fi / mạng (máy tính)...'
-        : 'Đang lấy vị trí nhanh (mạng)...');
+    // Apple: lấy fix mạng nhanh trước để UI không đứng, rồi nâng độ chính xác
+    if (apple) {
+      progress('Đang lấy vị trí nhanh (mạng)...');
       try {
         position = await geoGetOnce({
           enableHighAccuracy: false,
-          maximumAge: desktop ? 120_000 : 30_000,
-          timeout: desktop ? 20000 : 12000
+          maximumAge: 15_000,
+          timeout: 12000
         });
         coarse = (position.coords.accuracy || 9999) > 80;
       } catch (netErr) {
         if (netErr && netErr.code === 1) {
-          netErr.desktopHint = desktop;
-          netErr.iosHint = apple;
-          return finishWithIpFallback(netErr);
-        }
-        // continue to high-accuracy attempt
-      }
-    }
-
-    // On desktop, a usable network fix is enough — skip GPS-style retries.
-    if (!(desktop && position)) {
-      try {
-        progress(apple
-          ? 'Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...'
-          : desktop
-            ? 'Đang thử định vị chính xác hơn...'
-            : 'Đang lấy GPS độ chính xác cao...');
-        const highPos = await geoGetOnce(highOpts);
-        if (!position || (highPos.coords.accuracy || 9999) <= (position.coords.accuracy || 9999)) {
-          position = highPos;
-          coarse = (highPos.coords.accuracy || 9999) > 100;
-        }
-      } catch (highErr) {
-        if (!position) {
-          progress(desktop
-            ? 'Thử lại định vị mạng / Wi‑Fi...'
-            : 'GPS chậm — thử định vị mạng / Wi‑Fi...');
-          try {
-            position = await geoGetOnce(lowOpts);
-            coarse = true;
-          } catch (lowErr) {
-            const err = lowErr || highErr;
-            err.iosHint = apple;
-            err.desktopHint = desktop;
-            return finishWithIpFallback(err);
-          }
+          netErr.iosHint = true;
+          throw netErr;
         }
       }
     }
 
+    try {
+      progress(apple
+        ? 'Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...'
+        : 'Đang lấy vị trí chính xác từ trình duyệt...');
+      const highPos = await geoGetOnce(highOpts);
+      if (!position || (highPos.coords.accuracy || 9999) <= (position.coords.accuracy || 9999)) {
+        position = highPos;
+        coarse = (highPos.coords.accuracy || 9999) > 100;
+      }
+    } catch (highErr) {
+      if (highErr && highErr.code === 1) {
+        highErr.desktopHint = desktop;
+        highErr.iosHint = apple;
+        throw highErr;
+      }
+      if (!position) {
+        progress('Đang thử lại định vị...');
+        try {
+          position = await geoGetOnce(lowOpts);
+          coarse = true;
+        } catch (lowErr) {
+          const err = lowErr || highErr;
+          err.iosHint = apple;
+          err.desktopHint = desktop;
+          throw err;
+        }
+      }
+    }
+
+    // Tinh chỉnh khi còn lệch — kể cả desktop (Wi‑Fi chi tiết hơn sau vài giây)
     const accuracy = position.coords.accuracy || 9999;
-    // Refine only on phones — desktop Wi‑Fi accuracy won't improve via GPS watch
-    if (!desktop && accuracy > 80) {
+    if (accuracy > 60) {
       progress('Đang tinh chỉnh vị trí chính xác hơn...');
       try {
         const refined = await geoRefineWatch({
-          timeoutMs: apple ? 18000 : 10000,
-          targetAccuracy: 40
+          timeoutMs: apple ? 18000 : (desktop ? 12000 : 10000),
+          targetAccuracy: 35
         });
         if ((refined.coords.accuracy || 9999) <= accuracy) {
           position = refined;
         }
         coarse = (position.coords.accuracy || 9999) > 100;
       } catch (_) {
-        // keep best fix so far
+        // giữ fix tốt nhất hiện có
       }
     }
 
@@ -1221,7 +1162,6 @@ window.SF = {
   isDesktopBrowser,
   getUserLocation,
   reverseGeocodeAddress,
-  getIpApproximateLocation,
   formatGeoError,
   loadLeaflet,
   lockBodyScroll,
@@ -1252,7 +1192,7 @@ document.addEventListener('gesturestart', function (event) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-19a', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-19b', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});
