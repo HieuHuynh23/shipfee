@@ -426,9 +426,11 @@
         <div class="section-card__title">
           <i class="fa-solid fa-id-card"></i> Thông tin tài xế
         </div>
-        <div class="shipper-card" onclick="showShipperProfileModal()" style="cursor: pointer;" title="Xem hồ sơ tài xế">
-          <div class="shipper-card__avatar-placeholder" id="shipper-avatar">T</div>
-          <img class="shipper-card__avatar" id="shipper-avatar-img" style="display:none;" src="" alt="Shipper Avatar">
+        <div class="shipper-card">
+          <div class="shipper-card__avatar-wrap" onclick="showShipperProfileModal()" title="Xem hồ sơ tài xế" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showShipperProfileModal();}">
+            <div class="shipper-card__avatar-placeholder" id="shipper-avatar">T</div>
+            <img class="shipper-card__avatar" id="shipper-avatar-img" style="display:none;" src="" alt="Shipper Avatar">
+          </div>
           <div class="shipper-card__info">
             <div class="shipper-card__name" id="shipper-name">—</div>
             <div class="shipper-card__rating">
@@ -439,12 +441,12 @@
             <div class="shipper-card__meta" id="shipper-phone">—</div>
           </div>
           <div class="shipper-card__actions">
-            <button class="shipper-card__action-btn" title="Gọi tài xế"
-              onclick="if (order && order.shipperPhone) { window.location.href = 'tel:' + order.shipperPhone; } else { SF.showToast('Lỗi', 'Không có SĐT tài xế.', 'error'); }">
+            <button type="button" class="shipper-card__action-btn" title="Gọi tài xế"
+              onclick="event.stopPropagation(); if (order && order.shipperPhone) { window.location.href = 'tel:' + order.shipperPhone; } else { SF.showToast('Lỗi', 'Không có SĐT tài xế.', 'error'); }">
               <i class="fa-solid fa-phone"></i>
             </button>
-            <button class="shipper-card__action-btn" title="Nhắn tin"
-              onclick="openChatModal()">
+            <button type="button" class="shipper-card__action-btn" title="Nhắn tin"
+              onclick="event.stopPropagation(); openChatModal()">
               <i class="fa-solid fa-comment"></i>
             </button>
           </div>
