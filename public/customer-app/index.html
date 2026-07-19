@@ -1531,7 +1531,7 @@
       const gpsBtn = document.getElementById('btn-detect-location') || document.querySelector('button[onclick="detectUserLocation()"]');
       const isDesktop = SF.isDesktopBrowser && SF.isDesktopBrowser();
       if (gpsBtn) {
-        const label = isDesktop ? 'Lấy vị trí hiện tại (Wi‑Fi / mạng)' : 'Sử dụng vị trí GPS hiện tại';
+        const label = isDesktop ? 'Lấy vị trí chính xác (cần cho phép)' : 'Sử dụng vị trí GPS hiện tại';
         gpsBtn.innerHTML = `<i class="fa-solid fa-location-crosshairs"></i> <span id="btn-detect-location-label">${label}</span>`;
         gpsBtn.classList.remove('is-success');
         gpsBtn.style.background = '';
@@ -1540,7 +1540,7 @@
       }
       const hintEl = document.getElementById('address-map-hint-text');
       if (hintEl && isDesktop) {
-        hintEl.innerHTML = '<strong>Máy tính:</strong> Cho phép vị trí khi trình duyệt hỏi, hoặc kéo ghim đỏ trên bản đồ tới đúng nhà — cách chính xác nhất!';
+        hintEl.innerHTML = '<strong>Máy tính:</strong> Bấm nút vị trí và chọn <em>Cho phép</em> khi trình duyệt hỏi để lấy tọa độ chính xác. Nếu từ chối, kéo ghim đỏ trên bản đồ.';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
@@ -1611,19 +1611,12 @@
             'info',
             6000
           );
-        } else if (loc.source === 'ip') {
-          SF.showToast(
-            '📍 Vị trí gần đúng (theo IP)',
-            'Trình duyệt chưa cho phép GPS. Đã ước lượng theo mạng — kéo ghim đỏ tới đúng nhà bạn.',
-            'warning',
-            7000
-          );
         } else {
           const acc = loc.accuracy != null ? Math.round(loc.accuracy) : null;
           const accText = acc != null ? ` (±${acc}m)` : '';
           SF.showToast(
-            '📍 Đã định vị',
-            (loc.coarse ? 'Đã lấy vị trí gần đúng' : 'Đã lấy vị trí') + accText + '. Kéo ghim nếu cần chỉnh.',
+            '📍 Đã định vị chính xác',
+            (loc.coarse ? 'Đã lấy vị trí (độ lệch còn lớn)' : 'Đã lấy vị trí từ trình duyệt') + accText + '. Kéo ghim nếu cần chỉnh.',
             loc.coarse || (acc != null && acc > 100) ? 'warning' : 'success',
             4500
           );
@@ -1654,8 +1647,7 @@
         if (pinBadge) {
           pinBadge.style.display = 'flex';
           const acc = loc.accuracy != null ? ` · ±${Math.round(loc.accuracy)}m` : '';
-          const label = loc.source === 'ip' ? 'IP' : (loc.desktop ? 'Vị trí' : 'GPS');
-          pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${label}: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
+          pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Vị trí: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
         }
 
         try {

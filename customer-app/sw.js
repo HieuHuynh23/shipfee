@@ -1,7 +1,7 @@
-/* ShipFee customer PWA — v2026-07-19a
+/* ShipFee customer PWA — v2026-07-19b
    Minimal SW for installability. Cleared caches so clients pick up
-   desktop address / shipper auth UI updates instead of stale HTML. */
-const SW_VERSION = 'shipfee-customer-2026-07-19a';
+   precise browser geolocation (no IP fallback). */
+const SW_VERSION = 'shipfee-customer-2026-07-19b';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
