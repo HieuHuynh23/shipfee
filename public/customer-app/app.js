@@ -711,13 +711,22 @@ function throttle(fn, wait) {
 }
 
 /* --------------------------------------------------------------------------
-   Geolocation — iOS Safari–safe accurate location
+   Geolocation — desktop Wi‑Fi + iOS Safari–safe accurate location
    -------------------------------------------------------------------------- */
 function isAppleMobile() {
   const ua = navigator.userAgent || '';
   const iOS = /iPad|iPhone|iPod/.test(ua);
   const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
   return iOS || iPadOS;
+}
+
+/** Desktop / laptop — no phone GPS chip; browsers use Wi‑Fi / IP. */
+function isDesktopBrowser() {
+  if (isAppleMobile()) return false;
+  const ua = navigator.userAgent || '';
+  if (/Android/i.test(ua)) return false;
+  // Touch Chromebook / tablet hybrids still benefit from network-first
+  return true;
 }
 
 function geoGetOnce(options) {
@@ -773,126 +782,178 @@ function geoRefineWatch({ timeoutMs = 12000, targetAccuracy = 45 } = {}) {
   });
 }
 
+async function queryGeoPermissionState() {
+  try {
+    if (!navigator.permissions || !navigator.permissions.query) return null;
+    const status = await navigator.permissions.query({ name: 'geolocation' });
+    return status && status.state ? status.state : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+let _geoInFlight = null;
+
 /**
- * High-accuracy user location with iOS Safari fallbacks.
+ * User location with desktop Wi‑Fi / iOS Safari fallbacks.
  * Must be called from a user gesture (button tap).
  *
- * iOS Safari notes:
- * - Cold GPS often needs 10–25s (short timeouts cause false failures)
- * - First fix is frequently Wi‑Fi/cell (~100–500m); watchPosition refines
- * - Permissions API for geolocation is unreliable — always attempt getCurrentPosition
+ * Desktop notes:
+ * - PCs rarely have GPS; enableHighAccuracy:true often fails or times out
+ * - Prefer network/Wi‑Fi fix first; skip long GPS refine watches
+ * - Chrome may report PERMISSION_DENIED if OS Location Services are off
  */
 async function getUserLocation({ onProgress } = {}) {
-  const apple = isAppleMobile();
-  const progress = (msg) => {
-    if (typeof onProgress === 'function') onProgress(msg);
-  };
+  // Coalesce concurrent calls (double-clicks / stacked handlers)
+  if (_geoInFlight) return _geoInFlight;
 
-  if (!navigator.geolocation) {
-    const err = new Error('unsupported');
-    err.code = 0;
-    throw err;
-  }
+  _geoInFlight = (async () => {
+    const apple = isAppleMobile();
+    const desktop = isDesktopBrowser();
+    const progress = (msg) => {
+      if (typeof onProgress === 'function') onProgress(msg);
+    };
 
-  if (!window.isSecureContext && location.hostname !== 'localhost') {
-    const err = new Error('insecure');
-    err.code = 0;
-    err.insecure = true;
-    throw err;
-  }
-
-  // iOS cold-start GPS regularly exceeds 8–10s — do not use short timeouts.
-  const highOpts = {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: apple ? 28000 : 18000
-  };
-  const lowOpts = {
-    enableHighAccuracy: false,
-    maximumAge: 60_000,
-    timeout: apple ? 18000 : 12000
-  };
-
-  let position = null;
-  let coarse = false;
-
-  // On Apple: quick network fix first (keeps UI responsive), then refine with GPS.
-  if (apple) {
-    progress('Đang lấy vị trí nhanh (mạng)...');
-    try {
-      position = await geoGetOnce({
-        enableHighAccuracy: false,
-        maximumAge: 30_000,
-        timeout: 12000
-      });
-      coarse = (position.coords.accuracy || 9999) > 80;
-    } catch (_) {
-      // continue to high-accuracy attempt
+    if (!navigator.geolocation) {
+      const err = new Error('unsupported');
+      err.code = 0;
+      throw err;
     }
-  }
+
+    if (!window.isSecureContext && location.hostname !== 'localhost') {
+      const err = new Error('insecure');
+      err.code = 0;
+      err.insecure = true;
+      throw err;
+    }
+
+    const perm = await queryGeoPermissionState();
+    if (perm === 'denied') {
+      const err = new Error('permission denied');
+      err.code = 1;
+      err.permissionPermanentlyDenied = true;
+      err.desktopHint = desktop;
+      err.iosHint = apple;
+      throw err;
+    }
+
+    // Desktop / Apple: network-first. Desktop has no GPS chip.
+    const highOpts = {
+      enableHighAccuracy: true,
+      maximumAge: desktop ? 30_000 : 0,
+      timeout: apple ? 28000 : (desktop ? 12000 : 18000)
+    };
+    const lowOpts = {
+      enableHighAccuracy: false,
+      maximumAge: desktop ? 120_000 : 60_000,
+      timeout: apple ? 18000 : (desktop ? 20000 : 12000)
+    };
+
+    let position = null;
+    let coarse = false;
+
+    if (desktop || apple) {
+      progress(desktop
+        ? 'Đang lấy vị trí qua Wi‑Fi / mạng (máy tính)...'
+        : 'Đang lấy vị trí nhanh (mạng)...');
+      try {
+        position = await geoGetOnce({
+          enableHighAccuracy: false,
+          maximumAge: desktop ? 120_000 : 30_000,
+          timeout: desktop ? 20000 : 12000
+        });
+        coarse = (position.coords.accuracy || 9999) > 80;
+      } catch (netErr) {
+        // Permission denied / unavailable — don't keep retrying the same denial
+        if (netErr && netErr.code === 1) {
+          netErr.desktopHint = desktop;
+          netErr.iosHint = apple;
+          throw netErr;
+        }
+        // continue to high-accuracy attempt
+      }
+    }
+
+    // On desktop, a usable network fix is enough — skip GPS-style retries.
+    if (!(desktop && position)) {
+      try {
+        progress(apple
+          ? 'Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...'
+          : desktop
+            ? 'Đang thử định vị chính xác hơn...'
+            : 'Đang lấy GPS độ chính xác cao...');
+        const highPos = await geoGetOnce(highOpts);
+        if (!position || (highPos.coords.accuracy || 9999) <= (position.coords.accuracy || 9999)) {
+          position = highPos;
+          coarse = (highPos.coords.accuracy || 9999) > 100;
+        }
+      } catch (highErr) {
+        if (!position) {
+          progress(desktop
+            ? 'Thử lại định vị mạng / Wi‑Fi...'
+            : 'GPS chậm — thử định vị mạng / Wi‑Fi...');
+          try {
+            position = await geoGetOnce(lowOpts);
+            coarse = true;
+          } catch (lowErr) {
+            const err = lowErr || highErr;
+            err.iosHint = apple;
+            err.desktopHint = desktop;
+            throw err;
+          }
+        }
+      }
+    }
+
+    const accuracy = position.coords.accuracy || 9999;
+    // Refine only on phones — desktop Wi‑Fi accuracy won't improve via GPS watch
+    if (!desktop && accuracy > 80) {
+      progress('Đang tinh chỉnh vị trí chính xác hơn...');
+      try {
+        const refined = await geoRefineWatch({
+          timeoutMs: apple ? 18000 : 10000,
+          targetAccuracy: 40
+        });
+        if ((refined.coords.accuracy || 9999) <= accuracy) {
+          position = refined;
+        }
+        coarse = (position.coords.accuracy || 9999) > 100;
+      } catch (_) {
+        // keep best fix so far
+      }
+    }
+
+    return {
+      lat: position.coords.latitude,
+      lon: position.coords.longitude,
+      accuracy: position.coords.accuracy || null,
+      coarse,
+      apple,
+      desktop,
+      timestamp: position.timestamp
+    };
+  })();
 
   try {
-    progress(apple
-      ? 'Đang lấy GPS chính xác (iPhone có thể mất 10–25 giây)...'
-      : 'Đang lấy GPS độ chính xác cao...');
-    const highPos = await geoGetOnce(highOpts);
-    if (!position || (highPos.coords.accuracy || 9999) <= (position.coords.accuracy || 9999)) {
-      position = highPos;
-      coarse = (highPos.coords.accuracy || 9999) > 100;
-    }
-  } catch (highErr) {
-    if (!position) {
-      progress('GPS chậm — thử định vị mạng / Wi‑Fi...');
-      try {
-        position = await geoGetOnce(lowOpts);
-        coarse = true;
-      } catch (lowErr) {
-        const err = lowErr || highErr;
-        err.iosHint = apple;
-        throw err;
-      }
-    }
+    return await _geoInFlight;
+  } finally {
+    _geoInFlight = null;
   }
-
-  const accuracy = position.coords.accuracy || 9999;
-  if (accuracy > 80) {
-    progress('Đang tinh chỉnh vị trí chính xác hơn...');
-    try {
-      const refined = await geoRefineWatch({
-        timeoutMs: apple ? 18000 : 10000,
-        targetAccuracy: 40
-      });
-      if ((refined.coords.accuracy || 9999) <= accuracy) {
-        position = refined;
-      }
-      coarse = (position.coords.accuracy || 9999) > 100;
-    } catch (_) {
-      // keep best fix so far
-    }
-  }
-
-  return {
-    lat: position.coords.latitude,
-    lon: position.coords.longitude,
-    accuracy: position.coords.accuracy || null,
-    coarse,
-    apple,
-    timestamp: position.timestamp
-  };
 }
 
 function formatGeoError(error) {
   const apple = isAppleMobile() || error?.iosHint;
+  const desktop = isDesktopBrowser() || error?.desktopHint;
   if (error?.insecure) {
     return {
       title: 'Cần mở bằng HTTPS',
-      message: 'Safari chỉ cho phép GPS trên trang bảo mật (https). Hãy mở lại app qua link chính thức.'
+      message: 'Trình duyệt chỉ cho phép định vị trên trang bảo mật (https). Hãy mở lại app qua link chính thức.'
     };
   }
   if (!error || error.code === 0) {
     return {
       title: 'Không hỗ trợ GPS',
-      message: 'Trình duyệt không hỗ trợ định vị. Hãy ghim tay trên bản đồ.'
+      message: 'Trình duyệt không hỗ trợ định vị. Hãy kéo ghim trên bản đồ để chọn điểm giao.'
     };
   }
   if (error.code === 1) {
@@ -900,26 +961,32 @@ function formatGeoError(error) {
       title: 'Chưa cấp quyền vị trí',
       message: apple
         ? 'Trên iPhone: Cài đặt → Safari → Vị trí → Cho phép, hoặc chạm aA trên thanh địa chỉ → Website Settings → Location → Allow. Sau đó nhấn lại nút GPS.'
-        : 'Hãy cho phép quyền vị trí trong trình duyệt, rồi nhấn lại nút GPS.'
+        : desktop
+          ? 'Trên máy tính: bấm ổ khóa cạnh thanh địa chỉ → Quyền / Site settings → Vị trí → Cho phép. Đồng thời bật Dịch vụ vị trí trong Windows/macOS. Hoặc kéo ghim trên bản đồ.'
+          : 'Hãy cho phép quyền vị trí trong trình duyệt, rồi nhấn lại nút GPS. Hoặc kéo ghim trên bản đồ.'
     };
   }
   if (error.code === 2) {
     return {
-      title: 'Không đọc được GPS',
+      title: 'Không đọc được vị trí',
       message: apple
         ? 'Bật Dịch vụ định vị (Cài đặt → Quyền riêng tư → Dịch vụ định vị) và thử lại ngoài trời, hoặc ghim tay trên bản đồ.'
-        : 'Không lấy được tín hiệu GPS. Thử lại hoặc ghim tay trên bản đồ.'
+        : desktop
+          ? 'Máy tính chưa lấy được vị trí (Wi‑Fi/IP). Bật Location Services của hệ điều hành, kết nối Wi‑Fi, rồi thử lại — hoặc kéo ghim trên bản đồ.'
+          : 'Không lấy được tín hiệu GPS. Thử lại hoặc ghim tay trên bản đồ.'
     };
   }
   if (error.code === 3) {
     return {
-      title: 'GPS quá chậm',
-      message: 'Máy mất quá lâu để định vị. Ra chỗ thoáng hoặc kéo ghim trên bản đồ để chọn vị trí giao hàng.'
+      title: 'Định vị quá chậm',
+      message: desktop
+        ? 'Trình duyệt mất quá lâu để định vị. Hãy kéo ghim trên bản đồ để chọn điểm giao hàng.'
+        : 'Máy mất quá lâu để định vị. Ra chỗ thoáng hoặc kéo ghim trên bản đồ để chọn vị trí giao hàng.'
     };
   }
   return {
     title: 'Lỗi định vị',
-    message: 'Không thể lấy vị trí. Vui lòng ghim tay trên bản đồ.'
+    message: 'Không thể lấy vị trí. Vui lòng kéo ghim trên bản đồ.'
   };
 }
 
@@ -938,8 +1005,20 @@ function initToasts() {
   }
 }
 
+let _lastToastKey = '';
+let _lastToastAt = 0;
+
 function showToast(title, message = '', type = 'info', duration = 4000) {
   initToasts();
+  // Avoid stacking identical error toasts (e.g. repeated GPS permission denials)
+  const dedupeKey = `${type}|${title}|${message}`;
+  const now = Date.now();
+  if (dedupeKey === _lastToastKey && now - _lastToastAt < 5000) {
+    return null;
+  }
+  _lastToastKey = dedupeKey;
+  _lastToastAt = now;
+
   const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
   const toast = document.createElement('div');
   toast.className = `toast toast--${type}`;
@@ -1069,6 +1148,7 @@ window.SF = {
   debounce,
   throttle,
   isAppleMobile,
+  isDesktopBrowser,
   getUserLocation,
   formatGeoError,
   loadLeaflet,
@@ -1100,7 +1180,7 @@ document.addEventListener('gesturestart', function (event) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-18b', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-18c', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});

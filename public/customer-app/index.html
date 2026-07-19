@@ -1561,9 +1561,11 @@
       if (SF.unlockBodyScroll) SF.unlockBodyScroll();
     }
 
+    let detectingLocation = false;
     async function detectUserLocation() {
       const btn = document.querySelector('button[onclick="detectUserLocation()"]');
-      if (!btn) return;
+      if (!btn || detectingLocation) return;
+      detectingLocation = true;
       const originalText = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Đang lấy vị trí...`;
@@ -1621,7 +1623,8 @@
         if (pinBadge) {
           pinBadge.style.display = 'flex';
           const acc = loc.accuracy != null ? ` · ±${Math.round(loc.accuracy)}m` : '';
-          pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> GPS: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
+          const label = loc.desktop ? 'Vị trí' : 'GPS';
+          pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${label}: ${finalLat.toFixed(5)}, ${finalLon.toFixed(5)}${acc}`;
         }
       } catch (error) {
         console.error('[GPS]', error);
@@ -1630,7 +1633,16 @@
         const formatted = SF.formatGeoError
           ? SF.formatGeoError(error)
           : { title: 'Lỗi định vị', message: 'Không thể lấy vị trí. Hãy ghim tay trên bản đồ.' };
-        SF.showToast(formatted.title, formatted.message, 'error', 8000);
+        SF.showToast(formatted.title, formatted.message, 'error', 10000);
+        // Desktop fallback: keep map visible so user can drag the pin
+        try {
+          const mapEl = document.getElementById('address-map');
+          if (mapEl && mapEl.offsetParent !== null) {
+            mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        } catch (_) {}
+      } finally {
+        detectingLocation = false;
       }
     }
 
