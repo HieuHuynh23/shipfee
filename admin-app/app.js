@@ -1140,7 +1140,11 @@ function renderShippersTable() {
             <button class="btn btn--sm" onclick="rejectShipper('${escapeHtml(s.phone)}')" title="Từ chối tài xế" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; cursor: pointer;">
               <i class="fa-solid fa-xmark"></i> Từ chối
             </button>
-          ` : ''}
+          ` : `
+            <button class="btn btn--sm" onclick="resendShipperApprovalEmail('${escapeHtml(s.phone)}')" title="Gửi lại email xác nhận" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: none; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-right: 4px; cursor: pointer;">
+              <i class="fa-solid fa-envelope"></i> Email
+            </button>
+          `}
           <button class="btn btn--ghost btn--sm" onclick="editShipper('${escapeHtml(s.phone)}')" title="Sửa">
             <i class="fa-solid fa-pen"></i>
           </button>
@@ -1157,11 +1161,20 @@ async function approveShipper(phone) {
   if (!confirm('Duyệt tài xế này? Hệ thống sẽ gửi email xác nhận Supabase để tài xế biết đăng ký thành công.')) return;
   try {
     const res = await apiFetch(`/api/admin/shippers/${encodeURIComponent(phone)}/approve`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ forceEmail: true })
     });
     if (res.success) {
       if (res.emailSent) {
         showToast('Đã duyệt và gửi email xác nhận tới tài xế!', 'success');
+      } else if (res.confirmationLink) {
+        console.warn('[Approve Email] confirmationLink:', res.confirmationLink);
+        try { await navigator.clipboard.writeText(res.confirmationLink); } catch (e) {}
+        showToast(
+          `Đã duyệt nhưng SMTP chưa gửi được. Link xác nhận đã copy (xem Console F12). Lỗi: ${res.emailError || 'SMTP'}`,
+          'warning'
+        );
+        window.prompt('Copy link xác nhận gửi cho tài xế:', res.confirmationLink);
       } else if (res.emailError) {
         showToast(`Đã duyệt tài xế, nhưng gửi email thất bại: ${res.emailError}`, 'warning');
       } else {
@@ -1177,6 +1190,27 @@ async function approveShipper(phone) {
   }
 }
 window.approveShipper = approveShipper;
+
+async function resendShipperApprovalEmail(phone) {
+  try {
+    const res = await apiFetch(`/api/admin/shippers/${encodeURIComponent(phone)}/resend-approval-email`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+    if (res.emailSent) {
+      showToast('Đã gửi lại email xác nhận!', 'success');
+    } else if (res.confirmationLink) {
+      try { await navigator.clipboard.writeText(res.confirmationLink); } catch (e) {}
+      window.prompt('SMTP fail — copy link gửi tay cho tài xế:', res.confirmationLink);
+      showToast(res.message || 'Đã tạo link thủ công', 'warning');
+    } else {
+      showToast(res.emailError || res.message || 'Không gửi được email', 'error');
+    }
+  } catch (err) {
+    showToast('Lỗi gửi lại email: ' + (err.message || 'kết nối'), 'error');
+  }
+}
+window.resendShipperApprovalEmail = resendShipperApprovalEmail;
 
 async function rejectShipper(phone) {
   if (!confirm('Từ chối sẽ xóa tài xế khỏi hệ thống. Tiếp tục?')) return;
