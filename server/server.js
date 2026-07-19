@@ -1144,6 +1144,27 @@ async function hydrateOrdersFromSupabaseIfEmpty() {
 }
 
 // Middleware: Authenticate Admin via Supabase JWT
+const ADMIN_AUTH_CACHE_TTL_MS = 5 * 60 * 1000;
+const adminAuthCache = new Map();
+
+function getCachedAdminAuth(token) {
+  const hit = adminAuthCache.get(token);
+  if (!hit) return null;
+  if (hit.exp <= Date.now()) {
+    adminAuthCache.delete(token);
+    return null;
+  }
+  return hit;
+}
+
+function setCachedAdminAuth(token, user, role) {
+  if (adminAuthCache.size > 200) {
+    const oldest = adminAuthCache.keys().next().value;
+    adminAuthCache.delete(oldest);
+  }
+  adminAuthCache.set(token, { user, role, exp: Date.now() + ADMIN_AUTH_CACHE_TTL_MS });
+}
+
 async function authenticateAdmin(req, res, next) {
   try {
     if (!supabase) {
@@ -1154,6 +1175,12 @@ async function authenticateAdmin(req, res, next) {
       return res.status(401).json({ success: false, error: 'Thiếu hoặc sai token xác thực Bearer!' });
     }
     const token = authHeader.split(' ')[1];
+    const cached = getCachedAdminAuth(token);
+    if (cached) {
+      req.adminRole = cached.role;
+      req.user = cached.user;
+      return next();
+    }
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
       return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
@@ -1162,6 +1189,7 @@ async function authenticateAdmin(req, res, next) {
     if (!role) {
       return res.status(403).json({ success: false, error: 'Bạn không có quyền truy cập quản trị!' });
     }
+    setCachedAdminAuth(token, user, role);
     req.adminRole = role;
     req.user = user;
     next();
@@ -1451,14 +1479,17 @@ app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     const isVercel = origin.endsWith('.vercel.app');
+    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
     const isWhitelisted = whitelist.indexOf(origin) !== -1;
-    if (isWhitelisted || isVercel) {
+    if (isWhitelisted || isVercel || isLocal) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.warn('[CORS] Blocked origin:', origin);
+      callback(null, false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   optionsSuccessStatus: 200
 }));
 

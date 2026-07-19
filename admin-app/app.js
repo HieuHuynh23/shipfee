@@ -70,10 +70,60 @@ let restaurantChangedMap = new Map();
 let bulkSyncPollTimer = null;
 let menuScrapeEnabled = null;
 let currentEditingMenu = [];
+let apiOnlinePromise = null;
+
+function normalizeApiBase() {
+  const host = window.location.hostname || '';
+  const onProdFrontend = host.includes('vercel.app') || host.includes('shipfee');
+  const saved = localStorage.getItem('shipfee_api_url');
+  if (onProdFrontend && saved && /localhost|127\.0\.0\.1/i.test(saved)) {
+    localStorage.removeItem('shipfee_api_url');
+    API_BASE = defaultApiUrl;
+  }
+}
+
+async function ensureApiOnline() {
+  if (apiOnlinePromise) return apiOnlinePromise;
+  apiOnlinePromise = (async () => {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const res = await originalFetch(`${API_BASE}/api/status`, { cache: 'no-store' });
+        if (res.ok) return true;
+      } catch (_) {}
+      await new Promise(r => setTimeout(r, 1500 + attempt * 2000));
+    }
+    return false;
+  })();
+  return apiOnlinePromise;
+}
+
+function friendlyFetchError(err, fallback) {
+  if (!err) return fallback || 'Lỗi không xác định';
+  if (err.name === 'AbortError') return null;
+  const msg = String(err.message || '');
+  if (msg === 'Failed to fetch' || /networkerror|load failed/i.test(msg)) {
+    return 'Không kết nối được API. Render có thể đang khởi động — thử lại sau vài giây.';
+  }
+  return msg || fallback || 'Lỗi kết nối';
+}
+
+async function fetchWithRetry(url, options = {}, retries = 2) {
+  let lastErr;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fetch(url, options);
+    } catch (err) {
+      lastErr = err;
+      if (err.name === 'AbortError') throw err;
+      if (i < retries) await new Promise(r => setTimeout(r, 1200 + i * 1500));
+    }
+  }
+  throw lastErr;
+}
 
 async function initSupabase() {
   try {
-    const res = await originalFetch(`${API_BASE}/api/config`).then(r => r.json());
+    const res = await fetchWithRetry(`${API_BASE}/api/config`, {}, 2).then(r => r.json());
     if (res.supabaseUrl && res.supabaseAnonKey && res.supabaseUrl !== 'your_supabase_url_here') {
       supabaseClient = supabase.createClient(res.supabaseUrl, res.supabaseAnonKey, {
         auth: {
@@ -91,6 +141,11 @@ async function initSupabase() {
 
 // ── INIT ────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  normalizeApiBase();
+  const apiReady = await ensureApiOnline();
+  if (!apiReady) {
+    showToast('API đang khởi động — một số tính năng có thể chậm vài giây', 'warning');
+  }
   await initSupabase();
 
   if (supabaseClient) {
@@ -375,7 +430,13 @@ async function apiFetch(path, options = {}) {
   const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
   const headers = { 'Content-Type': 'application/json', ...options.headers };
   const fetchOptions = { ...options, headers };
-  const res = await fetch(url, fetchOptions);
+  let res;
+  try {
+    res = await fetchWithRetry(url, fetchOptions, options.signal ? 0 : 2);
+  } catch (err) {
+    const friendly = friendlyFetchError(err, 'Không kết nối được API');
+    throw new Error(friendly || err.message);
+  }
 
   if (res.status === 401) {
     showToast('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
@@ -1499,8 +1560,8 @@ function renderRestaurants() {
   `;
 
   loadRestaurants();
-  loadRestaurantChanges();
-  pollBulkSyncStatus(true);
+  setTimeout(() => loadRestaurantChanges(), 400);
+  setTimeout(() => pollBulkSyncStatus(true), 800);
   checkRestaurantSyncAvailability();
 }
 
@@ -1866,7 +1927,9 @@ async function loadRestaurants() {
     renderRestaurantPagination();
   } catch (e) {
     if (e.name === 'AbortError') return;
-    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">${escapeHtml(e.message || 'Lỗi tải dữ liệu quán ăn')}</p></div></td></tr>`;
+    const msg = friendlyFetchError(e, 'Lỗi tải dữ liệu quán ăn');
+    if (!msg) return;
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><p class="text-muted">${escapeHtml(msg)}</p><button class="btn btn--secondary btn--sm" style="margin-top:12px;" onclick="loadRestaurants()">Thử lại</button></div></td></tr>`;
   }
 }
 
