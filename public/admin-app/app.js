@@ -1490,6 +1490,7 @@ function renderRestaurants() {
           <i class="fa-solid fa-arrows-rotate"></i> Làm mới
         </button>
       </div>
+      <div id="restaurant-changes-summary" class="text-xs text-muted" style="padding:8px 14px 0;"></div>
       <div id="restaurant-changes-body" class="notifications-panel-list" style="max-height:220px; overflow-y:auto;">
         <div class="empty-state" style="padding:20px;"><p class="text-muted text-sm">Đang tải biến động...</p></div>
       </div>
@@ -1596,6 +1597,7 @@ function ensureMenuScrapeEnabled() {
 async function loadRestaurantChanges() {
   const body = document.getElementById('restaurant-changes-body');
   const countEl = document.getElementById('restaurant-changes-count');
+  const summaryEl = document.getElementById('restaurant-changes-summary');
   const tabBadge = document.getElementById('restaurant-changed-tab-badge');
   if (!body) return;
 
@@ -1605,6 +1607,21 @@ async function loadRestaurantChanges() {
     restaurantChangedMap = new Map(changes.map(c => [String(c.restaurantId), c]));
 
     if (countEl) countEl.textContent = changes.length;
+
+    const windowHours = res.windowHours || 24;
+    if (summaryEl) {
+      if (changes.length > 0) {
+        const priceCount = res.priceCount != null ? res.priceCount : changes.filter(c => c.type === 'price_change').length;
+        const statusCount = res.statusCount != null ? res.statusCount : changes.filter(c => c.type === 'status_change').length;
+        const detail = [];
+        if (priceCount) detail.push(`${priceCount} biến động giá/món`);
+        if (statusCount) detail.push(`${statusCount} đổi trạng thái`);
+        summaryEl.innerHTML = `<i class="fa-solid fa-circle-check" style="color:#22c55e;"></i> Đã tự động cập nhật <strong>${changes.length}</strong> quán có thay đổi trong ${windowHours} giờ qua${detail.length ? ` (${detail.join(', ')})` : ''}. Dữ liệu đã lưu sẵn — không cần bấm đồng bộ.`;
+      } else {
+        summaryEl.textContent = '';
+      }
+    }
+
     if (tabBadge) {
       const unread = res.unreadTotal || changes.filter(c => !c.read || c.unreadCount > 0).length;
       if (unread > 0) {
@@ -1616,7 +1633,7 @@ async function loadRestaurantChanges() {
     }
 
     if (changes.length === 0) {
-      body.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm"><i class="fa-solid fa-circle-check"></i> Không có biến động giá hoặc trạng thái mới.</p></div>`;
+      body.innerHTML = `<div class="empty-state" style="padding:24px;"><p class="text-muted text-sm"><i class="fa-solid fa-circle-check"></i> Không có biến động giá hoặc trạng thái trong ${windowHours} giờ qua.</p></div>`;
     } else {
       body.innerHTML = `
         <table class="data-table">

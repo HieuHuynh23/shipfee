@@ -67,6 +67,59 @@ async function syncNotificationToSupabase(notif) {
   }
 }
 
+/**
+ * Kéo thông báo biến động (do scheduler ở local/VPS tạo) từ Supabase về local trên Render.
+ * Best-effort: không làm hỏng gì nếu bảng/schema khác — chỉ merge theo id.
+ */
+async function hydrateNotificationsFromSupabase() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase
+      .from('system_notifications')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(300);
+    if (error) {
+      console.warn('[Notif Hydrate] Không đọc được từ Supabase:', error.message);
+      return;
+    }
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    const local = readNotifications();
+    const byId = new Map(local.map(n => [String(n.id), n]));
+    let added = 0;
+    for (const row of data) {
+      const id = String(row.id);
+      if (!id || byId.has(id)) continue;
+      const rawCreated = row.created_at;
+      const createdAt = typeof rawCreated === 'number'
+        ? rawCreated
+        : (Date.parse(rawCreated) || Date.now());
+      byId.set(id, {
+        id: row.id,
+        type: row.type,
+        restaurantId: row.restaurant_id,
+        restaurantName: row.restaurant_name,
+        title: row.title,
+        message: row.message,
+        createdAt,
+        read: row.read === true
+      });
+      added++;
+    }
+    if (added > 0) {
+      const merged = Array.from(byId.values())
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        .slice(0, 200);
+      writeNotifications(merged);
+      if (typeof invalidateAdminChangedCache === 'function') invalidateAdminChangedCache();
+      console.log(`[Notif Hydrate] Đã bổ sung ${added} thông báo biến động từ Supabase.`);
+    }
+  } catch (e) {
+    console.warn('[Notif Hydrate] Lỗi:', e.message);
+  }
+}
+
 function addNotification(type, restaurantId, restaurantName, title, message) {
   const notifs = readNotifications();
   const notif = {
@@ -1980,6 +2033,11 @@ let cacheLoadedAt = 0;           // Timestamp lần load gần nhất
 let adminRestaurantStats = { total: 0, open: 0, closed: 0, withMenu: 0 };
 let adminChangedCache = { at: 0, ids: new Set(), count: 0 };
 const ADMIN_CHANGED_CACHE_TTL_MS = 30 * 1000;
+// "Biến động gần đây" chỉ tính thay đổi trong khung thời gian này (mặc định 24h).
+const RECENT_CHANGE_WINDOW_MS = Math.max(
+  0,
+  parseInt(process.env.RECENT_CHANGE_WINDOW_MS || String(24 * 60 * 60 * 1000), 10) || 24 * 60 * 60 * 1000
+);
 
 // Declared before loadRestaurantsIntoMemory() — used during boot precompute
 const geocodeCache = new Map();
@@ -4042,9 +4100,11 @@ function findRestaurantById(id) {
   return localData.find(r => String(r.id) === sid) || null;
 }
 
-function getRestaurantChangeSummaries(limit = 50) {
+function getRestaurantChangeSummaries(limit = 50, windowMs = RECENT_CHANGE_WINDOW_MS) {
+  const cutoff = windowMs > 0 ? Date.now() - windowMs : 0;
   const notifs = readNotifications().filter(n =>
     n && (n.type === 'price_change' || n.type === 'status_change') && n.restaurantId
+    && (!cutoff || (n.createdAt || 0) >= cutoff)
   );
   const byRestaurant = new Map();
   for (const n of notifs) {
@@ -6735,10 +6795,15 @@ app.get('/api/admin/restaurants/changes', authenticateAdmin, (req, res) => {
   try {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
     const data = getRestaurantChangeSummaries(limit);
+    const priceCount = data.filter(d => d.type === 'price_change').length;
+    const statusCount = data.filter(d => d.type === 'status_change').length;
     res.json({
       success: true,
       data,
       total: data.length,
+      priceCount,
+      statusCount,
+      windowHours: Math.round(RECENT_CHANGE_WINDOW_MS / 3600000),
       unreadTotal: data.filter(d => !d.read || d.unreadCount > 0).length
     });
   } catch (e) {
@@ -8519,6 +8584,12 @@ app.listen(PORT, () => {
   } catch (e) {
     console.error('[Persist] Lỗi xử lý orders khi boot:', e.message);
   }
+
+  // Kéo thông báo biến động (scheduler local/VPS) từ Supabase về — boot + định kỳ 5 phút.
+  hydrateNotificationsFromSupabase().catch(e => console.warn('[Notif Hydrate]', e.message));
+  setInterval(() => {
+    hydrateNotificationsFromSupabase().catch(e => console.warn('[Notif Hydrate]', e.message));
+  }, 5 * 60 * 1000);
 
   // Background expire-offer / re-dispatch (không gắn vào GET /api/orders)
   setInterval(() => {
