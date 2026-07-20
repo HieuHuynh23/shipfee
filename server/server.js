@@ -2618,18 +2618,66 @@ function geocodeAddress(address, name, restaurantId) {
 function precomputeRestaurantCoordinates() {
   const t0 = Date.now();
   let geocoded = 0;
+  let exact = 0;
   for (const r of cachedRestaurants) {
     if (!r || !r.id) continue;
     if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
-      geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude });
+      // Tọa độ có sẵn từ file cào (Grab/Shopee) — đánh dấu exact, không ghi đè heuristic
+      if (r.coordsSource !== 'heuristic') {
+        r.coordsSource = 'exact';
+        exact++;
+      }
+      geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude, source: r.coordsSource });
       continue;
     }
     const coords = geocodeAddress(r.address || '', r.name || '', r.id);
     r.latitude = coords.lat;
     r.longitude = coords.lon;
+    r.coordsSource = 'heuristic'; // Ước lượng theo tên đường — KHÔNG dùng cho chỉ đường Maps
+    geocodeCache.set(String(r.id), { lat: coords.lat, lon: coords.lon, source: 'heuristic' });
     geocoded++;
   }
-  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (geocoded ${geocoded}) in ${Date.now() - t0}ms`);
+  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic ${geocoded}) in ${Date.now() - t0}ms`);
+}
+
+/** Lấy bản ghi quán chuẩn từ DB RAM theo restaurantId */
+function findRestaurantInCache(restaurantId) {
+  if (!restaurantId || !Array.isArray(cachedRestaurants)) return null;
+  return cachedRestaurants.find(r => r && String(r.id) === String(restaurantId)) || null;
+}
+
+/**
+ * Đồng bộ địa chỉ + tọa độ quán từ DB đã cào vào đơn hàng.
+ * - Luôn cập nhật restaurantAddress từ DB (địa chỉ cào chính xác)
+ * - Chỉ gán lat/lon khi coordsSource === 'exact' (tránh heuristic đường phố sai)
+ */
+function hydrateOrderRestaurantCoords(order) {
+  if (!order || !order.restaurantId) return order;
+  const mem = findRestaurantInCache(order.restaurantId);
+  if (!mem) return order;
+
+  if (mem.address && String(mem.address).trim()) {
+    order.restaurantAddress = String(mem.address).trim();
+  }
+  if (mem.name && String(mem.name).trim()) {
+    order.restaurantName = String(mem.name).trim();
+  }
+
+  const exact =
+    mem.coordsSource === 'exact' &&
+    typeof mem.latitude === 'number' &&
+    typeof mem.longitude === 'number' &&
+    Number.isFinite(mem.latitude) &&
+    Number.isFinite(mem.longitude);
+
+  if (exact) {
+    order.restaurantLat = mem.latitude;
+    order.restaurantLon = mem.longitude;
+    order.restaurantCoordsExact = true;
+  } else {
+    order.restaurantCoordsExact = false;
+  }
+  return order;
 }
 
 function normalizeUserCoords(lat, lon) {
@@ -4629,17 +4677,6 @@ function readOrdersDatabase() {
   }
 }
 
-/** Ghi đè tọa độ quán từ DB thật (tránh heuristic đường phố sai trên đơn cũ). */
-function hydrateOrderRestaurantCoords(order) {
-  if (!order || !order.restaurantId || !Array.isArray(cachedRestaurants)) return order;
-  const mem = cachedRestaurants.find(r => r && String(r.id) === String(order.restaurantId));
-  if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
-    order.restaurantLat = mem.latitude;
-    order.restaurantLon = mem.longitude;
-  }
-  return order;
-}
-
 function hydrateOrdersRestaurantCoords(orders) {
   if (Array.isArray(orders)) return orders.map(hydrateOrderRestaurantCoords);
   return hydrateOrderRestaurantCoords(orders);
@@ -4687,37 +4724,64 @@ app.post('/api/orders', async (req, res) => {
     }
 
     const orderId = orderData.id || 'SPF-' + Math.floor(100000 + Math.random() * 900000);
-    
+
+    // Luôn ưu tiên địa chỉ + tọa độ exact từ DB quán đã cào
+    const restMem = findRestaurantInCache(orderData.restaurantId);
+    let restaurantAddress = (orderData.restaurantAddress || '').trim();
+    let restaurantName = (orderData.restaurantName || '').trim();
     let restLat = orderData.restaurantLat;
     let restLon = orderData.restaurantLon;
+    let restaurantCoordsExact = false;
+
+    if (restMem) {
+      if (restMem.address && String(restMem.address).trim()) {
+        restaurantAddress = String(restMem.address).trim();
+      }
+      if (restMem.name && String(restMem.name).trim()) {
+        restaurantName = String(restMem.name).trim();
+      }
+      if (
+        restMem.coordsSource === 'exact' &&
+        typeof restMem.latitude === 'number' &&
+        typeof restMem.longitude === 'number'
+      ) {
+        restLat = restMem.latitude;
+        restLon = restMem.longitude;
+        restaurantCoordsExact = true;
+        console.log(`[Order Server] Using EXACT crawl coords for ${orderData.restaurantId}: ${restLat}, ${restLon}`);
+      }
+    }
+
     // Chuẩn hóa số (client có thể gửi string)
     if (typeof restLat === 'string') restLat = parseFloat(restLat);
     if (typeof restLon === 'string') restLon = parseFloat(restLon);
     if (!Number.isFinite(restLat) || !Number.isFinite(restLon)) {
-      // Ưu tiên tọa độ thật từ DB quán (latitude/longitude), không dùng heuristic đường phố
-      const restId = orderData.restaurantId;
-      const mem = restId && Array.isArray(cachedRestaurants)
-        ? cachedRestaurants.find(r => r && String(r.id) === String(restId))
-        : null;
-      if (mem && typeof mem.latitude === 'number' && typeof mem.longitude === 'number') {
-        restLat = mem.latitude;
-        restLon = mem.longitude;
-        console.log(`[Order Server] Using DB coords for restaurant ${restId}: ${restLat}, ${restLon}`);
+      if (
+        restMem &&
+        typeof restMem.latitude === 'number' &&
+        typeof restMem.longitude === 'number'
+      ) {
+        restLat = restMem.latitude;
+        restLon = restMem.longitude;
+        restaurantCoordsExact = restMem.coordsSource === 'exact';
+        console.log(`[Order Server] Fallback DB coords for restaurant ${orderData.restaurantId}: ${restLat}, ${restLon} (${restMem.coordsSource || 'unknown'})`);
       } else {
-        const coords = geocodeAddress(orderData.restaurantAddress || '', orderData.restaurantName || '', orderData.restaurantId);
+        const coords = geocodeAddress(restaurantAddress || '', restaurantName || '', orderData.restaurantId);
         restLat = coords.lat;
         restLon = coords.lon;
-        console.log(`[Order Server] Geocoded missing restaurant coordinates for "${orderData.restaurantName}": ${restLat}, ${restLon}`);
+        restaurantCoordsExact = false;
+        console.log(`[Order Server] Geocoded missing restaurant coordinates for "${restaurantName}": ${restLat}, ${restLon}`);
       }
     }
 
     const newOrder = {
       id: orderId,
       restaurantId: orderData.restaurantId || null,
-      restaurantName: orderData.restaurantName || '',
-      restaurantAddress: orderData.restaurantAddress || '',
+      restaurantName: restaurantName || '',
+      restaurantAddress: restaurantAddress || '',
       restaurantLat: restLat,
       restaurantLon: restLon,
+      restaurantCoordsExact,
       items: Array.isArray(orderData.items) ? orderData.items.map(item => ({
         id: item.id,
         name: item.name,
