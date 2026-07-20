@@ -2197,7 +2197,7 @@ function getSharedAudioCtx() {
 
 /** Tạo WAV data-URI (PCM 16-bit mono) — HTMLAudio fallback cho iOS */
 function buildToneWavDataUri(sequence, sampleRate = 22050) {
-  // sequence: [{ freq, dur, vol }, ...]
+  // sequence: [{ freq, dur, vol, wave?: 'sine'|'square' }, ...]
   let totalSamples = 0;
   const parts = sequence.map((s) => {
     const n = Math.max(1, Math.floor(sampleRate * s.dur));
@@ -2207,12 +2207,24 @@ function buildToneWavDataUri(sequence, sampleRate = 22050) {
   const samples = new Int16Array(totalSamples);
   let offset = 0;
   for (const part of parts) {
-    const vol = Math.min(1, Math.max(0, part.vol == null ? 0.9 : part.vol));
+    const vol = Math.min(1, Math.max(0, part.vol == null ? 1 : part.vol));
+    const wave = part.wave || 'square';
     for (let i = 0; i < part.n; i++) {
       const t = i / sampleRate;
-      const env = Math.min(1, i / (sampleRate * 0.01)) * Math.min(1, (part.n - i) / (sampleRate * 0.04));
-      const sample = Math.sin(2 * Math.PI * part.freq * t) * vol * env;
-      samples[offset++] = Math.max(-32767, Math.min(32767, sample * 32767));
+      // Sustain gần max volume (chỉ fade rất ngắn đầu/cuối) — tránh tiếng bip nhỏ
+      const attack = Math.min(1, i / Math.max(1, sampleRate * 0.008));
+      const release = Math.min(1, (part.n - i) / Math.max(1, sampleRate * 0.02));
+      const env = Math.min(attack, release);
+      let raw;
+      if (wave === 'silence') {
+        raw = 0;
+      } else if (wave === 'sine') {
+        raw = Math.sin(2 * Math.PI * part.freq * t);
+      } else {
+        // square — to và xuyên hơn trên loa điện thoại
+        raw = ((t * part.freq) % 1 < 0.5) ? 1 : -1;
+      }
+      samples[offset++] = Math.max(-32767, Math.min(32767, raw * vol * env * 32767));
     }
   }
   const dataSize = samples.length * 2;
@@ -2241,13 +2253,31 @@ function buildToneWavDataUri(sequence, sampleRate = 22050) {
   return 'data:audio/wav;base64,' + btoa(binary);
 }
 
+/** Chuỗi chuông báo đơn dài ~4s: ring-ring × 3 (to, square) */
+function buildOrderRingtoneSequence() {
+  const seq = [];
+  for (let cycle = 0; cycle < 3; cycle++) {
+    // ring 1 (~0.55s)
+    seq.push({ freq: 880, dur: 0.28, vol: 1, wave: 'square' });
+    seq.push({ freq: 1175, dur: 0.28, vol: 1, wave: 'square' });
+    seq.push({ freq: 0, dur: 0.14, vol: 0, wave: 'silence' });
+    // ring 2 (~0.55s)
+    seq.push({ freq: 988, dur: 0.28, vol: 1, wave: 'square' });
+    seq.push({ freq: 1319, dur: 0.28, vol: 1, wave: 'square' });
+    // nghỉ giữa chu kỳ
+    seq.push({ freq: 0, dur: 0.32, vol: 0, wave: 'silence' });
+  }
+  return seq;
+}
+
+const ORDER_AUDIO_VER = 4;
+let htmlOrderAudioVer = 0;
+
 function ensureHtmlAlertPlayers() {
-  if (!htmlOrderAudio) {
-    htmlOrderAudio = new Audio(buildToneWavDataUri([
-      { freq: 880, dur: 0.18, vol: 0.95 },
-      { freq: 1174.66, dur: 0.22, vol: 0.95 },
-      { freq: 1396.91, dur: 0.28, vol: 1.0 }
-    ]));
+  if (!htmlOrderAudio || htmlOrderAudioVer !== ORDER_AUDIO_VER) {
+    htmlOrderAudioVer = ORDER_AUDIO_VER;
+    try { if (htmlOrderAudio) { htmlOrderAudio.pause(); htmlOrderAudio.src = ''; } } catch (e) { /* ignore */ }
+    htmlOrderAudio = new Audio(buildToneWavDataUri(buildOrderRingtoneSequence()));
     htmlOrderAudio.setAttribute('playsinline', 'true');
     htmlOrderAudio.setAttribute('webkit-playsinline', 'true');
     htmlOrderAudio.preload = 'auto';
@@ -2255,8 +2285,8 @@ function ensureHtmlAlertPlayers() {
   }
   if (!htmlChatAudio) {
     htmlChatAudio = new Audio(buildToneWavDataUri([
-      { freq: 988, dur: 0.12, vol: 0.9 },
-      { freq: 1318.5, dur: 0.18, vol: 0.95 }
+      { freq: 988, dur: 0.14, vol: 1, wave: 'square' },
+      { freq: 1318.5, dur: 0.22, vol: 1, wave: 'square' }
     ]));
     htmlChatAudio.setAttribute('playsinline', 'true');
     htmlChatAudio.setAttribute('webkit-playsinline', 'true');
@@ -2386,65 +2416,69 @@ function bindAudioUnlockGestures() {
 }
 bindAudioUnlockGestures();
 
-function playOscBurst(ctx, { freq, type = 'square', start, dur, peak = 0.7 }) {
+function playOscBurst(ctx, { freq, type = 'square', start, dur, peak = 0.95 }) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.value = 4200;
+  // Không lọc thấp — giữ square full để to trên loa điện thoại
   osc.type = type;
   osc.frequency.setValueAtTime(freq, start);
+  // Sustain gần max suốt duration (tránh bip ngắn bị cắt sớm)
+  const peakSafe = Math.max(0.001, Math.min(1, peak));
   gain.gain.setValueAtTime(0.0001, start);
-  gain.gain.exponentialRampToValueAtTime(Math.max(0.001, peak), start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(peakSafe, start + 0.02);
+  gain.gain.setValueAtTime(peakSafe, start + Math.max(0.05, dur - 0.05));
   gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
-  osc.connect(filter);
-  filter.connect(gain);
+  osc.connect(gain);
   gain.connect(ctx.destination);
   osc.start(start);
-  osc.stop(start + dur + 0.02);
+  osc.stop(start + dur + 0.03);
+}
+
+/** Chuông báo đơn dài ~4s: ring-ring × 3, dual-tone max volume */
+function triggerOrderRingtone(ctx) {
+  const t0 = ctx.currentTime;
+  for (let cycle = 0; cycle < 3; cycle++) {
+    const base = t0 + cycle * 1.35;
+    // Ring 1 — dual square rất to
+    playOscBurst(ctx, { freq: 880.0, type: 'square', start: base, dur: 0.55, peak: 1.0 });
+    playOscBurst(ctx, { freq: 1174.66, type: 'square', start: base, dur: 0.55, peak: 0.92 });
+    // Ring 2
+    playOscBurst(ctx, { freq: 987.77, type: 'square', start: base + 0.7, dur: 0.55, peak: 1.0 });
+    playOscBurst(ctx, { freq: 1318.51, type: 'square', start: base + 0.7, dur: 0.55, peak: 0.92 });
+  }
 }
 
 function triggerChime(ctx) {
-  // Chuông đơn lớn: 3 nốt + harmonic (square rõ hơn sine trên loa điện thoại)
-  const t0 = ctx.currentTime;
-  const notes = [
-    { f: 880.0, d: 0.16, p: 0.75 },
-    { f: 1174.66, d: 0.18, p: 0.82 },
-    { f: 1396.91, d: 0.28, p: 0.9 }
-  ];
-  let cursor = t0;
-  notes.forEach((n) => {
-    playOscBurst(ctx, { freq: n.f, type: 'square', start: cursor, dur: n.d, peak: n.p });
-    playOscBurst(ctx, { freq: n.f / 2, type: 'triangle', start: cursor, dur: n.d, peak: n.p * 0.45 });
-    cursor += n.d + 0.04;
-  });
+  triggerOrderRingtone(ctx);
 }
 
 function triggerMessageChime(ctx) {
   const t0 = ctx.currentTime;
-  playOscBurst(ctx, { freq: 988.0, type: 'square', start: t0, dur: 0.11, peak: 0.7 });
-  playOscBurst(ctx, { freq: 1318.5, type: 'square', start: t0 + 0.13, dur: 0.18, peak: 0.85 });
-  playOscBurst(ctx, { freq: 659.25, type: 'triangle', start: t0 + 0.13, dur: 0.18, peak: 0.4 });
+  playOscBurst(ctx, { freq: 988.0, type: 'square', start: t0, dur: 0.14, peak: 0.95 });
+  playOscBurst(ctx, { freq: 1318.5, type: 'square', start: t0 + 0.16, dur: 0.28, peak: 1.0 });
+  playOscBurst(ctx, { freq: 659.25, type: 'triangle', start: t0 + 0.16, dur: 0.28, peak: 0.55 });
 }
 
 function playChimeSound() {
   try {
     unlockAudio(false);
+    // Rung dài hơn để dễ nhận khi âm lượng thấp / silent
+    vibrateAlert([500, 150, 500, 150, 500, 150, 700]);
     const ctx = getSharedAudioCtx();
+    // HTMLAudio chuông dài ~4s (chính trên iOS) + WebAudio dual-tone (lớn hơn)
+    playHtmlAlert('order');
     const run = () => {
-      if (ctx) triggerChime(ctx);
-      playHtmlAlert('order');
+      if (ctx) triggerOrderRingtone(ctx);
     };
     if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(run).catch(() => playHtmlAlert('order'));
+      ctx.resume().then(run).catch(() => {});
     } else {
       run();
     }
-    vibrateAlert([180, 80, 180, 80, 260]);
   } catch (e) {
     console.warn('Audio play failed:', e);
     playHtmlAlert('order');
-    vibrateAlert([200, 100, 200]);
+    vibrateAlert([500, 150, 500, 150, 700]);
   }
 }
 
@@ -2461,15 +2495,17 @@ function playMessageChimeSound() {
     } else {
       run();
     }
-    vibrateAlert([80, 40, 80]);
+    vibrateAlert([100, 50, 120]);
   } catch (e) {
     console.warn('Audio play failed:', e);
     playHtmlAlert('chat');
-    vibrateAlert([80, 40, 80]);
+    vibrateAlert([100, 50, 120]);
   }
 }
 
-/** Lặp chuông khi có đơn đề xuất — dừng khi đóng overlay */
+/** Lặp chuông khi có đơn đề xuất — mỗi chu kỳ ~4.2s */
+const ORDER_RING_LOOP_MS = 4300;
+
 function startOrderAlertLoop() {
   stopOrderAlertLoop();
   playChimeSound();
@@ -2480,7 +2516,7 @@ function startOrderAlertLoop() {
       return;
     }
     playChimeSound();
-  }, 2200);
+  }, ORDER_RING_LOOP_MS);
 }
 
 function stopOrderAlertLoop() {
