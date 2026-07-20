@@ -534,6 +534,48 @@
           </div>
         </div>
 
+        <!-- PERMISSIONS — trên thông tin tài xế -->
+        <div class="section-card" id="permission-card">
+          <div class="section-card__title">
+            <i class="fa-solid fa-shield-halved"></i> Hỗ trợ giao hàng tối ưu
+          </div>
+          <div style="font-size:12px; color:var(--clr-text-secondary); margin-bottom:12px; line-height:1.5;">
+            Để shipper giao hàng thành công và liên lạc được với bạn, vui lòng đồng ý cấp các quyền truy cập dưới đây:
+          </div>
+          <div class="permission-list" style="display: flex; flex-direction: column; gap: 10px;">
+            <div class="permission-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">📍</span>
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Vị trí GPS hiện tại</div>
+                  <div style="font-size: 11px; color: var(--clr-text-muted);">Shipper theo sát vị trí nhận hàng</div>
+                </div>
+              </div>
+              <button id="perm-btn-location" onclick="requestLocationPermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
+            </div>
+            <div class="permission-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">💬</span>
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Thông báo chat</div>
+                  <div style="font-size: 11px; color: var(--clr-text-muted);">Nhận thông tin cảnh báo tức thời khi shipper nhắn</div>
+                </div>
+              </div>
+              <button id="perm-btn-notification" onclick="requestNotificationPermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
+            </div>
+            <div class="permission-item" style="display: none; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 18px;">🎙️</span>
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Micro thoại (Internet)</div>
+                  <div style="font-size: 11px; color: var(--clr-text-muted);">Đàm thoại trực tiếp miễn phí với tài xế</div>
+                </div>
+              </div>
+              <button id="perm-btn-microphone" onclick="requestMicrophonePermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
+            </div>
+          </div>
+        </div>
+
         <!-- SHIPPER CARD (gọi / nhắn tin) -->
         <div class="section-card" id="shipper-section" style="display:none;">
           <div class="section-card__title">
@@ -592,48 +634,6 @@
           <div class="mini-summary-row total">
             <span>Bạn trả (COD)</span>
             <span id="summary-total" class="text-primary">—</span>
-          </div>
-        </div>
-
-        <!-- PERMISSIONS -->
-        <div class="section-card" id="permission-card">
-          <div class="section-card__title">
-            <i class="fa-solid fa-shield-halved"></i> Hỗ trợ giao hàng tối ưu
-          </div>
-          <div style="font-size:12px; color:var(--clr-text-secondary); margin-bottom:12px; line-height:1.5;">
-            Để shipper giao hàng thành công và liên lạc được với bạn, vui lòng đồng ý cấp các quyền truy cập dưới đây:
-          </div>
-          <div class="permission-list" style="display: flex; flex-direction: column; gap: 10px;">
-            <div class="permission-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 18px;">📍</span>
-                <div>
-                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Vị trí GPS hiện tại</div>
-                  <div style="font-size: 11px; color: var(--clr-text-muted);">Shipper theo sát vị trí nhận hàng</div>
-                </div>
-              </div>
-              <button id="perm-btn-location" onclick="requestLocationPermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
-            </div>
-            <div class="permission-item" style="display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 18px;">💬</span>
-                <div>
-                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Thông báo chat</div>
-                  <div style="font-size: 11px; color: var(--clr-text-muted);">Nhận thông tin cảnh báo tức thời khi shipper nhắn</div>
-                </div>
-              </div>
-              <button id="perm-btn-notification" onclick="requestNotificationPermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
-            </div>
-            <div class="permission-item" style="display: none; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.02); padding: var(--space-sm) var(--space-md); border-radius: var(--radius-md); border: 1px solid var(--clr-border);">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 18px;">🎙️</span>
-                <div>
-                  <div style="font-size: 13px; font-weight: 700; color: var(--clr-text-primary);">Micro thoại (Internet)</div>
-                  <div style="font-size: 11px; color: var(--clr-text-muted);">Đàm thoại trực tiếp miễn phí với tài xế</div>
-                </div>
-              </div>
-              <button id="perm-btn-microphone" onclick="requestMicrophonePermission()" class="btn" style="font-size: 11px; padding: 6px 12px; border-radius: var(--radius-sm); border: 1.5px solid var(--clr-primary); color: var(--clr-primary); font-weight: 700; width: 90px; text-align: center;">Cấp quyền</button>
-            </div>
           </div>
         </div>
 
