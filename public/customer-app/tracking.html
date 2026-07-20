@@ -1548,15 +1548,13 @@
 
       try {
         await SF.rateOrder(order.id, currentRating, 'Khách hàng đánh giá qua App');
-        SF.showToast('Cảm ơn bạn! ⭐', `Bạn đã đánh giá ${currentRating} sao cho tài xế.`, 'success');
+        SF.showToast('Cảm ơn bạn! ⭐', `Bạn đã đánh giá ${currentRating} sao. Đang về trang chủ để đặt tiếp...`, 'success');
         stopOrderPolling();
         SF.completeOrder();
         btn.innerHTML = '✓ Đã gửi đánh giá';
         btn.style.background = 'var(--clr-success)';
-        const againBtn = document.getElementById('order-again-btn');
-        if (againBtn) {
-          setTimeout(() => againBtn.focus(), 300);
-        }
+        if (typeof hideDeliveryRatingOverlay === 'function') hideDeliveryRatingOverlay();
+        setTimeout(() => SF.navigate('./'), 900);
       } catch (err) {
         console.error(err);
         SF.showToast('Lỗi gửi đánh giá', 'Có lỗi xảy ra khi gửi đánh giá. Vui lòng thử lại.', 'error');
