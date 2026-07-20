@@ -1798,9 +1798,12 @@ async function pollBulkSyncStatus(silent) {
           const errHint = Array.isArray(res.errors) && res.errors.length
             ? `\nLỗi gần nhất: ${res.errors.slice(-2).map(e => `${e.name}: ${e.error}`).join(' · ')}`
             : '';
+          const skipHint = Array.isArray(res.skips) && res.skips.length
+            ? `\nBỏ qua gần nhất: ${res.skips.slice(-2).map(s => `${s.name}: ${s.reason}`).join(' · ')}`
+            : '';
           currentEl.textContent = activeNames
-            ? `Đang xử lý: ${activeNames}${etaText}${errHint}`
-            : `Đang chuẩn bị...${errHint}`;
+            ? `Đang xử lý: ${activeNames}${etaText}${errHint}${skipHint}`
+            : `Đang chuẩn bị...${errHint}${skipHint}`;
         }
       }
       if (btnPause) {

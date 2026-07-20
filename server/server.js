@@ -3831,7 +3831,7 @@ async function applySyncScrapeResult(restaurant, realMenu) {
 
   if (realMenu && realMenu.blocked === true) {
     console.log(`[Sync Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
-    return { restaurant, outcome: 'blocked' };
+    return { restaurant, outcome: 'blocked', reason: realMenu.reason || 'ShopeeFood chặn API menu (403/429).' };
   }
 
   if (realMenu && realMenu.closed === true) {
@@ -4002,7 +4002,7 @@ async function scrapeRestaurantForSync(restaurant, scrapeOptions = {}) {
   // KHÔNG đánh 'failed' để tránh xóa menu cũ và báo lỗi giả — coi là 'blocked' để thử lại sau.
   if (menuEmpty) {
     console.log(`[Sync Scraper] ⏳ Không lấy được menu (không kết luận) — coi là blocked để thử lại: "${fresh.name}"`);
-    return { restaurant: fresh, outcome: 'blocked' };
+    return { restaurant: fresh, outcome: 'blocked', reason: 'Trang tải nhưng không bắt được API menu (nghi bị chặn/timeout).' };
   }
 
   return applySyncScrapeResult(fresh, realMenu);
@@ -4248,6 +4248,7 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
       finishedAt: null,
       pausedAt: null,
       errors: [],
+      skips: [],
       fatalError: null,
       restaurants
     };
@@ -4282,7 +4283,7 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
         bulkSyncJob.active = [...(bulkSyncJob.active || []).filter(a => a.id !== activeEntry.id), activeEntry];
 
         try {
-          const { outcome } = await scrapeRestaurantForSync(restaurant, {
+          const { outcome, reason } = await scrapeRestaurantForSync(restaurant, {
             browser: sharedBrowser,
             fast: true,
             skipFoody: true
@@ -4291,6 +4292,12 @@ async function runBulkRestaurantSync(restaurants, startIdx = 0) {
             bulkSyncJob.synced++;
           } else if (outcome === 'blocked' || outcome === 'brand_portal') {
             bulkSyncJob.skipped++;
+            bulkSyncJob.skips = bulkSyncJob.skips || [];
+            bulkSyncJob.skips.push({
+              id: restaurant.id,
+              name: restaurant.name || restaurant.id,
+              reason: reason || (outcome === 'brand_portal' ? 'Portal thương hiệu — đồng bộ từng chi nhánh' : 'Chưa lấy được menu')
+            });
           } else {
             bulkSyncJob.failed++;
             bulkSyncJob.errors.push({
@@ -6771,6 +6778,7 @@ app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
     finishedAt: bulkSyncJob.finishedAt,
     pausedAt: bulkSyncJob.pausedAt,
     errors: bulkSyncJob.errors.slice(-10),
+    skips: (bulkSyncJob.skips || []).slice(-10),
     fatalError: bulkSyncJob.fatalError || null,
     menuScrapeEnabled: MENU_SCRAPE_ENABLED,
     concurrency: BULK_SYNC_CONCURRENCY

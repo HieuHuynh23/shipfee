@@ -607,20 +607,26 @@ async function scrapeMenu(slug, options = {}) {
           await harvestPass('Scroll + UI kích hoạt menu (request đã ký)...');
         }
 
-        // Retry reload tự nhiên khi bị chặn / chưa bắt được dishes (KHÔNG fetch giả → 403)
-        if (!fast && apiCapturedCount === 0 && (apiBlocked || requestId || detailOk)) {
-          const retries = apiBlocked ? 2 : 1;
+        // Retry reload tự nhiên khi bị chặn / chưa bắt được dishes (KHÔNG fetch giả → 403).
+        // Fast mode: cho phép 1 reload rẻ (domcontentloaded) để tăng tỉ lệ bắt menu XHR.
+        if (apiCapturedCount === 0 && (apiBlocked || requestId || detailOk)) {
+          const retries = fast ? 1 : (apiBlocked ? 2 : 1);
           for (let r = 0; r < retries && apiCapturedCount === 0; r++) {
-            const waitMs = 1500 + r * 1500 + Math.floor(Math.random() * 800);
+            const waitMs = fast
+              ? 800 + Math.floor(Math.random() * 500)
+              : 1500 + r * 1500 + Math.floor(Math.random() * 800);
             console.log(
-              `[menuScraper] 🔁 Reload tự nhiên #${r + 1} (blocked=${apiBlocked}, requestId=${requestId || '-'}) chờ ${waitMs}ms...`
+              `[menuScraper] 🔁 Reload tự nhiên #${r + 1} (fast=${fast}, blocked=${apiBlocked}, requestId=${requestId || '-'}) chờ ${waitMs}ms...`
             );
             await new Promise(res => setTimeout(res, waitMs));
             apiBlocked = false;
-            await page.reload({ waitUntil: 'networkidle2', timeout: 45000 }).catch(async () => {
-              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+            await page.reload({
+              waitUntil: fast ? 'domcontentloaded' : 'networkidle2',
+              timeout: fast ? 20000 : 45000
+            }).catch(async () => {
+              await page.goto(url, { waitUntil: 'domcontentloaded', timeout: fast ? 15000 : 30000 }).catch(() => {});
             });
-            await new Promise(res => setTimeout(res, 1200));
+            await new Promise(res => setTimeout(res, fast ? 800 : 1200));
             await harvestPass(`Sau reload #${r + 1}: scroll + UI...`);
           }
         }
