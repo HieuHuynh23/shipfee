@@ -11,23 +11,18 @@
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 const fs = require('fs');
 const path = require('path');
-const { createClient } = require('@supabase/supabase-js');
 const dbHelper = require('./dbHelper');
+const supaSync = require('./supabaseSync');
 
 const ONLY_REAL = process.argv.includes('--only-real');
 const limitArg = process.argv.find(a => a.startsWith('--limit='));
 const LIMIT = limitArg ? Math.max(1, parseInt(limitArg.split('=')[1], 10) || 0) : 0;
 
-const url = (process.env.SUPABASE_URL || '').trim();
-const key = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-if (!url || !key) {
+const supabase = supaSync.getSupabaseClient();
+if (!supabase) {
   console.error('Missing SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY');
   process.exit(1);
 }
-
-const supabase = createClient(url, key, {
-  auth: { autoRefreshToken: false, persistSession: false }
-});
 
 const MENUS_DIR = path.join(__dirname, 'menus');
 
@@ -62,26 +57,12 @@ async function main() {
     const rows = batch.map(r => {
       const menu = readMenu(r.id);
       if (menu.length > 0) withMenu += 1;
-      return {
-        id: r.id,
-        name: r.name || '',
-        address: r.address || '',
-        lat: r.latitude ?? r.lat ?? null,
-        lon: r.longitude ?? r.lon ?? null,
-        rating: r.rating || 4.5,
-        image_url: r.img || r.image_url || '',
-        is_closed: !!r.isClosed,
-        closed_reason: r.closedReason || '',
-        has_real_menu: r.hasRealMenu === true,
-        dish_names: Array.isArray(r.dishNames) ? r.dishNames : menu.map(m => m && m.name).filter(Boolean),
-        menu,
-        updated_at: new Date().toISOString()
-      };
+      return supaSync.buildRestaurantRow(r, menu);
     });
 
-    const { error } = await supabase.from('restaurants').upsert(rows, { onConflict: 'id' });
-    if (error) {
-      console.error(`batch ${i}-${i + batch.length} FAIL:`, error.message);
+    const res = await supaSync.upsertRestaurantsBatch(rows, { client: supabase });
+    if (!res.ok) {
+      console.error(`batch ${i}-${i + batch.length} FAIL:`, res.error || 'skipped');
       fail += batch.length;
     } else {
       ok += batch.length;

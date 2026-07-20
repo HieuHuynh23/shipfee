@@ -14,8 +14,20 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
+const fs = require('fs');
 const dbHelper = require('./dbHelper');
+const supaSync = require('./supabaseSync');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
+
+function readLocalMenu(id) {
+  try {
+    const p = dbHelper.getMenuFilePath(id);
+    if (!fs.existsSync(p)) return [];
+    return JSON.parse(fs.readFileSync(p, 'utf8')) || [];
+  } catch (_) {
+    return [];
+  }
+}
 const {
   sleep,
   getBrowserPath,
@@ -155,6 +167,9 @@ async function scrapeOne(browser, restaurant, workerId) {
       return { status: 'rejected', reason: quality.reason };
     }
 
+    const oldMenu = readLocalMenu(row.id);
+    const wasClosed = restaurant.isClosed === true;
+
     applyMenuFlags(row, menu);
     row.menuUpdatedAt = new Date().toISOString();
     row.dishNames = menu.map(d => d.name).filter(Boolean);
@@ -162,7 +177,22 @@ async function scrapeOne(browser, restaurant, workerId) {
     delete row.crawlNextAttempt;
     dbHelper.writeRestaurantMenu(row.id, menu);
     dbHelper.updateRestaurant(row);
-    console.log(`${tag} ✅ ${menu.length} món ${row.name}`);
+
+    // Mắt xích Render: đẩy quán/menu + notification biến động lên Supabase
+    try {
+      const r = await supaSync.syncRestaurantWithChanges({
+        restaurant: row,
+        menu,
+        oldMenu,
+        wasClosed,
+        source: 'GrabFood',
+        hasRealMenu: true
+      });
+      const note = r.upserted ? (r.notified ? ` +supabase(${r.notified} tb)` : ' +supabase') : '';
+      console.log(`${tag} ✅ ${menu.length} món ${row.name}${note}`);
+    } catch (e) {
+      console.log(`${tag} ✅ ${menu.length} món ${row.name} (⚠️ supabase: ${e.message})`);
+    }
     return { status: 'success', dishCount: menu.length };
   } catch (err) {
     console.log(`${tag} ❌ ${restaurant.name}: ${err.message}`);

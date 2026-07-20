@@ -18,6 +18,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 
 const dbHelper = require('./dbHelper');
+const supaSync = require('./supabaseSync');
 const { getGrabFoodKeywords, getGrabFoodKeywordsQuick } = require('./discover_keywords_cantho');
 const {
   sleep,
@@ -88,10 +89,10 @@ function isAlreadyInDb(item, index) {
   return false;
 }
 
-function mergeIntoDb(discovered) {
+async function mergeIntoDb(discovered) {
   const existing = dbHelper.read();
   const index = buildDbIndex(existing);
-  let added = 0;
+  const addedRows = [];
   let skipped = 0;
 
   for (const d of discovered) {
@@ -107,11 +108,23 @@ function mergeIntoDb(discovered) {
       if (!index.byName.has(nk)) index.byName.set(nk, []);
       index.byName.get(nk).push(d);
     }
-    added += 1;
+    addedRows.push(d);
   }
 
-  if (!DRY_RUN && added > 0) dbHelper.write(existing);
-  return { added, skipped, total: existing.length };
+  if (!DRY_RUN && addedRows.length > 0) {
+    dbHelper.write(existing);
+    // Mắt xích Render: upsert quán mới phát hiện lên Supabase (menu rỗng, hasRealMenu=false)
+    try {
+      const rows = addedRows.map(r => supaSync.buildRestaurantRow(r, []));
+      const res = await supaSync.upsertRestaurantsBatch(rows);
+      if (res.ok) console.log(`  ☁️  Supabase upsert ${rows.length} quán mới`);
+      else if (!res.skipped) console.log(`  ⚠️  Supabase upsert lỗi: ${res.error}`);
+    } catch (e) {
+      console.log(`  ⚠️  Supabase upsert exception: ${e.message}`);
+    }
+  }
+
+  return { added: addedRows.length, skipped, total: existing.length };
 }
 
 async function scrollPage(page, times = 6, wait = 900) {
@@ -196,7 +209,7 @@ async function discover() {
 
       // Checkpoint merge sau mỗi lưới — tránh mất dữ liệu nếu dừng giữa chừng
       const list = [...harvested.values()];
-      const { added, skipped, total } = mergeIntoDb(list);
+      const { added, skipped, total } = await mergeIntoDb(list);
       addedTotal += added;
       skippedTotal = skipped;
       console.log(`  💾 checkpoint grid ${geo.label}: +${added} new (dbTotal=${total})`);
@@ -214,7 +227,7 @@ async function discover() {
   console.log(`Already in DB (skip): ${list.length - missing.length}`);
   console.log(`Still missing after checkpoints: ${missing.length}`);
 
-  const finalMerge = mergeIntoDb(list);
+  const finalMerge = await mergeIntoDb(list);
   const report = {
     at: new Date().toISOString(),
     dryRun: DRY_RUN,

@@ -48,22 +48,10 @@ function writeNotifications(notifs) {
 
 async function syncNotificationToSupabase(notif) {
   if (!supabase) return;
-  try {
-    const { error } = await supabase.from('system_notifications').insert([{
-      id: notif.id,
-      type: notif.type,
-      restaurant_id: notif.restaurantId,
-      restaurant_name: notif.restaurantName,
-      title: notif.title,
-      message: notif.message,
-      created_at: notif.createdAt,
-      read: notif.read
-    }]);
-    if (error) {
-      console.warn('[Supabase Sync] Không thể sync notification lên Supabase:', error.message);
-    }
-  } catch (err) {
-    console.warn('[Supabase Sync Error] Lỗi sync notification:', err.message);
+  // Delegate qua module chung supabaseSync để nhất quán schema với các script GrabFood
+  const res = await supaSync.insertNotification(notif, { client: supabase });
+  if (!res.ok && !res.skipped) {
+    console.warn('[Supabase Sync] Không thể sync notification lên Supabase:', res.error);
   }
 }
 
@@ -199,6 +187,7 @@ function diffAndLogMenuChanges(restaurant, oldMenu, newMenu) {
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const { createClient } = require('@supabase/supabase-js');
+const supaSync = require('./supabaseSync');
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_ANON_KEY = (process.env.SUPABASE_ANON_KEY || '').trim();
 const SUPABASE_SERVICE_ROLE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
@@ -2475,27 +2464,11 @@ async function syncRestaurantToSupabase(restaurantId) {
     
     const quality = analyzeMenuQuality(menu);
     const hasReal = quality.isReal === true;
-    const { error } = await supabase
-      .from('restaurants')
-      .upsert({
-        id: restaurant.id,
-        name: restaurant.name,
-        address: restaurant.address || '',
-        lat: restaurant.lat,
-        lon: restaurant.lon,
-        rating: restaurant.rating || 4.5,
-        image_url: restaurant.image_url || '',
-        is_closed: restaurant.isClosed || false,
-        closed_reason: restaurant.closedReason || '',
-        has_real_menu: hasReal,
-        dish_names: restaurant.dishNames || [],
-        menu: menu, // Lưu gộp menu dạng jsonb để tối ưu
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'id' });
-      
-    if (error) {
-      console.error(`[Supabase Sync] Lỗi upsert quán ${restaurantId}:`, error.message);
-    } else {
+    // Delegate qua module chung supabaseSync để nhất quán schema với các script GrabFood
+    const res = await supaSync.upsertRestaurant(restaurant, menu, { client: supabase, hasRealMenu: hasReal });
+    if (!res.ok && !res.skipped) {
+      console.error(`[Supabase Sync] Lỗi upsert quán ${restaurantId}:`, res.error);
+    } else if (res.ok) {
       console.log(`[Supabase Sync] Đã đồng bộ thành công quán "${restaurant.name}" lên Supabase.`);
     }
   } catch (err) {
