@@ -3972,7 +3972,9 @@ async function scrapeRestaurantForSync(restaurant, scrapeOptions = {}) {
     menuEmpty = isSyncMenuEmpty(realMenu);
   }
 
-  if (menuEmpty && scrapeOptions.fast === true) {
+  // Retry chế độ đầy đủ chỉ dùng cho đồng bộ ĐƠN LẺ (không có shared browser).
+  // Trong bulk (shared browser) bỏ qua để tránh treo — reload non-fast rất chậm trên Render.
+  if (menuEmpty && scrapeOptions.fast === true && !scrapeOptions.browser) {
     console.log(`[Sync Scraper] 🔁 Retry chế độ đầy đủ: "${fresh.name}"`);
     finalSlug = await resolveRestaurantSlugForSync(fresh, { skipFoody: false });
     realMenu = await menuScraper.scrapeMenu(finalSlug, buildScrapeMenuOptions(fresh, {
@@ -3983,21 +3985,24 @@ async function scrapeRestaurantForSync(restaurant, scrapeOptions = {}) {
     menuEmpty = isSyncMenuEmpty(realMenu);
   }
 
+  // Quán đóng cửa nhưng còn menu local → giữ menu (thành công), không đánh lỗi.
   if (menuEmpty && fresh.isClosed === true && restaurantHasMenuMeta(fresh)) {
     const localMenu = readRestaurantMenu(fresh.id);
     if (Array.isArray(localMenu) && localMenu.length > 0) {
       console.log(`[Sync Scraper] 📦 Giữ menu local cho quán đóng cửa: "${fresh.name}"`);
-      realMenu = {
+      return applySyncScrapeResult(fresh, {
         closed: true,
         reason: fresh.closedReason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.',
         menu: localMenu
-      };
-    } else {
-      realMenu = {
-        closed: true,
-        reason: fresh.closedReason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.'
-      };
+      });
     }
+  }
+
+  // Rỗng KHÔNG kết luận (không phải closed/notFound rõ ràng) = bị chặn / timing.
+  // KHÔNG đánh 'failed' để tránh xóa menu cũ và báo lỗi giả — coi là 'blocked' để thử lại sau.
+  if (menuEmpty) {
+    console.log(`[Sync Scraper] ⏳ Không lấy được menu (không kết luận) — coi là blocked để thử lại: "${fresh.name}"`);
+    return { restaurant: fresh, outcome: 'blocked' };
   }
 
   return applySyncScrapeResult(fresh, realMenu);
