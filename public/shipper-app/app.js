@@ -4174,28 +4174,20 @@ function shortRestaurantName(name) {
 }
 
 /**
- * Chuẩn hóa địa chỉ VN cho Google Maps — dạng:
- * "140B/4B Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ, Việt Nam"
- * (không kèm tên quán — tránh Google lệch sang listing/tên thương hiệu)
+ * Địa chỉ quán cho Google Maps — giữ nguyên địa chỉ đã cào (số nhà + đường + phường/quận).
+ * Không rút gọn Quận/TP (dễ làm Google lệch điểm).
  */
 function formatRestaurantMapsDestination(name, address) {
   const shortName = shortRestaurantName(name);
   let addr = cleanMapsText(address);
 
-  // Rút gọn tiền tố hành chính cho gần format Google VN
-  // Lưu ý: \b không đáng tin với Unicode (Đường) — replace trực tiếp
   addr = addr
-    .replace(/Đường\s+/gi, 'Đ. ')
-    .replace(/Quận\s+/gi, '')
-    .replace(/Thành phố\s+/gi, '')
-    .replace(/TP\.?\s*/gi, '')
     .replace(/\s+,/g, ',')
     .replace(/,{2,}/g, ',')
     .replace(/\s+/g, ' ')
     .trim();
 
   const parts = [];
-  // Chỉ thêm tên khi không có địa chỉ (fallback hiếm)
   if (addr) {
     parts.push(addr);
   } else if (shortName) {
@@ -4212,17 +4204,16 @@ function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) 
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const text = (label || '').trim();
 
-  // Quán: dùng chuỗi địa chỉ đầy đủ (số nhà + đường) — không dùng GPS heuristic đường phố
-  if (preferLabel && text) {
-    const q = encodeURIComponent(text);
-    // dir + destination text giúp ghim đúng listing/số nhà; two-wheeler phù hợp tài xế VN
-    return `https://www.google.com/maps/dir/?api=1&destination=${q}&travelmode=two-wheeler&dir_action=navigate`;
+  // Có tọa độ exact từ crawl → ghim GPS chính xác
+  if (!preferLabel && hasCoords) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=two-wheeler&dir_action=navigate`;
+  }
+  // Không có GPS exact → dùng đúng chuỗi địa chỉ đã cào
+  if (text) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=two-wheeler&dir_action=navigate`;
   }
   if (hasCoords) {
     return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=two-wheeler&dir_action=navigate`;
-  }
-  if (text) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=two-wheeler&dir_action=navigate`;
   }
   return null;
 }
@@ -4239,23 +4230,37 @@ function navigateToPoint(target) {
   let preferLabel = false;
 
   if (target === 'restaurant') {
-    // Chỉ gửi địa chỉ (số nhà + đường + quận/TP) — không kèm tên quán.
-    // Ví dụ: "140B/4B Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ, Việt Nam"
+    // Địa chỉ chuẩn từ server hydrate (DB cào) — không mangling
     label = formatRestaurantMapsDestination(
       activeOrder.restaurantName,
       activeOrder.restaurantAddress
     );
-    preferLabel = !!label;
 
     lat = parseCoord(activeOrder.restaurantLat);
     lon = parseCoord(activeOrder.restaurantLon);
 
-    if (!preferLabel && (lat == null || lon == null)) {
-      const coords = geocodeAddressOffline(activeOrder.restaurantAddress || '', activeOrder.restaurantName || '');
-      lat = coords.lat;
-      lon = coords.lon;
-      console.log(`[Navigation] Geocoded restaurant offline fallback: ${lat}, ${lon}`);
+    // Chỉ dùng GPS khi server đánh dấu exact (coords từ Grab/Shopee crawl)
+    // Tránh heuristic đường phố (centroid) → chỉ đường sai
+    const exact = activeOrder.restaurantCoordsExact === true;
+    if (exact && lat != null && lon != null) {
+      preferLabel = false;
+    } else {
+      preferLabel = !!label;
+      // Không fallback geocodeAddressOffline cho quán — dễ lệch
+      if (!preferLabel && (lat == null || lon == null)) {
+        showToast('Thiếu địa chỉ quán', 'Đơn này chưa có địa chỉ quán để chỉ đường.', 'error');
+        return;
+      }
     }
+
+    console.log('[Navigation] Restaurant', {
+      preferLabel,
+      exact,
+      label,
+      lat,
+      lon,
+      address: activeOrder.restaurantAddress
+    });
   } else if (target === 'customer') {
     // Điểm giao: ưu tiên pin GPS của khách (chính xác)
     lat = parseCoord(activeOrder.pinnedLat);
