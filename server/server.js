@@ -2338,6 +2338,89 @@ async function hydrateMenusFromSupabase() {
   }
 }
 
+/**
+ * DELTA-HYDRATE danh sách quán từ Supabase (không cần redeploy).
+ * Kéo các row có updated_at > lastSync → cập nhật thẳng in-memory cache
+ * (giá/tên/đóng-mở/hasRealMenu/dishNames) + thêm quán mới phát hiện.
+ * Nhẹ & an toàn RAM: KHÔNG select cột `menu` (menu content vẫn hydrate on-demand).
+ */
+let lastRestaurantDeltaSync = null; // ISO timestamp lần đồng bộ gần nhất
+const REST_DELTA_COLUMNS = 'id, name, address, lat, lon, rating, image_url, is_closed, closed_reason, has_real_menu, dish_names, updated_at';
+
+async function hydrateRestaurantDeltaFromSupabase() {
+  if (!supabase) return;
+  try {
+    let q = supabase.from('restaurants').select(REST_DELTA_COLUMNS);
+    if (lastRestaurantDeltaSync) {
+      q = q.gt('updated_at', lastRestaurantDeltaSync).order('updated_at', { ascending: true }).limit(500);
+    } else {
+      // Lần đầu: chỉ warm 300 quán biến động gần nhất để tránh tải nặng lúc boot
+      q = q.order('updated_at', { ascending: false }).limit(300);
+    }
+
+    const { data, error } = await q;
+    if (error) {
+      console.warn('[Rest Delta] Không đọc được Supabase:', error.message);
+      return;
+    }
+    if (!Array.isArray(data) || data.length === 0) return;
+
+    const byId = new Map();
+    cachedRestaurants.forEach((r, idx) => { if (r && r.id != null) byId.set(String(r.id), idx); });
+
+    let updated = 0;
+    let added = 0;
+    let maxTs = lastRestaurantDeltaSync || '';
+
+    for (const row of data) {
+      if (!row || row.id == null) continue;
+      if (row.updated_at && String(row.updated_at) > String(maxTs)) maxTs = String(row.updated_at);
+
+      const idx = byId.get(String(row.id));
+      if (idx != null) {
+        const cur = cachedRestaurants[idx];
+        if (row.name) cur.name = row.name;
+        if (row.address != null) cur.address = row.address;
+        if (row.lat != null) cur.latitude = row.lat;
+        if (row.lon != null) cur.longitude = row.lon;
+        cur.rating = row.rating || cur.rating || 4.5;
+        if (row.image_url) cur.img = row.image_url;
+        cur.isClosed = row.is_closed === true;
+        cur.closedReason = row.closed_reason || '';
+        cur.hasRealMenu = row.has_real_menu === true;
+        if (Array.isArray(row.dish_names) && row.dish_names.length) cur.dishNames = row.dish_names;
+        updated++;
+      } else {
+        cachedRestaurants.push({
+          id: row.id,
+          name: row.name || '',
+          address: row.address || '',
+          latitude: row.lat != null ? row.lat : undefined,
+          longitude: row.lon != null ? row.lon : undefined,
+          rating: row.rating || 4.5,
+          img: row.image_url || '',
+          isClosed: row.is_closed === true,
+          closedReason: row.closed_reason || '',
+          hasRealMenu: row.has_real_menu === true,
+          dishNames: Array.isArray(row.dish_names) ? row.dish_names : []
+        });
+        added++;
+      }
+    }
+
+    if (maxTs) lastRestaurantDeltaSync = maxTs;
+    if (updated + added > 0) {
+      searchIndex = buildSearchIndex(cachedRestaurants);
+      try { recomputeAdminRestaurantStats(cachedRestaurants); } catch (_) {}
+      try { nearbyListCache.clear(); } catch (_) {}
+      if (typeof invalidateAdminChangedCache === 'function') invalidateAdminChangedCache();
+      console.log(`[Rest Delta] ✅ cập nhật ${updated} · thêm mới ${added} quán từ Supabase (lastSync=${lastRestaurantDeltaSync}).`);
+    }
+  } catch (e) {
+    console.warn('[Rest Delta] Lỗi:', e.message);
+  }
+}
+
 // Auto-reload when chunk files change (debounced).
 // Disabled on Render — boot sanitize/hydrate writes trigger reload storms + OOM on free dynos.
 let reloadTimer = null;
@@ -8628,6 +8711,15 @@ app.listen(PORT, () => {
     hydrateNotificationsFromSupabase().catch(e => console.warn('[Notif Hydrate]', e.message));
   }, 5 * 60 * 1000);
 
+  // DELTA-HYDRATE danh sách quán từ Supabase — cập nhật giá/quán mới/đóng-mở KHÔNG cần redeploy.
+  // Chạy sau khi boot ổn định (tránh giành tài nguyên với khách đầu tiên) + chu kỳ 3 phút.
+  setTimeout(() => {
+    hydrateRestaurantDeltaFromSupabase().catch(e => console.warn('[Rest Delta]', e.message));
+  }, IS_RENDER ? 60000 : 8000);
+  setInterval(() => {
+    hydrateRestaurantDeltaFromSupabase().catch(e => console.warn('[Rest Delta]', e.message));
+  }, 3 * 60 * 1000);
+
   // Background expire-offer / re-dispatch (không gắn vào GET /api/orders)
   setInterval(() => {
     processExpiredOffers().catch(e => console.warn('[Dispatch Timer]', e.message));
@@ -8657,12 +8749,13 @@ app.listen(PORT, () => {
     console.error('[Menu Hydrate] Boot restore failed:', err.message);
   });
 
-  // After boot settles: fix hasRealMenu flags from actual Supabase menu payloads
+  // After boot settles: fix hasRealMenu flags from actual Supabase menu payloads.
+  // Trên Render hoãn 120s để không giành CPU/RAM với những khách truy cập đầu tiên.
   setTimeout(() => {
     reconcileMenuFlagsFromSupabase({ maxPages: 250, pageSize: 40 })
       .then(r => console.log('[Menu Reconcile] Boot finished:', r))
       .catch(err => console.error('[Menu Reconcile] Boot failed:', err.message));
-  }, IS_RENDER ? 45000 : 5000);
+  }, IS_RENDER ? 120000 : 5000);
 
   // Tự động kích hoạt Crawler lấy dữ liệu mới nhất ngay khi bật server
   triggerCrawler();
