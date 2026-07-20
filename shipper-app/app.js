@@ -704,6 +704,8 @@ async function loginDriver() {
       isOnline = true;
       persistOnlineStatus(true);
       applyOnlineUi(true);
+      unlockAudio(false);
+      startAudioKeepAlive();
 
       apiFetch(`${API_BASE}/api/shippers/shift`, {
         method: 'POST',
@@ -782,11 +784,15 @@ async function toggleOnlineStatus() {
         statusText.textContent = 'Đang trong ca (Check-in)';
         statusText.className = 'status-indicator online';
         showToast('Vào ca thành công 🟢', 'Đã ghi nhận Check-in trên hệ thống.', 'success');
+        unlockAudio(false);
+        startAudioKeepAlive();
         startPolling();
       } else {
         statusText.textContent = 'Đã tắt ca (Check-out)';
         statusText.className = 'status-indicator offline';
         showToast('Ra ca thành công 🔴', 'Đã ghi nhận Check-out trên hệ thống.', 'info');
+        stopAudioKeepAlive();
+        stopOrderAlertLoop();
         stopPolling();
         if (activeOrder) {
           startActiveOrderPolling();
@@ -1764,6 +1770,7 @@ function handleTargetedOffer(offer) {
   if (!offer) {
     if (targetedOffer) {
       clearOfferTimer();
+      stopOrderAlertLoop();
       const offerOverlay = document.getElementById('job-offer-overlay');
       if (offerOverlay && offerOverlay.classList.contains('active')) {
         offerOverlay.classList.remove('active');
@@ -1827,13 +1834,14 @@ function handleTargetedOffer(offer) {
       document.getElementById('job-offer-overlay').classList.remove('active');
       unlockBodyScroll();
       clearOfferTimer();
+      stopOrderAlertLoop();
       targetedOffer = null;
       acceptOrder(offer.id);
     });
 
     startOfferTimer(offer.offerExpiresAt);
     
-    playChimeSound();
+    startOrderAlertLoop();
     showToast(
       activeOrders.length === 1 ? 'Đơn ghép gần tuyến! 📦' : 'Đơn Đề Xuất Mới! 🎯',
       activeOrders.length === 1
@@ -1877,6 +1885,7 @@ function clearOfferTimer() {
     clearInterval(offerTimerInterval);
     offerTimerInterval = null;
   }
+  stopOrderAlertLoop();
 }
 
 async function declineTargetedOffer(isAuto = false) {
@@ -1884,6 +1893,7 @@ async function declineTargetedOffer(isAuto = false) {
   const offerId = targetedOffer.id;
   
   clearOfferTimer();
+  stopOrderAlertLoop();
   const offerOverlay = document.getElementById('job-offer-overlay');
   if (offerOverlay && offerOverlay.classList.contains('active')) {
     offerOverlay.classList.remove('active');
@@ -2161,101 +2171,322 @@ function initSwipeButton(containerId, handleId, textId, onSwipeComplete) {
   };
 }
 
-// ── AUDIO NOTIFICATION SYNTHESIZER ──────────────────────────────────────────
+// ── AUDIO NOTIFICATION SYNTHESIZER (iOS / Android — to, rõ, unlock ổn định) ─
 let sharedAudioCtx = null;
+let audioUnlocked = false;
+let orderAlertInterval = null;
+let audioKeepAliveTimer = null;
+let htmlOrderAudio = null;
+let htmlChatAudio = null;
+
 function getSharedAudioCtx() {
   if (!sharedAudioCtx) {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      sharedAudioCtx = new AudioContext();
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    try {
+      sharedAudioCtx = new AC({ latencyHint: 'interactive' });
+    } catch (e) {
+      sharedAudioCtx = new AC();
     }
   }
   if (sharedAudioCtx && sharedAudioCtx.state === 'suspended') {
-    sharedAudioCtx.resume().catch(e => console.warn('[Audio] Failed to resume context:', e));
+    sharedAudioCtx.resume().catch(() => {});
   }
   return sharedAudioCtx;
 }
 
-function unlockAudio() {
-  const ctx = getSharedAudioCtx();
-  if (!ctx) return;
-  // Play a short silent buffer to unlock the AudioContext on iOS/mobile
-  const buffer = ctx.createBuffer(1, 1, 22050);
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(ctx.destination);
-  source.start(0);
-  document.removeEventListener('click', unlockAudio);
-  document.removeEventListener('touchstart', unlockAudio);
+/** Tạo WAV data-URI (PCM 16-bit mono) — HTMLAudio fallback cho iOS */
+function buildToneWavDataUri(sequence, sampleRate = 22050) {
+  // sequence: [{ freq, dur, vol }, ...]
+  let totalSamples = 0;
+  const parts = sequence.map((s) => {
+    const n = Math.max(1, Math.floor(sampleRate * s.dur));
+    totalSamples += n;
+    return { ...s, n };
+  });
+  const samples = new Int16Array(totalSamples);
+  let offset = 0;
+  for (const part of parts) {
+    const vol = Math.min(1, Math.max(0, part.vol == null ? 0.9 : part.vol));
+    for (let i = 0; i < part.n; i++) {
+      const t = i / sampleRate;
+      const env = Math.min(1, i / (sampleRate * 0.01)) * Math.min(1, (part.n - i) / (sampleRate * 0.04));
+      const sample = Math.sin(2 * Math.PI * part.freq * t) * vol * env;
+      samples[offset++] = Math.max(-32767, Math.min(32767, sample * 32767));
+    }
+  }
+  const dataSize = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+  const writeStr = (o, str) => {
+    for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i));
+  };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+  for (let i = 0; i < samples.length; i++) view.setInt16(44 + i * 2, samples[i], true);
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return 'data:audio/wav;base64,' + btoa(binary);
 }
 
-// Auto-initialize/resume and unlock on first interaction
-document.addEventListener('click', unlockAudio);
-document.addEventListener('touchstart', unlockAudio);
-
-function playChimeSound() {
-  try {
-    const ctx = getSharedAudioCtx();
-    if (!ctx) return;
-    
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(() => triggerChime(ctx)).catch(e => console.warn('Audio resume failed:', e));
-    } else {
-      triggerChime(ctx);
-    }
-  } catch(e) {
-    console.warn('Audio play failed:', e);
+function ensureHtmlAlertPlayers() {
+  if (!htmlOrderAudio) {
+    htmlOrderAudio = new Audio(buildToneWavDataUri([
+      { freq: 880, dur: 0.18, vol: 0.95 },
+      { freq: 1174.66, dur: 0.22, vol: 0.95 },
+      { freq: 1396.91, dur: 0.28, vol: 1.0 }
+    ]));
+    htmlOrderAudio.setAttribute('playsinline', 'true');
+    htmlOrderAudio.setAttribute('webkit-playsinline', 'true');
+    htmlOrderAudio.preload = 'auto';
+    htmlOrderAudio.volume = 1;
+  }
+  if (!htmlChatAudio) {
+    htmlChatAudio = new Audio(buildToneWavDataUri([
+      { freq: 988, dur: 0.12, vol: 0.9 },
+      { freq: 1318.5, dur: 0.18, vol: 0.95 }
+    ]));
+    htmlChatAudio.setAttribute('playsinline', 'true');
+    htmlChatAudio.setAttribute('webkit-playsinline', 'true');
+    htmlChatAudio.preload = 'auto';
+    htmlChatAudio.volume = 1;
   }
 }
 
+function playHtmlAlert(kind) {
+  try {
+    ensureHtmlAlertPlayers();
+    const el = kind === 'chat' ? htmlChatAudio : htmlOrderAudio;
+    if (!el) return Promise.resolve();
+    el.pause();
+    el.currentTime = 0;
+    el.muted = false;
+    el.volume = 1;
+    const p = el.play();
+    return p && typeof p.then === 'function' ? p.catch(() => {}) : Promise.resolve();
+  } catch (e) {
+    return Promise.resolve();
+  }
+}
+
+function vibrateAlert(pattern) {
+  try {
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  } catch (e) { /* ignore */ }
+}
+
+function unlockAudio(fromKeepAlive) {
+  const ctx = getSharedAudioCtx();
+  ensureHtmlAlertPlayers();
+
+  const finish = () => {
+    audioUnlocked = true;
+    if (!fromKeepAlive) startAudioKeepAlive();
+  };
+
+  try {
+    if (ctx) {
+      const resumeP = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
+      resumeP.then(() => {
+        // Buffer gần im lặng nhưng không zero — iOS cần “real” playback để unlock
+        const buffer = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * 0.05)), ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * 0.0008;
+        const source = ctx.createBufferSource();
+        const gain = ctx.createGain();
+        gain.gain.value = 0.001;
+        source.buffer = buffer;
+        source.connect(gain);
+        gain.connect(ctx.destination);
+        source.start(0);
+        finish();
+      }).catch(() => finish());
+    } else {
+      finish();
+    }
+  } catch (e) {
+    finish();
+  }
+
+  // Unlock HTMLAudioElement song song (quan trọng trên iOS Safari/PWA)
+  try {
+    [htmlOrderAudio, htmlChatAudio].forEach((el) => {
+      if (!el) return;
+      const prevVol = el.volume;
+      el.muted = true;
+      el.volume = 0;
+      const p = el.play();
+      const reset = () => {
+        try {
+          el.pause();
+          el.currentTime = 0;
+          el.muted = false;
+          el.volume = prevVol || 1;
+        } catch (err) { /* ignore */ }
+      };
+      if (p && typeof p.then === 'function') p.then(reset).catch(reset);
+      else reset();
+    });
+  } catch (e) { /* ignore */ }
+}
+
+function startAudioKeepAlive() {
+  if (audioKeepAliveTimer) return;
+  // Giữ AudioContext / session sống khi tài xế đang trong ca (poll nền)
+  audioKeepAliveTimer = setInterval(() => {
+    if (!isOnline) return;
+    const ctx = getSharedAudioCtx();
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    if (!audioUnlocked) unlockAudio(true);
+  }, 20000);
+}
+
+function stopAudioKeepAlive() {
+  if (audioKeepAliveTimer) {
+    clearInterval(audioKeepAliveTimer);
+    audioKeepAliveTimer = null;
+  }
+}
+
+function bindAudioUnlockGestures() {
+  const handler = () => {
+    if (!audioUnlocked) {
+      unlockAudio(false);
+      return;
+    }
+    const ctx = getSharedAudioCtx();
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+  };
+  ['touchstart', 'pointerdown', 'click'].forEach((evt) => {
+    document.addEventListener(evt, handler, { passive: true, capture: true });
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      unlockAudio(false);
+      const ctx = getSharedAudioCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    }
+  });
+  window.addEventListener('pageshow', () => unlockAudio(false));
+  window.addEventListener('focus', () => unlockAudio(false));
+}
+bindAudioUnlockGestures();
+
+function playOscBurst(ctx, { freq, type = 'square', start, dur, peak = 0.7 }) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 4200;
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, start);
+  gain.gain.setValueAtTime(0.0001, start);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.001, peak), start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + dur + 0.02);
+}
+
 function triggerChime(ctx) {
-  const osc1 = ctx.createOscillator();
-  const osc2 = ctx.createOscillator();
-  const gainNode = ctx.createGain();
-  
-  osc1.type = 'sine';
-  osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-  osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
-  
-  osc2.type = 'triangle';
-  osc2.frequency.setValueAtTime(293.66, ctx.currentTime); // D4
-  osc2.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.15); // A4
-  
-  gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-  
-  osc1.connect(gainNode);
-  osc2.connect(gainNode);
-  gainNode.connect(ctx.destination);
-  
-  osc1.start();
-  osc2.start();
-  osc1.stop(ctx.currentTime + 0.4);
-  osc2.stop(ctx.currentTime + 0.4);
+  // Chuông đơn lớn: 3 nốt + harmonic (square rõ hơn sine trên loa điện thoại)
+  const t0 = ctx.currentTime;
+  const notes = [
+    { f: 880.0, d: 0.16, p: 0.75 },
+    { f: 1174.66, d: 0.18, p: 0.82 },
+    { f: 1396.91, d: 0.28, p: 0.9 }
+  ];
+  let cursor = t0;
+  notes.forEach((n) => {
+    playOscBurst(ctx, { freq: n.f, type: 'square', start: cursor, dur: n.d, peak: n.p });
+    playOscBurst(ctx, { freq: n.f / 2, type: 'triangle', start: cursor, dur: n.d, peak: n.p * 0.45 });
+    cursor += n.d + 0.04;
+  });
+}
+
+function triggerMessageChime(ctx) {
+  const t0 = ctx.currentTime;
+  playOscBurst(ctx, { freq: 988.0, type: 'square', start: t0, dur: 0.11, peak: 0.7 });
+  playOscBurst(ctx, { freq: 1318.5, type: 'square', start: t0 + 0.13, dur: 0.18, peak: 0.85 });
+  playOscBurst(ctx, { freq: 659.25, type: 'triangle', start: t0 + 0.13, dur: 0.18, peak: 0.4 });
+}
+
+function playChimeSound() {
+  try {
+    unlockAudio(false);
+    const ctx = getSharedAudioCtx();
+    const run = () => {
+      if (ctx) triggerChime(ctx);
+      playHtmlAlert('order');
+    };
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(run).catch(() => playHtmlAlert('order'));
+    } else {
+      run();
+    }
+    vibrateAlert([180, 80, 180, 80, 260]);
+  } catch (e) {
+    console.warn('Audio play failed:', e);
+    playHtmlAlert('order');
+    vibrateAlert([200, 100, 200]);
+  }
 }
 
 function playMessageChimeSound() {
   try {
+    unlockAudio(false);
     const ctx = getSharedAudioCtx();
-    if (!ctx) return;
-    
-    const playBeep = (freq, startTime, duration) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, startTime);
-      gain.gain.setValueAtTime(0.1, startTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
+    const run = () => {
+      if (ctx) triggerMessageChime(ctx);
+      playHtmlAlert('chat');
     };
-    
-    playBeep(659.25, ctx.currentTime, 0.1); // E5 at t=0
-    playBeep(880.00, ctx.currentTime + 0.12, 0.15); // A5 at t=0.12s
-  } catch(e) {
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume().then(run).catch(() => playHtmlAlert('chat'));
+    } else {
+      run();
+    }
+    vibrateAlert([80, 40, 80]);
+  } catch (e) {
     console.warn('Audio play failed:', e);
+    playHtmlAlert('chat');
+    vibrateAlert([80, 40, 80]);
+  }
+}
+
+/** Lặp chuông khi có đơn đề xuất — dừng khi đóng overlay */
+function startOrderAlertLoop() {
+  stopOrderAlertLoop();
+  playChimeSound();
+  orderAlertInterval = setInterval(() => {
+    const overlay = document.getElementById('job-offer-overlay');
+    if (!overlay || !overlay.classList.contains('active')) {
+      stopOrderAlertLoop();
+      return;
+    }
+    playChimeSound();
+  }, 2200);
+}
+
+function stopOrderAlertLoop() {
+  if (orderAlertInterval) {
+    clearInterval(orderAlertInterval);
+    orderAlertInterval = null;
   }
 }
 
