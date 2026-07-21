@@ -1892,6 +1892,49 @@ body.modal-open {
   color: #1d4ed8;
   font-weight: 700;
 }
+.crm-support-ticket-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  font-weight: 700;
+}
+.crm-support-system {
+  align-self: center;
+  max-width: 92%;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--clr-text-secondary);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  padding: 6px 10px;
+}
+.crm-support-closed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  padding: 14px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  background: linear-gradient(165deg, rgba(16, 185, 129, 0.1), rgba(255, 255, 255, 0.95));
+}
+.crm-support-closed__msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #047857;
+}
+.crm-support-newticket {
+  width: 100%;
+  min-height: var(--touch-min);
+  font-weight: 800;
+}
 .crm-support-chat__messages {
   min-height: 140px;
   max-height: 220px;

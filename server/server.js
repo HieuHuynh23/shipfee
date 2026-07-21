@@ -723,6 +723,7 @@ function initTelegramBot() {
     readShipperSupportThreads: () => crm.readShipperSupportThreads(),
     writeShipperSupportThreads: (list) => crm.writeShipperSupportThreads(list),
     appendShipperSupportMessage: (id, msg) => crm.appendShipperSupportMessage(id, msg),
+    resolveShipperSupportThread: (id, opts) => crm.resolveShipperSupportThread(id, opts),
     markShipperSupportRead: (id, reader) => crm.markShipperSupportRead(id, reader),
     readNotifications,
     readDisputes: () => crm.readDisputes(),
@@ -2671,29 +2672,51 @@ function geocodeAddress(address, name, restaurantId) {
   return result;
 }
 
+// Tọa độ placeholder đã biết (chia sẻ bởi nhiều quán khi discovery thiếu GPS)
+// → KHÔNG coi là exact; để geocodeAddress heuristic xử lý (chỉ đường bằng địa chỉ text).
+const PLACEHOLDER_COORDS = [
+  [10.045158, 105.746857], // grabfood default
+  [10.0345, 105.761],      // cụm placeholder khác
+  [10.0452, 105.7469]      // discovery fallback
+];
+function isPlaceholderCoord(lat, lon) {
+  return PLACEHOLDER_COORDS.some(([a, b]) => Math.abs(lat - a) < 1e-6 && Math.abs(lon - b) < 1e-6);
+}
+
 function precomputeRestaurantCoordinates() {
   const t0 = Date.now();
   let geocoded = 0;
   let exact = 0;
+  let placeholder = 0;
   for (const r of cachedRestaurants) {
     if (!r || !r.id) continue;
-    if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
-      // Tọa độ có sẵn từ file cào (Grab/Shopee) — đánh dấu exact, không ghi đè heuristic
-      if (r.coordsSource !== 'heuristic') {
+    const hasNum =
+      typeof r.latitude === 'number' && typeof r.longitude === 'number' &&
+      Number.isFinite(r.latitude) && Number.isFinite(r.longitude);
+    const isPlaceholder = hasNum && isPlaceholderCoord(r.latitude, r.longitude);
+    if (hasNum && !isPlaceholder) {
+      // Geocoder (Nominatim/Photon) chỉ đạt cấp đường/phường → dùng cho khoảng cách + bản đồ,
+      // KHÔNG dùng chỉ đường Maps (nút chỉ đường dùng địa chỉ text, Google resolve chuẩn hơn).
+      if (r.geoSource === 'nominatim' || r.geoSource === 'photon') {
+        r.coordsSource = 'geocoded';
+      } else if (r.coordsSource !== 'heuristic') {
+        // GPS thật từ file cào (Grab/Shopee) hoặc đối chiếu (crossref) → nav-grade.
         r.coordsSource = 'exact';
         exact++;
       }
       geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude, source: r.coordsSource });
       continue;
     }
+    // Không có tọa độ HOẶC là placeholder chung → ước lượng theo tên đường.
     const coords = geocodeAddress(r.address || '', r.name || '', r.id);
     r.latitude = coords.lat;
     r.longitude = coords.lon;
     r.coordsSource = 'heuristic'; // Ước lượng theo tên đường — KHÔNG dùng cho chỉ đường Maps
     geocodeCache.set(String(r.id), { lat: coords.lat, lon: coords.lon, source: 'heuristic' });
-    geocoded++;
+    if (isPlaceholder) placeholder++;
+    else geocoded++;
   }
-  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic ${geocoded}) in ${Date.now() - t0}ms`);
+  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic ${geocoded}, placeholder→heuristic ${placeholder}) in ${Date.now() - t0}ms`);
 }
 
 /** Lấy bản ghi quán chuẩn từ DB RAM theo restaurantId */
@@ -8054,15 +8077,10 @@ app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requi
  */
 app.post('/api/admin/shipper-support/:id/resolve', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   try {
-    const threads = crm.readShipperSupportThreads();
-    const idx = threads.findIndex(t => t.id === req.params.id);
-    if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
-    threads[idx].status = 'resolved';
-    threads[idx].resolvedAt = Date.now();
-    threads[idx].updatedAt = Date.now();
-    crm.writeShipperSupportThreads(threads);
+    const resolved = crm.resolveShipperSupportThread(req.params.id, { by: req.user?.email || 'admin' });
+    if (!resolved) return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
     crm.logAdminAudit(req, 'shipper_support_resolve', { threadId: req.params.id });
-    res.json({ success: true, data: threads[idx] });
+    res.json({ success: true, data: resolved });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

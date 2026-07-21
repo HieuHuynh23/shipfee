@@ -206,11 +206,13 @@ async function loadShipperSupportThreads(opts = {}) {
         : '';
       const statusBadge = t.status === 'open'
         ? `<span class="badge badge--online">Mở</span>`
-        : `<span class="badge">Đã xử lý</span>`;
+        : `<span class="badge">Đã đóng</span>`;
+      const ticketCode = String(t.id || '').replace(/\D/g, '').slice(-4) || String(t.id || '').slice(-4);
       return `
       <div class="card mb-4" style="padding:16px;${unread || isFocus ? 'border-color:rgba(16,185,129,0.45);' : ''}${isFocus ? 'box-shadow:0 0 0 2px rgba(16,185,129,0.25);' : ''}">
         <div class="flex justify-between items-center mb-2" style="gap:8px;flex-wrap:wrap;">
           <div>
+            ${ticketCode ? `<span class="mono text-xs" style="color:#059669;font-weight:700;">Ticket #${escapeHtml(ticketCode)}</span> · ` : ''}
             <strong>${escapeHtml(t.shipperName || 'Tài xế')}</strong>
             <span class="mono text-xs text-muted"> · ${escapeHtml(t.shipperPhone || '')}</span>
             ${t.orderId ? ` · Đơn <span class="mono">${escapeHtml(t.orderId)}</span>` : ''}
@@ -220,6 +222,9 @@ async function loadShipperSupportThreads(opts = {}) {
         </div>
         <div style="max-height:140px;overflow-y:auto;margin-bottom:8px;background:rgba(15,23,42,0.03);padding:8px;border-radius:8px;">
           ${(t.messages || []).map(m => {
+            if (m.sender === 'system' || m.role === 'system') {
+              return `<div class="text-xs" style="padding:4px 0;text-align:center;color:var(--text-muted);font-style:italic;">${escapeHtml(m.text || '')}</div>`;
+            }
             const who = (m.sender === 'shipper' || m.role === 'shipper')
               ? (t.shipperName || 'Tài xế')
               : 'CRM';

@@ -3795,6 +3795,14 @@ let crmSupportSendInFlight = false;
 let crmSupportPollTimer = null;
 let crmSupportSheetOpen = false;
 let lastCrmSupportFingerprint = '';
+let crmSupportComposingNew = false;   // đang soạn 1 ticket mới (bỏ qua ticket đã đóng)
+let lastCrmSupportStatus = null;      // theo dõi chuyển trạng thái open → resolved
+
+function getCrmSupportTicketCode(thread) {
+  if (!thread || !thread.id) return '';
+  const digits = String(thread.id).replace(/\D/g, '');
+  return digits ? digits.slice(-4) : String(thread.id).slice(-4);
+}
 
 function getCrmSupportFingerprint(thread) {
   if (!thread || !Array.isArray(thread.messages) || thread.messages.length === 0) return '0';
@@ -3810,6 +3818,7 @@ function openCrmSupportSheet(opts = {}) {
     lockBodyScroll();
   }
   crmSupportSheetOpen = true;
+  crmSupportComposingNew = false;
   updateCrmSupportOrderTag();
   bindCrmSupportKeyboardAvoidance();
   loadCrmSupportThread().then(() => {
@@ -3881,16 +3890,34 @@ function formatCrmSupportTime(ts) {
 function renderCrmSupportMessages(thread) {
   const box = document.getElementById('crm-support-messages');
   const statusEl = document.getElementById('crm-support-status');
+  const ticketEl = document.getElementById('crm-support-ticket');
+  const composeEl = document.getElementById('crm-support-compose');
+  const closedEl = document.getElementById('crm-support-closed');
   if (!box) return;
 
   crmSupportThread = thread || null;
   updateCrmSupportOrderTag();
 
+  // Trạng thái hiển thị: soạn ticket mới > đã đóng > đang mở > chưa có
+  const newMode = crmSupportComposingNew || !thread;
+  const isClosed = !crmSupportComposingNew && thread && thread.status === 'resolved';
+
+  if (ticketEl) {
+    const code = (!newMode && thread) ? getCrmSupportTicketCode(thread) : '';
+    if (code) {
+      ticketEl.style.display = 'inline-flex';
+      ticketEl.textContent = `Ticket #${code}`;
+    } else {
+      ticketEl.style.display = 'none';
+      ticketEl.textContent = '';
+    }
+  }
+
   if (statusEl) {
-    if (!thread) {
-      statusEl.textContent = 'Chưa có hội thoại';
-    } else if (thread.status === 'resolved') {
-      statusEl.textContent = 'Đã xử lý — gửi tin mới sẽ mở lại hỗ trợ';
+    if (newMode) {
+      statusEl.textContent = 'Yêu cầu mới — mô tả sự cố, CRM sẽ phản hồi tại đây';
+    } else if (isClosed) {
+      statusEl.textContent = 'Đã xử lý & đóng — tạo yêu cầu mới nếu cần thêm';
     } else if (thread.priority === 'emergency') {
       statusEl.textContent = 'Đang mở · Khẩn cấp';
     } else {
@@ -3898,9 +3925,15 @@ function renderCrmSupportMessages(thread) {
     }
   }
 
-  const messages = (thread && Array.isArray(thread.messages)) ? thread.messages : [];
+  // Bật/tắt khung soạn tin vs. banner "đã đóng"
+  if (composeEl) composeEl.style.display = isClosed ? 'none' : '';
+  if (closedEl) closedEl.style.display = isClosed ? 'flex' : 'none';
+
+  const messages = (!newMode && thread && Array.isArray(thread.messages)) ? thread.messages : [];
   if (!messages.length) {
-    box.innerHTML = `<div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`;
+    box.innerHTML = newMode
+      ? `<div class="crm-support-empty">Tạo yêu cầu hỗ trợ mới.<br>Mô tả sự cố rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`
+      : `<div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`;
     return;
   }
 
@@ -3908,6 +3941,10 @@ function renderCrmSupportMessages(thread) {
     || box.querySelector('.crm-support-empty');
 
   box.innerHTML = messages.map(msg => {
+    const isSystem = msg.sender === 'system' || msg.role === 'system';
+    if (isSystem) {
+      return `<div class="crm-support-system">${escapeHtml(msg.text || '')}</div>`;
+    }
     const isMe = msg.sender === 'shipper' || msg.role === 'shipper';
     const who = isMe ? 'Bạn' : 'CRM';
     const cls = isMe ? 'crm-support-bubble--me' : 'crm-support-bubble--crm';
@@ -3923,6 +3960,18 @@ function renderCrmSupportMessages(thread) {
   if (shouldScroll) box.scrollTop = box.scrollHeight;
 }
 
+function startNewCrmSupportTicket() {
+  crmSupportComposingNew = true;
+  crmSupportLinkOrder = false;
+  const emergencyEl = document.getElementById('crm-support-emergency');
+  if (emergencyEl) emergencyEl.checked = false;
+  const input = document.getElementById('crm-support-input');
+  if (input) input.value = '';
+  renderCrmSupportMessages(crmSupportThread);
+  if (input) setTimeout(() => input.focus(), 120);
+}
+window.startNewCrmSupportTicket = startNewCrmSupportTicket;
+
 async function loadCrmSupportThread() {
   if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return null;
   try {
@@ -3932,17 +3981,25 @@ async function loadCrmSupportThread() {
     const data = await safeJson(res);
     if (res.ok && data.success) {
       const thread = data.data || null;
-      const newFp = getCrmSupportFingerprint(thread);
-      if (thread && lastCrmSupportFingerprint && newFp !== lastCrmSupportFingerprint) {
-        const msgs = thread.messages || [];
-        const last = msgs[msgs.length - 1];
-        const isAdmin = last && (last.sender === 'admin' || last.role === 'admin');
-        if (isAdmin) {
-          playMessageChimeSound();
-          showToast('CRM trả lời 💬', last.text || 'Có tin nhắn mới từ CRM', 'info');
+      const newStatus = thread ? thread.status : null;
+      // Phát hiện CRM vừa đóng ticket (open → resolved) để báo tài xế
+      if (!crmSupportComposingNew && lastCrmSupportStatus === 'open' && newStatus === 'resolved') {
+        playMessageChimeSound();
+        showToast('CRM đã xử lý ✔', 'Yêu cầu của bạn đã được đóng. Bấm "Tạo yêu cầu mới" nếu cần thêm hỗ trợ.', 'success');
+      } else {
+        const newFp = getCrmSupportFingerprint(thread);
+        if (thread && lastCrmSupportFingerprint && newFp !== lastCrmSupportFingerprint) {
+          const msgs = thread.messages || [];
+          const last = msgs[msgs.length - 1];
+          const isAdmin = last && (last.sender === 'admin' || last.role === 'admin');
+          if (isAdmin) {
+            playMessageChimeSound();
+            showToast('CRM trả lời 💬', last.text || 'Có tin nhắn mới từ CRM', 'info');
+          }
         }
       }
-      if (thread) lastCrmSupportFingerprint = newFp;
+      if (thread) lastCrmSupportFingerprint = getCrmSupportFingerprint(thread);
+      lastCrmSupportStatus = newStatus;
       renderCrmSupportMessages(thread);
       return thread;
     }
@@ -3997,8 +4054,15 @@ async function sendCrmSupportMessage() {
       if (input) input.value = '';
       if (emergencyEl) emergencyEl.checked = false;
       crmSupportLinkOrder = false;
+      const wasComposingNew = crmSupportComposingNew;
+      crmSupportComposingNew = false;
+      lastCrmSupportStatus = data.data ? data.data.status : lastCrmSupportStatus;
       renderCrmSupportMessages(data.data);
-      showToast('Đã gửi CRM', priority === 'emergency' ? 'Đã báo khẩn cấp tới CRM.' : 'CRM đã nhận tin nhắn của bạn.', 'success');
+      showToast(
+        wasComposingNew ? 'Đã tạo yêu cầu mới' : 'Đã gửi CRM',
+        priority === 'emergency' ? 'Đã báo khẩn cấp tới CRM.' : 'CRM đã nhận tin nhắn của bạn.',
+        'success'
+      );
     } else {
       showToast('Gửi thất bại', data.error || 'Không gửi được tin nhắn.', 'error');
     }
