@@ -24,6 +24,7 @@ const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
+const demoOrders = require('./demoOrders');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -7494,6 +7495,87 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
     crm.logAdminAudit(req, 'pricing_update', { pricingConfig });
     console.log('[Pricing Config] Admin đã cập nhật cấu hình:', pricingConfig);
     res.json({ success: true, data: pricingConfig });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/demo/seed-orders
+ * Tạo đơn DELIVERED mẫu (isDemo:true) để test tab Hiệu suất / bottom sheet.
+ * body: { phone?: string } — mặc định tài xế đầu tiên đã duyệt
+ */
+app.post('/api/admin/demo/seed-orders', authenticateAdmin, async (req, res) => {
+  try {
+    const shippers = readShippersDatabase();
+    const wantPhone = demoOrders.cleanPhone(req.body?.phone || '');
+    const shipper = wantPhone
+      ? shippers.find(s => demoOrders.cleanPhone(s.phone) === wantPhone)
+      : (shippers.find(s => s.isApproved !== false) || shippers[0]);
+    if (!shipper) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế để seed demo' });
+    }
+
+    const rests = Array.isArray(cachedRestaurants)
+      ? cachedRestaurants.filter(r => r && r.address && typeof r.latitude === 'number').slice(0, 12)
+      : [];
+
+    let created = [];
+    await updateOrdersDatabase((orders) => {
+      const next = demoOrders.upsertDemoOrders(orders, shipper, rests);
+      created = next.filter(o => o && o.isDemo === true);
+      orders.length = 0;
+      next.forEach(o => orders.push(o));
+    });
+
+    // Cập nhật thống kê tài xế cho khớp demo
+    const allShippers = readShippersDatabase();
+    const idx = allShippers.findIndex(s => demoOrders.cleanPhone(s.phone) === demoOrders.cleanPhone(shipper.phone));
+    if (idx !== -1) {
+      const earn = created.reduce((s, o) => s + (o.shipperEarning || 0), 0);
+      allShippers[idx].totalOrders = created.length;
+      allShippers[idx].totalEarnings = earn;
+      allShippers[idx].acceptanceRate = 93;
+      allShippers[idx].completionRate = 86;
+      writeShippersDatabase(allShippers);
+    }
+
+    console.log(`[Demo] Seeded ${created.length} demo orders for ${shipper.name} (${shipper.phone})`);
+    res.json({
+      success: true,
+      message: `Đã tạo ${created.length} đơn demo cho ${shipper.name}`,
+      phone: shipper.phone,
+      count: created.length,
+      sampleIds: created.slice(0, 5).map(o => o.id)
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/demo/clear-orders
+ * Xóa toàn bộ đơn isDemo:true (giữ đơn thật). Chuẩn bị go-live.
+ */
+app.post('/api/admin/demo/clear-orders', authenticateAdmin, async (req, res) => {
+  try {
+    let before = 0;
+    let after = 0;
+    await updateOrdersDatabase((orders) => {
+      before = orders.length;
+      const kept = demoOrders.stripDemoOrders(orders);
+      after = kept.length;
+      orders.length = 0;
+      kept.forEach(o => orders.push(o));
+    });
+    const removed = before - after;
+    console.log(`[Demo] Cleared ${removed} demo orders (kept ${after})`);
+    res.json({
+      success: true,
+      message: `Đã xóa ${removed} đơn demo. Còn lại ${after} đơn.`,
+      removed,
+      remaining: after
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
