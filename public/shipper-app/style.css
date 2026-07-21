@@ -1676,8 +1676,39 @@ body.modal-open {
   flex-shrink: 0;
 }
 
+.history-day__orders {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-day__order-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clr-text-primary);
+}
+
+.history-day__order-top strong {
+  color: var(--clr-primary);
+  white-space: nowrap;
+}
+
+.history-day__order-money {
+  font-size: 10px;
+  color: var(--clr-text-muted);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 @media (max-width: 360px) {
-  .money-board {
+  .money-board,
+  .money-board--detail-open {
     grid-template-columns: 1fr;
   }
   .stats-grid--four {
