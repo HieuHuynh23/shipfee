@@ -84,8 +84,19 @@ graph TD
 | `TELEGRAM_BOT_TOKEN` | Token bot Telegram phê duyệt tài xế | ✅ |
 | `TELEGRAM_CHAT_ID` | Chat ID nhóm Telegram quản trị | ✅ |
 | `METERED_API_KEY` | API key TURN server (WebRTC) | ❌ |
+| `DATA_DIR` | Thư mục bền cho `*-local.json` (vd. `/var/data` khi gắn Persistent Disk) | ❌ |
 
 > **Lưu ý**: File `.env` trên local dùng cho phát triển. Trên Render, cấu hình qua Dashboard → Environment.
+
+#### Persistent Disk (tuỳ chọn — gói Starter+)
+
+Render Free **không** giữ file giữa các lần redeploy. Hệ thống đã hydrate đơn/thu nhập từ Supabase khi boot. Nếu muốn thêm lớp bền trên disk:
+
+1. Render Dashboard → service API → **Disks** → Add Disk, Mount Path `/var/data`
+2. Environment: `DATA_DIR=/var/data`
+3. Redeploy — `orders-local.json`, `shippers-local.json` và file CRM local ghi vào disk
+
+File tham chiếu Blueprint: [`render.yaml`](render.yaml) (disk block comment sẵn; bật khi nâng gói).
 
 ### 2.3. Cấu Hình Vercel (Frontend)
 

@@ -25,8 +25,24 @@ const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
 
+/** Thư mục bền (Render Persistent Disk). Mặc định = thư mục server. */
+const DATA_DIR = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : __dirname;
+if (process.env.DATA_DIR) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+    console.log(`[Persist] DATA_DIR=${DATA_DIR}`);
+  } catch (e) {
+    console.warn('[Persist] Không tạo được DATA_DIR:', e.message);
+  }
+}
+function dataPath(...segments) {
+  return path.join(DATA_DIR, ...segments);
+}
+
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
-const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
+const NOTIFICATIONS_FILE = dataPath('notifications-local.json');
 
 function readNotifications() {
   if (!fs.existsSync(NOTIFICATIONS_FILE)) return [];
@@ -1171,8 +1187,8 @@ async function upsertOrderToSupabase(order) {
   }
 }
 
-/** Số ngày giữ đơn hoàn thành/hủy trên local — đủ cho CRM dashboard/analytics sau redeploy */
-const ORDER_HISTORY_RETENTION_DAYS = 30;
+/** Số ngày giữ đơn hoàn thành/hủy trên local — đủ CRM analytics 90d sau redeploy */
+const ORDER_HISTORY_RETENTION_DAYS = 90;
 
 function pruneOldOrders(orders, maxAgeDays = ORDER_HISTORY_RETENTION_DAYS) {
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
@@ -1219,17 +1235,15 @@ function mapSupabaseOrderRow(row) {
 }
 
 /**
- * Khi orders-local.json trống (typ. sau redeploy Render), kéo lại từ Supabase:
- * - Đơn active (chưa DELIVERED/CANCELLED)
- * - Đơn hoàn thành/hủy trong ORDER_HISTORY_RETENTION_DAYS ngày gần đây
- * → CRM giữ được doanh thu quán, khách hàng, thu nhập theo đơn.
+ * Đồng bộ đơn từ Supabase vào local (sau redeploy hoặc thiếu lịch sử):
+ * - Đơn active
+ * - Đơn DELIVERED/CANCELLED trong ORDER_HISTORY_RETENTION_DAYS ngày
+ * Merge theo id: giữ messages/GPS local nếu có; bổ sung đơn thiếu từ Supabase.
  */
 async function hydrateOrdersFromSupabaseIfEmpty() {
   if (!supabase) return;
   try {
     const local = readOrdersDatabase();
-    if (Array.isArray(local) && local.length > 0) return;
-
     const sinceIso = new Date(
       Date.now() - ORDER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
     ).toISOString();
@@ -1247,7 +1261,7 @@ async function hydrateOrdersFromSupabaseIfEmpty() {
         .in('status', ['DELIVERED', 'CANCELLED'])
         .gte('created_at', sinceIso)
         .order('created_at', { ascending: false })
-        .limit(500)
+        .limit(1000)
     ]);
 
     if (activeRes.error) {
@@ -1258,26 +1272,82 @@ async function hydrateOrdersFromSupabaseIfEmpty() {
     }
 
     const byId = new Map();
-    // Terminal trước, active ghi đè — ưu tiên trạng thái đang chạy
-    (Array.isArray(recentRes.data) ? recentRes.data : []).forEach(row => {
-      if (row && row.id) byId.set(row.id, mapSupabaseOrderRow(row));
-    });
-    (Array.isArray(activeRes.data) ? activeRes.data : []).forEach(row => {
-      if (row && row.id) byId.set(row.id, mapSupabaseOrderRow(row));
+    (Array.isArray(local) ? local : []).forEach(o => {
+      if (o && o.id) byId.set(o.id, o);
     });
 
-    const hydrated = Array.from(byId.values());
-    if (hydrated.length === 0) return;
+    const mergeRemote = (row) => {
+      if (!row || !row.id) return;
+      const mapped = mapSupabaseOrderRow(row);
+      const existing = byId.get(row.id);
+      if (!existing) {
+        byId.set(row.id, mapped);
+        return;
+      }
+      byId.set(row.id, {
+        ...mapped,
+        messages: (Array.isArray(existing.messages) && existing.messages.length)
+          ? existing.messages
+          : mapped.messages,
+        shipperLat: existing.shipperLat != null ? existing.shipperLat : mapped.shipperLat,
+        shipperLon: existing.shipperLon != null ? existing.shipperLon : mapped.shipperLon,
+        assignedShipperPhone: existing.assignedShipperPhone || mapped.assignedShipperPhone,
+        declinedShippers: Array.isArray(existing.declinedShippers) && existing.declinedShippers.length
+          ? existing.declinedShippers
+          : mapped.declinedShippers,
+        offerExpiresAt: existing.offerExpiresAt || mapped.offerExpiresAt
+      });
+    };
+
+    (Array.isArray(recentRes.data) ? recentRes.data : []).forEach(mergeRemote);
+    (Array.isArray(activeRes.data) ? activeRes.data : []).forEach(mergeRemote);
+
+    const hydrated = pruneOldOrders(Array.from(byId.values()), ORDER_HISTORY_RETENTION_DAYS);
+    const before = Array.isArray(local) ? local.length : 0;
+    if (hydrated.length === 0 && before === 0) return;
+
+    // Chỉ ghi khi có thay đổi số lượng hoặc local trống
+    const changed = before === 0 || hydrated.length !== before ||
+      hydrated.some(o => !(Array.isArray(local) && local.some(l => l && l.id === o.id)));
+    if (!changed && before > 0) {
+      console.log(`[Hydrate] Local đã đủ ${before} đơn — không ghi lại.`);
+      return;
+    }
 
     fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(hydrated, null, 2), 'utf8');
     const delivered = hydrated.filter(o => o.status === 'DELIVERED').length;
     const active = hydrated.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length;
     console.log(
-      `[Hydrate] Đã khôi phục ${hydrated.length} đơn từ Supabase ` +
-      `(active=${active}, delivered=${delivered}, retention=${ORDER_HISTORY_RETENTION_DAYS}d)`
+      `[Hydrate] Đồng bộ ${hydrated.length} đơn từ Supabase ` +
+      `(active=${active}, delivered=${delivered}, retention=${ORDER_HISTORY_RETENTION_DAYS}d, trước=${before})`
     );
   } catch (e) {
     console.warn('[Hydrate] Không thể hydrate orders từ Supabase:', e.message);
+  }
+}
+
+/** Bổ sung đơn từ Supabase vào mảng local cho báo cáo CRM dài hạn (không ghi disk). */
+async function mergeOrdersFromSupabaseForRange(localOrders, days) {
+  if (!supabase || !days || days <= 0) return localOrders || [];
+  try {
+    const sinceIso = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .gte('created_at', sinceIso)
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (error || !Array.isArray(data) || data.length === 0) return localOrders || [];
+    const byId = new Map();
+    (localOrders || []).forEach(o => { if (o && o.id) byId.set(o.id, o); });
+    data.forEach(row => {
+      if (!row || !row.id || byId.has(row.id)) return;
+      byId.set(row.id, mapSupabaseOrderRow(row));
+    });
+    return Array.from(byId.values());
+  } catch (e) {
+    console.warn('[CRM Orders] merge Supabase thất bại:', e.message);
+    return localOrders || [];
   }
 }
 
@@ -4814,7 +4884,7 @@ app.post('/api/cache/clear', (req, res) => {
 
 // ── ORDER DATABASE & API ENDPOINTS ──────────────────────────────────────────
 let ordersQueuePromise = Promise.resolve();
-const ORDERS_FILE_PATH = path.join(__dirname, 'orders-local.json');
+const ORDERS_FILE_PATH = dataPath('orders-local.json');
 
 function readOrdersDatabase() {
   try {
@@ -5596,7 +5666,7 @@ app.get('/api/orders/:id/call/poll', (req, res) => {
 });
 
 // ── SHIPPER AUTHENTICATION & SHIFT LOGS ────────────────────────────────────
-const SHIPPERS_FILE_PATH = path.join(__dirname, 'shippers-local.json');
+const SHIPPERS_FILE_PATH = dataPath('shippers-local.json');
 
 function readShippersDatabase() {
   try {
@@ -6335,7 +6405,7 @@ app.post('/api/admin/notifications/read-all', authenticateAdmin, (req, res) => {
 app.get('/api/admin/dashboard', authenticateAdmin, async (req, res) => {
   try {
     const shippers = readShippersDatabase();
-    const orders = readOrdersDatabase();
+    const orders = await mergeOrdersFromSupabaseForRange(readOrdersDatabase(), 2);
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
@@ -7231,9 +7301,12 @@ app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, async (req,
  * GET /api/admin/customers
  * Extract customer list from orders
  */
-app.get('/api/admin/customers', authenticateAdmin, (req, res) => {
+app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
   try {
-    const orders = readOrdersDatabase();
+    const orders = await mergeOrdersFromSupabaseForRange(
+      readOrdersDatabase(),
+      ORDER_HISTORY_RETENTION_DAYS
+    );
     const customerMap = new Map();
     
     orders.forEach(o => {
@@ -7323,9 +7396,9 @@ app.get('/api/admin/orders/export', authenticateAdmin, (req, res) => {
  * GET /api/admin/orders/stats
  * Return orders and revenue statistics grouped by date
  */
-app.get('/api/admin/orders/stats', authenticateAdmin, (req, res) => {
+app.get('/api/admin/orders/stats', authenticateAdmin, async (req, res) => {
   try {
-    const orders = readOrdersDatabase();
+    const orders = await mergeOrdersFromSupabaseForRange(readOrdersDatabase(), 7);
     const completed = orders.filter(o => o.status === 'DELIVERED');
     
     const dailyStats = {};
@@ -7893,10 +7966,11 @@ app.post('/api/promos/validate', (req, res) => {
   }
 });
 
-app.get('/api/admin/analytics', authenticateAdmin, (req, res) => {
+app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
   try {
     const range = req.query.range || '7d';
-    const orders = readOrdersDatabase();
+    const days = crm.parseRangeDays(range);
+    const orders = await mergeOrdersFromSupabaseForRange(readOrdersDatabase(), Math.max(days * 2, days));
     const shippers = readShippersDatabase();
     res.json({ success: true, data: crm.computeAnalytics(orders, shippers, range) });
   } catch (e) {
