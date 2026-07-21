@@ -440,6 +440,10 @@ async function uploadShipperAvatar(cleanedPhone, base64Data, req) {
   return avatarUrl;
 }
 
+function normalizeShipperPhone(raw) {
+  return String(raw || '').trim().replace(/\s+/g, '').replace(/^\+84/, '0').replace(/^84/, '0');
+}
+
 async function syncShippersFromSupabase() {
   if (!supabase) return;
   console.log('[Supabase Sync] 🔄 Đang đồng bộ thông tin tài xế từ Supabase Auth online về local JSON...');
@@ -459,14 +463,13 @@ async function syncShippersFromSupabase() {
 
     onlineShippers.forEach(u => {
       // Chuẩn hóa phone từ định dạng Supabase Auth (+84... hoặc 84... hoặc 0...) về định dạng 0...
-      let rawPhone = u.phone || u.user_metadata.phone || '';
-      let cleanPhone = rawPhone.trim().replace(/\s+/g, '').replace(/^\+84/, '0').replace(/^84/, '0');
+      let cleanPhone = normalizeShipperPhone(u.phone || u.user_metadata.phone || '');
       if (!cleanPhone) return;
 
       const metadata = u.user_metadata;
       const email = u.email || '';
       
-      const idx = localShippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === cleanPhone);
+      const idx = localShippers.findIndex(s => normalizeShipperPhone(s.phone) === cleanPhone);
 
       if (idx !== -1) {
         // Cập nhật thông tin nếu có sự khác biệt
@@ -508,6 +511,7 @@ async function syncShippersFromSupabase() {
       }
 
       // Không ghi đè status ONLINE khi sync Auth → tránh mất ca làm việc
+      // Chỉ upsert identity/status — không đụng total_earnings (restore ở bước dưới)
       const existingStatus = idx !== -1 ? (localShippers[idx].status || 'OFFLINE') : 'OFFLINE';
       supabase.from('shipper_profiles').upsert({
         id: u.id,
@@ -519,6 +523,52 @@ async function syncShippersFromSupabase() {
         if (error) console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', error.message);
       });
     });
+
+    // Restore thu nhập / AR / CR từ shipper_profiles (sống qua redeploy Render)
+    try {
+      const { data: profiles, error: profileErr } = await supabase
+        .from('shipper_profiles')
+        .select('id, phone, total_orders, total_earnings, acceptance_rate, completion_rate');
+      if (profileErr) {
+        console.warn('[Supabase Sync] Không đọc được shipper_profiles để restore earnings:', profileErr.message);
+      } else if (Array.isArray(profiles) && profiles.length > 0) {
+        const byId = new Map();
+        const byPhone = new Map();
+        profiles.forEach(p => {
+          if (p && p.id) byId.set(p.id, p);
+          const ph = normalizeShipperPhone(p && p.phone);
+          if (ph) byPhone.set(ph, p);
+        });
+
+        localShippers.forEach(s => {
+          const p = (s.id && byId.get(s.id)) || byPhone.get(normalizeShipperPhone(s.phone));
+          if (!p) return;
+          const totalOrders = Number(p.total_orders);
+          const totalEarnings = Number(p.total_earnings);
+          const acceptanceRate = Number(p.acceptance_rate);
+          const completionRate = Number(p.completion_rate);
+          const nextOrders = Number.isFinite(totalOrders) ? totalOrders : (s.totalOrders || 0);
+          const nextEarnings = Number.isFinite(totalEarnings) ? totalEarnings : (s.totalEarnings || 0);
+          const nextAr = Number.isFinite(acceptanceRate) ? acceptanceRate : (s.acceptanceRate ?? 100);
+          const nextCr = Number.isFinite(completionRate) ? completionRate : (s.completionRate ?? 100);
+          if (
+            s.totalOrders !== nextOrders ||
+            s.totalEarnings !== nextEarnings ||
+            s.acceptanceRate !== nextAr ||
+            s.completionRate !== nextCr
+          ) {
+            s.totalOrders = nextOrders;
+            s.totalEarnings = nextEarnings;
+            s.acceptanceRate = nextAr;
+            s.completionRate = nextCr;
+            changed = true;
+          }
+        });
+        console.log(`[Supabase Sync] 💰 Đã restore earnings/AR/CR từ ${profiles.length} shipper_profiles.`);
+      }
+    } catch (earnErr) {
+      console.warn('[Supabase Sync] Restore earnings thất bại:', earnErr.message);
+    }
 
     if (changed) {
       writeShippersDatabase(localShippers);
@@ -1121,7 +1171,10 @@ async function upsertOrderToSupabase(order) {
   }
 }
 
-function pruneOldOrders(orders, maxAgeDays = 7) {
+/** Số ngày giữ đơn hoàn thành/hủy trên local — đủ cho CRM dashboard/analytics sau redeploy */
+const ORDER_HISTORY_RETENTION_DAYS = 30;
+
+function pruneOldOrders(orders, maxAgeDays = ORDER_HISTORY_RETENTION_DAYS) {
   const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
   return orders.filter(o => {
     if (o.status !== 'DELIVERED' && o.status !== 'CANCELLED') return true;
@@ -1130,56 +1183,99 @@ function pruneOldOrders(orders, maxAgeDays = 7) {
   });
 }
 
+function mapSupabaseOrderRow(row) {
+  return {
+    id: row.id,
+    restaurantId: row.restaurant_id,
+    restaurantName: row.restaurant_name || '',
+    restaurantAddress: row.restaurant_address || '',
+    restaurantLat: row.restaurant_lat || null,
+    restaurantLon: row.restaurant_lon || null,
+    items: Array.isArray(row.items) ? row.items : [],
+    storeTotal: row.store_total || 0,
+    appTotal: row.app_total || 0,
+    shipperEarning: row.shipper_earning || 0,
+    status: row.status || 'PENDING',
+    shipperId: row.shipper_id || null,
+    shipperName: row.shipper_name || null,
+    shipperPhone: row.shipper_phone || null,
+    shipperLat: null,
+    shipperLon: null,
+    deliveryAddress: row.delivery_address || '',
+    deliveryName: row.delivery_name || '',
+    deliveryPhone: row.delivery_phone || '',
+    ordererPhone: row.orderer_phone || '',
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    acceptedAt: row.accepted_at ? new Date(row.accepted_at).getTime() : null,
+    purchasedAt: row.purchased_at ? new Date(row.purchased_at).getTime() : null,
+    deliveredAt: row.delivered_at ? new Date(row.delivered_at).getTime() : null,
+    cancelledAt: row.cancelled_at ? new Date(row.cancelled_at).getTime() : null,
+    cancelReason: row.cancel_reason || null,
+    assignedShipperPhone: null,
+    offerExpiresAt: null,
+    declinedShippers: [],
+    messages: []
+  };
+}
+
+/**
+ * Khi orders-local.json trống (typ. sau redeploy Render), kéo lại từ Supabase:
+ * - Đơn active (chưa DELIVERED/CANCELLED)
+ * - Đơn hoàn thành/hủy trong ORDER_HISTORY_RETENTION_DAYS ngày gần đây
+ * → CRM giữ được doanh thu quán, khách hàng, thu nhập theo đơn.
+ */
 async function hydrateOrdersFromSupabaseIfEmpty() {
   if (!supabase) return;
   try {
     const local = readOrdersDatabase();
     if (Array.isArray(local) && local.length > 0) return;
 
-    const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .not('status', 'in', '("DELIVERED","CANCELLED")')
-      .order('created_at', { ascending: false })
-      .limit(200);
+    const sinceIso = new Date(
+      Date.now() - ORDER_HISTORY_RETENTION_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
 
-    if (error || !Array.isArray(data) || data.length === 0) return;
+    const [activeRes, recentRes] = await Promise.all([
+      supabase
+        .from('orders')
+        .select('*')
+        .not('status', 'in', '("DELIVERED","CANCELLED")')
+        .order('created_at', { ascending: false })
+        .limit(200),
+      supabase
+        .from('orders')
+        .select('*')
+        .in('status', ['DELIVERED', 'CANCELLED'])
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(500)
+    ]);
 
-    const hydrated = data.map(row => ({
-      id: row.id,
-      restaurantId: row.restaurant_id,
-      restaurantName: row.restaurant_name || '',
-      restaurantAddress: row.restaurant_address || '',
-      restaurantLat: row.restaurant_lat || null,
-      restaurantLon: row.restaurant_lon || null,
-      items: Array.isArray(row.items) ? row.items : [],
-      storeTotal: row.store_total || 0,
-      appTotal: row.app_total || 0,
-      shipperEarning: row.shipper_earning || 0,
-      status: row.status || 'PENDING',
-      shipperId: row.shipper_id || null,
-      shipperName: row.shipper_name || null,
-      shipperPhone: row.shipper_phone || null,
-      shipperLat: null,
-      shipperLon: null,
-      deliveryAddress: row.delivery_address || '',
-      deliveryName: row.delivery_name || '',
-      deliveryPhone: row.delivery_phone || '',
-      ordererPhone: row.orderer_phone || '',
-      createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
-      acceptedAt: row.accepted_at ? new Date(row.accepted_at).getTime() : null,
-      purchasedAt: row.purchased_at ? new Date(row.purchased_at).getTime() : null,
-      deliveredAt: row.delivered_at ? new Date(row.delivered_at).getTime() : null,
-      cancelledAt: row.cancelled_at ? new Date(row.cancelled_at).getTime() : null,
-      cancelReason: row.cancel_reason || null,
-      assignedShipperPhone: null,
-      offerExpiresAt: null,
-      declinedShippers: [],
-      messages: []
-    }));
+    if (activeRes.error) {
+      console.warn('[Hydrate] Lỗi lấy đơn active:', activeRes.error.message);
+    }
+    if (recentRes.error) {
+      console.warn('[Hydrate] Lỗi lấy đơn hoàn thành gần đây:', recentRes.error.message);
+    }
+
+    const byId = new Map();
+    // Terminal trước, active ghi đè — ưu tiên trạng thái đang chạy
+    (Array.isArray(recentRes.data) ? recentRes.data : []).forEach(row => {
+      if (row && row.id) byId.set(row.id, mapSupabaseOrderRow(row));
+    });
+    (Array.isArray(activeRes.data) ? activeRes.data : []).forEach(row => {
+      if (row && row.id) byId.set(row.id, mapSupabaseOrderRow(row));
+    });
+
+    const hydrated = Array.from(byId.values());
+    if (hydrated.length === 0) return;
 
     fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(hydrated, null, 2), 'utf8');
-    console.log(`[Hydrate] Đã khôi phục ${hydrated.length} đơn active từ Supabase vào orders-local.json`);
+    const delivered = hydrated.filter(o => o.status === 'DELIVERED').length;
+    const active = hydrated.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length;
+    console.log(
+      `[Hydrate] Đã khôi phục ${hydrated.length} đơn từ Supabase ` +
+      `(active=${active}, delivered=${delivered}, retention=${ORDER_HISTORY_RETENTION_DAYS}d)`
+    );
   } catch (e) {
     console.warn('[Hydrate] Không thể hydrate orders từ Supabase:', e.message);
   }
@@ -8691,10 +8787,10 @@ app.listen(PORT, () => {
       let orders = [];
       try { orders = JSON.parse(raw) || []; } catch (e) { orders = []; }
       if (Array.isArray(orders) && orders.length > 0) {
-        const pruned = pruneOldOrders(orders, 7);
+        const pruned = pruneOldOrders(orders, ORDER_HISTORY_RETENTION_DAYS);
         if (pruned.length !== orders.length) {
           fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(pruned, null, 2), 'utf8');
-          console.log(`[Persist] 🧹 Đã prune ${orders.length - pruned.length} đơn cũ (>7 ngày). Còn ${pruned.length} đơn.`);
+          console.log(`[Persist] 🧹 Đã prune ${orders.length - pruned.length} đơn cũ (>${ORDER_HISTORY_RETENTION_DAYS} ngày). Còn ${pruned.length} đơn.`);
         } else {
           console.log(`[Persist] ✅ Giữ ${orders.length} đơn hàng qua restart.`);
         }
