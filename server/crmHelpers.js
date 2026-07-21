@@ -532,6 +532,7 @@ module.exports = {
   readCommissions,
   writeCommissions,
   getRestaurantCommissionRate,
+  parseRangeDays,
   computeAnalytics,
   computeSettlementReport,
   computeShipperPayouts,

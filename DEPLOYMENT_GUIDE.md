@@ -87,6 +87,14 @@ graph TD
 
 > **Lưu ý**: File `.env` trên local dùng cho phát triển. Trên Render, cấu hình qua Dashboard → Environment.
 
+#### Lưu dữ liệu bền (miễn phí — không dùng Persistent Disk)
+
+Render Free **không** giữ file JSON giữa các lần redeploy. ShipFee **không** dùng Persistent Disk (tránh phát sinh phí). Thay vào đó:
+
+- Đơn hàng / doanh thu / khách → upsert + hydrate từ **Supabase** khi boot và khi CRM đọc báo cáo
+- Thu nhập tài xế (AR/CR/earnings) → lưu `shipper_profiles` trên Supabase, restore khi sync Auth
+- Login shipper/CRM → `localStorage` trên trình duyệt (không phụ thuộc disk server)
+
 ### 2.3. Cấu Hình Vercel (Frontend)
 
 | Cài đặt | Giá trị |
