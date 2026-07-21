@@ -2727,33 +2727,44 @@ function setPerfPeriod(period) {
 }
 window.setPerfPeriod = setPerfPeriod;
 
-function togglePerfDetail() {
-  perfDetailOpen = !perfDetailOpen;
+function openPerfDetailSheet() {
+  const overlay = document.getElementById('perf-detail-overlay');
+  if (!overlay) return;
+  perfDetailOpen = true;
   lastHistoryFingerprint = '';
+  if (!overlay.classList.contains('active')) {
+    overlay.classList.add('active');
+    lockBodyScroll();
+  }
   renderHistoryAndStats();
+}
+window.openPerfDetailSheet = openPerfDetailSheet;
+
+function closePerfDetailSheet() {
+  const overlay = document.getElementById('perf-detail-overlay');
+  if (overlay && overlay.classList.contains('active')) {
+    overlay.classList.remove('active');
+    unlockBodyScroll();
+  }
+  perfDetailOpen = false;
+  lastHistoryFingerprint = '';
+  // Cập nhật lại tổng trên tab chính (không render list)
+  renderHistoryAndStats();
+}
+window.closePerfDetailSheet = closePerfDetailSheet;
+
+/** @deprecated dùng open/close sheet */
+function togglePerfDetail() {
+  const overlay = document.getElementById('perf-detail-overlay');
+  if (overlay && overlay.classList.contains('active')) closePerfDetailSheet();
+  else openPerfDetailSheet();
 }
 window.togglePerfDetail = togglePerfDetail;
 
 function applyPerfDetailVisibility() {
+  // Chi tiết chỉ nằm trong bottom sheet — tab chính luôn chỉ hiện tổng
   const board = document.getElementById('money-board');
-  const detailMoney = document.getElementById('money-board-detail');
-  const toggleBtn = document.getElementById('perf-detail-toggle');
-  const toggleLabel = document.getElementById('perf-detail-toggle-label');
-  const historyTitle = document.getElementById('history-section-title');
-  const historyList = document.getElementById('history-orders-list');
-
-  if (board) board.classList.toggle('money-board--detail-open', perfDetailOpen);
-  if (detailMoney) detailMoney.hidden = !perfDetailOpen;
-  if (historyTitle) historyTitle.hidden = !perfDetailOpen;
-  if (historyList) historyList.hidden = !perfDetailOpen;
-
-  if (toggleBtn) {
-    toggleBtn.setAttribute('aria-expanded', perfDetailOpen ? 'true' : 'false');
-    toggleBtn.classList.toggle('is-open', perfDetailOpen);
-  }
-  if (toggleLabel) {
-    toggleLabel.textContent = perfDetailOpen ? 'Thu gọn chi tiết' : 'Xem chi tiết doanh thu';
-  }
+  if (board) board.classList.remove('money-board--detail-open');
 }
 
 function clampPercent(n) {
@@ -2808,6 +2819,14 @@ function renderHistoryAndStats() {
   const periodLabels = { today: 'Hôm nay', '7d': '7 ngày gần đây', month: 'Tháng này' };
   const periodEl = document.getElementById('stats-period-label');
   if (periodEl) periodEl.textContent = periodLabels[perfPeriodFilter] || 'Hôm nay';
+  const sheetPeriodEl = document.getElementById('sheet-period-label');
+  if (sheetPeriodEl) sheetPeriodEl.textContent = periodLabels[perfPeriodFilter] || 'Hôm nay';
+  const sheetSub = document.getElementById('perf-detail-sheet-sub');
+  if (sheetSub) {
+    sheetSub.textContent = perfPeriodFilter === 'today'
+      ? 'Tiền quán · tiền khách · từng đơn'
+      : 'Tiền quán · tiền khách · từng ngày';
+  }
 
   const headingEl = document.getElementById('history-section-heading');
   if (headingEl) {
@@ -2823,6 +2842,7 @@ function renderHistoryAndStats() {
 
   setText('stats-total-orders', String(totalOrders));
   setText('stats-total-earnings', formatCurrency(totalEarnings));
+  setText('sheet-total-earnings', formatCurrency(totalEarnings));
   setText('stats-store-total', formatCurrency(totalStore));
   setText('stats-cod-total', formatCurrency(totalCod));
   setText('stats-avg-rating', avgRating);
@@ -2844,7 +2864,7 @@ function renderHistoryAndStats() {
   if (arFill) arFill.style.width = arPercentage + '%';
   if (crFill) crFill.style.width = crPercentage + '%';
 
-  // Chưa mở chi tiết → không render danh sách breakdown
+  // Sheet đóng → không render danh sách breakdown
   if (!perfDetailOpen) {
     syncStatsToServer();
     return;

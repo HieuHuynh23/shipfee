@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=3.8">
+  <link rel="stylesheet" href="style.css?v=3.9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -269,6 +269,57 @@
     </div>
   </div>
 
+  <!-- ── EARNINGS DETAIL BOTTOM SHEET ── -->
+  <div class="overlay" id="perf-detail-overlay" onclick="if(event.target===this) closePerfDetailSheet()">
+    <div class="bottom-sheet perf-detail-sheet" id="perf-detail-panel" role="dialog" aria-modal="true" aria-labelledby="perf-detail-sheet-title">
+      <div class="bottom-sheet__header">
+        <div class="perf-detail-sheet__title">
+          <span class="perf-detail-sheet__icon"><i class="fa-solid fa-chart-pie"></i></span>
+          <div>
+            <h4 id="perf-detail-sheet-title">Chi tiết doanh thu</h4>
+            <p id="perf-detail-sheet-sub">Tiền quán · tiền khách · từng đơn</p>
+          </div>
+        </div>
+        <button type="button" class="close-btn" onclick="closePerfDetailSheet()" aria-label="Đóng">✕</button>
+      </div>
+
+      <div class="perf-period perf-period--sheet" role="tablist" aria-label="Khoảng thời gian chi tiết">
+        <button type="button" class="perf-period__btn is-active" data-period="today" onclick="setPerfPeriod('today')">Hôm nay</button>
+        <button type="button" class="perf-period__btn" data-period="7d" onclick="setPerfPeriod('7d')">7 ngày</button>
+        <button type="button" class="perf-period__btn" data-period="month" onclick="setPerfPeriod('month')">Tháng</button>
+      </div>
+
+      <div class="money-board money-board--sheet">
+        <div class="money-board__main">
+          <span class="money-board__label">Thu nhập shipper</span>
+          <strong class="money-board__value" id="sheet-total-earnings">0đ</strong>
+          <span class="money-board__hint" id="sheet-period-label">Hôm nay</span>
+        </div>
+        <div class="money-board__side" id="money-board-detail">
+          <div class="money-chip money-chip--store">
+            <span>Tiền quán</span>
+            <strong id="stats-store-total">0đ</strong>
+          </div>
+          <div class="money-chip money-chip--cod">
+            <span>Tiền khách</span>
+            <strong id="stats-cod-total">0đ</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title section-title--history" id="history-section-title">
+        <h3 id="history-section-heading">Chi tiết từng đơn</h3>
+        <span class="section-title__count" id="history-count-label">0 đơn</span>
+      </div>
+      <div class="history-list history-list--sheet" id="history-orders-list">
+        <div class="empty-state">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <p>Chưa có lịch sử giao hàng.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── CRM SUPPORT BOTTOM SHEET ── -->
   <div class="overlay" id="crm-support-overlay" onclick="if(event.target===this) closeCrmSupportSheet()">
     <div class="bottom-sheet crm-support-sheet" id="crm-support-panel" role="dialog" aria-modal="true" aria-labelledby="crm-support-sheet-title">
@@ -502,22 +553,12 @@
               <strong class="money-board__value" id="stats-total-earnings">0đ</strong>
               <span class="money-board__hint" id="stats-period-label">Hôm nay</span>
             </div>
-            <div class="money-board__side" id="money-board-detail" hidden>
-              <div class="money-chip money-chip--store">
-                <span>Tiền quán</span>
-                <strong id="stats-store-total">0đ</strong>
-              </div>
-              <div class="money-chip money-chip--cod">
-                <span>Tiền khách</span>
-                <strong id="stats-cod-total">0đ</strong>
-              </div>
-            </div>
           </div>
 
-          <button type="button" class="perf-detail-toggle" id="perf-detail-toggle" onclick="togglePerfDetail()" aria-expanded="false">
+          <button type="button" class="perf-detail-toggle" id="perf-detail-toggle" onclick="openPerfDetailSheet()" aria-haspopup="dialog">
             <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
-            <span id="perf-detail-toggle-label">Xem chi tiết doanh thu</span>
-            <i class="fa-solid fa-chevron-down perf-detail-toggle__chevron" aria-hidden="true"></i>
+            <span>Xem chi tiết doanh thu</span>
+            <i class="fa-solid fa-chevron-up" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -574,17 +615,6 @@
             </span>
             <span class="crm-support-launch__chevron" aria-hidden="true"><i class="fa-solid fa-chevron-up"></i></span>
           </button>
-        </div>
-
-        <div class="section-title section-title--history" id="history-section-title" hidden>
-          <h3 id="history-section-heading">Chi tiết theo đơn</h3>
-          <span class="section-title__count" id="history-count-label">0 đơn</span>
-        </div>
-        <div class="history-list" id="history-orders-list" hidden>
-          <div class="empty-state">
-            <i class="fa-solid fa-clock-rotate-left"></i>
-            <p>Chưa có lịch sử giao hàng.</p>
-          </div>
         </div>
       </section>
 
@@ -741,6 +771,6 @@
       }
     });
   </script>
-  <script src="app.js?v=3.8"></script>
+  <script src="app.js?v=3.9"></script>
 </body>
 </html>
