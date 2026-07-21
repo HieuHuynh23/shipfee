@@ -3795,7 +3795,6 @@ let crmSupportSendInFlight = false;
 let crmSupportPollTimer = null;
 let crmSupportSheetOpen = false;
 let lastCrmSupportFingerprint = '';
-let crmSupportComposingNew = false;   // đang soạn 1 ticket mới (bỏ qua ticket đã đóng)
 let lastCrmSupportStatus = null;      // theo dõi chuyển trạng thái open → resolved
 
 function getCrmSupportTicketCode(thread) {
@@ -3818,7 +3817,6 @@ function openCrmSupportSheet(opts = {}) {
     lockBodyScroll();
   }
   crmSupportSheetOpen = true;
-  crmSupportComposingNew = false;
   updateCrmSupportOrderTag();
   bindCrmSupportKeyboardAvoidance();
   loadCrmSupportThread().then(() => {
@@ -3898,12 +3896,17 @@ function renderCrmSupportMessages(thread) {
   crmSupportThread = thread || null;
   updateCrmSupportOrderTag();
 
-  // Trạng thái hiển thị: soạn ticket mới > đã đóng > đang mở > chưa có
-  const newMode = crmSupportComposingNew || !thread;
-  const isClosed = !crmSupportComposingNew && thread && thread.status === 'resolved';
+  // Chỉ hiển thị hội thoại khi ticket đang MỞ.
+  // Ticket đã đóng (resolved) hoặc chưa có → khôi phục giao diện chat trống
+  // để tài xế tạo yêu cầu hỗ trợ mới (không giữ lại tin nhắn cũ).
+  const isOpen = !!(thread && thread.status === 'open');
+
+  // Luôn cho phép soạn tin; không dùng banner "đã đóng" nữa
+  if (composeEl) composeEl.style.display = '';
+  if (closedEl) closedEl.style.display = 'none';
 
   if (ticketEl) {
-    const code = (!newMode && thread) ? getCrmSupportTicketCode(thread) : '';
+    const code = isOpen ? getCrmSupportTicketCode(thread) : '';
     if (code) {
       ticketEl.style.display = 'inline-flex';
       ticketEl.textContent = `Ticket #${code}`;
@@ -3914,10 +3917,8 @@ function renderCrmSupportMessages(thread) {
   }
 
   if (statusEl) {
-    if (newMode) {
-      statusEl.textContent = 'Yêu cầu mới — mô tả sự cố, CRM sẽ phản hồi tại đây';
-    } else if (isClosed) {
-      statusEl.textContent = 'Đã xử lý & đóng — tạo yêu cầu mới nếu cần thêm';
+    if (!isOpen) {
+      statusEl.textContent = 'Tạo yêu cầu hỗ trợ — CRM sẽ phản hồi tại đây';
     } else if (thread.priority === 'emergency') {
       statusEl.textContent = 'Đang mở · Khẩn cấp';
     } else {
@@ -3925,15 +3926,9 @@ function renderCrmSupportMessages(thread) {
     }
   }
 
-  // Bật/tắt khung soạn tin vs. banner "đã đóng"
-  if (composeEl) composeEl.style.display = isClosed ? 'none' : '';
-  if (closedEl) closedEl.style.display = isClosed ? 'flex' : 'none';
-
-  const messages = (!newMode && thread && Array.isArray(thread.messages)) ? thread.messages : [];
+  const messages = (isOpen && Array.isArray(thread.messages)) ? thread.messages : [];
   if (!messages.length) {
-    box.innerHTML = newMode
-      ? `<div class="crm-support-empty">Tạo yêu cầu hỗ trợ mới.<br>Mô tả sự cố rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`
-      : `<div class="crm-support-empty">Chưa có tin nhắn.<br>Gõ bên dưới rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`;
+    box.innerHTML = `<div class="crm-support-empty">Chưa có yêu cầu nào đang mở.<br>Mô tả sự cố rồi bấm gửi — CRM sẽ trả lời ngay tại đây.</div>`;
     return;
   }
 
@@ -3960,18 +3955,6 @@ function renderCrmSupportMessages(thread) {
   if (shouldScroll) box.scrollTop = box.scrollHeight;
 }
 
-function startNewCrmSupportTicket() {
-  crmSupportComposingNew = true;
-  crmSupportLinkOrder = false;
-  const emergencyEl = document.getElementById('crm-support-emergency');
-  if (emergencyEl) emergencyEl.checked = false;
-  const input = document.getElementById('crm-support-input');
-  if (input) input.value = '';
-  renderCrmSupportMessages(crmSupportThread);
-  if (input) setTimeout(() => input.focus(), 120);
-}
-window.startNewCrmSupportTicket = startNewCrmSupportTicket;
-
 async function loadCrmSupportThread() {
   if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return null;
   try {
@@ -3982,10 +3965,10 @@ async function loadCrmSupportThread() {
     if (res.ok && data.success) {
       const thread = data.data || null;
       const newStatus = thread ? thread.status : null;
-      // Phát hiện CRM vừa đóng ticket (open → resolved) để báo tài xế
-      if (!crmSupportComposingNew && lastCrmSupportStatus === 'open' && newStatus === 'resolved') {
+      // Phát hiện CRM vừa đóng ticket (open → resolved) để báo tài xế và khôi phục chat
+      if (lastCrmSupportStatus === 'open' && newStatus === 'resolved') {
         playMessageChimeSound();
-        showToast('CRM đã xử lý ✔', 'Yêu cầu của bạn đã được đóng. Bấm "Tạo yêu cầu mới" nếu cần thêm hỗ trợ.', 'success');
+        showToast('CRM đã xử lý ✔', 'Yêu cầu của bạn đã được đóng. Bạn có thể tạo yêu cầu mới nếu cần thêm hỗ trợ.', 'success');
       } else {
         const newFp = getCrmSupportFingerprint(thread);
         if (thread && lastCrmSupportFingerprint && newFp !== lastCrmSupportFingerprint) {
@@ -4054,12 +4037,11 @@ async function sendCrmSupportMessage() {
       if (input) input.value = '';
       if (emergencyEl) emergencyEl.checked = false;
       crmSupportLinkOrder = false;
-      const wasComposingNew = crmSupportComposingNew;
-      crmSupportComposingNew = false;
+      const wasNewTicket = lastCrmSupportStatus !== 'open';
       lastCrmSupportStatus = data.data ? data.data.status : lastCrmSupportStatus;
       renderCrmSupportMessages(data.data);
       showToast(
-        wasComposingNew ? 'Đã tạo yêu cầu mới' : 'Đã gửi CRM',
+        wasNewTicket ? 'Đã tạo yêu cầu mới' : 'Đã gửi CRM',
         priority === 'emergency' ? 'Đã báo khẩn cấp tới CRM.' : 'CRM đã nhận tin nhắn của bạn.',
         'success'
       );
