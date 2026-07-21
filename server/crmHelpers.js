@@ -271,6 +271,37 @@ function appendShipperSupportMessage(threadId, message) {
   return threads[idx];
 }
 
+/**
+ * Đóng (resolve) 1 ticket hỗ trợ của tài xế — dùng chung cho CRM web + Telegram bot.
+ * Ghi thêm 1 tin nhắn hệ thống báo đã đóng để tài xế thấy rõ và có thể tạo ticket mới.
+ */
+function resolveShipperSupportThread(threadId, { by = 'admin' } = {}) {
+  const threads = readShipperSupportThreads();
+  const idx = threads.findIndex(t => t.id === threadId);
+  if (idx === -1) return null;
+
+  const now = Date.now();
+  threads[idx].status = 'resolved';
+  threads[idx].resolvedAt = now;
+  threads[idx].updatedAt = now;
+  threads[idx].closedBy = by || 'admin';
+
+  threads[idx].messages = threads[idx].messages || [];
+  threads[idx].messages.push({
+    id: 'ssm-' + now + '-' + Math.floor(100 + Math.random() * 900),
+    sender: 'system',
+    role: 'system',
+    text: 'CRM đã xử lý và đóng yêu cầu hỗ trợ này. Bạn có thể tạo yêu cầu mới nếu cần thêm trợ giúp.',
+    timestamp: now,
+    adminEmail: null
+  });
+  // Tài xế cần thấy thông báo đóng ticket
+  threads[idx].unreadForShipper = (threads[idx].unreadForShipper || 0) + 1;
+
+  writeShipperSupportThreads(threads);
+  return threads[idx];
+}
+
 function markShipperSupportRead(threadId, reader) {
   const threads = readShipperSupportThreads();
   const idx = threads.findIndex(t => t.id === threadId);
@@ -528,6 +559,7 @@ module.exports = {
   writeShipperSupportThreads,
   getOrCreateShipperSupportThread,
   appendShipperSupportMessage,
+  resolveShipperSupportThread,
   markShipperSupportRead,
   readCommissions,
   writeCommissions,

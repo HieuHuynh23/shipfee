@@ -1179,6 +1179,11 @@ async function adminReplySupportThread(threadId, replyText, chatId) {
 }
 
 async function adminResolveSupportThread(threadId) {
+  if (deps.resolveShipperSupportThread) {
+    const thread = deps.resolveShipperSupportThread(threadId, { by: 'telegram' });
+    if (!thread) return { ok: false, error: 'Không tìm thấy hội thoại!' };
+    return { ok: true, thread };
+  }
   if (!deps.readShipperSupportThreads || !deps.writeShipperSupportThreads) {
     return { ok: false, error: 'Module hỗ trợ chưa sẵn sàng!' };
   }
