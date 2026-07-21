@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=3.5">
+  <link rel="stylesheet" href="style.css?v=3.7">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -473,58 +473,98 @@
 
       <!-- TAB 3: STATS & HISTORY -->
       <section id="tab-history" class="tab-content">
-        <div class="section-title">
-          <h3>Thống Kê Hiệu Suất</h3>
-        </div>
-        
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-card__val" id="stats-total-orders">0</div>
-            <div class="stat-card__label">Đơn hoàn thành</div>
+        <div class="perf-hero">
+          <div class="perf-hero__top">
+            <div>
+              <p class="perf-hero__eyebrow">Hiệu suất</p>
+              <h3 class="perf-hero__title">Thu nhập &amp; tiền quán</h3>
+            </div>
+            <div class="perf-period" role="tablist" aria-label="Khoảng thời gian">
+              <button type="button" class="perf-period__btn is-active" data-period="today" onclick="setPerfPeriod('today')">Hôm nay</button>
+              <button type="button" class="perf-period__btn" data-period="7d" onclick="setPerfPeriod('7d')">7 ngày</button>
+              <button type="button" class="perf-period__btn" data-period="all" onclick="setPerfPeriod('all')">Tất cả</button>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-card__val" id="stats-total-earnings">0đ</div>
-            <div class="stat-card__label">Tổng thu nhập</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-card__val" id="stats-avg-rating">5.0 ★</div>
-            <div class="stat-card__label">Đánh giá sao</div>
+
+          <div class="money-board">
+            <div class="money-board__main">
+              <span class="money-board__label">Thu nhập shipper</span>
+              <strong class="money-board__value" id="stats-total-earnings">0đ</strong>
+              <span class="money-board__hint" id="stats-period-label">Hôm nay</span>
+            </div>
+            <div class="money-board__side">
+              <div class="money-chip money-chip--store">
+                <span>Tiền quán</span>
+                <strong id="stats-store-total">0đ</strong>
+              </div>
+              <div class="money-chip money-chip--cod">
+                <span>COD khách</span>
+                <strong id="stats-cod-total">0đ</strong>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="stats-detailed" style="margin-top: var(--space-md);">
+        <div class="stats-grid stats-grid--four">
+          <div class="stat-card">
+            <div class="stat-card__val" id="stats-total-orders">0</div>
+            <div class="stat-card__label">Đơn xong</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__val" id="stats-avg-rating">—</div>
+            <div class="stat-card__label">Đánh giá</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__val" id="stats-acceptance-rate">100%</div>
+            <div class="stat-card__label">AR nhận đơn</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card__val" id="stats-completion-rate">100%</div>
+            <div class="stat-card__label">CR hoàn thành</div>
+          </div>
+        </div>
+
+        <div class="stats-detailed">
           <div class="performance-row">
             <div class="performance-card">
               <div class="perf-title">Tỷ lệ nhận đơn (AR)</div>
-              <div class="perf-val" id="stats-acceptance-rate">100%</div>
+              <div class="perf-meta">
+                <span class="perf-val" id="stats-acceptance-rate-lg">100%</span>
+                <span class="perf-sub" id="stats-ar-detail">0 nhận / 0 đề xuất</span>
+              </div>
               <div class="perf-progress">
                 <div class="perf-progress-fill" id="stats-acceptance-fill" style="width: 100%;"></div>
               </div>
             </div>
             <div class="performance-card">
               <div class="perf-title">Tỷ lệ hoàn thành (CR)</div>
-              <div class="perf-val" id="stats-completion-rate">100%</div>
+              <div class="perf-meta">
+                <span class="perf-val" id="stats-completion-rate-lg">100%</span>
+                <span class="perf-sub" id="stats-cr-detail">0 giao / 0 nhận</span>
+              </div>
               <div class="perf-progress">
-                <div class="perf-progress-fill" id="stats-completion-fill" style="width: 100%;"></div>
+                <div class="perf-progress-fill perf-progress-fill--cr" id="stats-completion-fill" style="width: 100%;"></div>
               </div>
             </div>
           </div>
         </div>
 
-        <button type="button" class="crm-support-launch" id="crm-support-launch" onclick="openCrmSupportSheet()">
-          <span class="crm-support-launch__icon"><i class="fa-solid fa-headset"></i></span>
-          <span class="crm-support-launch__copy">
-            <strong>Nhắn CRM hỗ trợ</strong>
-            <small>Mở chat từ dưới lên · đơn hàng / khẩn cấp</small>
-          </span>
-          <span class="crm-support-launch__chevron" aria-hidden="true"><i class="fa-solid fa-chevron-up"></i></span>
-        </button>
+        <div class="perf-actions">
+          <button type="button" class="crm-support-launch" id="crm-support-launch" onclick="openCrmSupportSheet()">
+            <span class="crm-support-launch__icon"><i class="fa-solid fa-headset"></i></span>
+            <span class="crm-support-launch__copy">
+              <strong>Nhắn CRM hỗ trợ</strong>
+              <small>Đơn hàng · khẩn cấp · khiếu nại</small>
+            </span>
+            <span class="crm-support-launch__chevron" aria-hidden="true"><i class="fa-solid fa-chevron-up"></i></span>
+          </button>
+        </div>
 
-        <div class="section-title" style="margin-top: var(--space-lg);">
-          <h3>Lịch Sử Giao Nhận</h3>
+        <div class="section-title section-title--history">
+          <h3>Lịch sử giao nhận</h3>
+          <span class="section-title__count" id="history-count-label">0 đơn</span>
         </div>
         <div class="history-list" id="history-orders-list">
-          <!-- Populated by JS -->
           <div class="empty-state">
             <i class="fa-solid fa-clock-rotate-left"></i>
             <p>Chưa có lịch sử giao hàng.</p>
@@ -685,6 +725,6 @@
       }
     });
   </script>
-  <script src="app.js?v=3.5"></script>
+  <script src="app.js?v=3.7"></script>
 </body>
 </html>
