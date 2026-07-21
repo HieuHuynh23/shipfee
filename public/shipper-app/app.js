@@ -286,6 +286,7 @@ let pollFailCount = 0;
 let pollBackoffActive = false;
 let lastChatFingerprint = '';
 let lastHistoryFingerprint = '';
+let perfPeriodFilter = 'today'; // today | 7d | all
 let activeTabId = 'orders';
 let mapFollowGps = true;
 let lastGpsUiUpdate = 0;
@@ -2607,8 +2608,8 @@ async function syncStatsToServer() {
     if (raw) statsObj = JSON.parse(raw);
 
     const totalOffers = statsObj.accepted + statsObj.declined;
-    const arPercentage = totalOffers > 0 ? Math.round((statsObj.accepted / totalOffers) * 100) : 100;
-    const crPercentage = statsObj.accepted > 0 ? Math.round((statsObj.completed / statsObj.accepted) * 100) : 100;
+    const arPercentage = clampPercent(totalOffers > 0 ? (statsObj.accepted / totalOffers) * 100 : 100);
+    const crPercentage = clampPercent(statsObj.accepted > 0 ? (statsObj.completed / statsObj.accepted) * 100 : 100);
 
     let totalEarnings = 0;
     if (Array.isArray(historyOrders)) {
@@ -2643,10 +2644,46 @@ async function syncStatsToServer() {
 }
 
 // ── STATS & HISTORY TAB ─────────────────────────────────────────────────────
+function startOfLocalDay(ts = Date.now()) {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function filterHistoryByPeriod(orders, period) {
+  const list = Array.isArray(orders) ? orders : [];
+  if (period === 'all') return list.slice();
+  const now = Date.now();
+  if (period === '7d') {
+    const from = now - 7 * 24 * 60 * 60 * 1000;
+    return list.filter(o => (o.deliveredAt || o.createdAt || 0) >= from);
+  }
+  const todayStart = startOfLocalDay(now);
+  return list.filter(o => (o.deliveredAt || o.createdAt || 0) >= todayStart);
+}
+
+function setPerfPeriod(period) {
+  const next = (period === '7d' || period === 'all') ? period : 'today';
+  if (perfPeriodFilter === next) return;
+  perfPeriodFilter = next;
+  lastHistoryFingerprint = '';
+  document.querySelectorAll('.perf-period__btn').forEach(btn => {
+    btn.classList.toggle('is-active', btn.getAttribute('data-period') === next);
+  });
+  renderHistoryAndStats();
+}
+window.setPerfPeriod = setPerfPeriod;
+
+function clampPercent(n) {
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 function renderHistoryAndStats() {
   const fingerprint = [
+    perfPeriodFilter,
     historyOrders.length,
-    historyOrders.map(o => `${o.id}:${o.rating || 0}:${o.shipperEarning || 0}`).join(','),
+    historyOrders.map(o => `${o.id}:${o.rating || 0}:${o.shipperEarning || 0}:${o.storeTotal || 0}:${o.appTotal || 0}`).join(','),
     stats.accepted || 0,
     stats.declined || 0,
     stats.completed || 0
@@ -2654,82 +2691,115 @@ function renderHistoryAndStats() {
   if (fingerprint === lastHistoryFingerprint) return;
   lastHistoryFingerprint = fingerprint;
 
-  const totalOrders = historyOrders.length;
-  
+  const filtered = filterHistoryByPeriod(historyOrders, perfPeriodFilter);
+  const totalOrders = filtered.length;
+
   let totalEarnings = 0;
+  let totalStore = 0;
+  let totalCod = 0;
   let totalRatings = 0;
   let ratedCount = 0;
-  
-  historyOrders.forEach(o => {
+
+  filtered.forEach(o => {
     totalEarnings += o.shipperEarning || 0;
+    totalStore += o.storeTotal || 0;
+    totalCod += o.appTotal || 0;
     if (o.rating) {
       totalRatings += o.rating;
       ratedCount++;
     }
   });
-  
-  const avgRating = ratedCount > 0 ? (totalRatings / ratedCount).toFixed(1) + ' ★' : '5.0 ★';
-  
-  // Calculate quality rates
-  const totalOffers = stats.accepted + stats.declined;
-  const arPercentage = totalOffers > 0 ? Math.round((stats.accepted / totalOffers) * 100) : 100;
-  const crPercentage = stats.accepted > 0 ? Math.round((stats.completed / stats.accepted) * 100) : 100;
 
-  document.getElementById('stats-total-orders').textContent = totalOrders;
-  document.getElementById('stats-total-earnings').textContent = formatCurrency(totalEarnings);
-  document.getElementById('stats-avg-rating').textContent = avgRating;
-  
-  // Update detailed rates UI
-  document.getElementById('stats-acceptance-rate').textContent = arPercentage + '%';
-  document.getElementById('stats-acceptance-fill').style.width = arPercentage + '%';
-  document.getElementById('stats-completion-rate').textContent = crPercentage + '%';
-  document.getElementById('stats-completion-fill').style.width = crPercentage + '%';
+  const avgRating = ratedCount > 0 ? (totalRatings / ratedCount).toFixed(1) + '★' : '—';
 
-  // Render completed list
+  // AR/CR: cap 0–100% (tránh CR 200% khi stats.completed lệch)
+  const totalOffers = (stats.accepted || 0) + (stats.declined || 0);
+  const arRaw = totalOffers > 0 ? ((stats.accepted || 0) / totalOffers) * 100 : 100;
+  const crRaw = (stats.accepted || 0) > 0
+    ? ((stats.completed || 0) / stats.accepted) * 100
+    : 100;
+  const arPercentage = clampPercent(arRaw);
+  const crPercentage = clampPercent(crRaw);
+
+  const periodLabels = { today: 'Hôm nay', '7d': '7 ngày gần đây', all: 'Toàn bộ lịch sử' };
+  const periodEl = document.getElementById('stats-period-label');
+  if (periodEl) periodEl.textContent = periodLabels[perfPeriodFilter] || 'Hôm nay';
+
+  const setText = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  };
+
+  setText('stats-total-orders', String(totalOrders));
+  setText('stats-total-earnings', formatCurrency(totalEarnings));
+  setText('stats-store-total', formatCurrency(totalStore));
+  setText('stats-cod-total', formatCurrency(totalCod));
+  setText('stats-avg-rating', avgRating);
+  setText('stats-acceptance-rate', arPercentage + '%');
+  setText('stats-completion-rate', crPercentage + '%');
+  setText('stats-acceptance-rate-lg', arPercentage + '%');
+  setText('stats-completion-rate-lg', crPercentage + '%');
+  setText('stats-ar-detail', `${stats.accepted || 0} nhận / ${totalOffers} đề xuất`);
+  setText('stats-cr-detail', `${stats.completed || 0} giao / ${stats.accepted || 0} nhận`);
+  setText('history-count-label', `${totalOrders} đơn`);
+
+  const arFill = document.getElementById('stats-acceptance-fill');
+  const crFill = document.getElementById('stats-completion-fill');
+  if (arFill) arFill.style.width = arPercentage + '%';
+  if (crFill) crFill.style.width = crPercentage + '%';
+
   const container = document.getElementById('history-orders-list');
+  if (!container) return;
   container.innerHTML = '';
-  
-  if (historyOrders.length === 0) {
+
+  if (filtered.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <i class="fa-solid fa-clock-rotate-left"></i>
-        <p>Bạn chưa hoàn thành đơn hàng nào hôm nay.</p>
+        <p>Chưa có đơn hoàn thành trong khoảng này.</p>
       </div>`;
+    syncStatsToServer();
     return;
   }
-  
-  historyOrders.sort((a, b) => b.createdAt - a.createdAt).forEach(order => {
+
+  filtered.sort((a, b) => (b.deliveredAt || b.createdAt || 0) - (a.deliveredAt || a.createdAt || 0)).forEach(order => {
     const card = document.createElement('div');
     card.className = 'history-card animate-fade-in';
-    
+
     let feedbackHtml = '';
     if (order.rating) {
       let stars = '';
       for (let i = 1; i <= 5; i++) {
         stars += i <= order.rating ? '★' : '☆';
       }
+      const note = order.comment
+        ? escapeHtml(String(order.comment))
+        : 'Khách hàng đánh giá qua App';
       feedbackHtml = `
         <div class="history-card__feedback">
-          <span style="color:#F59E0B; font-weight:700;">${stars}</span>
-          <span>${order.comment ? `"${order.comment}"` : 'Không để lại lời nhắn'}</span>
+          <span class="history-card__stars">${stars}</span>
+          <span>${note}</span>
         </div>
       `;
     }
-    
+
     card.innerHTML = `
       <div class="history-card__header">
-        <span class="history-card__res">${order.restaurantName}</span>
+        <span class="history-card__res">${escapeHtml(order.restaurantName || 'Quán')}</span>
         <span class="history-card__earning">+${formatCurrency(order.shipperEarning)}</span>
       </div>
+      <div class="history-card__money">
+        <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(order.storeTotal)}</span>
+        <span><i class="fa-solid fa-wallet"></i> COD ${formatCurrency(order.appTotal)}</span>
+      </div>
       <div class="history-card__date">
-        Đơn: ${order.id} · ${formatDate(order.createdAt)} · Tổng COD: ${formatCurrency(order.appTotal)}
+        ${escapeHtml(String(order.id || ''))} · ${formatDate(order.deliveredAt || order.createdAt)}
       </div>
       ${feedbackHtml}
     `;
     container.appendChild(card);
   });
 
-  // Kích hoạt đồng bộ các chỉ số thống kê tổng hợp mới nhất lên server CRM
   syncStatsToServer();
 }
 
