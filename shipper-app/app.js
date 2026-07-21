@@ -297,6 +297,8 @@ const declinedPublicOrders = new Map(); // orderId -> expiresAt
 const DECLINE_IGNORE_MS = 10 * 60 * 1000;
 
 // Performance stats (Acceptance Rate, Completion Rate)
+// Bump STATS_EPOCH khi cần xoá AR/CR cũ trên máy tài xế (go-live / reset vận hành)
+const STATS_EPOCH = 'golive-2026-07-21';
 let stats = {
   accepted: 0,
   declined: 0,
@@ -2573,29 +2575,60 @@ function stopOrderAlertLoop() {
 }
 
 // ── DRIVER STATS PERSISTENCE ────────────────────────────────────────────────
+function statsStorageKey(phone) {
+  return `shipfee_shipper_stats_${cleanPhone(phone)}`;
+}
+
+function statsEpochKey(phone) {
+  return `shipfee_shipper_stats_epoch_${cleanPhone(phone)}`;
+}
+
+function emptyStats() {
+  return { accepted: 0, declined: 0, completed: 0 };
+}
+
 function loadStats() {
   try {
     if (!currentDriver) {
-      stats = { accepted: 0, declined: 0, completed: 0 };
+      stats = emptyStats();
       return;
     }
-    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
+    const phone = currentDriver.phone;
+    const key = statsStorageKey(phone);
+    const epochKey = statsEpochKey(phone);
+    const storedEpoch = localStorage.getItem(epochKey);
+
+    // Epoch mới (go-live) → xoá bộ đếm AR/CR cũ trên máy, không lấy từ đơn hàng
+    if (storedEpoch !== STATS_EPOCH) {
+      stats = emptyStats();
+      localStorage.setItem(key, JSON.stringify(stats));
+      localStorage.setItem(epochKey, STATS_EPOCH);
+      syncStatsToServer();
+      return;
+    }
+
     const raw = localStorage.getItem(key);
     if (raw) {
-      stats = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      stats = {
+        accepted: Number(parsed.accepted) || 0,
+        declined: Number(parsed.declined) || 0,
+        completed: Number(parsed.completed) || 0
+      };
     } else {
-      stats = { accepted: 0, declined: 0, completed: 0 };
+      stats = emptyStats();
     }
   } catch (e) {
-    stats = { accepted: 0, declined: 0, completed: 0 };
+    stats = emptyStats();
   }
 }
 
 function saveStats() {
   try {
     if (!currentDriver) return;
-    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
-    localStorage.setItem(key, JSON.stringify(stats));
+    const phone = currentDriver.phone;
+    localStorage.setItem(statsStorageKey(phone), JSON.stringify(stats));
+    localStorage.setItem(statsEpochKey(phone), STATS_EPOCH);
     syncStatsToServer(); // Tự động đồng bộ lên CRM server
   } catch (e) {}
 }
@@ -2603,9 +2636,9 @@ function saveStats() {
 async function syncStatsToServer() {
   if (!currentDriver) return;
   try {
-    const key = `shipfee_shipper_stats_${cleanPhone(currentDriver.phone)}`;
+    const key = statsStorageKey(currentDriver.phone);
     const raw = localStorage.getItem(key);
-    let statsObj = { accepted: 0, declined: 0, completed: 0 };
+    let statsObj = emptyStats();
     if (raw) statsObj = JSON.parse(raw);
 
     const totalOffers = statsObj.accepted + statsObj.declined;

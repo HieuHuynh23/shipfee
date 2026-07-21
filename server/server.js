@@ -7569,12 +7569,29 @@ app.post('/api/admin/demo/clear-orders', authenticateAdmin, async (req, res) => 
       kept.forEach(o => orders.push(o));
     });
     const removed = before - after;
-    console.log(`[Demo] Cleared ${removed} demo orders (kept ${after})`);
+
+    // Reset AR/CR trên server (client còn phải clear localStorage / epoch mới)
+    const wantPhone = demoOrders.cleanPhone(req.body?.phone || '');
+    const allShippers = readShippersDatabase();
+    let resetCount = 0;
+    for (const s of allShippers) {
+      const match = !wantPhone || demoOrders.cleanPhone(s.phone) === wantPhone;
+      if (!match) continue;
+      s.totalOrders = 0;
+      s.totalEarnings = 0;
+      s.acceptanceRate = 100;
+      s.completionRate = 100;
+      resetCount++;
+    }
+    if (resetCount > 0) writeShippersDatabase(allShippers);
+
+    console.log(`[Demo] Cleared ${removed} demo orders (kept ${after}); reset ${resetCount} shipper stats`);
     res.json({
       success: true,
-      message: `Đã xóa ${removed} đơn demo. Còn lại ${after} đơn.`,
+      message: `Đã xóa ${removed} đơn demo. Còn lại ${after} đơn. Đã reset AR/CR ${resetCount} tài xế.`,
       removed,
-      remaining: after
+      remaining: after,
+      shippersReset: resetCount
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
