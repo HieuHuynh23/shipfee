@@ -22,7 +22,7 @@
   <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152.png">
   <link rel="apple-touch-icon" sizes="167x167" href="icons/icon-167.png">
   <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png">
-  <link rel="stylesheet" href="style.css?v=3.7">
+  <link rel="stylesheet" href="style.css?v=3.8">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
@@ -487,32 +487,38 @@
           <div class="perf-hero__top">
             <div>
               <p class="perf-hero__eyebrow">Hiệu suất</p>
-              <h3 class="perf-hero__title">Thu nhập &amp; tiền quán</h3>
+              <h3 class="perf-hero__title">Thu nhập shipper</h3>
             </div>
             <div class="perf-period" role="tablist" aria-label="Khoảng thời gian">
               <button type="button" class="perf-period__btn is-active" data-period="today" onclick="setPerfPeriod('today')">Hôm nay</button>
               <button type="button" class="perf-period__btn" data-period="7d" onclick="setPerfPeriod('7d')">7 ngày</button>
-              <button type="button" class="perf-period__btn" data-period="all" onclick="setPerfPeriod('all')">Tất cả</button>
+              <button type="button" class="perf-period__btn" data-period="month" onclick="setPerfPeriod('month')">Tháng</button>
             </div>
           </div>
 
-          <div class="money-board">
+          <div class="money-board money-board--summary" id="money-board">
             <div class="money-board__main">
               <span class="money-board__label">Thu nhập shipper</span>
               <strong class="money-board__value" id="stats-total-earnings">0đ</strong>
               <span class="money-board__hint" id="stats-period-label">Hôm nay</span>
             </div>
-            <div class="money-board__side">
+            <div class="money-board__side" id="money-board-detail" hidden>
               <div class="money-chip money-chip--store">
                 <span>Tiền quán</span>
                 <strong id="stats-store-total">0đ</strong>
               </div>
               <div class="money-chip money-chip--cod">
-                <span>COD khách</span>
+                <span>Tiền khách</span>
                 <strong id="stats-cod-total">0đ</strong>
               </div>
             </div>
           </div>
+
+          <button type="button" class="perf-detail-toggle" id="perf-detail-toggle" onclick="togglePerfDetail()" aria-expanded="false">
+            <i class="fa-solid fa-chart-pie" aria-hidden="true"></i>
+            <span id="perf-detail-toggle-label">Xem chi tiết doanh thu</span>
+            <i class="fa-solid fa-chevron-down perf-detail-toggle__chevron" aria-hidden="true"></i>
+          </button>
         </div>
 
         <div class="stats-grid stats-grid--four">
@@ -570,11 +576,11 @@
           </button>
         </div>
 
-        <div class="section-title section-title--history">
-          <h3>Lịch sử giao nhận</h3>
+        <div class="section-title section-title--history" id="history-section-title" hidden>
+          <h3 id="history-section-heading">Chi tiết theo đơn</h3>
           <span class="section-title__count" id="history-count-label">0 đơn</span>
         </div>
-        <div class="history-list" id="history-orders-list">
+        <div class="history-list" id="history-orders-list" hidden>
           <div class="empty-state">
             <i class="fa-solid fa-clock-rotate-left"></i>
             <p>Chưa có lịch sử giao hàng.</p>
@@ -735,6 +741,6 @@
       }
     });
   </script>
-  <script src="app.js?v=3.7"></script>
+  <script src="app.js?v=3.8"></script>
 </body>
 </html>

@@ -1365,8 +1365,12 @@ body.modal-open {
 
 .money-board {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
+}
+
+.money-board--detail-open {
+  grid-template-columns: 1.2fr 1fr;
 }
 
 .money-board__main {
@@ -1405,6 +1409,10 @@ body.modal-open {
   gap: 8px;
 }
 
+.money-board__side[hidden] {
+  display: none !important;
+}
+
 .money-chip {
   flex: 1;
   padding: 10px 12px;
@@ -1435,6 +1443,41 @@ body.modal-open {
 
 .money-chip--cod {
   border-color: rgba(15, 23, 42, 0.08);
+}
+
+.perf-detail-toggle {
+  margin-top: 10px;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  color: var(--clr-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.perf-detail-toggle__chevron {
+  transition: transform 0.2s ease;
+  font-size: 11px;
+  color: var(--clr-text-muted);
+}
+
+.perf-detail-toggle.is-open .perf-detail-toggle__chevron {
+  transform: rotate(180deg);
+}
+
+.perf-detail-toggle.is-open {
+  border-color: rgba(239, 68, 68, 0.28);
+  color: var(--clr-primary);
 }
 
 .stats-grid {
@@ -1633,8 +1676,39 @@ body.modal-open {
   flex-shrink: 0;
 }
 
+.history-day__orders {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--clr-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.history-day__order-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clr-text-primary);
+}
+
+.history-day__order-top strong {
+  color: var(--clr-primary);
+  white-space: nowrap;
+}
+
+.history-day__order-money {
+  font-size: 10px;
+  color: var(--clr-text-muted);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
 @media (max-width: 360px) {
-  .money-board {
+  .money-board,
+  .money-board--detail-open {
     grid-template-columns: 1fr;
   }
   .stats-grid--four {

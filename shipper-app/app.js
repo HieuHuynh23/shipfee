@@ -286,7 +286,8 @@ let pollFailCount = 0;
 let pollBackoffActive = false;
 let lastChatFingerprint = '';
 let lastHistoryFingerprint = '';
-let perfPeriodFilter = 'today'; // today | 7d | all
+let perfPeriodFilter = 'today'; // today | 7d | month
+let perfDetailOpen = false;
 let activeTabId = 'orders';
 let mapFollowGps = true;
 let lastGpsUiUpdate = 0;
@@ -2650,20 +2651,72 @@ function startOfLocalDay(ts = Date.now()) {
   return d.getTime();
 }
 
+function startOfLocalMonth(ts = Date.now()) {
+  const d = new Date(ts);
+  d.setDate(1);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+function dayKey(ts) {
+  const d = new Date(ts || 0);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDayLabel(key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  if (!y || !m || !d) return key;
+  const todayKey = dayKey(Date.now());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = dayKey(yesterday.getTime());
+  if (key === todayKey) return `Hôm nay · ${d}/${m}`;
+  if (key === yesterdayKey) return `Hôm qua · ${d}/${m}`;
+  return `${d}/${m}/${y}`;
+}
+
 function filterHistoryByPeriod(orders, period) {
   const list = Array.isArray(orders) ? orders : [];
-  if (period === 'all') return list.slice();
   const now = Date.now();
   if (period === '7d') {
-    const from = now - 7 * 24 * 60 * 60 * 1000;
+    const from = startOfLocalDay(now - 6 * 24 * 60 * 60 * 1000);
+    return list.filter(o => (o.deliveredAt || o.createdAt || 0) >= from);
+  }
+  if (period === 'month') {
+    const from = startOfLocalMonth(now);
     return list.filter(o => (o.deliveredAt || o.createdAt || 0) >= from);
   }
   const todayStart = startOfLocalDay(now);
   return list.filter(o => (o.deliveredAt || o.createdAt || 0) >= todayStart);
 }
 
+function groupOrdersByDay(orders) {
+  const map = new Map();
+  (orders || []).forEach(o => {
+    const key = dayKey(o.deliveredAt || o.createdAt || 0);
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        orders: [],
+        earning: 0,
+        store: 0,
+        cod: 0
+      });
+    }
+    const row = map.get(key);
+    row.orders.push(o);
+    row.earning += o.shipperEarning || 0;
+    row.store += o.storeTotal || 0;
+    row.cod += o.appTotal || 0;
+  });
+  return Array.from(map.values()).sort((a, b) => (a.key < b.key ? 1 : -1));
+}
+
 function setPerfPeriod(period) {
-  const next = (period === '7d' || period === 'all') ? period : 'today';
+  const next = (period === '7d' || period === 'month') ? period : 'today';
   if (perfPeriodFilter === next) return;
   perfPeriodFilter = next;
   lastHistoryFingerprint = '';
@@ -2674,6 +2727,35 @@ function setPerfPeriod(period) {
 }
 window.setPerfPeriod = setPerfPeriod;
 
+function togglePerfDetail() {
+  perfDetailOpen = !perfDetailOpen;
+  lastHistoryFingerprint = '';
+  renderHistoryAndStats();
+}
+window.togglePerfDetail = togglePerfDetail;
+
+function applyPerfDetailVisibility() {
+  const board = document.getElementById('money-board');
+  const detailMoney = document.getElementById('money-board-detail');
+  const toggleBtn = document.getElementById('perf-detail-toggle');
+  const toggleLabel = document.getElementById('perf-detail-toggle-label');
+  const historyTitle = document.getElementById('history-section-title');
+  const historyList = document.getElementById('history-orders-list');
+
+  if (board) board.classList.toggle('money-board--detail-open', perfDetailOpen);
+  if (detailMoney) detailMoney.hidden = !perfDetailOpen;
+  if (historyTitle) historyTitle.hidden = !perfDetailOpen;
+  if (historyList) historyList.hidden = !perfDetailOpen;
+
+  if (toggleBtn) {
+    toggleBtn.setAttribute('aria-expanded', perfDetailOpen ? 'true' : 'false');
+    toggleBtn.classList.toggle('is-open', perfDetailOpen);
+  }
+  if (toggleLabel) {
+    toggleLabel.textContent = perfDetailOpen ? 'Thu gọn chi tiết' : 'Xem chi tiết doanh thu';
+  }
+}
+
 function clampPercent(n) {
   if (!Number.isFinite(n)) return 0;
   return Math.max(0, Math.min(100, Math.round(n)));
@@ -2682,6 +2764,7 @@ function clampPercent(n) {
 function renderHistoryAndStats() {
   const fingerprint = [
     perfPeriodFilter,
+    perfDetailOpen ? '1' : '0',
     historyOrders.length,
     historyOrders.map(o => `${o.id}:${o.rating || 0}:${o.shipperEarning || 0}:${o.storeTotal || 0}:${o.appTotal || 0}`).join(','),
     stats.accepted || 0,
@@ -2690,6 +2773,8 @@ function renderHistoryAndStats() {
   ].join('|');
   if (fingerprint === lastHistoryFingerprint) return;
   lastHistoryFingerprint = fingerprint;
+
+  applyPerfDetailVisibility();
 
   const filtered = filterHistoryByPeriod(historyOrders, perfPeriodFilter);
   const totalOrders = filtered.length;
@@ -2712,7 +2797,6 @@ function renderHistoryAndStats() {
 
   const avgRating = ratedCount > 0 ? (totalRatings / ratedCount).toFixed(1) + '★' : '—';
 
-  // AR/CR: cap 0–100% (tránh CR 200% khi stats.completed lệch)
   const totalOffers = (stats.accepted || 0) + (stats.declined || 0);
   const arRaw = totalOffers > 0 ? ((stats.accepted || 0) / totalOffers) * 100 : 100;
   const crRaw = (stats.accepted || 0) > 0
@@ -2721,9 +2805,16 @@ function renderHistoryAndStats() {
   const arPercentage = clampPercent(arRaw);
   const crPercentage = clampPercent(crRaw);
 
-  const periodLabels = { today: 'Hôm nay', '7d': '7 ngày gần đây', all: 'Toàn bộ lịch sử' };
+  const periodLabels = { today: 'Hôm nay', '7d': '7 ngày gần đây', month: 'Tháng này' };
   const periodEl = document.getElementById('stats-period-label');
   if (periodEl) periodEl.textContent = periodLabels[perfPeriodFilter] || 'Hôm nay';
+
+  const headingEl = document.getElementById('history-section-heading');
+  if (headingEl) {
+    headingEl.textContent = perfPeriodFilter === 'today'
+      ? 'Chi tiết từng đơn'
+      : 'Chi tiết theo ngày';
+  }
 
   const setText = (id, text) => {
     const el = document.getElementById(id);
@@ -2741,12 +2832,23 @@ function renderHistoryAndStats() {
   setText('stats-completion-rate-lg', crPercentage + '%');
   setText('stats-ar-detail', `${stats.accepted || 0} nhận / ${totalOffers} đề xuất`);
   setText('stats-cr-detail', `${stats.completed || 0} giao / ${stats.accepted || 0} nhận`);
-  setText('history-count-label', `${totalOrders} đơn`);
+  setText(
+    'history-count-label',
+    perfPeriodFilter === 'today'
+      ? `${totalOrders} đơn`
+      : `${groupOrdersByDay(filtered).length} ngày · ${totalOrders} đơn`
+  );
 
   const arFill = document.getElementById('stats-acceptance-fill');
   const crFill = document.getElementById('stats-completion-fill');
   if (arFill) arFill.style.width = arPercentage + '%';
   if (crFill) crFill.style.width = crPercentage + '%';
+
+  // Chưa mở chi tiết → không render danh sách breakdown
+  if (!perfDetailOpen) {
+    syncStatsToServer();
+    return;
+  }
 
   const container = document.getElementById('history-orders-list');
   if (!container) return;
@@ -2762,43 +2864,76 @@ function renderHistoryAndStats() {
     return;
   }
 
-  filtered.sort((a, b) => (b.deliveredAt || b.createdAt || 0) - (a.deliveredAt || a.createdAt || 0)).forEach(order => {
-    const card = document.createElement('div');
-    card.className = 'history-card animate-fade-in';
-
-    let feedbackHtml = '';
-    if (order.rating) {
-      let stars = '';
-      for (let i = 1; i <= 5; i++) {
-        stars += i <= order.rating ? '★' : '☆';
-      }
-      const note = order.comment
-        ? escapeHtml(String(order.comment))
-        : 'Khách hàng đánh giá qua App';
-      feedbackHtml = `
-        <div class="history-card__feedback">
-          <span class="history-card__stars">${stars}</span>
-          <span>${note}</span>
+  if (perfPeriodFilter === 'today') {
+    filtered
+      .slice()
+      .sort((a, b) => (b.deliveredAt || b.createdAt || 0) - (a.deliveredAt || a.createdAt || 0))
+      .forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'history-card animate-fade-in';
+        let feedbackHtml = '';
+        if (order.rating) {
+          let stars = '';
+          for (let i = 1; i <= 5; i++) stars += i <= order.rating ? '★' : '☆';
+          const note = order.comment
+            ? escapeHtml(String(order.comment))
+            : 'Khách hàng đánh giá qua App';
+          feedbackHtml = `
+            <div class="history-card__feedback">
+              <span class="history-card__stars">${stars}</span>
+              <span>${note}</span>
+            </div>`;
+        }
+        card.innerHTML = `
+          <div class="history-card__header">
+            <span class="history-card__res">${escapeHtml(order.restaurantName || 'Quán')}</span>
+            <span class="history-card__earning">+${formatCurrency(order.shipperEarning)}</span>
+          </div>
+          <div class="history-card__money">
+            <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(order.storeTotal)}</span>
+            <span><i class="fa-solid fa-wallet"></i> Khách ${formatCurrency(order.appTotal)}</span>
+          </div>
+          <div class="history-card__date">
+            ${escapeHtml(String(order.id || ''))} · ${formatDate(order.deliveredAt || order.createdAt)}
+          </div>
+          ${feedbackHtml}
+        `;
+        container.appendChild(card);
+      });
+  } else {
+    // 7 ngày / Tháng: liệt kê từng ngày
+    groupOrdersByDay(filtered).forEach(day => {
+      const card = document.createElement('div');
+      card.className = 'history-card history-card--day animate-fade-in';
+      const orderLines = day.orders
+        .slice()
+        .sort((a, b) => (b.deliveredAt || b.createdAt || 0) - (a.deliveredAt || a.createdAt || 0))
+        .map(o => `
+          <div class="history-day__order">
+            <div class="history-day__order-top">
+              <span>${escapeHtml(o.restaurantName || o.id || 'Đơn')}</span>
+              <strong>+${formatCurrency(o.shipperEarning)}</strong>
+            </div>
+            <div class="history-day__order-money">
+              Quán ${formatCurrency(o.storeTotal)} · Khách ${formatCurrency(o.appTotal)}
+            </div>
+          </div>
+        `).join('');
+      card.innerHTML = `
+        <div class="history-card__header">
+          <span class="history-card__res">${escapeHtml(formatDayLabel(day.key))}</span>
+          <span class="history-card__earning">+${formatCurrency(day.earning)}</span>
         </div>
+        <div class="history-card__money">
+          <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(day.store)}</span>
+          <span><i class="fa-solid fa-wallet"></i> Khách ${formatCurrency(day.cod)}</span>
+          <span><i class="fa-solid fa-box"></i> ${day.orders.length} đơn</span>
+        </div>
+        <div class="history-day__orders">${orderLines}</div>
       `;
-    }
-
-    card.innerHTML = `
-      <div class="history-card__header">
-        <span class="history-card__res">${escapeHtml(order.restaurantName || 'Quán')}</span>
-        <span class="history-card__earning">+${formatCurrency(order.shipperEarning)}</span>
-      </div>
-      <div class="history-card__money">
-        <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(order.storeTotal)}</span>
-        <span><i class="fa-solid fa-wallet"></i> COD ${formatCurrency(order.appTotal)}</span>
-      </div>
-      <div class="history-card__date">
-        ${escapeHtml(String(order.id || ''))} · ${formatDate(order.deliveredAt || order.createdAt)}
-      </div>
-      ${feedbackHtml}
-    `;
-    container.appendChild(card);
-  });
+      container.appendChild(card);
+    });
+  }
 
   syncStatsToServer();
 }
