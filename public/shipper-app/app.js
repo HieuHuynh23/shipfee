@@ -3839,6 +3839,8 @@ function closeCrmSupportSheet() {
   unbindCrmSupportKeyboardAvoidance();
   const input = document.getElementById('crm-support-input');
   if (input) input.blur();
+  // Hạ tần suất polling về mức nền sau khi đóng sheet
+  startCrmSupportPolling();
 }
 window.closeCrmSupportSheet = closeCrmSupportSheet;
 
@@ -4066,9 +4068,12 @@ function startCrmSupportPolling() {
   stopCrmSupportPolling();
   if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return;
   loadCrmSupportThread();
+  // Chu kỳ ngắn khi mở sheet để cập nhật gần như tức thời (admin đóng/nhắn),
+  // chu kỳ dài hơn khi chạy nền để tiết kiệm tài nguyên.
+  const interval = crmSupportSheetOpen ? 4000 : 8000;
   crmSupportPollTimer = setInterval(() => {
     loadCrmSupportThread();
-  }, 8000);
+  }, interval);
 }
 
 function stopCrmSupportPolling() {
