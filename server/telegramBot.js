@@ -1149,6 +1149,16 @@ async function adminReplySupportThread(threadId, replyText, chatId) {
 
   if (deps.markShipperSupportRead) deps.markShipperSupportRead(threadId, 'admin');
 
+  // Đẩy realtime cho tài xế
+  if (deps.emitSupportEvent) {
+    deps.emitSupportEvent({
+      type: 'admin_message',
+      shipperPhone: updated.shipperPhone,
+      threadId: updated.id,
+      status: updated.status
+    });
+  }
+
   // Đồng bộ sang chat đơn (nếu có) — giống API admin CRM
   if (updated.orderId && deps.updateOrdersDatabase) {
     await deps.updateOrdersDatabase((orders) => {
@@ -1182,6 +1192,14 @@ async function adminResolveSupportThread(threadId) {
   if (deps.resolveShipperSupportThread) {
     const thread = deps.resolveShipperSupportThread(threadId, { by: 'telegram' });
     if (!thread) return { ok: false, error: 'Không tìm thấy hội thoại!' };
+    if (deps.emitSupportEvent) {
+      deps.emitSupportEvent({
+        type: 'resolved',
+        shipperPhone: thread.shipperPhone,
+        threadId: thread.id,
+        status: 'resolved'
+      });
+    }
     return { ok: true, thread };
   }
   if (!deps.readShipperSupportThreads || !deps.writeShipperSupportThreads) {

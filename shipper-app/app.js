@@ -827,6 +827,7 @@ function startPolling() {
   syncAllData();
   schedulePolling(3000);
   startCrmSupportPolling();
+  connectCrmSupportStream();
 }
 
 function stopPolling() {
@@ -3509,6 +3510,8 @@ async function logoutDriver() {
     historyOrders = [];
     isOnline = false;
     stopPolling();
+    stopCrmSupportPolling();
+    disconnectCrmSupportStream();
     stopGpsTracking();
     
     document.getElementById('login-overlay').classList.add('active');
@@ -3796,6 +3799,42 @@ let crmSupportPollTimer = null;
 let crmSupportSheetOpen = false;
 let lastCrmSupportFingerprint = '';
 let lastCrmSupportStatus = null;      // theo dõi chuyển trạng thái open → resolved
+let crmSupportSse = null;             // EventSource realtime
+let crmSupportSseOk = false;          // SSE đang kết nối tốt?
+
+function connectCrmSupportStream() {
+  disconnectCrmSupportStream();
+  const jwt = sessionStorage.getItem('shipfee_jwt');
+  if (!currentDriver || !jwt || typeof EventSource === 'undefined') return;
+  try {
+    const url = `${API_BASE}/api/shippers/support/stream?token=${encodeURIComponent(jwt)}`;
+    const es = new EventSource(url);
+    crmSupportSse = es;
+    es.onopen = () => {
+      crmSupportSseOk = true;
+      startCrmSupportPolling(); // hạ tần suất polling xuống mức an toàn
+    };
+    es.onmessage = () => {
+      // Bất kỳ sự kiện hỗ trợ nào → tải lại thread ngay lập tức
+      loadCrmSupportThread();
+    };
+    es.onerror = () => {
+      // EventSource tự reconnect; trong lúc đó bật lại polling nhanh làm fallback
+      crmSupportSseOk = false;
+      startCrmSupportPolling();
+    };
+  } catch (_) {
+    crmSupportSseOk = false;
+  }
+}
+
+function disconnectCrmSupportStream() {
+  if (crmSupportSse) {
+    try { crmSupportSse.close(); } catch (_) { /* no-op */ }
+    crmSupportSse = null;
+  }
+  crmSupportSseOk = false;
+}
 
 function getCrmSupportTicketCode(thread) {
   if (!thread || !thread.id) return '';
@@ -3819,6 +3858,7 @@ function openCrmSupportSheet(opts = {}) {
   crmSupportSheetOpen = true;
   updateCrmSupportOrderTag();
   bindCrmSupportKeyboardAvoidance();
+  if (!crmSupportSse) connectCrmSupportStream();
   loadCrmSupportThread().then(() => {
     startCrmSupportPolling();
     if (opts.focus !== false) {
@@ -4068,9 +4108,9 @@ function startCrmSupportPolling() {
   stopCrmSupportPolling();
   if (!currentDriver || !sessionStorage.getItem('shipfee_jwt')) return;
   loadCrmSupportThread();
-  // Chu kỳ ngắn khi mở sheet để cập nhật gần như tức thời (admin đóng/nhắn),
-  // chu kỳ dài hơn khi chạy nền để tiết kiệm tài nguyên.
-  const interval = crmSupportSheetOpen ? 4000 : 8000;
+  // Khi SSE realtime đang tốt → chỉ cần polling an toàn thưa (20s).
+  // Khi không có SSE → polling nhanh làm fallback: 4s lúc mở sheet, 8s chạy nền.
+  const interval = crmSupportSseOk ? 20000 : (crmSupportSheetOpen ? 4000 : 8000);
   crmSupportPollTimer = setInterval(() => {
     loadCrmSupportThread();
   }, interval);

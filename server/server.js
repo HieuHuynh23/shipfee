@@ -24,6 +24,7 @@ const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
+const supportRealtime = require('./supportRealtime');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -725,6 +726,7 @@ function initTelegramBot() {
     appendShipperSupportMessage: (id, msg) => crm.appendShipperSupportMessage(id, msg),
     resolveShipperSupportThread: (id, opts) => crm.resolveShipperSupportThread(id, opts),
     markShipperSupportRead: (id, reader) => crm.markShipperSupportRead(id, reader),
+    emitSupportEvent: (evt) => supportRealtime.emitSupportEvent(evt),
     readNotifications,
     readDisputes: () => crm.readDisputes(),
     writeDisputes: (list) => crm.writeDisputes(list),
@@ -6019,6 +6021,29 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
 });
 
 /**
+ * GET /api/shippers/support/stream
+ * Kênh realtime (SSE) cho tài xế — CRM trả lời/đóng ticket sẽ đẩy tức thì.
+ * EventSource không set được header nên xác thực qua ?token=<JWT>.
+ */
+app.get('/api/shippers/support/stream', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).end();
+    const token = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!token) return res.status(401).end();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).end();
+    const shippers = readShippersDatabase();
+    const userPhone = (user.phone || user.user_metadata?.phone || '').trim().replace(/\s+/g, '');
+    const shipper = shippers.find(s => cleanPhone(s.phone) === userPhone || s.id === user.id);
+    const phone = cleanPhone(shipper ? shipper.phone : userPhone);
+    if (!phone) return res.status(401).end();
+    supportRealtime.openSseStream(req, res, (evt) => cleanPhone(evt.shipperPhone) === phone);
+  } catch (e) {
+    try { res.status(500).end(); } catch (_) { /* no-op */ }
+  }
+});
+
+/**
  * GET /api/shippers/support/thread
  * Thread chat hỗ trợ CRM của tài xế đang đăng nhập
  */
@@ -6101,6 +6126,14 @@ app.post('/api/shippers/support/messages', authenticateShipper, async (req, res)
       text: cleanedText,
       priority: isEmergency ? 'emergency' : undefined,
       orderId: linkedOrderId
+    });
+
+    // Đẩy realtime cho CRM
+    supportRealtime.emitSupportEvent({
+      type: 'shipper_message',
+      shipperPhone: phone,
+      threadId: (updated && updated.id) || thread.id,
+      status: (updated && updated.status) || 'open'
     });
 
     addNotification(
@@ -8005,6 +8038,26 @@ app.get('/api/admin/disputes', authenticateAdmin, (req, res) => {
 });
 
 /**
+ * GET /api/admin/shipper-support/stream
+ * Kênh realtime (SSE) cho CRM — tin nhắn mới của tài xế đẩy tức thì.
+ * EventSource không set được header nên xác thực qua ?token=<JWT>.
+ */
+app.get('/api/admin/shipper-support/stream', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).end();
+    const token = req.query.token || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+    if (!token) return res.status(401).end();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return res.status(401).end();
+    const role = crm.resolveAdminRole(user);
+    if (!role) return res.status(403).end();
+    supportRealtime.openSseStream(req, res, () => true);
+  } catch (e) {
+    try { res.status(500).end(); } catch (_) { /* no-op */ }
+  }
+});
+
+/**
  * GET /api/admin/shipper-support
  * Danh sách thread chat hỗ trợ từ tài xế
  */
@@ -8063,6 +8116,15 @@ app.post('/api/admin/shipper-support/:id/messages', authenticateAdmin, crm.requi
       shipperPhone: updated.shipperPhone,
       text: cleanedText.slice(0, 80)
     });
+
+    // Đẩy realtime cho tài xế (và các CRM khác)
+    supportRealtime.emitSupportEvent({
+      type: 'admin_message',
+      shipperPhone: updated.shipperPhone,
+      threadId: updated.id,
+      status: updated.status
+    });
+
     res.json({
       success: true,
       data: crm.readShipperSupportThreads().find(t => t.id === updated.id) || updated
@@ -8080,6 +8142,15 @@ app.post('/api/admin/shipper-support/:id/resolve', authenticateAdmin, crm.requir
     const resolved = crm.resolveShipperSupportThread(req.params.id, { by: req.user?.email || 'admin' });
     if (!resolved) return res.status(404).json({ success: false, error: 'Không tìm thấy thread' });
     crm.logAdminAudit(req, 'shipper_support_resolve', { threadId: req.params.id });
+
+    // Đẩy realtime: tài xế khôi phục giao diện chat ngay khi CRM đóng ticket
+    supportRealtime.emitSupportEvent({
+      type: 'resolved',
+      shipperPhone: resolved.shipperPhone,
+      threadId: resolved.id,
+      status: 'resolved'
+    });
+
     res.json({ success: true, data: resolved });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -8207,11 +8278,17 @@ app.post('/api/admin/orders/:id/messages', authenticateAdmin, crm.requireAdminRo
       if (shipper) {
         const thread = crm.getOrCreateShipperSupportThread(shipper, { orderId, priority: 'normal' });
         if (thread) {
-          crm.appendShipperSupportMessage(thread.id, {
+          const synced = crm.appendShipperSupportMessage(thread.id, {
             sender: 'admin',
             role: 'admin',
             text: cleanedText,
             adminEmail: req.user?.email || 'admin'
+          });
+          supportRealtime.emitSupportEvent({
+            type: 'admin_message',
+            shipperPhone,
+            threadId: thread.id,
+            status: (synced && synced.status) || 'open'
           });
         }
       }

@@ -151,16 +151,22 @@ async function renderSupport() {
   window.__shipperSupportFilter = window.__shipperSupportFilter || 'open';
   await Promise.all([loadShipperSupportThreads(), loadDisputes()]);
   startShipperSupportPolling();
+  connectShipperSupportStream();
 }
 
 let __shipperSupportPollTimer = null;
+let __shipperSupportSse = null;
+let __shipperSupportSseOk = false;
+
 function startShipperSupportPolling() {
   stopShipperSupportPolling();
+  // SSE realtime tốt → polling an toàn thưa (20s); không có SSE → 5s làm fallback
+  const interval = __shipperSupportSseOk ? 20000 : 5000;
   __shipperSupportPollTimer = setInterval(() => {
     if (currentPage === 'support' && document.getElementById('shipper-support-body')) {
       loadShipperSupportThreads({ silent: true });
     }
-  }, 5000);
+  }, interval);
 }
 function stopShipperSupportPolling() {
   if (__shipperSupportPollTimer) {
@@ -168,6 +174,41 @@ function stopShipperSupportPolling() {
     __shipperSupportPollTimer = null;
   }
 }
+
+function connectShipperSupportStream() {
+  disconnectShipperSupportStream();
+  const jwt = localStorage.getItem('shipfee_jwt');
+  if (!jwt || typeof EventSource === 'undefined') return;
+  try {
+    const url = `${API_BASE}/api/admin/shipper-support/stream?token=${encodeURIComponent(jwt)}`;
+    const es = new EventSource(url);
+    __shipperSupportSse = es;
+    es.onopen = () => {
+      __shipperSupportSseOk = true;
+      startShipperSupportPolling();
+    };
+    es.onmessage = () => {
+      if (currentPage === 'support' && document.getElementById('shipper-support-body')) {
+        loadShipperSupportThreads({ silent: true });
+      }
+    };
+    es.onerror = () => {
+      __shipperSupportSseOk = false;
+      startShipperSupportPolling();
+    };
+  } catch (_) {
+    __shipperSupportSseOk = false;
+  }
+}
+function disconnectShipperSupportStream() {
+  if (__shipperSupportSse) {
+    try { __shipperSupportSse.close(); } catch (_) { /* no-op */ }
+    __shipperSupportSse = null;
+  }
+  __shipperSupportSseOk = false;
+}
+window.connectShipperSupportStream = connectShipperSupportStream;
+window.disconnectShipperSupportStream = disconnectShipperSupportStream;
 
 function switchSupportSection(btn, section) {
   btn.parentElement.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
