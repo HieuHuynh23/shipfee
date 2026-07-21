@@ -3,20 +3,13 @@
 const fs = require('fs');
 const path = require('path');
 
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : __dirname;
-function dataPath(...segments) {
-  return path.join(DATA_DIR, ...segments);
-}
-
-const AUDIT_FILE = dataPath('admin-audit-local.json');
-const PROMOS_FILE = dataPath('promos-local.json');
-const ZONES_FILE = dataPath('delivery-zones-local.json');
-const BLACKLIST_FILE = dataPath('customer-blacklist-local.json');
-const DISPUTES_FILE = dataPath('disputes-local.json');
-const SHIPPER_SUPPORT_FILE = dataPath('shipper-support-local.json');
-const COMMISSIONS_FILE = dataPath('restaurant-commissions-local.json');
+const AUDIT_FILE = path.join(__dirname, 'admin-audit-local.json');
+const PROMOS_FILE = path.join(__dirname, 'promos-local.json');
+const ZONES_FILE = path.join(__dirname, 'delivery-zones-local.json');
+const BLACKLIST_FILE = path.join(__dirname, 'customer-blacklist-local.json');
+const DISPUTES_FILE = path.join(__dirname, 'disputes-local.json');
+const SHIPPER_SUPPORT_FILE = path.join(__dirname, 'shipper-support-local.json');
+const COMMISSIONS_FILE = path.join(__dirname, 'restaurant-commissions-local.json');
 
 const SLA_NOTIFIED = new Map(); // orderId -> lastNotifiedAt
 

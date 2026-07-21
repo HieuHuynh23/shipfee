@@ -25,24 +25,8 @@ const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
 
-/** Thư mục bền (Render Persistent Disk). Mặc định = thư mục server. */
-const DATA_DIR = process.env.DATA_DIR
-  ? path.resolve(process.env.DATA_DIR)
-  : __dirname;
-if (process.env.DATA_DIR) {
-  try {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-    console.log(`[Persist] DATA_DIR=${DATA_DIR}`);
-  } catch (e) {
-    console.warn('[Persist] Không tạo được DATA_DIR:', e.message);
-  }
-}
-function dataPath(...segments) {
-  return path.join(DATA_DIR, ...segments);
-}
-
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
-const NOTIFICATIONS_FILE = dataPath('notifications-local.json');
+const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
 
 function readNotifications() {
   if (!fs.existsSync(NOTIFICATIONS_FILE)) return [];
@@ -4884,7 +4868,7 @@ app.post('/api/cache/clear', (req, res) => {
 
 // ── ORDER DATABASE & API ENDPOINTS ──────────────────────────────────────────
 let ordersQueuePromise = Promise.resolve();
-const ORDERS_FILE_PATH = dataPath('orders-local.json');
+const ORDERS_FILE_PATH = path.join(__dirname, 'orders-local.json');
 
 function readOrdersDatabase() {
   try {
@@ -5666,7 +5650,7 @@ app.get('/api/orders/:id/call/poll', (req, res) => {
 });
 
 // ── SHIPPER AUTHENTICATION & SHIFT LOGS ────────────────────────────────────
-const SHIPPERS_FILE_PATH = dataPath('shippers-local.json');
+const SHIPPERS_FILE_PATH = path.join(__dirname, 'shippers-local.json');
 
 function readShippersDatabase() {
   try {

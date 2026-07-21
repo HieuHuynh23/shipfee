@@ -84,19 +84,16 @@ graph TD
 | `TELEGRAM_BOT_TOKEN` | Token bot Telegram phê duyệt tài xế | ✅ |
 | `TELEGRAM_CHAT_ID` | Chat ID nhóm Telegram quản trị | ✅ |
 | `METERED_API_KEY` | API key TURN server (WebRTC) | ❌ |
-| `DATA_DIR` | Thư mục bền cho `*-local.json` (vd. `/var/data` khi gắn Persistent Disk) | ❌ |
 
 > **Lưu ý**: File `.env` trên local dùng cho phát triển. Trên Render, cấu hình qua Dashboard → Environment.
 
-#### Persistent Disk (tuỳ chọn — gói Starter+)
+#### Lưu dữ liệu bền (miễn phí — không dùng Persistent Disk)
 
-Render Free **không** giữ file giữa các lần redeploy. Hệ thống đã hydrate đơn/thu nhập từ Supabase khi boot. Nếu muốn thêm lớp bền trên disk:
+Render Free **không** giữ file JSON giữa các lần redeploy. ShipFee **không** dùng Persistent Disk (tránh phát sinh phí). Thay vào đó:
 
-1. Render Dashboard → service API → **Disks** → Add Disk, Mount Path `/var/data`
-2. Environment: `DATA_DIR=/var/data`
-3. Redeploy — `orders-local.json`, `shippers-local.json` và file CRM local ghi vào disk
-
-File tham chiếu Blueprint: [`render.yaml`](render.yaml) (disk block comment sẵn; bật khi nâng gói).
+- Đơn hàng / doanh thu / khách → upsert + hydrate từ **Supabase** khi boot và khi CRM đọc báo cáo
+- Thu nhập tài xế (AR/CR/earnings) → lưu `shipper_profiles` trên Supabase, restore khi sync Auth
+- Login shipper/CRM → `localStorage` trên trình duyệt (không phụ thuộc disk server)
 
 ### 2.3. Cấu Hình Vercel (Frontend)
 
