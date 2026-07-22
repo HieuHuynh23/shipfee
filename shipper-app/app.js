@@ -288,6 +288,8 @@ let lastChatFingerprint = '';
 let lastHistoryFingerprint = '';
 let perfPeriodFilter = 'today'; // today | 7d | month
 let perfDetailOpen = false;
+/** Các ngày đang mở chi tiết đơn (7 ngày / tháng) */
+const expandedPerfDays = new Set();
 let activeTabId = 'orders';
 let mapFollowGps = true;
 let lastGpsUiUpdate = 0;
@@ -2752,6 +2754,7 @@ function setPerfPeriod(period) {
   const next = (period === '7d' || period === 'month') ? period : 'today';
   if (perfPeriodFilter === next) return;
   perfPeriodFilter = next;
+  expandedPerfDays.clear();
   lastHistoryFingerprint = '';
   document.querySelectorAll('.perf-period__btn').forEach(btn => {
     btn.classList.toggle('is-active', btn.getAttribute('data-period') === next);
@@ -2759,6 +2762,30 @@ function setPerfPeriod(period) {
   renderHistoryAndStats();
 }
 window.setPerfPeriod = setPerfPeriod;
+
+function togglePerfDayExpand(dayKey) {
+  if (!dayKey) return;
+  if (expandedPerfDays.has(dayKey)) expandedPerfDays.delete(dayKey);
+  else expandedPerfDays.add(dayKey);
+
+  const card = Array.from(document.querySelectorAll('.history-card--day'))
+    .find(el => el.dataset.day === dayKey);
+  if (!card) {
+    lastHistoryFingerprint = '';
+    renderHistoryAndStats();
+    return;
+  }
+  const open = expandedPerfDays.has(dayKey);
+  card.classList.toggle('is-expanded', open);
+  card.setAttribute('aria-expanded', open ? 'true' : 'false');
+  const panel = card.querySelector('.history-day__orders');
+  if (panel) panel.hidden = !open;
+  const hint = card.querySelector('.history-day__hint');
+  if (hint) hint.textContent = open ? 'Bấm để thu gọn' : 'Bấm để xem từng đơn';
+  const chevron = card.querySelector('.history-day__chevron');
+  if (chevron) chevron.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+window.togglePerfDayExpand = togglePerfDayExpand;
 
 function openPerfDetailSheet() {
   const overlay = document.getElementById('perf-detail-overlay');
@@ -2780,6 +2807,7 @@ function closePerfDetailSheet() {
     unlockBodyScroll();
   }
   perfDetailOpen = false;
+  expandedPerfDays.clear();
   lastHistoryFingerprint = '';
   // Cập nhật lại tổng trên tab chính (không render list)
   renderHistoryAndStats();
@@ -2858,7 +2886,7 @@ function renderHistoryAndStats() {
   if (sheetSub) {
     sheetSub.textContent = perfPeriodFilter === 'today'
       ? 'Tiền quán · tiền khách · từng đơn'
-      : 'Tiền quán · tiền khách · từng ngày';
+      : 'Tổng theo ngày — bấm ngày để xem từng đơn';
   }
 
   const headingEl = document.getElementById('history-section-heading');
@@ -2954,14 +2982,34 @@ function renderHistoryAndStats() {
         container.appendChild(card);
       });
   } else {
-    // 7 ngày / Tháng: liệt kê từng ngày
+    // 7 ngày / Tháng: chỉ hiện tổng theo ngày — bấm mới sổ từng đơn
     groupOrdersByDay(filtered).forEach(day => {
       const card = document.createElement('div');
-      card.className = 'history-card history-card--day animate-fade-in';
+      const isOpen = expandedPerfDays.has(day.key);
+      card.className = `history-card history-card--day animate-fade-in${isOpen ? ' is-expanded' : ''}`;
+      card.dataset.day = day.key;
+      card.setAttribute('role', 'button');
+      card.setAttribute('tabindex', '0');
+      card.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      card.addEventListener('click', () => togglePerfDayExpand(day.key));
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          togglePerfDayExpand(day.key);
+        }
+      });
+
       const orderLines = day.orders
         .slice()
         .sort((a, b) => (b.deliveredAt || b.createdAt || 0) - (a.deliveredAt || a.createdAt || 0))
-        .map(o => `
+        .map(o => {
+          let feedbackHtml = '';
+          if (o.rating) {
+            let stars = '';
+            for (let i = 1; i <= 5; i++) stars += i <= o.rating ? '★' : '☆';
+            feedbackHtml = `<div class="history-day__order-rating">${stars}</div>`;
+          }
+          return `
           <div class="history-day__order">
             <div class="history-day__order-top">
               <span>${escapeHtml(o.restaurantName || o.id || 'Đơn')}</span>
@@ -2969,20 +3017,29 @@ function renderHistoryAndStats() {
             </div>
             <div class="history-day__order-money">
               Quán ${formatCurrency(o.storeTotal)} · Khách ${formatCurrency(o.appTotal)}
+              · ${formatDate(o.deliveredAt || o.createdAt)}
             </div>
-          </div>
-        `).join('');
+            ${feedbackHtml}
+          </div>`;
+        }).join('');
+
       card.innerHTML = `
-        <div class="history-card__header">
-          <span class="history-card__res">${escapeHtml(formatDayLabel(day.key))}</span>
-          <span class="history-card__earning">+${formatCurrency(day.earning)}</span>
+        <div class="history-day__summary">
+          <div class="history-card__header">
+            <span class="history-card__res">${escapeHtml(formatDayLabel(day.key))}</span>
+            <span class="history-day__right">
+              <span class="history-card__earning">+${formatCurrency(day.earning)}</span>
+              <i class="fa-solid fa-chevron-down history-day__chevron" aria-hidden="true"></i>
+            </span>
+          </div>
+          <div class="history-card__money">
+            <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(day.store)}</span>
+            <span><i class="fa-solid fa-wallet"></i> Khách ${formatCurrency(day.cod)}</span>
+            <span><i class="fa-solid fa-box"></i> ${day.orders.length} đơn</span>
+          </div>
+          <div class="history-day__hint">${isOpen ? 'Bấm để thu gọn' : 'Bấm để xem từng đơn'}</div>
         </div>
-        <div class="history-card__money">
-          <span><i class="fa-solid fa-store"></i> Quán ${formatCurrency(day.store)}</span>
-          <span><i class="fa-solid fa-wallet"></i> Khách ${formatCurrency(day.cod)}</span>
-          <span><i class="fa-solid fa-box"></i> ${day.orders.length} đơn</span>
-        </div>
-        <div class="history-day__orders">${orderLines}</div>
+        <div class="history-day__orders" ${isOpen ? '' : 'hidden'}>${orderLines}</div>
       `;
       container.appendChild(card);
     });
