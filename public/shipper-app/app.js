@@ -367,6 +367,69 @@ function getChatFingerprint(order) {
 }
 
 let pollMode = 'all'; // 'all' | 'active'
+let shipperRealtime = null; // EventSource
+let shipperRealtimeActive = false;
+let shipperRealtimeDebounce = null;
+
+function openShipperRealtime() {
+  if (!currentDriver || typeof EventSource === 'undefined') return;
+  const token = getAuthItem(AUTH_JWT_KEY);
+  if (!token) return;
+  try {
+    if (shipperRealtime) {
+      shipperRealtime.close();
+      shipperRealtime = null;
+    }
+    const url = `${API_BASE}/api/realtime/stream?role=shipper&access_token=${encodeURIComponent(token)}`;
+    shipperRealtime = new EventSource(url);
+    shipperRealtime.addEventListener('connected', () => {
+      shipperRealtimeActive = true;
+      // SSE sống → bỏ polling 3s, chỉ sync khi có event (+ fallback chậm)
+      schedulePolling(45000);
+      console.log('[Realtime] Shipper SSE connected');
+    });
+    shipperRealtime.addEventListener('order_updated', () => {
+      if (shipperRealtimeDebounce) clearTimeout(shipperRealtimeDebounce);
+      shipperRealtimeDebounce = setTimeout(() => {
+        if (pollMode === 'active' && activeOrder) syncActiveOrderOnly();
+        else syncAllData();
+      }, 120);
+    });
+    shipperRealtime.addEventListener('call_updated', (ev) => {
+      try {
+        const payload = JSON.parse(ev.data || '{}');
+        if (payload.call && payload.call.status === 'ringing' && payload.call.caller === 'customer') {
+          if (activeOrder && String(payload.orderId) === String(activeOrder.id)) {
+            checkIncomingCall(activeOrder.id);
+          }
+        }
+      } catch (_) {}
+    });
+    shipperRealtime.onerror = () => {
+      shipperRealtimeActive = false;
+      try { shipperRealtime.close(); } catch (_) {}
+      shipperRealtime = null;
+      // Fallback polling nhanh khi SSE đứt
+      schedulePolling(3000);
+      setTimeout(() => { if (currentDriver) openShipperRealtime(); }, 4000);
+    };
+  } catch (e) {
+    shipperRealtimeActive = false;
+    console.warn('[Realtime] Shipper SSE failed:', e.message);
+  }
+}
+
+function closeShipperRealtime() {
+  shipperRealtimeActive = false;
+  if (shipperRealtimeDebounce) {
+    clearTimeout(shipperRealtimeDebounce);
+    shipperRealtimeDebounce = null;
+  }
+  if (shipperRealtime) {
+    try { shipperRealtime.close(); } catch (_) {}
+    shipperRealtime = null;
+  }
+}
 
 function schedulePolling(intervalMs) {
   if (pollInterval) {
@@ -875,11 +938,14 @@ function startPolling() {
   pollFailCount = 0;
   pollBackoffActive = false;
   syncAllData();
-  schedulePolling(3000);
+  openShipperRealtime();
+  // Khi SSE chưa sẵn sàng: poll 3s; khi connected sẽ nới 45s
+  schedulePolling(shipperRealtimeActive ? 45000 : 3000);
   startCrmSupportPolling();
 }
 
 function stopPolling() {
+  closeShipperRealtime();
   if (pollInterval) {
     clearInterval(pollInterval);
     pollInterval = null;
@@ -1300,16 +1366,32 @@ function closeJobDetail() {
 function declineOrder() {
   if (!activeJobId) return;
   const declinedId = activeJobId;
-  rememberDeclinedOrder(declinedId);
-  stats.declined++;
-  saveStats();
-  showToast('Đã từ chối đơn', `Bạn đã bỏ qua đơn hàng ${declinedId}.`, 'info');
-  closeJobDetail();
-  // Remove from local pending list immediately so poll won't flash it back
-  pendingOrders = pendingOrders.filter(o => o.id !== declinedId);
-  const poolOrders = pendingOrders.filter(o => !o.assignedShipperPhone || cleanPhone(o.assignedShipperPhone) !== cleanPhone(currentDriver && currentDriver.phone));
-  lastPendingLength = poolOrders.length;
-  renderPendingOrders(poolOrders);
+  // Đồng bộ server giống declineTargetedOffer — không chỉ ẩn local
+  (async () => {
+    try {
+      const res = await apiFetch(`${API_BASE}/api/orders/${declinedId}/decline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: currentDriver && currentDriver.phone })
+      }, 10000);
+      const json = await safeJson(res);
+      if (!res.ok || !json.success) {
+        showToast('Không từ chối được', (json && json.error) || 'Thử lại sau.', 'error');
+        return;
+      }
+      rememberDeclinedOrder(declinedId);
+      stats.declined++;
+      saveStats();
+      showToast('Đã từ chối đơn', `Bạn đã bỏ qua đơn hàng ${declinedId}.`, 'info');
+      closeJobDetail();
+      pendingOrders = pendingOrders.filter(o => o.id !== declinedId);
+      const poolOrders = pendingOrders.filter(o => !o.assignedShipperPhone || cleanPhone(o.assignedShipperPhone) !== cleanPhone(currentDriver && currentDriver.phone));
+      lastPendingLength = poolOrders.length;
+      renderPendingOrders(poolOrders);
+    } catch (e) {
+      showToast('Lỗi mạng', 'Không thể từ chối đơn.', 'error');
+    }
+  })();
 }
 
 // ── ACCEPT ORDER ───────────────────────────────────────────────────────────
@@ -1658,6 +1740,14 @@ async function advanceTripStatus() {
     if (response.ok && result.success) {
       if (nextStatus === 'DELIVERED') {
         stats.completed++;
+        // Đưa đơn vào history trước khi sync CRM — tránh earnings/totalOrders bị stale
+        const deliveredOrder = result.data || activeOrder;
+        if (deliveredOrder && deliveredOrder.id) {
+          historyOrders = [
+            deliveredOrder,
+            ...(historyOrders || []).filter(o => o && o.id !== deliveredOrder.id)
+          ];
+        }
         saveStats();
         const remaining = activeOrders.filter(o => o.id !== activeOrder.id);
         setActiveOrdersList(remaining);
@@ -3222,7 +3312,6 @@ function playSyntheticAudioBeep() {
 }
 
 async function checkIncomingCall(orderId) {
-  return; // VoIP calling disabled
   if (callActive) return;
   try {
     const res = await fetch(`${API_BASE}/api/orders/${orderId}/call/poll?role=shipper`);
@@ -3930,10 +4019,10 @@ async function showDriverProfile() {
   // Gọi đồng bộ bất đồng bộ từ server để cập nhật thông tin mới nhất
   refreshDriverInfo();
 
-  // Thống kê AR/CR từ stats theo tài xế hiện tại
+  // Thống kê AR/CR từ stats theo tài xế hiện tại (giới hạn 0–100%)
   const totalOffers = (stats.accepted || 0) + (stats.declined || 0);
-  const arPct = totalOffers > 0 ? Math.round((stats.accepted / totalOffers) * 100) : 100;
-  const crPct = stats.accepted > 0 ? Math.round((stats.completed / stats.accepted) * 100) : 100;
+  const arPct = clampPercent(totalOffers > 0 ? (stats.accepted / totalOffers) * 100 : 100);
+  const crPct = clampPercent(stats.accepted > 0 ? (stats.completed / stats.accepted) * 100 : 100);
   document.getElementById('profile-ar').textContent = arPct + '%';
   document.getElementById('profile-cr').textContent = crPct + '%';
   

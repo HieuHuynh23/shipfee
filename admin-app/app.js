@@ -347,7 +347,51 @@ function refreshCurrentPage() {
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   fetchAllData();
-  pollTimer = setInterval(fetchAllData, 15000);
+  openAdminRealtime();
+  pollTimer = setInterval(fetchAllData, adminRealtimeActive ? 60000 : 15000);
+}
+
+let adminRealtime = null;
+let adminRealtimeActive = false;
+let adminRealtimeDebounce = null;
+
+function openAdminRealtime() {
+  const token = localStorage.getItem('shipfee_jwt');
+  if (!token || typeof EventSource === 'undefined') return;
+  try {
+    if (adminRealtime) {
+      try { adminRealtime.close(); } catch (_) {}
+      adminRealtime = null;
+    }
+    const url = `${API_BASE}/api/realtime/stream?role=admin&access_token=${encodeURIComponent(token)}`;
+    adminRealtime = new EventSource(url);
+    adminRealtime.addEventListener('connected', () => {
+      adminRealtimeActive = true;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(fetchAllData, 60000);
+      }
+      console.log('[Realtime] Admin SSE connected');
+    });
+    const refreshSoon = () => {
+      if (adminRealtimeDebounce) clearTimeout(adminRealtimeDebounce);
+      adminRealtimeDebounce = setTimeout(() => fetchAllData(), 200);
+    };
+    adminRealtime.addEventListener('order_updated', refreshSoon);
+    adminRealtime.addEventListener('ops_tick', refreshSoon);
+    adminRealtime.onerror = () => {
+      adminRealtimeActive = false;
+      try { adminRealtime.close(); } catch (_) {}
+      adminRealtime = null;
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(fetchAllData, 15000);
+      }
+      setTimeout(() => openAdminRealtime(), 5000);
+    };
+  } catch (e) {
+    console.warn('[Realtime] Admin SSE failed', e);
+  }
 }
 
 async function fetchAllData() {
@@ -402,7 +446,17 @@ async function fetchAllData() {
         renderDashboardStats();
         renderOpsBoard();
       }
-      if (currentPage === 'orders') renderOrdersTable();
+      // Không ghi đè bảng Orders khi đang phân trang/lọc — tránh nhảy về 50 đơn đầu
+      if (
+        currentPage === 'orders' &&
+        orderFilter === 'all' &&
+        ordersPage <= 1 &&
+        !(document.getElementById('order-search')?.value || '').trim() &&
+        !ordersDateFrom &&
+        !ordersDateTo
+      ) {
+        renderOrdersTable();
+      }
       if (currentPage === 'shippers') renderShippersTable();
       if (currentPage === 'fleet') {
         loadFleetData();

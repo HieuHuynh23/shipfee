@@ -925,73 +925,108 @@
       }
     }
 
-    function startOrderPolling() {
-      if (pollInterval) clearInterval(pollInterval);
-      
-      const checkStatus = async () => {
-        try {
-          const response = await fetch(`${API_BASE}/api/orders/${order.id}`);
-          if (response.status === 404) {
-            stopOrderPolling();
-            SF.showToast('Đơn hàng không tồn tại', 'Đơn hàng không tìm thấy hoặc đã bị hủy.', 'error');
-            SF.clearActiveOrder();
-            setTimeout(() => SF.navigate('./'), 2000);
+    let customerRealtime = null;
+    let customerRealtimeActive = false;
+
+    function openCustomerRealtime() {
+      if (typeof EventSource === 'undefined' || !order || !order.id) return;
+      try {
+        if (customerRealtime) {
+          try { customerRealtime.close(); } catch (_) {}
+          customerRealtime = null;
+        }
+        const url = `${API_BASE}/api/realtime/stream?role=customer&orderId=${encodeURIComponent(order.id)}`;
+        customerRealtime = new EventSource(url);
+        customerRealtime.addEventListener('connected', () => {
+          customerRealtimeActive = true;
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = setInterval(checkStatusOnce, 45000);
+          }
+          console.log('[Realtime] Customer SSE connected');
+        });
+        customerRealtime.addEventListener('order_updated', () => {
+          checkStatusOnce();
+        });
+        customerRealtime.addEventListener('call_updated', () => {
+          checkIncomingCall(order.id);
+        });
+        customerRealtime.onerror = () => {
+          customerRealtimeActive = false;
+          try { customerRealtime.close(); } catch (_) {}
+          customerRealtime = null;
+          if (pollInterval) clearInterval(pollInterval);
+          pollInterval = setInterval(checkStatusOnce, 3000);
+          setTimeout(() => openCustomerRealtime(), 4000);
+        };
+      } catch (e) {
+        console.warn('[Realtime] Customer SSE failed', e);
+      }
+    }
+
+    async function checkStatusOnce() {
+      try {
+        const response = await fetch(`${API_BASE}/api/orders/${order.id}`);
+        if (response.status === 404) {
+          stopOrderPolling();
+          SF.showToast('Đơn hàng không tồn tại', 'Đơn hàng không tìm thấy hoặc đã bị hủy.', 'error');
+          SF.clearActiveOrder();
+          setTimeout(() => SF.navigate('./'), 2000);
+          return;
+        }
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.success && result.data) {
+          const updated = result.data;
+
+          if (updated.status === 'CANCELLED') {
+            order = { ...order, ...updated };
+            handleOrderCancelled(updated.cancelReason);
             return;
           }
-          if (!response.ok) return;
-          const result = await response.json();
-          if (result.success && result.data) {
-            const updated = result.data;
-
-            // Admin/hệ thống hủy đơn → thoát tracking (tránh treo màn hình)
-            if (updated.status === 'CANCELLED') {
-              order = { ...order, ...updated };
-              handleOrderCancelled(updated.cancelReason);
-              return;
-            }
-            
-            // Check if status changed
-            if (updated.status !== order.status) {
-              const msgs = {
-                ACCEPTED:  ['🛵 Shipper đã nhận đơn!', 'Nguyễn Văn Tài đang di chuyển đến quán lấy hàng.'],
-                PURCHASED: ['🛒 Đã mua hàng tại quán!', 'Shipper đã ứng tiền trả và đang giao đến bạn.'],
-                DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán COD và đánh giá tài xế nhé!']
-              };
-              if (msgs[updated.status]) {
-                SF.showToast(msgs[updated.status][0], msgs[updated.status][1], 'success');
-              }
-            }
-
-            // Sync local activeOrder state so rating/reorder work
-            const state = SF.getState();
-            state.activeOrder = {
-              ...state.activeOrder,
-              ...updated,
-              statusHistory: state.activeOrder ? state.activeOrder.statusHistory : []
+          
+          if (updated.status !== order.status) {
+            const msgs = {
+              ACCEPTED:  ['🛵 Shipper đã nhận đơn!', 'Nguyễn Văn Tài đang di chuyển đến quán lấy hàng.'],
+              PURCHASED: ['🛒 Đã mua hàng tại quán!', 'Shipper đã ứng tiền trả và đang giao đến bạn.'],
+              DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán COD và đánh giá tài xế nhé!']
             };
-            if (state.activeOrder && updated.status !== order.status) {
-              if (!state.activeOrder.statusHistory) state.activeOrder.statusHistory = [];
-              state.activeOrder.statusHistory.push({ status: updated.status, time: Date.now() });
+            if (msgs[updated.status]) {
+              SF.showToast(msgs[updated.status][0], msgs[updated.status][1], 'success');
             }
-            SF.saveState(state);
-
-            // Kiểm tra tin nhắn mới từ tài xế
-            checkNewMessages(order, updated);
-
-            order = state.activeOrder;
-            renderUI(order.status);
-            if (isChatOpen) {
-              renderChatMessages();
-            }
-            checkIncomingCall(order.id);
           }
-        } catch (err) {
-          console.error('[Tracking Poll] Error polling order details:', err);
-        }
-      };
 
-      checkStatus();
-      pollInterval = setInterval(checkStatus, 3000);
+          const state = SF.getState();
+          state.activeOrder = {
+            ...state.activeOrder,
+            ...updated,
+            statusHistory: state.activeOrder ? state.activeOrder.statusHistory : []
+          };
+          if (state.activeOrder && updated.status !== order.status) {
+            if (!state.activeOrder.statusHistory) state.activeOrder.statusHistory = [];
+            state.activeOrder.statusHistory.push({ status: updated.status, time: Date.now() });
+          }
+          SF.saveState(state);
+
+          checkNewMessages(order, updated);
+
+          order = state.activeOrder;
+          renderUI(order.status);
+          if (isChatOpen) {
+            renderChatMessages();
+          }
+          checkIncomingCall(order.id);
+        }
+      } catch (err) {
+        console.error('[Tracking Poll] Error polling order details:', err);
+      }
+    }
+
+    function startOrderPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      checkStatusOnce();
+      openCustomerRealtime();
+      pollInterval = setInterval(checkStatusOnce, customerRealtimeActive ? 45000 : 3000);
     }
 
     function stopOrderPolling() {
@@ -999,6 +1034,11 @@
         clearInterval(pollInterval);
         pollInterval = null;
       }
+      if (customerRealtime) {
+        try { customerRealtime.close(); } catch (_) {}
+        customerRealtime = null;
+      }
+      customerRealtimeActive = false;
     }
 
     /* ── Bottom sheet (peek / expand) ── */
