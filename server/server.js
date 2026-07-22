@@ -24,6 +24,7 @@ const menuScraper = require('./menuScraper');
 const dbHelper    = require('./dbHelper');
 const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
+const realtimeHub = require('./realtimeHub');
 const demoOrders = require('./demoOrders');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
@@ -499,7 +500,7 @@ async function syncShippersFromSupabase() {
           email: email || `${cleanPhone}@shipfee.vn`,
           cccd: metadata.cccd || '',
           avatarUrl: normalizeImageUrl(metadata.avatar_url || '', null),
-          isApproved: true, // Mặc định là true nếu đã có trên Supabase
+          isApproved: metadata.is_approved !== false && metadata.pending_crm_approval !== true,
           status: 'OFFLINE',
           lastCheckIn: null,
           lastCheckOut: null,
@@ -544,26 +545,26 @@ async function syncShippersFromSupabase() {
         localShippers.forEach(s => {
           const p = (s.id && byId.get(s.id)) || byPhone.get(normalizeShipperPhone(s.phone));
           if (!p) return;
-          const totalOrders = Number(p.total_orders);
-          const totalEarnings = Number(p.total_earnings);
-          const acceptanceRate = Number(p.acceptance_rate);
-          const completionRate = Number(p.completion_rate);
-          const nextOrders = Number.isFinite(totalOrders) ? totalOrders : (s.totalOrders || 0);
-          const nextEarnings = Number.isFinite(totalEarnings) ? totalEarnings : (s.totalEarnings || 0);
-          const nextAr = Number.isFinite(acceptanceRate) ? acceptanceRate : (s.acceptanceRate ?? 100);
-          const nextCr = Number.isFinite(completionRate) ? completionRate : (s.completionRate ?? 100);
-          if (
-            s.totalOrders !== nextOrders ||
-            s.totalEarnings !== nextEarnings ||
-            s.acceptanceRate !== nextAr ||
-            s.completionRate !== nextCr
-          ) {
-            s.totalOrders = nextOrders;
-            s.totalEarnings = nextEarnings;
-            s.acceptanceRate = nextAr;
-            s.completionRate = nextCr;
-            changed = true;
+          // Chỉ restore khi cột có giá trị thật — Number(null)===0 sẽ xóa nhầm earnings
+          const patch = {};
+          if (p.total_orders != null && Number.isFinite(Number(p.total_orders))) {
+            patch.totalOrders = Number(p.total_orders);
           }
+          if (p.total_earnings != null && Number.isFinite(Number(p.total_earnings))) {
+            patch.totalEarnings = Number(p.total_earnings);
+          }
+          if (p.acceptance_rate != null && Number.isFinite(Number(p.acceptance_rate))) {
+            patch.acceptanceRate = Number(p.acceptance_rate);
+          }
+          if (p.completion_rate != null && Number.isFinite(Number(p.completion_rate))) {
+            patch.completionRate = Number(p.completion_rate);
+          }
+          Object.keys(patch).forEach(k => {
+            if (s[k] !== patch[k]) {
+              s[k] = patch[k];
+              changed = true;
+            }
+          });
         });
         console.log(`[Supabase Sync] 💰 Đã restore earnings/AR/CR từ ${profiles.length} shipper_profiles.`);
       }
@@ -1292,9 +1293,15 @@ async function hydrateOrdersFromSupabaseIfEmpty() {
     const before = Array.isArray(local) ? local.length : 0;
     if (hydrated.length === 0 && before === 0) return;
 
-    // Chỉ ghi khi có thay đổi số lượng hoặc local trống
-    const changed = before === 0 || hydrated.length !== before ||
-      hydrated.some(o => !(Array.isArray(local) && local.some(l => l && l.id === o.id)));
+    const localById = new Map((Array.isArray(local) ? local : []).filter(o => o && o.id).map(o => [o.id, o]));
+    const statusDrift = hydrated.some(o => {
+      const prev = localById.get(o.id);
+      if (!prev) return true;
+      return (prev.status || '') !== (o.status || '') ||
+        (prev.shipperPhone || '') !== (o.shipperPhone || '');
+    });
+    const changed = before === 0 || hydrated.length !== before || statusDrift ||
+      hydrated.some(o => !localById.has(o.id));
     if (!changed && before > 0) {
       console.log(`[Hydrate] Local đã đủ ${before} đơn — không ghi lại.`);
       return;
@@ -4912,6 +4919,35 @@ function hydrateOrdersRestaurantCoords(orders) {
   return hydrateOrderRestaurantCoords(orders);
 }
 
+function orderRuntimeFingerprint(o) {
+  if (!o || !o.id) return '';
+  return [
+    o.status,
+    o.shipperPhone || '',
+    o.assignedShipperPhone || '',
+    o.offerExpiresAt || '',
+    o.shipperLat,
+    o.shipperLon,
+    Array.isArray(o.messages) ? o.messages.length : 0,
+    o.rating || 0
+  ].join('|');
+}
+
+function orderPersistFingerprint(o) {
+  if (!o || !o.id) return '';
+  return [
+    o.status,
+    o.shipperPhone || '',
+    o.assignedShipperPhone || '',
+    o.offerExpiresAt || '',
+    o.acceptedAt || '',
+    o.purchasedAt || '',
+    o.deliveredAt || '',
+    o.cancelledAt || '',
+    o.rating || 0
+  ].join('|');
+}
+
 function updateOrdersDatabase(updaterFn) {
   return new Promise((resolve, reject) => {
     ordersQueuePromise = ordersQueuePromise.then(() => {
@@ -4928,9 +4964,28 @@ function updateOrdersDatabase(updaterFn) {
           data = [];
         }
         if (Array.isArray(data)) {
+          const beforeRuntime = new Map();
+          const beforePersist = new Map();
+          data.forEach(o => {
+            if (!o || !o.id) return;
+            beforeRuntime.set(o.id, orderRuntimeFingerprint(o));
+            beforePersist.set(o.id, orderPersistFingerprint(o));
+          });
           const result = updaterFn(data);
           if (result !== false) {
             fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(data, null, 2), 'utf8');
+            data.forEach(o => {
+              if (!o || !o.id) return;
+              const rt = orderRuntimeFingerprint(o);
+              const pr = orderPersistFingerprint(o);
+              if (beforeRuntime.get(o.id) !== rt) {
+                try { realtimeHub.publishOrderUpdate(o); } catch (_) {}
+              }
+              // Chỉ upsert Supabase khi đổi trạng thái/gán tài xế — tránh spam GPS
+              if (beforePersist.get(o.id) !== pr) {
+                upsertOrderToSupabase(o).catch(() => {});
+              }
+            });
           }
         }
         resolve();
@@ -5587,6 +5642,7 @@ app.post('/api/orders/:id/call/initiate', (req, res) => {
   };
 
   console.log(`[Call Server] 📞 Khởi tạo cuộc gọi cho đơn ${id} bởi ${caller}`);
+  try { realtimeHub.publishCallUpdate(id, activeCalls[id]); } catch (_) {}
   res.json({ success: true, call: activeCalls[id] });
 });
 
@@ -6293,10 +6349,16 @@ app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
 
     let found = false;
     let updatedOrder = null;
+    let forbidden = false;
 
     await updateOrdersDatabase((orders) => {
       const idx = orders.findIndex(o => o.id === id);
       if (idx !== -1 && orders[idx].status === 'PENDING') {
+        const assigned = cleanPhone(orders[idx].assignedShipperPhone);
+        if (!assigned || assigned !== cleanedPhone) {
+          forbidden = true;
+          return false;
+        }
         found = true;
         
         // Add to declined list
@@ -6327,6 +6389,10 @@ app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
         return false;
       }
     });
+
+    if (forbidden) {
+      return res.status(403).json({ success: false, error: 'Bạn không phải tài xế được đề xuất đơn này!' });
+    }
 
     if (!found) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng hoặc đơn không ở trạng thái chờ nhận!' });
@@ -6366,8 +6432,73 @@ app.get('/api/config', (req, res) => {
     markupRate: pricingConfig.markupRate,
     minShipperEarning: pricingConfig.minShipperEarning,
     freeDistanceKm: pricingConfig.freeDistanceKm,
-    multiItemDiscount: pricingConfig.multiItemDiscount
+    multiItemDiscount: pricingConfig.multiItemDiscount,
+    realtime: true
   });
+});
+
+/**
+ * GET /api/realtime/stream
+ * SSE push cho customer / shipper / admin — thay polling REST ngắn hạn.
+ * Query: role=customer|shipper|admin & orderId= (customer) 
+ * Header: Authorization Bearer (shipper/admin)
+ */
+app.get('/api/realtime/stream', async (req, res) => {
+  try {
+    const role = String(req.query.role || '').toLowerCase();
+    if (!['customer', 'shipper', 'admin'].includes(role)) {
+      return res.status(400).json({ success: false, error: 'role phải là customer|shipper|admin' });
+    }
+
+    // EventSource không set Authorization header → cho phép ?access_token=
+    const qToken = String(req.query.access_token || '').trim();
+    if (qToken && !req.headers.authorization) {
+      req.headers.authorization = `Bearer ${qToken}`;
+    }
+
+    const meta = { role, phone: '', orderId: '' };
+
+    if (role === 'shipper') {
+      await new Promise((resolve) => authenticateShipper(req, res, resolve));
+      if (res.headersSent) return;
+      meta.phone = cleanPhone(req.shipperPhone || '');
+      if (!meta.phone) {
+        return res.status(401).json({ success: false, error: 'Thiếu xác thực tài xế' });
+      }
+    } else if (role === 'admin') {
+      await new Promise((resolve) => authenticateAdmin(req, res, resolve));
+      if (res.headersSent) return;
+    } else if (role === 'customer') {
+      meta.orderId = String(req.query.orderId || '').trim();
+      if (!meta.orderId) {
+        return res.status(400).json({ success: false, error: 'customer cần orderId' });
+      }
+      const orders = readOrdersDatabase();
+      if (!orders.some(o => o && String(o.id) === meta.orderId)) {
+        return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+      }
+    }
+
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('X-Accel-Buffering', 'no');
+    if (typeof res.flushHeaders === 'function') res.flushHeaders();
+
+    const client = realtimeHub.addClient(res, meta);
+    const heartbeat = setInterval(() => {
+      try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); }
+    }, 25000);
+
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      realtimeHub.removeClient(client);
+    });
+  } catch (e) {
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  }
 });
 
 // ── ADMIN SYSTEM NOTIFICATIONS ENDPOINTS ─────────────────────────────────────
