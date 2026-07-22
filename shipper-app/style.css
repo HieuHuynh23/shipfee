@@ -1754,6 +1754,50 @@ body.modal-open {
   gap: 8px;
 }
 
+.history-day__orders[hidden] {
+  display: none !important;
+}
+
+.history-card--day {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+  user-select: none;
+}
+
+.history-card--day:active {
+  background-color: #f8fafc;
+}
+
+.history-card--day.is-expanded {
+  border-color: rgba(234, 88, 12, 0.35);
+}
+
+.history-day__right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.history-day__chevron {
+  font-size: 11px;
+  color: var(--clr-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.history-card--day.is-expanded .history-day__chevron {
+  transform: rotate(180deg);
+  color: var(--clr-primary);
+}
+
+.history-day__hint {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--clr-text-muted);
+}
+
 .history-day__order-top {
   display: flex;
   justify-content: space-between;
@@ -1773,6 +1817,13 @@ body.modal-open {
   color: var(--clr-text-muted);
   font-weight: 600;
   margin-top: 2px;
+}
+
+.history-day__order-rating {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #F59E0B;
+  letter-spacing: 0.5px;
 }
 
 @media (max-width: 360px) {
