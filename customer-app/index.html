@@ -930,15 +930,22 @@
           const existingIds = new Set(displayedData.map(r => String(r.id)));
           const ok = await loadMoreFromServer();
           if (ok) {
-            const activeOnlyList = (ALL_DATA || []).filter(r => r && !r.isClosed);
-            const newItems = activeOnlyList.filter(r => !existingIds.has(String(r.id)));
+            // Giữ cả quán đóng (read-only) để pagination không “kẹt” trang toàn closed
+            const pageList = (ALL_DATA || []).filter(Boolean);
+            const newItems = pageList.filter(r => !existingIds.has(String(r.id)));
             if (newItems.length) {
               renderRestaurants(newItems, true, { mode: 'server' });
-            } else {
-              removeLoadMoreBtn();
-              if (serverHasMore) createLoadMoreBtn();
+            } else if (serverHasMore) {
+              // Trang rỗng sau filter trùng ID — thử trang tiếp theo tối đa 1 lần tự động
+              const ok2 = await loadMoreFromServer();
+              if (ok2) {
+                const more = (ALL_DATA || []).filter(r => r && !existingIds.has(String(r.id)));
+                if (more.length) renderRestaurants(more, true, { mode: 'server' });
+              }
             }
-            // Refresh mini sections with newly loaded data
+            removeLoadMoreBtn();
+            if (serverHasMore) createLoadMoreBtn();
+            const activeOnlyList = pageList.filter(r => r && !r.isClosed);
             renderMiniCards('featured-list', getFeaturedRestaurants(activeOnlyList));
             renderMiniCards('near-list', getNearRestaurants(activeOnlyList));
           } else if (document.getElementById('btn-load-more')) {

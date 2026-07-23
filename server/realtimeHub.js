@@ -95,13 +95,20 @@ function publishOpsTick(extra) {
   publish('ops_tick', { at: Date.now(), ...(extra || {}) }, (meta) => meta && meta.role === 'admin');
 }
 
-function publishCallUpdate(orderId, call) {
+function publishCallUpdate(orderId, call, parties = {}) {
   if (!orderId || !call) return;
+  const assigned = normalizePhoneDigits(parties.assignedShipperPhone || parties.shipperPhone);
+  const shipper = normalizePhoneDigits(parties.shipperPhone);
   publish('call_updated', { orderId, call }, (meta) => {
     if (!meta) return false;
     if (meta.role === 'admin') return true;
     if (meta.role === 'customer' && String(meta.orderId) === String(orderId)) return true;
-    if (meta.role === 'shipper') return true;
+    if (meta.role === 'shipper') {
+      const phone = normalizePhoneDigits(meta.phone);
+      if (!phone) return false;
+      // Chỉ tài xế gắn đơn — không fan-out mọi shipper
+      return (assigned && phone === assigned) || (shipper && phone === shipper);
+    }
     return false;
   });
 }

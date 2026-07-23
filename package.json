@@ -3,6 +3,6 @@
   "version": "1.1.0",
   "description": "Root package for Vercel deployment compatibility",
   "scripts": {
-    "build": "mkdir -p public && rm -rf public/customer-app public/shipper-app public/admin-app && cp -r customer-app shipper-app admin-app public/"
+    "build": "node scripts/build.js"
   }
 }

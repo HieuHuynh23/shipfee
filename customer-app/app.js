@@ -22,6 +22,8 @@ const INDEX_CACHE_MAX = 200;
 
 let MARKUP_RATE = 0.28;
 let MIN_SHIPPER_EARNING = 15000;
+let MULTI_ITEM_DISCOUNT = 0.15;
+let FREE_DISTANCE_KM = 1.5;
 
 function round100(n) {
   return Math.round(Number(n) / 100) * 100;
@@ -278,6 +280,12 @@ async function loadPricingConfig() {
     if (typeof json.minShipperEarning === 'number' && json.minShipperEarning > 0) {
       MIN_SHIPPER_EARNING = json.minShipperEarning;
     }
+    if (typeof json.multiItemDiscount === 'number' && json.multiItemDiscount >= 0) {
+      MULTI_ITEM_DISCOUNT = json.multiItemDiscount;
+    }
+    if (typeof json.freeDistanceKm === 'number' && json.freeDistanceKm >= 0) {
+      FREE_DISTANCE_KM = json.freeDistanceKm;
+    }
   } catch (e) {}
 }
 
@@ -382,7 +390,7 @@ function getCartTotal() {
   if (itemsList.length > 1) {
     // PRICING.md: món 2+ giảm max(2000đ, 15% phụ thu km) mỗi món
     itemsList.sort((a, b) => b.appPrice - a.appPrice);
-    const perExtra = Math.max(2000, round100(surchargePerItem * 0.15));
+    const perExtra = Math.max(2000, round100(surchargePerItem * MULTI_ITEM_DISCOUNT));
     discountValue = perExtra * (itemsList.length - 1);
   }
 

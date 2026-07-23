@@ -28,6 +28,8 @@ const crm = require('./crmHelpers');
 const realtimeHub = require('./realtimeHub');
 const demoOrders = require('./demoOrders');
 const foodyGps = require('./foodyGps');
+const pricingEngine = require('./pricingEngine');
+const { createRateLimiter } = require('./rateLimit');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -1222,12 +1224,31 @@ function orderToSupabaseRow(order) {
   };
 }
 
-async function upsertOrderToSupabase(order) {
-  if (!supabase || !order) return;
+async function upsertOrderToSupabase(order, { critical = false } = {}) {
+  if (!supabase || !order) return { ok: false, skipped: true };
+  const attempt = async () => {
+    const { error } = await supabase
+      .from('orders')
+      .upsert(orderToSupabaseRow(order), { onConflict: 'id' });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  };
   try {
-    await supabase.from('orders').upsert(orderToSupabaseRow(order), { onConflict: 'id' });
-  } catch (err) {
-    console.warn('[Supabase Sync] upsert order cảnh báo:', err.message);
+    return await attempt();
+  } catch (err1) {
+    console.error(`[Supabase Sync] upsert order ${order.id} lần 1 thất bại:`, err1.message);
+    try {
+      await new Promise((r) => setTimeout(r, 400));
+      const result = await attempt();
+      console.log(`[Supabase Sync] upsert order ${order.id} OK sau retry`);
+      return result;
+    } catch (err2) {
+      console.error(`[Supabase Sync] upsert order ${order.id} THẤT BẠI sau retry:`, err2.message);
+      if (critical) {
+        return { ok: false, error: err2.message };
+      }
+      return { ok: false, error: err2.message };
+    }
   }
 }
 
@@ -1504,9 +1525,6 @@ function calcAppPrice(inStorePrice) {
   return round100(Number(inStorePrice || 0) * (1 + PRICING_CONFIG.MARKUP_RATE));
 }
 
-function calcToppingAppPriceServer(inStorePrice) {
-  return calcAppPrice(inStorePrice);
-}
 
 function generateTrackingToken() {
   return crypto.randomBytes(24).toString('hex');
@@ -1623,174 +1641,11 @@ async function softAuthenticateBearer(req) {
   } catch (_) {}
 }
 
-function findMenuItemById(menu, itemId) {
-  if (!itemId || !Array.isArray(menu)) return null;
-  const id = String(itemId);
-  return menu.find(m => m && String(m.id) === id) || null;
-}
-
-function resolveToppingsFromMenu(menuItem, selectedOptions) {
-  const resolved = [];
-  let toppingsInStore = 0;
-  for (const opt of Array.isArray(selectedOptions) ? selectedOptions : []) {
-    let matched = null;
-    for (const group of menuItem.options || []) {
-      matched = (group.items || []).find(
-        (i) =>
-          (opt.id != null && String(i.id) === String(opt.id)) ||
-          (opt.name && i.name === opt.name)
-      );
-      if (matched) break;
-    }
-    if (!matched) {
-      return { error: `Topping không hợp lệ: ${opt.name || opt.id || '?'}` };
-    }
-    const price = Number(matched.price) || 0;
-    toppingsInStore += price;
-    resolved.push({
-      id: matched.id,
-      name: matched.name,
-      price
-    });
-  }
-  return { toppingsInStore, resolved };
-}
-
-function computeDistanceSurchargePerItem(restLat, restLon, pinLat, pinLon) {
-  const rLat = Number(restLat);
-  const rLon = Number(restLon);
-  const pLat = Number(pinLat);
-  const pLon = Number(pinLon);
-  if (![rLat, rLon, pLat, pLon].every(Number.isFinite)) return 0;
-  const distKm = getHaversineDistance({ lat: pLat, lon: pLon }, { lat: rLat, lon: rLon });
-  if (!(distKm > PRICING_CONFIG.FREE_DISTANCE_KM)) return 0;
-  return round100(
-    PRICING_CONFIG.SURCHARGE_COEFFICIENT *
-      Math.sqrt(distKm - PRICING_CONFIG.FREE_DISTANCE_KM)
-  );
-}
-
-/**
- * Tính lại tổng đơn từ menu DB — không tin appTotal/storeTotal từ client.
- * Multi-item theo PRICING.md: món 2+ giảm max(2000, 15% surcharge)/món.
- */
-function recomputeOrderPricingFromMenu({
-  clientItems,
-  menu,
-  restLat,
-  restLon,
-  pinLat,
-  pinLon
-}) {
-  if (!Array.isArray(clientItems) || clientItems.length === 0) {
-    return { error: 'Đơn hàng không có món' };
-  }
-  if (!Array.isArray(menu) || menu.length === 0) {
-    return { error: 'Không tải được thực đơn quán để tính giá' };
-  }
-
-  const surchargePerItem = computeDistanceSurchargePerItem(restLat, restLon, pinLat, pinLon);
-  const lineUnits = [];
-
-  for (const raw of clientItems) {
-    const qty = Math.max(1, parseInt(raw.quantity || raw.qty || 1, 10) || 1);
-    const lookupId = String(raw.realItemId || String(raw.id || '').split('::')[0] || '').trim();
-    const menuItem = findMenuItemById(menu, lookupId);
-    if (!menuItem) {
-      return { error: `Món không hợp lệ hoặc đã hết: ${raw.name || lookupId}` };
-    }
-    const inStoreBase = Number(menuItem.inStorePrice);
-    if (!Number.isFinite(inStoreBase) || inStoreBase < 0) {
-      return { error: `Giá món không hợp lệ: ${menuItem.name}` };
-    }
-    const toppingResult = resolveToppingsFromMenu(menuItem, raw.selectedOptions);
-    if (toppingResult.error) return { error: toppingResult.error };
-
-    const inStoreUnit = inStoreBase + toppingResult.toppingsInStore;
-    const appUnit = calcAppPrice(inStoreBase) + calcToppingAppPriceServer(toppingResult.toppingsInStore) + surchargePerItem;
-
-    for (let i = 0; i < qty; i++) {
-      lineUnits.push({
-        id: lookupId,
-        name: menuItem.name,
-        inStorePrice: inStoreUnit,
-        appPrice: appUnit,
-        selectedOptions: toppingResult.resolved,
-        note: raw.note || ''
-      });
-    }
-  }
-
-  if (lineUnits.length === 0) {
-    return { error: 'Không có món hợp lệ trong đơn' };
-  }
-
-  let storeTotal = 0;
-  let appTotalRaw = 0;
-  lineUnits.forEach((u) => {
-    storeTotal += u.inStorePrice;
-    appTotalRaw += u.appPrice;
+function recomputeOrderPricingFromMenu(args) {
+  return pricingEngine.recomputeOrderPricingFromMenu({
+    ...args,
+    cfg: pricingConfig
   });
-
-  // Gộp theo dòng hiển thị (cùng id + options + note)
-  const mergedMap = new Map();
-  lineUnits.forEach((u) => {
-    const key = `${u.id}|${JSON.stringify(u.selectedOptions)}|${u.note}`;
-    if (!mergedMap.has(key)) {
-      mergedMap.set(key, {
-        id: u.id,
-        realItemId: u.id,
-        name: u.name,
-        price: u.appPrice,
-        inStorePrice: u.inStorePrice,
-        appPrice: u.appPrice,
-        quantity: 0,
-        note: u.note,
-        selectedOptions: u.selectedOptions
-      });
-    }
-    mergedMap.get(key).quantity += 1;
-  });
-  const pricedItems = Array.from(mergedMap.values());
-
-  let discountValue = 0;
-  if (lineUnits.length > 1) {
-    const sorted = [...lineUnits].sort((a, b) => b.appPrice - a.appPrice);
-    const perExtra = Math.max(
-      2000,
-      round100(surchargePerItem * PRICING_CONFIG.MULTI_ITEM_DISCOUNT)
-    );
-    discountValue = perExtra * (sorted.length - 1);
-  }
-
-  const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
-  let minServiceFee = 0;
-  let appTotal = appTotalRaw;
-
-  if (shipperEarningBeforeDiscount >= PRICING_CONFIG.MIN_SHIPPER_EARNING) {
-    discountValue = Math.min(
-      discountValue,
-      shipperEarningBeforeDiscount - PRICING_CONFIG.MIN_SHIPPER_EARNING
-    );
-    appTotal = Math.max(0, appTotalRaw - discountValue);
-  } else {
-    discountValue = 0;
-    minServiceFee = round100(PRICING_CONFIG.MIN_SHIPPER_EARNING - shipperEarningBeforeDiscount);
-    appTotal = appTotalRaw + minServiceFee;
-  }
-
-  const shipperEarning = Math.max(0, appTotal - storeTotal);
-
-  return {
-    items: pricedItems,
-    storeTotal,
-    appTotal,
-    shipperEarning,
-    discountValue,
-    minServiceFee,
-    surchargePerItem,
-    itemCount: lineUnits.length
-  };
 }
 
 async function loadMenuForPricing(restaurantId) {
@@ -2094,7 +1949,7 @@ const scraperLimiter = new ConcurrencyLimiter(3); // Giới hạn tối đa 3 tr
 const ACTIVE_SCRAPE_PROMISES = new Map(); // id -> Promise để gộp các request chi tiết trùng lặp (Request Collapsing)
 
 const app  = express();
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // ── PERFORMANCE MIDDLEWARE ───────────────────────────────────────────────────
 // Gzip compression: giảm ~70% bandwidth cho tất cả JSON responses
@@ -2107,7 +1962,7 @@ app.use(compression({
   }
 }));
 
-// CORS: cho phép localhost và các tên miền Vercel gọi API
+// CORS: whitelist production + preview ShipFee + localhost (không mở mọi *.vercel.app)
 const whitelist = [
   'http://localhost:8000',
   'http://127.0.0.1:8000',
@@ -2116,13 +1971,19 @@ const whitelist = [
   'https://shipfee.vercel.app',
   'https://shipfee-hieuhuynh234s-projects.vercel.app'
 ];
+function isAllowedCorsOrigin(origin) {
+  if (!origin) return true;
+  if (whitelist.includes(origin)) return true;
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)) return true;
+  // Preview deployments của project ShipFee only
+  if (/^https:\/\/shipfee([a-z0-9-]*?)-[a-z0-9]+\.vercel\.app$/i.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+-hieuhuynh234s-projects\.vercel\.app$/i.test(origin)) return true;
+  if (origin === 'https://shipfee.vercel.app') return true;
+  return false;
+}
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const isVercel = origin.endsWith('.vercel.app');
-    const isLocal = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin);
-    const isWhitelisted = whitelist.indexOf(origin) !== -1;
-    if (isWhitelisted || isVercel || isLocal) {
+    if (isAllowedCorsOrigin(origin)) {
       callback(null, true);
     } else {
       console.warn('[CORS] Blocked origin:', origin);
@@ -2130,9 +1991,30 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Order-Token', 'X-Delivery-Phone'],
   optionsSuccessStatus: 200
 }));
+
+const rateLimitStrict = createRateLimiter({
+  windowMs: 60_000,
+  max: 30,
+  message: 'Quá nhiều yêu cầu. Thử lại sau 1 phút.'
+});
+const rateLimitAuth = createRateLimiter({
+  windowMs: 15 * 60_000,
+  max: 40,
+  message: 'Quá nhiều lần đăng nhập/đăng ký. Thử lại sau.'
+});
+const rateLimitOrders = createRateLimiter({
+  windowMs: 60_000,
+  max: 20,
+  message: 'Quá nhiều đơn hàng từ IP này. Thử lại sau.'
+});
+const rateLimitRealtime = createRateLimiter({
+  windowMs: 60_000,
+  max: 60,
+  message: 'Quá nhiều kết nối realtime.'
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
@@ -4148,9 +4030,6 @@ const SHOPEEFOOD_HEADERS = {
   'x-foody-support-chef-show':'true',
 };
 
-// ── CORS — cho phép web app local gọi vào ──────────────────────────────────
-// Đã xử lý tập trung ở cấu hình CORS phía trên đầu file
-app.use(express.json());
 
 // Phục vụ frontend tĩnh từ thư mục root (canonical cho shipfee.vercel.app)
 app.use('/app', express.static(path.join(__dirname, '..', 'customer-app')));
@@ -5657,7 +5536,11 @@ function updateOrdersDatabase(updaterFn) {
               }
               // Chỉ upsert Supabase khi đổi trạng thái/gán tài xế — tránh spam GPS
               if (beforePersist.get(o.id) !== pr) {
-                upsertOrderToSupabase(o).catch(() => {});
+                upsertOrderToSupabase(o).then((r) => {
+                  if (r && r.ok === false && !r.skipped) {
+                    console.error(`[Orders DB] Supabase upsert fail ${o.id}:`, r.error || 'unknown');
+                  }
+                }).catch((e) => console.error(`[Orders DB] Supabase upsert exception ${o.id}:`, e.message));
               }
             });
           }
@@ -5675,7 +5558,7 @@ function updateOrdersDatabase(updaterFn) {
  * POST /api/orders
  * Khách hàng gửi đơn hàng lên server (lưu vào orders-local.json)
  */
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', rateLimitOrders, async (req, res) => {
   try {
     const orderData = req.body;
     if (!orderData || typeof orderData !== 'object') {
@@ -5900,7 +5783,11 @@ app.post('/api/orders', async (req, res) => {
     });
 
     console.log(`[Order Server] 📝 Đã lưu đơn hàng mới: ${newOrder.id}`);
-    upsertOrderToSupabase(newOrder).catch(() => {});
+    upsertOrderToSupabase(newOrder, { critical: true }).then((r) => {
+      if (!r || !r.ok) {
+        console.error(`[Order Server] ⚠️ Đơn ${newOrder.id} đã lưu local nhưng Supabase sync thất bại — kiểm tra ngay`);
+      }
+    }).catch((e) => console.error('[Order Server] Supabase sync exception:', e.message));
     if (telegramBot) telegramBot.sendNewOrderNotification(newOrder).catch(e => console.error('Lỗi gửi Telegram đơn mới:', e.message));
     addNotification('order_new', newOrder.restaurantId, newOrder.restaurantName, 'Đơn mới chờ xử lý', `Đơn ${newOrder.id} — ${newOrder.restaurantName} (${(newOrder.appTotal || 0).toLocaleString('vi-VN')}đ)`);
     // Trả trackingToken cho khách; shipper list sẽ strip
@@ -6486,7 +6373,7 @@ async function requireOrderPartyForCall(req, res) {
 /**
  * POST /api/orders/:id/call/initiate
  */
-app.post('/api/orders/:id/call/initiate', async (req, res) => {
+app.post('/api/orders/:id/call/initiate', rateLimitStrict, async (req, res) => {
   const access = await requireOrderPartyForCall(req, res);
   if (!access) return;
   const { id } = req.params;
@@ -6506,7 +6393,12 @@ app.post('/api/orders/:id/call/initiate', async (req, res) => {
   };
 
   console.log(`[Call Server] 📞 Khởi tạo cuộc gọi cho đơn ${id} bởi ${caller}`);
-  try { realtimeHub.publishCallUpdate(id, activeCalls[id]); } catch (_) {}
+  try {
+    realtimeHub.publishCallUpdate(id, activeCalls[id], {
+      shipperPhone: access.order.shipperPhone,
+      assignedShipperPhone: access.order.assignedShipperPhone
+    });
+  } catch (_) {}
   res.json({ success: true, call: activeCalls[id] });
 });
 
@@ -6534,7 +6426,12 @@ app.post('/api/orders/:id/call/respond', async (req, res) => {
     setTimeout(() => { delete activeCalls[id]; }, 60_000);
   }
 
-  try { realtimeHub.publishCallUpdate(id, call); } catch (_) {}
+  try {
+    realtimeHub.publishCallUpdate(id, call, {
+      shipperPhone: access.order.shipperPhone,
+      assignedShipperPhone: access.order.assignedShipperPhone
+    });
+  } catch (_) {}
   res.json({ success: true, call });
 });
 
@@ -6599,6 +6496,7 @@ app.get('/api/orders/:id/call/poll', async (req, res) => {
 
 // ── SHIPPER AUTHENTICATION & SHIFT LOGS ────────────────────────────────────
 const SHIPPERS_FILE_PATH = path.join(__dirname, 'shippers-local.json');
+let shippersQueuePromise = Promise.resolve();
 
 function readShippersDatabase() {
   try {
@@ -6623,11 +6521,31 @@ function writeShippersDatabase(data) {
   }
 }
 
+/** Serialize shipper read-modify-write (tránh lost update khi shift/location/login song song) */
+function updateShippersDatabase(updaterFn) {
+  const run = () => {
+    try {
+      const data = readShippersDatabase();
+      const result = updaterFn(data);
+      if (result !== false) {
+        writeShippersDatabase(data);
+      }
+      return result;
+    } catch (err) {
+      console.error('[Shippers DB Queue] Lỗi:', err.message);
+      throw err;
+    }
+  };
+  const next = shippersQueuePromise.then(run, run);
+  shippersQueuePromise = next.catch(() => {});
+  return next;
+}
+
 /**
  * POST /api/shippers/login
  * Xác thực trùng khớp cả SĐT và Họ tên tài xế (không phân biệt chữ hoa/thường, loại bỏ khoảng trắng thừa)
  */
-app.post('/api/shippers/login', async (req, res) => {
+app.post('/api/shippers/login', rateLimitAuth, async (req, res) => {
   try {
     const { token } = req.body;
 
@@ -6638,48 +6556,74 @@ app.post('/api/shippers/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Thiếu token xác thực Supabase!' });
     }
 
-    // Supabase Auth verification path
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
       return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
     }
 
-    const shippers = readShippersDatabase();
     const userPhone = user.phone ? user.phone.replace('+84', '0') : (user.user_metadata?.phone || '');
-    const userName = user.user_metadata?.full_name || user.email.split('@')[0];
+    const userName = user.user_metadata?.full_name || (user.email ? user.email.split('@')[0] : 'Shipper');
+    let shipperSnapshot = null;
 
-    // Tìm kiếm trong database nội bộ bằng ID hoặc SĐT
-    let idx = shippers.findIndex(s => s.id === user.id);
-    if (idx === -1 && userPhone) {
-      idx = shippers.findIndex(s => s.phone.trim().replace(/\s+/g, '') === userPhone.trim().replace(/\s+/g, ''));
-    }
+    await updateShippersDatabase((shippers) => {
+      let idx = shippers.findIndex(s => s.id === user.id);
+      if (idx === -1 && userPhone) {
+        const cleaned = String(userPhone).trim().replace(/\s+/g, '');
+        idx = shippers.findIndex(s => String(s.phone || '').trim().replace(/\s+/g, '') === cleaned);
+      }
 
-    let shipper = null;
-    if (idx !== -1) {
-      // Liên kết tài khoản
-      shippers[idx].id = user.id;
-      if (!shippers[idx].phone && userPhone) shippers[idx].phone = userPhone;
-      shipper = shippers[idx];
-    } else {
-      // Tự động tạo bản ghi nội bộ nếu chưa có để đảm bảo chạy thuật toán giao đơn
-      shipper = {
+      if (idx !== -1) {
+        shippers[idx].id = user.id;
+        if (!shippers[idx].phone && userPhone) shippers[idx].phone = userPhone;
+        shipperSnapshot = { ...shippers[idx] };
+        return true;
+      }
+
+      if (!userPhone || !String(userPhone).trim()) {
+        shipperSnapshot = null;
+        return false;
+      }
+
+      const created = {
         id: user.id,
-        phone: userPhone || '0900000000',
+        phone: String(userPhone).trim(),
         name: userName,
-        cccd: user.user_metadata?.cccd || '', // Lấy CCCD từ metadata Supabase Auth
+        cccd: user.user_metadata?.cccd || '',
         status: 'OFFLINE',
+        isApproved: false,
         lastCheckIn: null,
         lastCheckOut: null
       };
-      shippers.push(shipper);
+      shippers.push(created);
+      shipperSnapshot = { ...created };
+      return true;
+    });
+
+    if (!shipperSnapshot) {
+      return res.status(400).json({
+        success: false,
+        error: 'Thiếu số điện thoại trên tài khoản. Cập nhật profile rồi thử lại.'
+      });
     }
 
-    if (shipper && shipper.isApproved === false) {
-      return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
+    if (shipperSnapshot.isApproved === false) {
+      return res.status(403).json({
+        success: false,
+        error: 'PENDING_APPROVAL',
+        message: 'Tài khoản của bạn đang chờ Admin phê duyệt!'
+      });
     }
 
-    writeShippersDatabase(shippers);
-    return res.json({ success: true, shipper: { name: shipper.name, phone: shipper.phone, avatarUrl: normalizeImageUrl(shipper.avatarUrl, req), isApproved: shipper.isApproved, cccd: shipper.cccd || '' } });
+    return res.json({
+      success: true,
+      shipper: {
+        name: shipperSnapshot.name,
+        phone: shipperSnapshot.phone,
+        avatarUrl: normalizeImageUrl(shipperSnapshot.avatarUrl, req),
+        isApproved: shipperSnapshot.isApproved !== false,
+        cccd: shipperSnapshot.cccd || ''
+      }
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -6689,7 +6633,7 @@ app.post('/api/shippers/login', async (req, res) => {
  * POST /api/shippers/register
  * Cho phép shipper tự động đăng ký tài khoản
  */
-app.post('/api/shippers/register', async (req, res) => {
+app.post('/api/shippers/register', rateLimitAuth, async (req, res) => {
   try {
     const { name, phone, email, password, avatar, cccd } = req.body;
     if (!name || !phone) {
@@ -7330,7 +7274,7 @@ app.get('/api/config', (req, res) => {
  * Query: role=customer|shipper|admin & orderId= (customer) 
  * Header: Authorization Bearer (shipper/admin)
  */
-app.get('/api/realtime/stream', async (req, res) => {
+app.get('/api/realtime/stream', rateLimitRealtime, async (req, res) => {
   try {
     const role = String(req.query.role || '').toLowerCase();
     if (!['customer', 'shipper', 'admin'].includes(role)) {

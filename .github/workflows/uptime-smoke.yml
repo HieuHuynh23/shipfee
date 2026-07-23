@@ -1,0 +1,24 @@
+name: uptime-smoke
+
+# Lightweight production smoke — does not replace external uptime (UptimeRobot etc.)
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-api:
+    runs-on: ubuntu-latest
+    steps:
+      - name: GET /api/status
+        run: |
+          set -e
+          BODY=$(curl -fsS --max-time 25 https://shipfee-eo5s.onrender.com/api/status)
+          echo "$BODY" | head -c 500
+          echo "$BODY" | grep -q '"ok":true\|"status":"ok"\|menuScrapeEnabled\|restaurants' || {
+            echo "Unexpected status payload"
+            exit 1
+          }
+          if echo "$BODY" | grep -q '"menuScrapeEnabled":true'; then
+            echo "WARN: menu scrape enabled on Render"
+          fi

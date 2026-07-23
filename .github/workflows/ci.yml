@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: |
+            package.json
+            server/package.json
+
+      - name: Frontend build
+        run: npm run build
+
+      - name: Install server deps (no Chrome on CI)
+        working-directory: server
+        env:
+          RENDER: 'true'
+        run: npm install --ignore-scripts
+
+      - name: Syntax check server
+        working-directory: server
+        run: |
+          node --check server.js
+          node --check crmHelpers.js
+          node --check realtimeHub.js
+          node --check pricingEngine.js
+          node --check rateLimit.js
+
+      - name: Pricing engine unit smoke
+        working-directory: server
+        run: node -e "const p=require('./pricingEngine'); const r=p.recomputeOrderPricingFromMenu({clientItems:[{id:'1',quantity:2}],menu:[{id:'1',name:'Test',inStorePrice:10000,options:[]}],restLat:10.03,restLon:105.78,pinLat:10.04,pinLon:105.79,cfg:{markupRate:0.28,freeDistanceKm:1.5,surchargeCoefficient:7000,minShipperEarning:15000,multiItemDiscount:0.15}}); if(r.error||!(r.appTotal>0)) { console.error(r); process.exit(1);} console.log('pricing ok', r.appTotal);"
