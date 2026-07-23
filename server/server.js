@@ -983,6 +983,9 @@ const BATCH_DELIVERY_CLUSTER_KM = 2;
 const OFFER_TTL_MS = 90000; // đủ dài khi SSE nới poll; vẫn re-dispatch qua processExpiredOffers
 const GPS_FRESH_MS = 120000;
 const GPS_STALE_OK_MS = 12 * 60 * 1000; // chấp nhận GPS gần đây khi không còn ping tươi
+/** Bán kính hoàn thành giao / lấy hàng (km) */
+const DELIVERY_PROXIMITY_KM = 0.35;
+const PICKUP_PROXIMITY_KM = 0.5;
 
 function getShipperActiveOrders(phone, orders = null) {
   const cleaned = cleanPhone(phone);
@@ -3214,6 +3217,65 @@ async function ensureOrdersRestaurantNavGps(orders, { concurrency = 3 } = {}) {
   await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, () => worker()));
 }
 
+/** Dedup lịch Foody GPS nền theo restaurantId (tránh spam mỗi poll) */
+const foodyGpsBgScheduled = new Set();
+
+/**
+ * Nhận đơn / trả list trước — đối chiếu GPS Foody chạy nền sau.
+ * Khi có tọa độ nav-grade mới: ghi vào đơn + SSE order_updated để shipper cập nhật chỉ đường.
+ */
+function scheduleOrdersRestaurantNavGpsAfterOffer(orders, { label = 'sync' } = {}) {
+  const list = (Array.isArray(orders) ? orders : [orders]).filter(o => o && o.restaurantId);
+  if (list.length === 0) return;
+
+  const needWork = [];
+  const queuedRestaurants = new Set();
+  for (const o of list) {
+    const rid = String(o.restaurantId);
+    if (queuedRestaurants.has(rid) || foodyGpsBgScheduled.has(rid)) continue;
+    const mem = findRestaurantInCache(o.restaurantId);
+    if (mem && isNavGradeRestaurantCoords(mem)) continue;
+    queuedRestaurants.add(rid);
+    foodyGpsBgScheduled.add(rid);
+    needWork.push(o);
+  }
+  if (needWork.length === 0) return;
+
+  setImmediate(() => {
+    ensureOrdersRestaurantNavGps(needWork, { concurrency: 2 })
+      .then(async () => {
+        const restaurantIds = new Set(needWork.map(o => String(o.restaurantId)));
+        await updateOrdersDatabase((dbOrders) => {
+          let any = false;
+          for (const o of dbOrders) {
+            if (!o || !o.restaurantId) continue;
+            if (!restaurantIds.has(String(o.restaurantId))) continue;
+            if (o.status === 'DELIVERED' || o.status === 'CANCELLED') continue;
+            const mem = findRestaurantInCache(o.restaurantId);
+            if (!mem || !isNavGradeRestaurantCoords(mem)) continue;
+            const lat = Number(mem.latitude);
+            const lon = Number(mem.longitude);
+            const same =
+              o.restaurantCoordsExact === true &&
+              Number(o.restaurantLat) === lat &&
+              Number(o.restaurantLon) === lon;
+            if (same) continue;
+            o.restaurantLat = lat;
+            o.restaurantLon = lon;
+            o.restaurantCoordsExact = true;
+            o.restaurantCoordsSource = mem.coordsSource || mem.geoSource || 'exact';
+            any = true;
+          }
+          return any ? undefined : false;
+        });
+      })
+      .catch(e => console.warn(`[Foody GPS] bg ${label}:`, e && e.message ? e.message : e))
+      .finally(() => {
+        for (const rid of queuedRestaurants) foodyGpsBgScheduled.delete(rid);
+      });
+  });
+}
+
 function normalizeUserCoords(lat, lon) {
   let userLat = parseFloat(lat) || 10.0345;
   let userLon = parseFloat(lon) || 105.7876;
@@ -5229,6 +5291,9 @@ function orderRuntimeFingerprint(o) {
     o.offerExpiresAt || '',
     o.shipperLat,
     o.shipperLon,
+    o.restaurantLat,
+    o.restaurantLon,
+    o.restaurantCoordsExact === true ? '1' : '0',
     Array.isArray(o.messages) ? o.messages.length : 0,
     o.rating || 0
   ].join('|');
@@ -5458,21 +5523,7 @@ app.post('/api/orders', async (req, res) => {
     }
 
     // Find nearest available shipper for targeted dispatch
-    // Đối chiếu GPS Foody trước khi gán (để shipper chỉ đường đúng)
-    if (restMem) {
-      try {
-        await ensureRestaurantNavGps(restMem);
-        if (isNavGradeRestaurantCoords(restMem)) {
-          newOrder.restaurantLat = restMem.latitude;
-          newOrder.restaurantLon = restMem.longitude;
-          newOrder.restaurantCoordsExact = true;
-          newOrder.restaurantCoordsSource = restMem.coordsSource || 'exact';
-        }
-      } catch (e) {
-        console.warn('[Foody GPS] ensure trước dispatch thất bại:', e.message);
-      }
-    }
-
+    // GPS Foody chạy nền SAU khi đã đề xuất — không chặn nhận đơn
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, [], newOrder);
     if (nearest) {
       if (nearest.isAssisted === true) {
@@ -5523,6 +5574,8 @@ app.post('/api/orders', async (req, res) => {
     if (telegramBot) telegramBot.sendNewOrderNotification(newOrder).catch(e => console.error('Lỗi gửi Telegram đơn mới:', e.message));
     addNotification('order_new', newOrder.restaurantId, newOrder.restaurantName, 'Đơn mới chờ xử lý', `Đơn ${newOrder.id} — ${newOrder.restaurantName} (${(newOrder.appTotal || 0).toLocaleString('vi-VN')}đ)`);
     res.json({ success: true, data: newOrder });
+    // Sau khi đề xuất: đối chiếu GPS Foody nền → cập nhật tọa độ quán trên đơn
+    scheduleOrdersRestaurantNavGpsAfterOffer([newOrder], { label: 'create' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -5578,13 +5631,13 @@ app.get('/api/orders', async (req, res) => {
         }
         return cleanPhone(o.shipperPhone) === cleanInputPhone;
       });
-      // Đối chiếu GPS Foody cho các quán trong đơn shipper đang xem (chỉ đường)
-      try {
-        await ensureOrdersRestaurantNavGps(resultData, { concurrency: 2 });
-      } catch (_) {}
     }
 
+    // Trả đề xuất/đơn ngay — hydrate tọa độ đã có; Foody GPS chạy nền sau
     res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrdersRestaurantCoords(resultData), req) });
+    if (shipperPhone) {
+      scheduleOrdersRestaurantNavGpsAfterOffer(resultData, { label: 'list' });
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -5602,10 +5655,6 @@ app.get('/api/orders/:id', async (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    try {
-      const mem = findRestaurantInCache(order.restaurantId);
-      if (mem) await ensureRestaurantNavGps(mem);
-    } catch (_) {}
     // Nếu đơn chưa có GPS gắn sẵn, fallback vị trí live của tài xế đang online
     const payload = { ...order };
     const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
@@ -5617,6 +5666,8 @@ app.get('/api/orders/:id', async (req, res) => {
       }
     }
     res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(payload), req) });
+    // Đối chiếu GPS Foody nền sau khi đã trả chi tiết đơn
+    scheduleOrdersRestaurantNavGpsAfterOffer([order], { label: 'detail' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -5745,6 +5796,8 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const authPhone = req.shipperPhone;
+    const bodyLat = Number(req.body?.lat);
+    const bodyLon = Number(req.body?.lon);
 
     if (!['PURCHASED', 'DELIVERED'].includes(status)) {
       return res.status(400).json({ error: 'Trạng thái không hợp lệ. Chỉ cho phép PURCHASED hoặc DELIVERED.' });
@@ -5769,7 +5822,62 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
         transitionError = 'Bạn không phải tài xế của đơn này';
         return false;
       }
+
+      // Chặn hoàn thành / lấy hàng khi GPS chưa gần điểm đích
+      const cleanedAuth = cleanPhone(authPhone);
+      const live = onlineShipperLocations.get(cleanedAuth);
+      let sLat = Number.isFinite(bodyLat) ? bodyLat : NaN;
+      let sLon = Number.isFinite(bodyLon) ? bodyLon : NaN;
+      if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
+        if (live && Number.isFinite(live.lat) && Number.isFinite(live.lon)) {
+          sLat = live.lat;
+          sLon = live.lon;
+        } else {
+          sLat = Number(orders[idx].shipperLat);
+          sLon = Number(orders[idx].shipperLon);
+        }
+      }
+
+      if (status === 'DELIVERED') {
+        const destLat = Number(orders[idx].pinnedLat ?? orders[idx].deliveryLat);
+        const destLon = Number(orders[idx].pinnedLon ?? orders[idx].deliveryLon);
+        if (Number.isFinite(destLat) && Number.isFinite(destLon)) {
+          if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
+            transitionError = 'Cần GPS để hoàn thành đơn. Bật định vị và thử lại.';
+            return false;
+          }
+          const distKm = calcDistance(sLat, sLon, destLat, destLon);
+          if (distKm > DELIVERY_PROXIMITY_KM) {
+            transitionError =
+              `Bạn còn cách điểm giao khoảng ${Math.round(distKm * 1000)}m. ` +
+              `Hãy đến trong ${Math.round(DELIVERY_PROXIMITY_KM * 1000)}m rồi hoàn thành.`;
+            return false;
+          }
+        }
+      } else if (status === 'PURCHASED') {
+        const restExact = orders[idx].restaurantCoordsExact === true;
+        const restLat = Number(orders[idx].restaurantLat);
+        const restLon = Number(orders[idx].restaurantLon);
+        if (restExact && Number.isFinite(restLat) && Number.isFinite(restLon)) {
+          if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
+            transitionError = 'Cần GPS để xác nhận lấy hàng. Bật định vị và thử lại.';
+            return false;
+          }
+          const distKm = calcDistance(sLat, sLon, restLat, restLon);
+          if (distKm > PICKUP_PROXIMITY_KM) {
+            transitionError =
+              `Bạn còn cách quán khoảng ${Math.round(distKm * 1000)}m. ` +
+              `Hãy đến trong ${Math.round(PICKUP_PROXIMITY_KM * 1000)}m rồi xác nhận lấy hàng.`;
+            return false;
+          }
+        }
+      }
+
       orders[idx].status = status;
+      if (Number.isFinite(sLat) && Number.isFinite(sLon)) {
+        orders[idx].shipperLat = sLat;
+        orders[idx].shipperLon = sLon;
+      }
       if (status === 'PURCHASED') {
         orders[idx].purchasedAt = Date.now();
       } else if (status === 'DELIVERED') {

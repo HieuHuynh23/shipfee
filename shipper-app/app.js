@@ -289,6 +289,7 @@ let offerTimerInterval = null;
 
 // In-flight / concurrency guards
 let syncInFlight = false;
+let syncQueued = false;
 let acceptInFlight = false;
 let statusUpdateInFlight = false;
 let shiftInFlight = false;
@@ -396,9 +397,9 @@ function openShipperRealtime() {
     shipperRealtime = new EventSource(url);
     shipperRealtime.addEventListener('connected', () => {
       shipperRealtimeActive = true;
-      // Khi đang chạy đơn: nới poll. Khi chờ đề xuất: giữ poll nhanh (offer TTL).
-      const idleWaitingOffer = isOnline && activeOrders.length === 0;
-      schedulePolling(idleWaitingOffer ? 5000 : 45000);
+      // Còn chỗ nhận đề xuất (0–1 đơn): poll nhanh. Đủ 2 đơn + SSE: nới poll.
+      const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
+      schedulePolling(waitingOffer ? 5000 : 45000);
       console.log('[Realtime] Shipper SSE connected');
     });
     shipperRealtime.addEventListener('order_updated', () => {
@@ -952,9 +953,9 @@ function startPolling() {
   pollBackoffActive = false;
   syncAllData();
   openShipperRealtime();
-  // Chờ đề xuất: poll nhanh kể cả khi SSE đã nối (tránh miss offer)
-  const idleWaitingOffer = isOnline && activeOrders.length === 0;
-  const pollMs = idleWaitingOffer
+  // Còn chỗ nhận đề xuất (kể cả đang 1 đơn — ghép đơn): poll nhanh
+  const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
+  const pollMs = waitingOffer
     ? 5000
     : (shipperRealtimeActive ? 45000 : 3000);
   schedulePolling(pollMs);
@@ -1027,7 +1028,11 @@ function selectActiveOrder(orderId) {
 window.selectActiveOrder = selectActiveOrder;
 
 async function syncAllData() {
-  if (!currentDriver || syncInFlight) return;
+  if (!currentDriver) return;
+  if (syncInFlight) {
+    syncQueued = true;
+    return;
+  }
   syncInFlight = true;
   
   try {
@@ -1058,10 +1063,11 @@ async function syncAllData() {
       // Chỉ hiện offer đơn thứ 2 nếu còn chỗ capacity
       if (myOffer && activeOrders.length < MAX_ACTIVE_ORDERS) {
         handleTargetedOffer(myOffer);
+      } else if (activeOrders.length >= MAX_ACTIVE_ORDERS) {
+        // Đủ 2 đơn — đóng offer bắt buộc
+        handleTargetedOffer(null, { force: true });
       } else if (!myOffer) {
-        handleTargetedOffer(null);
-      } else {
-        // Đang đủ 2 đơn — đóng offer nếu có
+        // Không force: giữ overlay nếu TTL local còn (tránh miss sync tạm thời)
         handleTargetedOffer(null);
       }
 
@@ -1089,7 +1095,12 @@ async function syncAllData() {
           checkNewMessages(prevFocused, activeOrder);
         }
         const statusChanged = !prevFocused || prevFocused.id !== activeOrder.id || prevFocused.status !== activeOrder.status;
-        if (statusChanged || focusedChanged || activeOrders.length !== (prevFocused ? 1 : 0)) {
+        const restaurantGpsChanged = !!(prevFocused && activeOrder && prevFocused.id === activeOrder.id && (
+          String(prevFocused.restaurantLat ?? '') !== String(activeOrder.restaurantLat ?? '') ||
+          String(prevFocused.restaurantLon ?? '') !== String(activeOrder.restaurantLon ?? '') ||
+          Boolean(prevFocused.restaurantCoordsExact) !== Boolean(activeOrder.restaurantCoordsExact)
+        ));
+        if (statusChanged || focusedChanged || restaurantGpsChanged || activeOrders.length !== (prevFocused ? 1 : 0)) {
           renderActiveTrip();
         }
         if (isFirstLoad) {
@@ -1109,10 +1120,10 @@ async function syncAllData() {
       const pendingBadge = document.getElementById('pending-count');
       if (pendingBadge) pendingBadge.textContent = String(pendingOrders.length);
 
-      // Điều chỉnh nhịp poll: chờ đề xuất → nhanh; đang chạy đơn + SSE → chậm
+      // Còn chỗ nhận đề xuất → poll nhanh (kể cả đang 1 đơn)
       if (!pollBackoffActive && pollMode === 'all') {
-        const idleWaitingOffer = isOnline && activeOrders.length === 0;
-        const desired = idleWaitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 3000);
+        const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
+        const desired = waitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 3000);
         schedulePolling(desired);
       }
     }
@@ -1127,6 +1138,10 @@ async function syncAllData() {
     schedulePolling(backoff);
   } finally {
     syncInFlight = false;
+    if (syncQueued) {
+      syncQueued = false;
+      setTimeout(() => { syncAllData(); }, 80);
+    }
   }
 }
 
@@ -1811,10 +1826,68 @@ async function initTripMap() {
 }
 
 // ── ADVANCE TRIP STATUS ────────────────────────────────────────────────────
+function getShipperLiveCoords() {
+  if (Number.isFinite(lastGpsLat) && Number.isFinite(lastGpsLon)) {
+    return { lat: lastGpsLat, lon: lastGpsLon };
+  }
+  if (activeOrder && Number.isFinite(Number(activeOrder.shipperLat)) && Number.isFinite(Number(activeOrder.shipperLon))) {
+    return { lat: Number(activeOrder.shipperLat), lon: Number(activeOrder.shipperLon) };
+  }
+  return null;
+}
+
+function assertProximityForStatus(nextStatus) {
+  if (!activeOrder) return { ok: false, error: 'Không có đơn đang chạy' };
+  const live = getShipperLiveCoords();
+  if (!live) {
+    return { ok: false, error: 'Chưa có GPS. Bật định vị và thử lại.' };
+  }
+  if (nextStatus === 'DELIVERED') {
+    const destLat = parseCoord(activeOrder.pinnedLat ?? activeOrder.deliveryLat);
+    const destLon = parseCoord(activeOrder.pinnedLon ?? activeOrder.deliveryLon);
+    if (destLat == null || destLon == null) return { ok: true, lat: live.lat, lon: live.lon };
+    const d = calculateDistance(live.lat, live.lon, destLat, destLon);
+    if (d > DELIVERY_PROXIMITY_KM) {
+      return {
+        ok: false,
+        error: `Bạn còn cách điểm giao ~${Math.round(d * 1000)}m. Hãy đến trong ${Math.round(DELIVERY_PROXIMITY_KM * 1000)}m rồi vuốt hoàn thành.`
+      };
+    }
+  } else if (nextStatus === 'PURCHASED') {
+    const exact = activeOrder.restaurantCoordsExact === true || activeOrder.restaurantCoordsExact === 'true';
+    if (!exact) return { ok: true, lat: live.lat, lon: live.lon };
+    const restNav = typeof resolveRestaurantNavDestination === 'function'
+      ? resolveRestaurantNavDestination(activeOrder)
+      : null;
+    const restLat = (restNav && restNav.useGps && restNav.lat != null)
+      ? restNav.lat
+      : parseCoord(activeOrder.restaurantLat);
+    const restLon = (restNav && restNav.useGps && restNav.lon != null)
+      ? restNav.lon
+      : parseCoord(activeOrder.restaurantLon);
+    if (restLat == null || restLon == null) return { ok: true, lat: live.lat, lon: live.lon };
+    const d = calculateDistance(live.lat, live.lon, restLat, restLon);
+    if (d > PICKUP_PROXIMITY_KM) {
+      return {
+        ok: false,
+        error: `Bạn còn cách quán ~${Math.round(d * 1000)}m. Hãy đến gần quán (≤${Math.round(PICKUP_PROXIMITY_KM * 1000)}m) rồi xác nhận lấy hàng.`
+      };
+    }
+  }
+  return { ok: true, lat: live.lat, lon: live.lon };
+}
+
 async function advanceTripStatus() {
   if (!activeOrder || statusUpdateInFlight) return;
   
   const nextStatus = activeOrder.status === 'ACCEPTED' ? 'PURCHASED' : 'DELIVERED';
+  const proximity = assertProximityForStatus(nextStatus);
+  if (!proximity.ok) {
+    showToast('Chưa đủ gần điểm', proximity.error || 'Hãy đến đúng vị trí rồi thử lại.', 'warning');
+    renderActiveTrip();
+    return;
+  }
+
   statusUpdateInFlight = true;
   
   try {
@@ -1823,7 +1896,11 @@ async function advanceTripStatus() {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ status: nextStatus })
+      body: JSON.stringify({
+        status: nextStatus,
+        lat: proximity.lat,
+        lon: proximity.lon
+      })
     }, 12000);
     
     const result = await safeJson(response);
@@ -1879,6 +1956,11 @@ async function advanceTripStatus() {
 
 // ── GPS REAL POSITION TRACKING ──────────────────────────────────────────────
 let lastGpsSendTime = 0;
+let lastGpsLat = null;
+let lastGpsLon = null;
+/** Bán kính hoàn thành giao hàng (km) — khớp server */
+const DELIVERY_PROXIMITY_KM = 0.35;
+const PICKUP_PROXIMITY_KM = 0.5;
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // km
@@ -1892,6 +1974,8 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 function applyGpsFix(lat, lon) {
+  lastGpsLat = Number(lat);
+  lastGpsLon = Number(lon);
   // Outside service area: warn but keep real GPS (never fabricate coordinates)
   const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
   const outsideArea = distFromCenter > 20;
@@ -2032,9 +2116,15 @@ async function sendLocationToServer(lat, lon) {
 }
 
 // ── TARGETED JOB OFFER LOGIC ────────────────────────────────────────────────
-function handleTargetedOffer(offer) {
+function handleTargetedOffer(offer, opts = {}) {
+  const force = opts && opts.force === true;
   if (!offer) {
     if (targetedOffer) {
+      const exp = Number(targetedOffer.offerExpiresAt);
+      // Sync tạm thời không thấy offer nhưng TTL còn → giữ overlay (tránh “nuốt” đề xuất)
+      if (!force && Number.isFinite(exp) && Date.now() < exp) {
+        return;
+      }
       clearOfferTimer();
       stopOrderAlertLoop();
       const offerOverlay = document.getElementById('job-offer-overlay');
@@ -2123,11 +2213,13 @@ function startOfferTimer(expiresAt) {
   
   const progressBar = document.getElementById('offer-progress-bar');
   const timerSeconds = document.getElementById('offer-timer-seconds');
-  const totalDuration = 30000;
+  const FALLBACK_TTL_MS = 90000; // khớp server OFFER_TTL_MS
+  const now = Date.now();
   let endAt = Number(expiresAt);
-  if (!Number.isFinite(endAt) || endAt <= Date.now()) {
-    endAt = Date.now() + totalDuration;
+  if (!Number.isFinite(endAt) || endAt <= now) {
+    endAt = now + FALLBACK_TTL_MS;
   }
+  const totalDuration = Math.max(1000, endAt - now);
 
   function updateTimer() {
     const remaining = endAt - Date.now();
@@ -2592,6 +2684,15 @@ function unlockAudio(fromKeepAlive) {
     if (!fromKeepAlive) startAudioKeepAlive();
   };
 
+  // Đã unlock: chỉ resume context, không phát buffer/HTML (tránh tiếng lạ)
+  if (audioUnlocked) {
+    try {
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    } catch (_) {}
+    finish();
+    return;
+  }
+
   try {
     if (ctx) {
       const resumeP = ctx.state === 'suspended' ? ctx.resume() : Promise.resolve();
@@ -2672,13 +2773,19 @@ function bindAudioUnlockGestures() {
   });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
-      unlockAudio(false);
+      // Chỉ resume — không phát unlock noise khi quay lại tab
       const ctx = getSharedAudioCtx();
       if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      if (!audioUnlocked) unlockAudio(false);
     }
   });
-  window.addEventListener('pageshow', () => unlockAudio(false));
-  window.addEventListener('focus', () => unlockAudio(false));
+  window.addEventListener('pageshow', () => {
+    if (!audioUnlocked) unlockAudio(false);
+  });
+  window.addEventListener('focus', () => {
+    const ctx = getSharedAudioCtx();
+    if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+  });
 }
 bindAudioUnlockGestures();
 
@@ -2727,50 +2834,51 @@ function triggerMessageChime(ctx) {
 
 function playChimeSound() {
   try {
-    unlockAudio(false);
+    if (!audioUnlocked) unlockAudio(false);
+    else {
+      const ctx = getSharedAudioCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+    }
     // Rung dài hơn để dễ nhận khi âm lượng thấp / silent
     vibrateAlert([500, 150, 500, 150, 500, 150, 700]);
-    const ctx = getSharedAudioCtx();
-    // HTMLAudio chuông dài ~4s (chính trên iOS) + WebAudio dual-tone (lớn hơn)
+    // Chỉ HTMLAudio — tránh chồng WebAudio (gây loạn tiếng)
     playHtmlAlert('order');
-    const run = () => {
-      if (ctx) triggerOrderRingtone(ctx);
-    };
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(run).catch(() => {});
-    } else {
-      run();
-    }
   } catch (e) {
     console.warn('Audio play failed:', e);
-    playHtmlAlert('order');
+    try {
+      const ctx = getSharedAudioCtx();
+      if (ctx) {
+        const run = () => triggerOrderRingtone(ctx);
+        if (ctx.state === 'suspended') ctx.resume().then(run).catch(() => {});
+        else run();
+      }
+    } catch (_) {}
     vibrateAlert([500, 150, 500, 150, 700]);
   }
 }
 
 function playMessageChimeSound() {
   try {
-    unlockAudio(false);
-    const ctx = getSharedAudioCtx();
-    const run = () => {
-      if (ctx) triggerMessageChime(ctx);
-      playHtmlAlert('chat');
-    };
-    if (ctx && ctx.state === 'suspended') {
-      ctx.resume().then(run).catch(() => playHtmlAlert('chat'));
-    } else {
-      run();
+    if (!audioUnlocked) unlockAudio(false);
+    else {
+      const ctx = getSharedAudioCtx();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
     }
+    // Chỉ HTMLAudio — không chồng oscillator
+    playHtmlAlert('chat');
     vibrateAlert([100, 50, 120]);
   } catch (e) {
     console.warn('Audio play failed:', e);
-    playHtmlAlert('chat');
+    try {
+      const ctx = getSharedAudioCtx();
+      if (ctx) triggerMessageChime(ctx);
+    } catch (_) {}
     vibrateAlert([100, 50, 120]);
   }
 }
 
-/** Lặp chuông khi có đơn đề xuất — mỗi chu kỳ ~4.2s */
-const ORDER_RING_LOOP_MS = 4300;
+/** Lặp chuông khi có đơn đề xuất — dài hơn độ dài ringtone ~4s để tránh chồng */
+const ORDER_RING_LOOP_MS = 5200;
 
 function startOrderAlertLoop() {
   stopOrderAlertLoop();
@@ -2790,6 +2898,12 @@ function stopOrderAlertLoop() {
     clearInterval(orderAlertInterval);
     orderAlertInterval = null;
   }
+  try {
+    if (htmlOrderAudio) {
+      htmlOrderAudio.pause();
+      htmlOrderAudio.currentTime = 0;
+    }
+  } catch (_) {}
 }
 
 // ── DRIVER STATS PERSISTENCE ────────────────────────────────────────────────

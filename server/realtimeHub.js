@@ -84,7 +84,8 @@ function publishOrderUpdate(order) {
       if (!phone) return false;
       const assigned = normalizePhoneDigits(order.assignedShipperPhone);
       const shipper = normalizePhoneDigits(order.shipperPhone);
-      return phone === assigned || phone === shipper || order.status === 'PENDING';
+      // Chỉ đẩy tới tài xế được đề xuất / đang giữ đơn — tránh mọi shipper sync ồ ạt
+      return (assigned && phone === assigned) || (shipper && phone === shipper);
     }
     return false;
   });
