@@ -4947,7 +4947,9 @@ function isMobileShipperClient() {
 function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) {
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const text = (label || '').trim();
-  const mode = 'two-wheeler';
+  // VN: travelmode=two-wheeler thường không hỗ trợ → Maps báo lỗi chỉ đường.
+  // Dùng driving (Google Maps VN vẫn phù hợp xe máy).
+  const mode = 'driving';
 
   if (!preferLabel && hasCoords) {
     const dest = `${lat},${lon}`;
@@ -5042,11 +5044,33 @@ function navigateToPoint(target) {
     pinnedLon: activeOrder.pinnedLon
   });
 
+  // Cảnh báo khi pin khách ≈ GPS quán (dễ tưởng nhầm nút bị đảo)
+  try {
+    const other = dest.target === 'restaurant'
+      ? resolveCustomerNavDestination(activeOrder)
+      : resolveRestaurantNavDestination(activeOrder);
+    if (
+      dest.useGps && other && other.useGps &&
+      Number.isFinite(other.lat) && Number.isFinite(other.lon)
+    ) {
+      const dLat = dest.lat - other.lat;
+      const dLon = dest.lon - other.lon;
+      const meters = Math.sqrt(dLat * dLat + dLon * dLon) * 111000;
+      if (meters < 40) {
+        showToast(
+          'Hai điểm gần nhau',
+          `Quán và khách chỉ cách ~${Math.round(meters)}m — kiểm tra lại pin khách trên đơn.`,
+          'warning'
+        );
+      }
+    }
+  } catch (_) { /* ignore */ }
+
   if (dest.target === 'restaurant') {
     showToast(
       dest.useGps ? 'Chỉ đường đến quán (GPS)' : 'Chỉ đường đến quán (địa chỉ)',
       dest.useGps
-        ? 'Google Maps ghim tọa độ ShopeeFood/Grab của quán.'
+        ? 'Google Maps ghim tọa độ quán (Foody/Shopee).'
         : 'Quán chưa có GPS crawl — tìm theo tên + địa chỉ quán.',
       dest.useGps ? 'success' : 'info'
     );
