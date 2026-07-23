@@ -387,13 +387,46 @@
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-bottom: 20px;
+      margin-bottom: 14px;
     }
     .rating-card__stars .star {
       font-size: 34px;
       cursor: pointer;
       line-height: 1;
       user-select: none;
+    }
+    .rating-card__feedback {
+      text-align: left;
+      margin-bottom: 16px;
+    }
+    .rating-card__feedback-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #065F46;
+      margin-bottom: 6px;
+    }
+    .rating-card__feedback-input {
+      width: 100%;
+      min-height: 84px;
+      resize: vertical;
+      border: 1.5px solid #6EE7B7;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      line-height: 1.45;
+      color: #064E3B;
+      background: rgba(255,255,255,0.92);
+      font-family: inherit;
+      box-sizing: border-box;
+    }
+    .rating-card__feedback-input:focus {
+      outline: none;
+      border-color: #10B981;
+      box-shadow: 0 0 0 3px rgba(16,185,129,0.18);
+    }
+    .rating-card__feedback-input::placeholder {
+      color: #94A3B8;
     }
     .rating-card__actions {
       display: flex;
@@ -693,6 +726,16 @@
         <span class="star active" data-v="3" onclick="setRating(3)">★</span>
         <span class="star active" data-v="4" onclick="setRating(4)">★</span>
         <span class="star active" data-v="5" onclick="setRating(5)">★</span>
+      </div>
+      <div class="rating-card__feedback">
+        <label class="rating-card__feedback-label" for="rating-comment-input">Ý kiến của bạn (CRM &amp; tài xế sẽ thấy)</label>
+        <textarea
+          id="rating-comment-input"
+          class="rating-card__feedback-input"
+          maxlength="400"
+          rows="3"
+          placeholder="Ví dụ: Tài xế giao nhanh, món còn nóng, thái độ thân thiện..."
+        ></textarea>
       </div>
       <div class="rating-card__actions">
         <button type="button" class="btn btn--success btn--full" id="submit-rating-btn" onclick="submitRating()">
@@ -1586,8 +1629,11 @@
       btn.disabled = true;
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang gửi...';
 
+      const commentEl = document.getElementById('rating-comment-input');
+      const comment = (commentEl && commentEl.value ? commentEl.value : '').trim().slice(0, 400);
+
       try {
-        await SF.rateOrder(order.id, currentRating, 'Khách hàng đánh giá qua App');
+        await SF.rateOrder(order.id, currentRating, comment);
         SF.showToast('Cảm ơn bạn! ⭐', `Bạn đã đánh giá ${currentRating} sao. Đang về trang chủ để đặt tiếp...`, 'success');
         stopOrderPolling();
         SF.completeOrder();

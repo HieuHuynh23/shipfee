@@ -5562,7 +5562,10 @@ app.post('/api/orders/:id/rate', async (req, res) => {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
 
-    console.log(`[Order Server] ⭐ Khách hàng đánh giá đơn ${id}: ${rating} sao`);
+    const commentPreview = (comment && String(comment).trim())
+      ? String(comment).trim().slice(0, 80)
+      : '(không có ý kiến)';
+    console.log(`[Order Server] ⭐ Khách hàng đánh giá đơn ${id}: ${rating} sao — ${commentPreview}`);
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ error: e.message });
