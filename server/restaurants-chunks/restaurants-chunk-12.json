@@ -31,7 +31,12 @@
     "menuUpdatedAt": "2026-07-13T18:45:23.284Z",
     "sfDiscoveredAt": "2026-07-18T06:51:13.130Z",
     "source": "foody-detail",
-    "foodySlug": "cabin-coffee-capucino"
+    "foodySlug": "cabin-coffee-capucino",
+    "latitude": 10.0289929,
+    "longitude": 105.7725558,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:05.524Z"
   },
   {
     "id": "r_ct_highlands_coffee_cv_song_hau_can_tho",
@@ -102,11 +107,15 @@
     ],
     "shopeefoodSlug": "highlands-coffee-tra-ca-phe-banh-cv-song-hau-can-tho",
     "menuUpdatedAt": "2026-07-13T18:47:35.044Z",
-    "latitude": 10.04818127,
-    "longitude": 105.79126766,
+    "latitude": 10.0481813,
+    "longitude": 105.7912677,
     "sfRestaurantId": 1178883,
     "sfDiscoveredAt": "2026-07-18T10:11:13.438Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:20.519Z",
+    "foodySlug": "highlands-coffee-tra-ca-phe-banh-cv-song-hau-can-tho"
   },
   {
     "id": "r_ct_an_vat_chon_lon_xon_cn_nguyen_van_cu_noi_dai",
@@ -173,7 +182,12 @@
     "menuUpdatedAt": "2026-07-13T18:45:37.654Z",
     "foodySlug": "an-vat-chon-lon-xon-cn-nguyen-van-cu-noi-dai",
     "sfDiscoveredAt": "2026-07-18T09:47:59.010Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.0159747,
+    "longitude": 105.7359359,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:04.439Z"
   },
   {
     "id": "r_ct_highlands_coffee_tra_ca_phe_banh_tran_van_kheo_can_tho",
@@ -247,10 +261,13 @@
     "brandPortalId": "r_ct_highlands_coffee_can_tho",
     "sfDiscoveredAt": "2026-07-18T10:11:13.121Z",
     "source": "shopeefood",
-    "latitude": 10.04476341,
+    "latitude": 10.0447634,
     "longitude": 105.7834465,
     "sfRestaurantId": 1178888,
-    "foodySlug": "highlands-coffee-tra-ca-phe-banh-tran-van-kheo-can-tho"
+    "foodySlug": "highlands-coffee-tra-ca-phe-banh-tran-van-kheo-can-tho",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:05.202Z"
   },
   {
     "id": "r_ct_chao_trang_chao_dau_a_xo_2_chao_ech_kho_quet_chao_duong_nguyen_van_cu_noi_dai",
@@ -358,12 +375,15 @@
     ],
     "menuUpdatedAt": "2026-07-13T18:47:05.860Z",
     "brandPortalId": "r_ct_chao_trang_chao_dau_can_tho_a_xo",
-    "latitude": 10.03122865,
+    "latitude": 10.0312286,
     "longitude": 105.752226,
     "sfRestaurantId": 1224577,
     "sfDiscoveredAt": "2026-07-18T10:07:45.056Z",
     "source": "shopeefood",
-    "foodySlug": "chao-trang-chao-dau-a-xo-2-chao-ech-kho-quet-chao-duong-nguyen-van-cu-noi-dai"
+    "foodySlug": "chao-trang-chao-dau-a-xo-2-chao-ech-kho-quet-chao-duong-nguyen-van-cu-noi-dai",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:05.619Z"
   },
   {
     "id": "r_ct_tre_tron_co_dien_khu_dan_cu_metro",
@@ -404,7 +424,14 @@
       "Gà ủ xì dầu nhà làm"
     ],
     "shopeefoodSlug": "tre-tron-co-dien-khu-dan-cu-metro",
-    "menuUpdatedAt": "2026-07-13T18:45:52.292Z"
+    "menuUpdatedAt": "2026-07-13T18:45:52.292Z",
+    "latitude": 10.022675,
+    "longitude": 105.7596634,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:20.679Z",
+    "foodySlug": "tre-tron-co-dien-khu-dan-cu-metro",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_nha_co_ba_com_suon_nui_xao_bo_mi_xao_mac_thien_tich",
@@ -647,10 +674,13 @@
     "brandPortalId": "r_ct_com_nha_co_ba_can_tho",
     "sfDiscoveredAt": "2026-07-18T09:53:39.921Z",
     "source": "shopeefood",
-    "latitude": 10.03020119,
-    "longitude": 105.77681777,
+    "latitude": 10.0302012,
+    "longitude": 105.7768178,
     "sfRestaurantId": 1021788,
-    "foodySlug": "com-nha-co-ba-com-suon-nui-xao-bo-mi-xao-mac-thien-tich"
+    "foodySlug": "com-nha-co-ba-com-suon-nui-xao-bo-mi-xao-mac-thien-tich",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:06.155Z"
   },
   {
     "id": "r_ct_quan_com_phan_co_2",
@@ -810,7 +840,14 @@
       "Cơm Bò Xào Thập Cẩm"
     ],
     "shopeefoodSlug": "com-xao-com-ga-102",
-    "menuUpdatedAt": "2026-07-13T18:46:04.519Z"
+    "menuUpdatedAt": "2026-07-13T18:46:04.519Z",
+    "latitude": 10.011922,
+    "longitude": 105.76467,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:20.775Z",
+    "foodySlug": "com-xao-com-ga-102",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_ga_nguyen_ky_tran_hoang_na_noi_dai",
@@ -874,7 +911,10 @@
     "foodySlug": "com-ga-nguyen-ky-tran-hoang-na-noi-dai",
     "latitude": 10.017361,
     "longitude": 105.759028,
-    "sfRestaurantId": 1048743
+    "sfRestaurantId": 1048743,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:06.354Z"
   },
   {
     "id": "r_ct_com_ga_le_trang_42_dinh_tien_hoang",
@@ -938,10 +978,13 @@
     "brandPortalId": "r_ct_com_ga_le_trang",
     "sfDiscoveredAt": "2026-07-18T09:53:02.995Z",
     "source": "shopeefood",
-    "latitude": 10.04296218,
-    "longitude": 105.78000999,
+    "latitude": 10.0429622,
+    "longitude": 105.78001,
     "sfRestaurantId": 1039806,
-    "foodySlug": "com-ga-le-trang-42-dinh-tien-hoang"
+    "foodySlug": "com-ga-le-trang-42-dinh-tien-hoang",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:06.195Z"
   },
   {
     "id": "r_ct_tra_sua_santhai_138z6_nguyen_van_cu_noi_dai",
@@ -1000,7 +1043,12 @@
     "brandPortalId": "r_ct_tra_sua_san_thai",
     "foodySlug": "tra-sua-santhai-138z6-nguyen-van-cu-noi-dai",
     "sfDiscoveredAt": "2026-07-18T09:48:00.882Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.0397375,
+    "longitude": 105.7611388,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:06.320Z"
   },
   {
     "id": "r_ct_ga_ran_burger_lotteria",
@@ -1114,7 +1162,14 @@
     ],
     "brandBranchCount": 4,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.013563,
+    "longitude": 105.784725,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:04.948Z",
+    "foodySlug": "ga-ran-burger-lotteria",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_han_cook_quan_an_han_quoc",
@@ -1148,7 +1203,12 @@
     "menuUpdatedAt": "2026-07-13T18:49:42.410Z",
     "sfDiscoveredAt": "2026-07-18T06:52:39.757Z",
     "source": "foody-detail",
-    "foodySlug": "han-cook-quan-an-han-quoc"
+    "foodySlug": "han-cook-quan-an-han-quoc",
+    "latitude": 10.0212002,
+    "longitude": 105.768446,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:05.503Z"
   },
   {
     "id": "r_ct_mr_soi_chan_ga_sot_thai_ha_cao_tra",
@@ -1195,7 +1255,11 @@
     "longitude": 105.766974,
     "sfRestaurantId": 1296166,
     "sfDiscoveredAt": "2026-07-18T10:06:23.603Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:06.538Z",
+    "foodySlug": "mr-soi-chan-ga-sot-thai-ha-cao-tra"
   },
   {
     "id": "r_ct_tiem_banh_3_trai_ca_mau_than",
@@ -1268,7 +1332,11 @@
     "longitude": 105.775822,
     "sfRestaurantId": 1295134,
     "sfDiscoveredAt": "2026-07-18T10:16:19.159Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:05.188Z",
+    "foodySlug": "tiem-banh-3-trai-ca-mau-than"
   },
   {
     "id": "r_ct_tue_ky_com_tam_bui",
@@ -1303,7 +1371,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:50:09.299Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:50:09.299Z"
+    "menuUpdatedAt": "2026-07-13T18:50:09.299Z",
+    "latitude": 10.0507947,
+    "longitude": 105.7727405,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:06.013Z",
+    "foodySlug": "tue-ky-com-tam-bui",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_banh_mi_plus_nguyen_van_troi",
@@ -1362,7 +1437,10 @@
     "sfRestaurantId": 943740,
     "sfDiscoveredAt": "2026-07-18T10:03:32.890Z",
     "source": "shopeefood",
-    "foodySlug": "banh-mi-plus-nguyen-van-troi"
+    "foodySlug": "banh-mi-plus-nguyen-van-troi",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:06.227Z"
   },
   {
     "id": "r_ct_ma_bay_com_chay_kho_quet",
@@ -1509,7 +1587,10 @@
     "latitude": 10.0128771,
     "longitude": 105.7444925,
     "sfRestaurantId": 1000063328,
-    "foodySlug": "com-phan-lam-beo-com-suon-com-cac-loai-mon-hoang-quoc-viet"
+    "foodySlug": "com-phan-lam-beo-com-suon-com-cac-loai-mon-hoang-quoc-viet",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:06.771Z"
   },
   {
     "id": "r_ct_com_ga_tien_ky",
@@ -1608,7 +1689,14 @@
     ],
     "brandBranchCount": 4,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.0176384,
+    "longitude": 105.7384993,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:06.784Z",
+    "foodySlug": "com-ga-tien-ky",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_pho_thien",
@@ -1647,7 +1735,12 @@
     "menuUpdatedAt": "2026-07-13T18:51:28.253Z",
     "sfDiscoveredAt": "2026-07-18T06:54:23.236Z",
     "source": "foody-detail",
-    "foodySlug": "pho-thien"
+    "foodySlug": "pho-thien",
+    "latitude": 10.0349633,
+    "longitude": 105.7813317,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:07.293Z"
   },
   {
     "id": "r_ct_pho_tam_khu_dan_cu_hung_phu",
@@ -1691,7 +1784,12 @@
     "menuUpdatedAt": "2026-07-13T18:53:40.536Z",
     "sfDiscoveredAt": "2026-07-18T06:54:44.181Z",
     "source": "foody-detail",
-    "foodySlug": "pho-tam-khu-dan-cu-hung-phu"
+    "foodySlug": "pho-tam-khu-dan-cu-hung-phu",
+    "latitude": 10.0198425,
+    "longitude": 105.7821632,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:07.517Z"
   },
   {
     "id": "r_ct_them_banh_mi_com_tam_man_bun_banh_mi_thit_nuong_khu_giang_vien_dhct",
@@ -1747,7 +1845,12 @@
     "menuUpdatedAt": "2026-07-13T18:53:49.472Z",
     "sfDiscoveredAt": "2026-07-18T06:53:49.139Z",
     "source": "foody-detail",
-    "foodySlug": "them-banh-mi-com-tam-man-bun-banh-mi-thit-nuong-khu-giang-vien-dhct"
+    "foodySlug": "them-banh-mi-com-tam-man-bun-banh-mi-thit-nuong-khu-giang-vien-dhct",
+    "latitude": 10.0267996,
+    "longitude": 105.7593669,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:07.441Z"
   },
   {
     "id": "r_ct_quan_cuon_goi_cuon_bi_cuon_po_pia_bun",
@@ -1818,7 +1921,10 @@
     "sfRestaurantId": 1180737,
     "sfDiscoveredAt": "2026-07-18T10:05:53.814Z",
     "source": "shopeefood",
-    "foodySlug": "quan-cuon-goi-cuon-bi-cuon-po-pia-bun"
+    "foodySlug": "quan-cuon-goi-cuon-bi-cuon-po-pia-bun",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:07.481Z"
   },
   {
     "id": "r_ct_mi_tron_samsam_le_anh_xuan",
@@ -1947,7 +2053,12 @@
     "menuUpdatedAt": "2026-07-13T18:53:53.195Z",
     "foodySlug": "mi-tron-samsam-le-anh-xuan",
     "sfDiscoveredAt": "2026-07-18T07:00:06.096Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.04188,
+    "longitude": 105.77411,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.027Z"
   },
   {
     "id": "r_ct_naga_food_mi_cay_han_quoc_7_cap_do_tran_hung_dao",
@@ -2069,12 +2180,15 @@
     "menuProcessedAt": "2026-06-30T16:55:48.757Z",
     "shopeefoodSlug": "naga-food-mi-cay-han-quoc-7-cap-do-tran-hung-dao",
     "menuUpdatedAt": "2026-07-13T18:54:02.064Z",
-    "latitude": 10.03908637,
-    "longitude": 105.77621467,
+    "latitude": 10.0390864,
+    "longitude": 105.7762147,
     "sfRestaurantId": 1221026,
     "sfDiscoveredAt": "2026-07-18T09:57:21.915Z",
     "source": "shopeefood",
-    "foodySlug": "naga-food-mi-cay-han-quoc-7-cap-do-tran-hung-dao"
+    "foodySlug": "naga-food-mi-cay-han-quoc-7-cap-do-tran-hung-dao",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.169Z"
   },
   {
     "id": "r_ct_mi_tron_vivu",
@@ -2243,7 +2357,14 @@
     ],
     "brandBranchCount": 2,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.03453,
+    "longitude": 105.77613,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.263Z",
+    "foodySlug": "tiem-mi-khuya",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tiem_nha_bong_can_tho",
@@ -2329,7 +2450,14 @@
     ],
     "brandBranchCount": 2,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.0085311,
+    "longitude": 105.74807,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.716Z",
+    "foodySlug": "tiem-nha-bong-can-tho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_jollibee_can_tho",
@@ -2424,7 +2552,14 @@
     ],
     "brandBranchCount": 7,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.0216707,
+    "longitude": 105.7705534,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.805Z",
+    "foodySlug": "jollibee-can-tho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mi_cay_yagami_3_2",
@@ -2475,7 +2610,10 @@
     "sfRestaurantId": 1285196,
     "sfDiscoveredAt": "2026-07-18T09:57:23.094Z",
     "source": "shopeefood",
-    "foodySlug": "mi-cay-yagami-3-2"
+    "foodySlug": "mi-cay-yagami-3-2",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:08.824Z"
   },
   {
     "id": "r_ct_hu_tieu_to_chau",
@@ -2560,7 +2698,12 @@
     "menuUpdatedAt": "2026-07-13T18:54:42.847Z",
     "foodySlug": "chao-long-hu-tieu-ma-heo-phuc-han",
     "sfDiscoveredAt": "2026-07-18T06:59:50.561Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0060695,
+    "longitude": 105.787198,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:09.411Z"
   },
   {
     "id": "r_ct_hu_tieu_vang_ky_cach_mang_thang_8",
@@ -2601,9 +2744,12 @@
     "foodySlug": "hu-tieu-vang-ky-cach-mang-thang-8",
     "sfDiscoveredAt": "2026-07-18T09:57:07.569Z",
     "source": "shopeefood",
-    "latitude": 10.06363642,
+    "latitude": 10.0636364,
     "longitude": 105.7611988,
-    "sfRestaurantId": 1283122
+    "sfRestaurantId": 1283122,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:09.496Z"
   },
   {
     "id": "r_ct_chao_so_huyet_since_2016",
@@ -2651,7 +2797,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:53:34.823Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:53:34.823Z"
+    "menuUpdatedAt": "2026-07-13T18:53:34.823Z",
+    "latitude": 10.03425,
+    "longitude": 105.78304,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:09.509Z",
+    "foodySlug": "chao-so-huyet-since-2016",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_chao_dinh_duong_baby_cho_an_khanh",
@@ -2715,7 +2868,11 @@
     "longitude": 105.754555,
     "sfRestaurantId": 1263985,
     "sfDiscoveredAt": "2026-07-18T10:15:48.139Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:09.912Z",
+    "foodySlug": "chao-dinh-duong-baby-cho-an-khanh"
   },
   {
     "id": "r_ct_xoi_ga_huu_phuoc_nguyen_van_cu",
@@ -2792,7 +2949,12 @@
     "menuUpdatedAt": "2026-07-13T18:53:47.505Z",
     "foodySlug": "xoi-banh-mi-toan-duong-3-thang-2",
     "sfDiscoveredAt": "2026-07-18T06:59:23.693Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.02801,
+    "longitude": 105.77072,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:10.116Z"
   },
   {
     "id": "r_ct_banh_canh_hong_nhanh_nguyen_van_linh",
@@ -2825,7 +2987,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:55:36.042Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:55:36.042Z"
+    "menuUpdatedAt": "2026-07-13T18:55:36.042Z",
+    "latitude": 10.02245,
+    "longitude": 105.75818,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:10.216Z",
+    "foodySlug": "banh-canh-hong-nhanh-nguyen-van-linh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_banh_xeo_ninh_thuan_nguyen_van_linh",
@@ -2884,7 +3053,10 @@
     "sfRestaurantId": 1182831,
     "sfDiscoveredAt": "2026-07-18T10:03:48.403Z",
     "source": "shopeefood",
-    "foodySlug": "banh-xeo-ninh-thuan-nguyen-van-linh"
+    "foodySlug": "banh-xeo-ninh-thuan-nguyen-van-linh",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:10.844Z"
   },
   {
     "id": "r_ct_banh_cuon_tom_quy_quy_food",
@@ -2922,7 +3094,12 @@
     "menuUpdatedAt": "2026-07-13T18:56:24.219Z",
     "foodySlug": "banh-cuon-tom-quy-quy-food",
     "sfDiscoveredAt": "2026-07-18T07:03:50.771Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0299797,
+    "longitude": 105.7604263,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:10.701Z"
   },
   {
     "id": "r_ct_quan_me_cun_banh_cuon_nong_banh_tam_bun_thit_nuong_kdc_586",
@@ -3058,7 +3235,12 @@
     "menuUpdatedAt": "2026-07-13T18:56:38.788Z",
     "foodySlug": "nuoc-ep-banh-mi-mi-map",
     "sfDiscoveredAt": "2026-07-18T06:56:22.727Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0225,
+    "longitude": 105.77016,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:10.960Z"
   },
   {
     "id": "r_ct_banh_mi_sieu_topping_co_tu",
@@ -3258,7 +3440,10 @@
     "source": "shopeefood",
     "latitude": 10.0555445,
     "longitude": 105.77126,
-    "sfRestaurantId": 1059811
+    "sfRestaurantId": 1059811,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:11.383Z"
   },
   {
     "id": "r_ct_tiem_nha_4b_banh_trang_tron_tra_trai_cay_nguyen_de",
@@ -3355,7 +3540,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:56:56.984Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 13:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:56:56.984Z"
+    "menuUpdatedAt": "2026-07-13T18:56:56.984Z",
+    "latitude": 10.048,
+    "longitude": 105.761497,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:11.812Z",
+    "foodySlug": "tiem-nha-4b-banh-trang-tron-tra-trai-cay-nguyen-de",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_an_vat_co_3_xi_gon_banh_trang_phoi_suong_tra_sua_pham_hung",
@@ -3413,7 +3605,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:57:28.402Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:57:28.402Z"
+    "menuUpdatedAt": "2026-07-13T18:57:28.402Z",
+    "latitude": 10.0013981,
+    "longitude": 105.7504871,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:11.673Z",
+    "foodySlug": "an-vat-co-3-xi-gon-banh-trang-phoi-suong-tra-sua-pham-hung",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_banh_bot_loc_hue_can_tho",
@@ -3464,7 +3663,11 @@
     "longitude": 105.76683,
     "sfRestaurantId": 1121571,
     "sfDiscoveredAt": "2026-07-18T09:58:14.172Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:12.001Z",
+    "foodySlug": "banh-bot-loc-hue-can-tho"
   },
   {
     "id": "r_ct_banh_khot_vung_tau_co_ut_ho_tung_mau",
@@ -3510,7 +3713,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:56:51.165Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:56:51.165Z"
+    "menuUpdatedAt": "2026-07-13T18:56:51.165Z",
+    "latitude": 10.04549,
+    "longitude": 105.783491,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:12.060Z",
+    "foodySlug": "banh-khot-vung-tau-co-ut-ho-tung-mau",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mebee_com_tam_long_xuyen_tra_sua",
@@ -3584,10 +3794,14 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T18:58:23.396Z",
     "latitude": 10.0279839,
-    "longitude": 105.77425739,
+    "longitude": 105.7742574,
     "sfRestaurantId": 1055928,
     "sfDiscoveredAt": "2026-07-18T10:14:42.640Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:12.691Z",
+    "foodySlug": "mebee-com-tam-long-xuyen-tra-sua"
   },
   {
     "id": "r_ct_com_tam_long_xuyen_le_oanh",
@@ -3623,7 +3837,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:57:04.969Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:57:04.969Z"
+    "menuUpdatedAt": "2026-07-13T18:57:04.969Z",
+    "latitude": 10.0588656,
+    "longitude": 105.7553778,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:12.770Z",
+    "foodySlug": "com-tam-long-xuyen-le-oanh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_ga_kim_phuc",
@@ -3674,11 +3895,15 @@
     "closedAt": "2026-07-13T18:58:36.294Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
     "menuUpdatedAt": "2026-07-18T06:17:42.334Z",
-    "latitude": 10.02,
-    "longitude": 105.76,
+    "latitude": 10.01843,
+    "longitude": 105.76156,
     "source": "shopeefood",
     "sfDiscoveredAt": "2026-07-18T09:54:01.512Z",
-    "sfRestaurantId": 1240911
+    "sfRestaurantId": 1240911,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:12.983Z",
+    "foodySlug": "com-ga-kim-phuc"
   },
   {
     "id": "r_ct_bep_nha_ut_minh_com_tam_com_chien_an_vat",
@@ -3785,7 +4010,11 @@
     "longitude": 105.77794,
     "sfRestaurantId": 1000066134,
     "sfDiscoveredAt": "2026-07-18T10:22:06.371Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:13.623Z",
+    "foodySlug": "an-sang-cung-ong-bo-com-chien-duong-chau-banh-mi-thit-khia-xiu-mai-182-duong-30-4"
   },
   {
     "id": "r_ct_bon_bon_banh_mi_cho_an_thoi",
@@ -3873,11 +4102,15 @@
     "shopeefoodSlug": "co-ba-hoi-lau-thai-com-chien-tran-vinh-kiet",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T18:59:23.134Z",
-    "latitude": 10.01945467,
-    "longitude": 105.75106195,
+    "latitude": 10.0194547,
+    "longitude": 105.7510619,
     "sfRestaurantId": 1159881,
     "sfDiscoveredAt": "2026-07-18T10:02:48.697Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:13.752Z",
+    "foodySlug": "co-ba-hoi-lau-thai-com-chien-tran-vinh-kiet"
   },
   {
     "id": "r_ct_kimchi_kc_lau_kim_chi_79k",
@@ -3995,7 +4228,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:59:02.799Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:59:02.799Z"
+    "menuUpdatedAt": "2026-07-13T18:59:02.799Z",
+    "latitude": 10.0276831,
+    "longitude": 105.7629509,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:14.023Z",
+    "foodySlug": "co-5-food-19k-1-kv3-an-khanh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_thanh_dat_com_van_phong_pha_lau_nguyen_van_cu_noi_dai",
@@ -4028,7 +4268,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:59:16.799Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:59:16.799Z"
+    "menuUpdatedAt": "2026-07-13T18:59:16.799Z",
+    "latitude": 10.0302593,
+    "longitude": 105.7518664,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:14.586Z",
+    "foodySlug": "thanh-dat-com-van-phong-pha-lau-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bun_bo_hue_viet_bun_bo_hue_sinh_to_hung_loi",
@@ -4073,7 +4320,12 @@
     "menuUpdatedAt": "2026-07-13T19:00:13.393Z",
     "foodySlug": "bun-bo-hue-viet-bun-bo-hue-sinh-to-hung-loi",
     "sfDiscoveredAt": "2026-07-18T07:07:59.968Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0189067,
+    "longitude": 105.7708033,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:14.307Z"
   },
   {
     "id": "r_ct_mai_36_pho_bun_bo",
@@ -4156,7 +4408,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:59:45.031Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 15:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:59:45.031Z"
+    "menuUpdatedAt": "2026-07-13T18:59:45.031Z",
+    "latitude": 10.0326582,
+    "longitude": 105.7858453,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:14.720Z",
+    "foodySlug": "bun-rieu-loc-nguyen-thai-hoc",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_thai_coffee_bun_cha_ha_noi_nguyen_van_cu_noi_dai",
@@ -4240,9 +4499,12 @@
     "foodySlug": "quan-chi-thuy-com-chay-bun-chay-duong-3-2",
     "sfDiscoveredAt": "2026-07-18T09:54:23.775Z",
     "source": "shopeefood",
-    "latitude": 10.0203577374642,
-    "longitude": 105.758681596634,
-    "sfRestaurantId": 1088369
+    "latitude": 10.0203577,
+    "longitude": 105.7586816,
+    "sfRestaurantId": 1088369,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:15.616Z"
   },
   {
     "id": "r_ct_thanh_truc_bun_xao_cha_gio_bun_nem_nuong_ba_thang_hai",
@@ -4276,8 +4538,11 @@
     "sfDiscoveredAt": "2026-07-18T09:56:15.968Z",
     "source": "shopeefood",
     "latitude": 10.0133196,
-    "longitude": 105.75662833,
-    "sfRestaurantId": 1129605
+    "longitude": 105.7566283,
+    "sfRestaurantId": 1129605,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:15.436Z"
   },
   {
     "id": "r_ct_bun_mam_thanh",
@@ -4355,7 +4620,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T18:59:48.427Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T18:59:48.427Z"
+    "menuUpdatedAt": "2026-07-13T18:59:48.427Z",
+    "latitude": 10.026427,
+    "longitude": 105.761085,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:16.560Z",
+    "foodySlug": "bun-mam-nha-xua-duong-so-3",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bun_mam_nga_25_ngo_duc_ke",
@@ -4390,7 +4662,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:00:12.730Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 05:00 27/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:00:12.730Z"
+    "menuUpdatedAt": "2026-07-13T19:00:12.730Z",
+    "latitude": 10.02972,
+    "longitude": 105.78752,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:17.249Z",
+    "foodySlug": "bun-mam-nga-25-ngo-duc-ke",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_pho_bo_kho_69",
@@ -4431,7 +4710,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:48.908Z",
     "shopeefoodSlug": "quan-pho-bo-kho-69",
-    "menuUpdatedAt": "2026-07-13T19:01:01.274Z"
+    "menuUpdatedAt": "2026-07-13T19:01:01.274Z",
+    "latitude": 10.012328,
+    "longitude": 105.7604084,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:17.916Z",
+    "foodySlug": "quan-pho-bo-kho-69",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ga_cay_han_quoc_zinfoody_nguyen_van_cu_noi_dai",
@@ -4476,7 +4762,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:01:13.892Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 16:10 06/08/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:01:13.892Z"
+    "menuUpdatedAt": "2026-07-13T19:01:13.892Z",
+    "latitude": 10.02738,
+    "longitude": 105.748513,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:18.620Z",
+    "foodySlug": "ga-cay-han-quoc-zinfoody-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ali_tea_food_tea_coffee_pham_ngu_lao",
@@ -4557,7 +4850,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:01:52.964Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:01:52.964Z"
+    "menuUpdatedAt": "2026-07-13T19:01:52.964Z",
+    "latitude": 10.0432892,
+    "longitude": 105.7600144,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:27.893Z",
+    "foodySlug": "com-mi-xao-mi-cay-hem-160-lien-to-14-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_pizza_quyen_quyen_chan_ga_sot_thai_mi_tron",
@@ -4715,7 +5015,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:02:03.965Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:02:03.965Z"
+    "menuUpdatedAt": "2026-07-13T19:02:03.965Z",
+    "latitude": 10.049245,
+    "longitude": 105.774162,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:28.900Z",
+    "foodySlug": "banh-tacos-pulo",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_sushi_owa_87_tran_viet_chau",
@@ -4981,7 +5288,10 @@
     "sfRestaurantId": 1215866,
     "sfDiscoveredAt": "2026-07-18T10:06:39.164Z",
     "source": "shopeefood",
-    "foodySlug": "ruby-house-sushi"
+    "foodySlug": "ruby-house-sushi",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:29.912Z"
   },
   {
     "id": "r_ct_banh_bach_tuot_banh_he_nguyen_viet_hong",
@@ -5045,7 +5355,11 @@
     "longitude": 105.777016,
     "sfRestaurantId": 647085,
     "sfDiscoveredAt": "2026-07-18T10:25:40.776Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:30.968Z",
+    "foodySlug": "banh-bach-tuot-banh-he-nguyen-viet-hong"
   },
   {
     "id": "r_ct_mi_tron_indomie_251_9_dong_van_cong",
@@ -5090,7 +5404,12 @@
     "menuUpdatedAt": "2026-07-13T19:02:31.506Z",
     "foodySlug": "mi-tron-indomie-251-9-dong-van-cong",
     "sfDiscoveredAt": "2026-07-18T07:07:19.968Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.054851,
+    "longitude": 105.760047,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:31.941Z"
   },
   {
     "id": "r_ct_doi_doi_do_an_nhanh_hem_390_nguyen_van_cu.lvi4en",
@@ -5137,7 +5456,12 @@
     "menuUpdatedAt": "2026-07-13T19:02:54.178Z",
     "foodySlug": "doi-doi-do-an-nhanh-hem-390-nguyen-van-cu.lvi4en",
     "sfDiscoveredAt": "2026-07-18T07:07:21.882Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.036093,
+    "longitude": 105.7576722,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:32.809Z"
   },
   {
     "id": "r_ct_my_cay_beta_hem_51_duong_3_thang_2",
@@ -5213,7 +5537,12 @@
     "menuUpdatedAt": "2026-07-13T19:04:37.503Z",
     "foodySlug": "my-cay-beta-hem-51-duong-3-thang-2",
     "sfDiscoveredAt": "2026-07-18T07:07:27.051Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.02551,
+    "longitude": 105.7662,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:32.909Z"
   },
   {
     "id": "r_ct_tiem_hanh_phuc_tra_sua",
@@ -5274,7 +5603,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:02:45.533Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:02:45.533Z"
+    "menuUpdatedAt": "2026-07-13T19:02:45.533Z",
+    "latitude": 10.0364537,
+    "longitude": 105.7757827,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:33.823Z",
+    "foodySlug": "tiem-hanh-phuc-tra-sua",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mm_food_ga_sot_mat_ong_cay",
@@ -5388,7 +5724,12 @@
     "menuUpdatedAt": "2026-07-13T19:03:08.183Z",
     "sfDiscoveredAt": "2026-07-18T06:55:12.920Z",
     "source": "foody-detail",
-    "foodySlug": "mm-food-ga-sot-mat-ong-cay"
+    "foodySlug": "mm-food-ga-sot-mat-ong-cay",
+    "latitude": 10.04549,
+    "longitude": 105.77333,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:33.933Z"
   },
   {
     "id": "r_ct_bun_mang_vit_68_quang_trung",
@@ -5474,11 +5815,15 @@
     "shopeefoodSlug": "kim-lien-quan-vit-nau-chao",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:03:11.577Z",
-    "latitude": 10.03414192,
-    "longitude": 105.77966362,
+    "latitude": 10.0341419,
+    "longitude": 105.7796636,
     "sfRestaurantId": 166975,
     "sfDiscoveredAt": "2026-07-18T10:17:31.859Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:34.887Z",
+    "foodySlug": "kim-lien-quan-vit-nau-chao"
   },
   {
     "id": "r_ct_bun_heo_quay_thu_thao",
@@ -5520,7 +5865,11 @@
     "longitude": 105.77455,
     "sfRestaurantId": 1237137,
     "sfDiscoveredAt": "2026-07-18T10:01:27.390Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:35.579Z",
+    "foodySlug": "bun-heo-quay-thu-thao"
   },
   {
     "id": "r_ct_bo_nuong_campuchia_ba_nguyen",
@@ -5570,7 +5919,12 @@
     "menuUpdatedAt": "2026-07-13T19:06:03.160Z",
     "foodySlug": "bo-nuong-campuchia-ba-nguyen",
     "sfDiscoveredAt": "2026-07-18T07:05:58.859Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.04039,
+    "longitude": 105.76832,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:36.297Z"
   },
   {
     "id": "r_ct_bo_kho_co_bay_hem_51_duong_3_2",
@@ -5629,7 +5983,12 @@
     "menuUpdatedAt": "2026-07-13T19:03:26.239Z",
     "foodySlug": "bo-kho-co-bay-hem-51-duong-3-2",
     "sfDiscoveredAt": "2026-07-18T07:06:00.113Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0252523,
+    "longitude": 105.7666668,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:37.004Z"
   },
   {
     "id": "r_ct_ca_phe_an_sang_halu_bo_kho_xiu_mai_bo_beefsteak",
@@ -5687,7 +6046,10 @@
     "source": "shopeefood",
     "latitude": 10.04877,
     "longitude": 105.77353,
-    "sfRestaurantId": 1283702
+    "sfRestaurantId": 1283702,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:37.745Z"
   },
   {
     "id": "r_ct_kho_muc_chien_nuoc_mam_can_tho",
@@ -5719,7 +6081,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:06:53.004Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 18:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:06:53.004Z"
+    "menuUpdatedAt": "2026-07-13T19:06:53.004Z",
+    "latitude": 10.0470563,
+    "longitude": 105.7850603,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:38.458Z",
+    "foodySlug": "kho-muc-chien-nuoc-mam-can-tho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_nhau_147_oc_hai_san_nguyen_van_cu",
@@ -5931,7 +6300,12 @@
     "menuUpdatedAt": "2026-07-13T19:07:07.997Z",
     "foodySlug": "oc-dem-ca-mau-khu-giang-vien-dhct",
     "sfDiscoveredAt": "2026-07-18T07:00:32.296Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.02761,
+    "longitude": 105.75982,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:41.279Z"
   },
   {
     "id": "r_ct_oc_tu_tu",
@@ -6023,7 +6397,12 @@
     "menuUpdatedAt": "2026-07-13T19:05:18.999Z",
     "foodySlug": "quan-oc-hoa",
     "sfDiscoveredAt": "2026-07-18T07:01:24.300Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0446519,
+    "longitude": 105.7866663,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:48.145Z"
   },
   {
     "id": "r_ct_ga_nuong_sot_akit_le_hong_phong",
@@ -6054,7 +6433,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:07:21.981Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 07:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:07:21.981Z"
+    "menuUpdatedAt": "2026-07-13T19:07:21.981Z",
+    "latitude": 10.0733354,
+    "longitude": 105.7509564,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:49.104Z",
+    "foodySlug": "ga-nuong-sot-akit-le-hong-phong",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_chi_dau_food",
@@ -6095,7 +6481,14 @@
     ],
     "brandBranchCount": 3,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.0326945,
+    "longitude": 105.7627002,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:55.616Z",
+    "foodySlug": "chi-dau-food",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_suon_ba_sau",
@@ -6148,7 +6541,11 @@
     "longitude": 105.76111,
     "sfRestaurantId": 1252474,
     "sfDiscoveredAt": "2026-07-18T09:53:39.921Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:54.086Z",
+    "foodySlug": "com-suon-ba-sau"
   },
   {
     "id": "r_ct_bun_suon_chien_d_d_vo_van_kiet",
@@ -6183,11 +6580,15 @@
     "shopeefoodSlug": "bun-suon-chien-d-d-vo-van-kiet",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:05:20.767Z",
-    "latitude": 10.0437064270692,
-    "longitude": 105.764791441864,
+    "latitude": 10.0437064,
+    "longitude": 105.7647914,
     "sfRestaurantId": 1059061,
     "sfDiscoveredAt": "2026-07-18T10:17:54.143Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:56.368Z",
+    "foodySlug": "bun-suon-chien-d-d-vo-van-kiet"
   },
   {
     "id": "r_ct_com_tam_hanh_com_suon_bi_cha_suon_trung_suon_cong_120_tran_bach_dang",
@@ -6225,7 +6626,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:06:07.589Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:06:07.589Z"
+    "menuUpdatedAt": "2026-07-13T19:06:07.589Z",
+    "latitude": 10.0379531,
+    "longitude": 105.7533111,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:55.342Z",
+    "foodySlug": "com-tam-hanh-com-suon-bi-cha-suon-trung-suon-cong-120-tran-bach-dang",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mon_hoa_khai_van_phat_mi_suon_kho",
@@ -6272,7 +6680,11 @@
     "longitude": 105.76143,
     "sfRestaurantId": 1215787,
     "sfDiscoveredAt": "2026-07-18T10:18:45.930Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:56.209Z",
+    "foodySlug": "mon-hoa-khai-van-phat-mi-suon-kho"
   },
   {
     "id": "r_ct_quan_co_ba_cai_con_com_chay_com_ga_hoang_van_thu",
@@ -6323,7 +6735,10 @@
     "source": "shopeefood",
     "latitude": 10.039137,
     "longitude": 105.779169,
-    "sfRestaurantId": 1161392
+    "sfRestaurantId": 1161392,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:56.620Z"
   },
   {
     "id": "r_ct_kim_thuyen_banh_hoi_thit_nuong",
@@ -6360,7 +6775,11 @@
     "longitude": 105.771638,
     "sfRestaurantId": 784177,
     "sfDiscoveredAt": "2026-07-18T10:04:03.105Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:56.590Z",
+    "foodySlug": "kim-thuyen-banh-hoi-thit-nuong"
   },
   {
     "id": "r_ct_com_phan_my_vi_duong_30_4",
@@ -6396,7 +6815,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:06:56.405Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:06:56.405Z"
+    "menuUpdatedAt": "2026-07-13T19:06:56.405Z",
+    "latitude": 10.0181929,
+    "longitude": 105.7640054,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:57.260Z",
+    "foodySlug": "com-phan-my-vi-duong-30-4",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_phan_son_nho_nguyen_van_cu_noi_dai",
@@ -6453,7 +6879,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:08:16.602Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 11:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:08:16.602Z"
+    "menuUpdatedAt": "2026-07-13T19:08:16.602Z",
+    "latitude": 10.0312612,
+    "longitude": 105.7526046,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:57.365Z",
+    "foodySlug": "com-phan-son-nho-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_phan_ngoc_mo",
@@ -6509,7 +6942,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:06:25.358Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Ngày mai\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:06:25.358Z"
+    "menuUpdatedAt": "2026-07-13T19:06:25.358Z",
+    "latitude": 10.00166,
+    "longitude": 105.77274,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:57.567Z",
+    "foodySlug": "com-phan-ngoc-mo",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_com_sinh_vien_hem_4_nguyen_van_linh",
@@ -6550,7 +6990,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:07:09.915Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:07:09.915Z"
+    "menuUpdatedAt": "2026-07-13T19:07:09.915Z",
+    "latitude": 10.03526,
+    "longitude": 105.74823,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:57.713Z",
+    "foodySlug": "quan-com-sinh-vien-hem-4-nguyen-van-linh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_life_coffee_sua_chua_de_say_kho",
@@ -6586,7 +7033,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:06:37.855Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:06:37.855Z"
+    "menuUpdatedAt": "2026-07-13T19:06:37.855Z",
+    "latitude": 10.026626,
+    "longitude": 105.771126,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:58.229Z",
+    "foodySlug": "life-coffee-sua-chua-de-say-kho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bao_binh_chay_hu_tieu_nuoc_beo_mi_tiem_nem_nuong_nha_trang",
@@ -6638,7 +7092,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:09:51.948Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:09:51.948Z"
+    "menuUpdatedAt": "2026-07-13T19:09:51.948Z",
+    "latitude": 10.039652,
+    "longitude": 105.7748,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:58.350Z",
+    "foodySlug": "bao-binh-chay-hu-tieu-nuoc-beo-mi-tiem-nem-nuong-nha-trang",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tra_sua_ho_nhi",
@@ -6714,7 +7175,10 @@
     "foodySlug": "tra-sua-ho-nhi",
     "latitude": 10.048613,
     "longitude": 105.769338,
-    "sfRestaurantId": 957556
+    "sfRestaurantId": 957556,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:58.559Z"
   },
   {
     "id": "r_ct_an_vat_nem_cha_mai_be_tran_viet_chau",
@@ -6768,7 +7232,12 @@
     "menuUpdatedAt": "2026-07-13T19:10:04.652Z",
     "foodySlug": "an-vat-nem-cha-mai-be-tran-viet-chau",
     "sfDiscoveredAt": "2026-07-18T07:05:40.647Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0495407,
+    "longitude": 105.7728749,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:58.677Z"
   },
   {
     "id": "r_ct_bun_nem_nuong_co_hang_xuan_thuy",
@@ -6824,7 +7293,12 @@
     "menuUpdatedAt": "2026-07-13T19:10:17.168Z",
     "foodySlug": "bun-nem-nuong-co-hang-xuan-thuy",
     "sfDiscoveredAt": "2026-07-18T07:03:39.918Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.02042,
+    "longitude": 105.7433,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:59.204Z"
   },
   {
     "id": "r_ct_tiem_lau_nuong_anhy",
@@ -6892,7 +7366,10 @@
     "foodySlug": "tiem-lau-nuong-anhy",
     "latitude": 10.023024,
     "longitude": 105.751015,
-    "sfRestaurantId": 1272394
+    "sfRestaurantId": 1272394,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:59.372Z"
   },
   {
     "id": "r_ct_haci_haci_bbq_house_nguyen_van_cu_noi_dai",
@@ -6936,7 +7413,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:10:29.760Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:10:29.760Z"
+    "menuUpdatedAt": "2026-07-13T19:10:29.760Z",
+    "latitude": 10.03984,
+    "longitude": 105.76111,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:59.307Z",
+    "foodySlug": "haci-haci-bbq-house-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_lau_2_my_tran_nam_phu",
@@ -6964,7 +7448,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:10:06.834Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:10:06.834Z"
+    "menuUpdatedAt": "2026-07-13T19:10:06.834Z",
+    "latitude": 10.0341299,
+    "longitude": 105.7591857,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:59.613Z",
+    "foodySlug": "lau-2-my-tran-nam-phu",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_sabay_thai_am_thuc_thai",
@@ -7049,7 +7540,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:10:44.483Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:10:44.483Z"
+    "menuUpdatedAt": "2026-07-13T19:10:44.483Z",
+    "latitude": 10.030537,
+    "longitude": 105.772883,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:00.227Z",
+    "foodySlug": "sabay-thai-am-thuc-thai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_nau_oi_ca_phe_sua_matcha_latte_tra_trai_cay",
@@ -7108,7 +7606,10 @@
     "foodySlug": "nau-oi-ca-phe-sua-matcha-latte-tra-trai-cay",
     "latitude": 10.0280126,
     "longitude": 105.7743538,
-    "sfRestaurantId": 1244723
+    "sfRestaurantId": 1244723,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:08:59.996Z"
   },
   {
     "id": "r_ct_nguyen_ca_phe_tra_tra_trai_cay",
@@ -7166,7 +7667,10 @@
     "foodySlug": "nguyen-ca-phe-tra-tra-trai-cay",
     "latitude": 10.02235,
     "longitude": 105.75331,
-    "sfRestaurantId": 1215168
+    "sfRestaurantId": 1215168,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:00.320Z"
   },
   {
     "id": "r_ct_bibob_tra_sua",
@@ -7262,7 +7766,13 @@
     "menuUpdatedAt": "2026-07-18T04:47:02.551Z",
     "sfDiscoveredAt": "2026-07-18T02:03:53.199Z",
     "source": "foody-detail",
-    "brandPortalId": "r_ct_hong_tra_ngo_gia"
+    "brandPortalId": "r_ct_hong_tra_ngo_gia",
+    "latitude": 10.0429742,
+    "longitude": 105.7660353,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:00.718Z",
+    "foodySlug": "bibob-tra-sua"
   },
   {
     "id": "r_ct_tra_sua_su_kem",
@@ -7355,7 +7865,14 @@
     ],
     "brandBranchCount": 4,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.05996,
+    "longitude": 105.765127,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:01.024Z",
+    "foodySlug": "tra-sua-su-kem",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tra_sua_tocotoco_duong_3_thang_2",
@@ -7428,12 +7945,15 @@
     "shopeefoodSlug": "tra-sua-tocotoco-duong-3-thang-2",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:12:09.991Z",
-    "latitude": 10.01384412,
-    "longitude": 105.75733072,
+    "latitude": 10.0138441,
+    "longitude": 105.7573307,
     "sfRestaurantId": 1266951,
     "sfDiscoveredAt": "2026-07-18T10:11:57.443Z",
     "source": "shopeefood",
-    "foodySlug": "tra-sua-tocotoco-duong-3-thang-2"
+    "foodySlug": "tra-sua-tocotoco-duong-3-thang-2",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:00.913Z"
   },
   {
     "id": "r_ct_tra_sua_king_cha_tran_quang_khai",
@@ -7495,7 +8015,12 @@
     "menuUpdatedAt": "2026-07-13T19:11:00.388Z",
     "sfDiscoveredAt": "2026-07-18T06:55:09.160Z",
     "source": "foody-detail",
-    "foodySlug": "tra-sua-king-cha-tran-quang-khai"
+    "foodySlug": "tra-sua-king-cha-tran-quang-khai",
+    "latitude": 10.0446,
+    "longitude": 105.78247,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:01.265Z"
   },
   {
     "id": "r_ct_quan_diem_xua_banh_mi_bo_kho_xiu_mai_sinh_to_kdc_an_khanh",
@@ -7534,7 +8059,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:12:24.222Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:12:24.222Z"
+    "menuUpdatedAt": "2026-07-13T19:12:24.222Z",
+    "latitude": 10.0389622,
+    "longitude": 105.7531423,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:01.416Z",
+    "foodySlug": "quan-diem-xua-banh-mi-bo-kho-xiu-mai-sinh-to-kdc-an-khanh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_nuoc_ep_sinh_to_via_he",
@@ -7574,7 +8106,11 @@
     "longitude": 105.782002,
     "sfRestaurantId": 768228,
     "sfDiscoveredAt": "2026-07-18T10:25:41.266Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:01.653Z",
+    "foodySlug": "nuoc-ep-sinh-to-via-he"
   },
   {
     "id": "r_ct_mat_chan_matcha_tra_sua_can_tho",
@@ -7650,11 +8186,15 @@
     "shopeefoodSlug": "mat-chan-matcha-tra-sua-can-tho",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:11:26.951Z",
-    "latitude": 10.04295086,
-    "longitude": 105.77947758,
+    "latitude": 10.0429509,
+    "longitude": 105.7794776,
     "sfRestaurantId": 1277343,
     "sfDiscoveredAt": "2026-07-18T09:59:42.659Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:01.690Z",
+    "foodySlug": "mat-chan-matcha-tra-sua-can-tho"
   },
   {
     "id": "r_ct_cai_tiem_nha_bo_matcha_lot_plan_lot_beo_plan_kem_beo",
@@ -7704,7 +8244,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:12:39.398Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:12:39.398Z"
+    "menuUpdatedAt": "2026-07-13T19:12:39.398Z",
+    "latitude": 10.043292,
+    "longitude": 105.760979,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:02.295Z",
+    "foodySlug": "cai-tiem-nha-bo-matcha-lot-plan-lot-beo-plan-kem-beo",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_sua_chua_chip",
@@ -7738,7 +8285,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.121Z",
     "shopeefoodSlug": "sua-chua-chip",
-    "menuUpdatedAt": "2026-07-13T19:13:13.364Z"
+    "menuUpdatedAt": "2026-07-13T19:13:13.364Z",
+    "latitude": 10.0231013,
+    "longitude": 105.7575477,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:02.433Z",
+    "foodySlug": "sua-chua-chip",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bonny_tra_nha_nho_tra_tran_van_tra",
@@ -7827,7 +8381,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:14:03.950Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 15:39 Ngày mai\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:14:03.950Z"
+    "menuUpdatedAt": "2026-07-13T19:14:03.950Z",
+    "latitude": 10.0221,
+    "longitude": 105.79448,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:02.320Z",
+    "foodySlug": "bonny-tra-nha-nho-tra-tran-van-tra",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_goon_yard_coffee",
@@ -7899,7 +8460,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:12:56.171Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:12:56.171Z"
+    "menuUpdatedAt": "2026-07-13T19:12:56.171Z",
+    "latitude": 10.0281187,
+    "longitude": 105.7737136,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:02.763Z",
+    "foodySlug": "goon-yard-coffee",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_cha_tra_thai_can_tho",
@@ -7970,7 +8538,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:14:18.033Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:00 01/08/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:14:18.033Z"
+    "menuUpdatedAt": "2026-07-13T19:14:18.033Z",
+    "latitude": 10.0420476,
+    "longitude": 105.7551007,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:03.217Z",
+    "foodySlug": "cha-tra-thai-can-tho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_che_ba_co_gai",
@@ -8025,7 +8600,10 @@
     "foodySlug": "che-ba-co-gai",
     "latitude": 10.03384,
     "longitude": 105.78072,
-    "sfRestaurantId": 1266108
+    "sfRestaurantId": 1266108,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:03.077Z"
   },
   {
     "id": "r_ct_camay_coffee",
@@ -8121,7 +8699,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:14:45.770Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:14:45.770Z"
+    "menuUpdatedAt": "2026-07-13T19:14:45.770Z",
+    "latitude": 10.0466202,
+    "longitude": 105.7611497,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:03.131Z",
+    "foodySlug": "camay-coffee",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_cacao_dep_den",
@@ -8179,7 +8764,14 @@
     ],
     "brandBranchCount": 3,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.02526,
+    "longitude": 105.76663,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:03.502Z",
+    "foodySlug": "cacao-dep-den",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_chuyen_tra_chiec_xanh",
@@ -8250,7 +8842,14 @@
     ],
     "brandBranchCount": 3,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.03628,
+    "longitude": 105.77242,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:03.765Z",
+    "foodySlug": "chuyen-tra-chiec-xanh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ruby_milktea",
@@ -8313,7 +8912,14 @@
     "menuUpdatedAt": "2026-07-18T04:44:15.836Z",
     "brandPortalId": "r_ct_hong_tra_ngo_gia",
     "lastCrawlError": "",
-    "menuFromSiblingId": "r_ct_chat_ca_phe_vo_van_kiet"
+    "menuFromSiblingId": "r_ct_chat_ca_phe_vo_van_kiet",
+    "latitude": 10.0320519,
+    "longitude": 105.7810514,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.153Z",
+    "foodySlug": "ruby-milktea",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_cuc_npapa_shophouse",
@@ -8390,7 +8996,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:15:35.092Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 14:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:15:35.092Z"
+    "menuUpdatedAt": "2026-07-13T19:15:35.092Z",
+    "latitude": 10.02542,
+    "longitude": 105.77568,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.187Z",
+    "foodySlug": "cuc-npapa-shophouse",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ohi_bakery_tran_hung_dao",
@@ -8468,7 +9081,10 @@
     "source": "shopeefood",
     "latitude": 10.0373229,
     "longitude": 105.776104,
-    "sfRestaurantId": 875494
+    "sfRestaurantId": 875494,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.343Z"
   },
   {
     "id": "r_ct_mio_snack_an_vat_nuoc_uong_duong_3_thang_2",
@@ -8524,7 +9140,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:16:04.338Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:30 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:16:04.338Z"
+    "menuUpdatedAt": "2026-07-13T19:16:04.338Z",
+    "latitude": 10.02076,
+    "longitude": 105.75826,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.465Z",
+    "foodySlug": "mio-snack-an-vat-nuoc-uong-duong-3-thang-2",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ki_ot_an_vat_so_1_mau_than",
@@ -8565,11 +9188,15 @@
     "shopeefoodSlug": "ki-ot-an-vat-so-1-mau-than",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:16:32.367Z",
-    "latitude": 10.04066978,
-    "longitude": 105.76800719,
+    "latitude": 10.0406698,
+    "longitude": 105.7680072,
     "sfRestaurantId": 1185399,
     "sfDiscoveredAt": "2026-07-18T10:26:17.845Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.810Z",
+    "foodySlug": "ki-ot-an-vat-so-1-mau-than"
   },
   {
     "id": "r_ct_quan_an_cocobi",
@@ -8637,9 +9264,12 @@
     "foodySlug": "quan-an-cocobi",
     "sfDiscoveredAt": "2026-07-18T10:08:38.056Z",
     "source": "shopeefood",
-    "latitude": 10.03153632,
-    "longitude": 105.78448984,
-    "sfRestaurantId": 1061011
+    "latitude": 10.0315363,
+    "longitude": 105.7844898,
+    "sfRestaurantId": 1061011,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:04.965Z"
   },
   {
     "id": "r_ct_dimsum_hongkong_quan",
@@ -8699,7 +9329,10 @@
     "sfRestaurantId": 1227480,
     "sfDiscoveredAt": "2026-07-18T10:06:30.870Z",
     "source": "shopeefood",
-    "foodySlug": "dimsum-hongkong-quan"
+    "foodySlug": "dimsum-hongkong-quan",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:05.020Z"
   },
   {
     "id": "r_ct_gia_hao_the_dimsum",
@@ -8766,12 +9399,15 @@
     "shopeefoodSlug": "gia-hao-the-dimsum",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:16:04.051Z",
-    "latitude": 10.02667389,
-    "longitude": 105.77078752,
+    "latitude": 10.0266739,
+    "longitude": 105.7707875,
     "sfRestaurantId": 740782,
     "sfDiscoveredAt": "2026-07-18T10:06:30.870Z",
     "source": "shopeefood",
-    "foodySlug": "gia-hao-the-dimsum"
+    "foodySlug": "gia-hao-the-dimsum",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:05.506Z"
   },
   {
     "id": "r_ct_minmin_dimsum_ha_cao_14_vi",
@@ -8814,7 +9450,11 @@
     "longitude": 105.77387,
     "sfRestaurantId": 1035246,
     "sfDiscoveredAt": "2026-07-18T10:06:31.523Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:05.799Z",
+    "foodySlug": "minmin-dimsum-ha-cao-14-vi"
   },
   {
     "id": "r_ct_tiem_an_1990",
@@ -8858,7 +9498,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:16:17.534Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 07:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:16:17.534Z"
+    "menuUpdatedAt": "2026-07-13T19:16:17.534Z",
+    "latitude": 10.04024,
+    "longitude": 105.79366,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:05.672Z",
+    "foodySlug": "tiem-an-1990",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_madam_trang_tra_sua_an_vat",
@@ -8925,7 +9572,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:16:31.878Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:16:31.878Z"
+    "menuUpdatedAt": "2026-07-13T19:16:31.878Z",
+    "latitude": 10.045134,
+    "longitude": 105.782791,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:05.712Z",
+    "foodySlug": "madam-trang-tra-sua-an-vat",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_sang_map_35k_bun_rieu_cua_com_trua",
@@ -8967,7 +9621,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:17:23.342Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 05:30 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:17:23.342Z"
+    "menuUpdatedAt": "2026-07-13T19:17:23.342Z",
+    "latitude": 10.01114,
+    "longitude": 105.76425,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:06.161Z",
+    "foodySlug": "sang-map-35k-bun-rieu-cua-com-trua",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_nem_nuong_anh_map",
@@ -9019,7 +9680,12 @@
     "menuUpdatedAt": "2026-07-13T19:18:12.074Z",
     "foodySlug": "nem-nuong-anh-map",
     "sfDiscoveredAt": "2026-07-18T07:05:27.458Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.031085,
+    "longitude": 105.787424,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:06.776Z"
   },
   {
     "id": "r_ct_u_nu_quan_banh_trang_tron",
@@ -9064,7 +9730,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:17:36.552Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:17:36.552Z"
+    "menuUpdatedAt": "2026-07-13T19:17:36.552Z",
+    "latitude": 10.02083,
+    "longitude": 105.79061,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.002Z",
+    "foodySlug": "u-nu-quan-banh-trang-tron",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bun_xao_co_tam",
@@ -9108,7 +9781,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:18:25.825Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 06:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:18:25.825Z"
+    "menuUpdatedAt": "2026-07-13T19:18:25.825Z",
+    "latitude": 10.041544,
+    "longitude": 105.755104,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:06.496Z",
+    "foodySlug": "bun-xao-co-tam",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_goi_cuon_thao_nguyen",
@@ -9168,7 +9848,10 @@
     "sfRestaurantId": 1219556,
     "sfDiscoveredAt": "2026-07-18T10:05:46.957Z",
     "source": "shopeefood",
-    "foodySlug": "goi-cuon-thao-nguyen"
+    "foodySlug": "goi-cuon-thao-nguyen",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:06.816Z"
   },
   {
     "id": "r_ct_goi_cuon_cua_ma",
@@ -9209,7 +9892,10 @@
     "sfRestaurantId": 1220019,
     "sfDiscoveredAt": "2026-07-18T10:02:18.708Z",
     "source": "shopeefood",
-    "foodySlug": "goi-cuon-cua-ma"
+    "foodySlug": "goi-cuon-cua-ma",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:07.206Z"
   },
   {
     "id": "r_ct_goi_cuon_anh_thinh",
@@ -9244,7 +9930,10 @@
     "sfRestaurantId": 1265866,
     "sfDiscoveredAt": "2026-07-18T10:05:46.957Z",
     "source": "shopeefood",
-    "foodySlug": "goi-cuon-anh-thinh"
+    "foodySlug": "goi-cuon-anh-thinh",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:07.467Z"
   },
   {
     "id": "r_ct_goi_cuon_hot_vit_lon_19_nguyen_cu_trinh",
@@ -9311,7 +10000,12 @@
     "menuUpdatedAt": "2026-07-13T19:17:39.625Z",
     "foodySlug": "goi-cuon-hot-vit-lon-19-nguyen-cu-trinh",
     "sfDiscoveredAt": "2026-07-18T07:05:22.855Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.036311,
+    "longitude": 105.773422,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:07.488Z"
   },
   {
     "id": "r_ct_bep_nha_moon_le_van_so",
@@ -9349,7 +10043,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:18:06.393Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:18:06.393Z"
+    "menuUpdatedAt": "2026-07-13T19:18:06.393Z",
+    "latitude": 10.06347,
+    "longitude": 105.75648,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:07.936Z",
+    "foodySlug": "bep-nha-moon-le-van-so",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_chay_thuong_lac_hoa_binh",
@@ -9384,11 +10085,15 @@
     "shopeefoodSlug": "quan-chay-thuong-lac-hoa-binh",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:20:10.797Z",
-    "latitude": 10.0333586216981,
-    "longitude": 105.784199935669,
+    "latitude": 10.0333586,
+    "longitude": 105.7841999,
     "sfRestaurantId": 1069833,
     "sfDiscoveredAt": "2026-07-18T09:51:02.871Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.212Z",
+    "foodySlug": "quan-chay-thuong-lac-hoa-binh"
   },
   {
     "id": "r_ct_quan_chay_ky_vien_dong_khoi",
@@ -9430,7 +10135,11 @@
     "longitude": 105.78457,
     "sfRestaurantId": 1197586,
     "sfDiscoveredAt": "2026-07-18T09:51:02.871Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.226Z",
+    "foodySlug": "quan-chay-ky-vien-dong-khoi"
   },
   {
     "id": "r_ct_quan_chay_tinh_dai_vegan_hung_phu_cai_rang",
@@ -9468,7 +10177,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:20:19.241Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:20:19.241Z"
+    "menuUpdatedAt": "2026-07-13T19:20:19.241Z",
+    "latitude": 10.0219543,
+    "longitude": 105.7854166,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.887Z",
+    "foodySlug": "quan-chay-tinh-dai-vegan-hung-phu-cai-rang",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_thien_an_mon_chay_lau_chay",
@@ -9541,7 +10257,12 @@
     "brandPortalId": "r_ct_quan_chay_thien_an",
     "sfDiscoveredAt": "2026-07-18T09:47:57.907Z",
     "source": "foody-brand",
-    "foodySlug": "quan-thien-an-mon-chay-lau-chay"
+    "foodySlug": "quan-thien-an-mon-chay-lau-chay",
+    "latitude": 10.0264,
+    "longitude": 105.7655,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:09.065Z"
   },
   {
     "id": "r_ct_bun_rieu_bun_ca_cha_ca_phi_be_xiu_85_1_tran_chien",
@@ -9572,7 +10293,11 @@
     "longitude": 105.787912,
     "sfRestaurantId": 1000090274,
     "sfDiscoveredAt": "2026-07-18T10:19:15.313Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.937Z",
+    "foodySlug": "bun-rieu-bun-ca-cha-ca-phi-be-xiu-85-1-tran-chien"
   },
   {
     "id": "r_ct_ya_thai_hung_vuong",
@@ -9623,7 +10348,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:25:12.345Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:25:12.345Z"
+    "menuUpdatedAt": "2026-07-13T19:25:12.345Z",
+    "latitude": 10.043805,
+    "longitude": 105.7759914,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:08.956Z",
+    "foodySlug": "ya-thai-hung-vuong",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_minh_gia_sua_dan_chan_sua_chan_ga_duong_song_hau",
@@ -9724,7 +10456,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.291Z",
     "shopeefoodSlug": "minh-gia-sua-dan-chan-sua-chan-ga-duong-tran-chien",
-    "menuUpdatedAt": "2026-07-13T19:24:11.002Z"
+    "menuUpdatedAt": "2026-07-13T19:24:11.002Z",
+    "latitude": 10.000662,
+    "longitude": 105.757851,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.003Z",
+    "foodySlug": "minh-gia-sua-dan-chan-sua-chan-ga-duong-song-hau",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_steak_tam",
@@ -9773,7 +10512,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:23:51.684Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 07:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:23:51.684Z"
+    "menuUpdatedAt": "2026-07-13T19:23:51.684Z",
+    "latitude": 10.0332,
+    "longitude": 105.77729,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:09.593Z",
+    "foodySlug": "steak-tam",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_xua_2_bun_dau_mam_tom_bun_cha_ha_noi",
@@ -9835,7 +10581,12 @@
     "brandPortalId": "r_ct_quan_xua_2",
     "sfDiscoveredAt": "2026-07-18T09:47:53.798Z",
     "source": "foody-brand",
-    "foodySlug": "quan-xua-2-bun-dau-mam-tom-bun-cha-ha-noi"
+    "foodySlug": "quan-xua-2-bun-dau-mam-tom-bun-cha-ha-noi",
+    "latitude": 10.041271,
+    "longitude": 105.763069,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:09.887Z"
   },
   {
     "id": "r_ct_loc_coc_coffe_an_vat",
@@ -9872,7 +10623,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:24:05.459Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:24:05.459Z"
+    "menuUpdatedAt": "2026-07-13T19:24:05.459Z",
+    "latitude": 10.04486,
+    "longitude": 105.78304,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:09.788Z",
+    "foodySlug": "loc-coc-coffe-an-vat",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tacos_labubu",
@@ -9937,7 +10695,14 @@
     ],
     "brandBranchCount": 3,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.031547,
+    "longitude": 105.773743,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:10.287Z",
+    "foodySlug": "tacos-labubu",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tra_sua_du_nhien_ly_chinh_thang",
@@ -10002,7 +10767,10 @@
     "sfRestaurantId": 1165951,
     "sfDiscoveredAt": "2026-07-18T09:58:21.146Z",
     "source": "shopeefood",
-    "foodySlug": "tra-sua-du-nhien-ly-chinh-thang"
+    "foodySlug": "tra-sua-du-nhien-ly-chinh-thang",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:10.413Z"
   },
   {
     "id": "r_ct_lau_mam_kieu_trinh",
@@ -10047,7 +10815,12 @@
     "menuUpdatedAt": "2026-07-13T19:25:15.441Z",
     "sfDiscoveredAt": "2026-07-18T06:56:02.128Z",
     "source": "foody-detail",
-    "foodySlug": "lau-mam-kieu-trinh"
+    "foodySlug": "lau-mam-kieu-trinh",
+    "latitude": 10.025576,
+    "longitude": 105.774276,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.031Z"
   },
   {
     "id": "r_ct_bun_mam_tam_du_duong_3_thang_2",
@@ -10081,11 +10854,15 @@
     "shopeefoodSlug": "bun-mam-tam-du-duong-3-thang-2",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:24:35.606Z",
-    "latitude": 10.02601429,
+    "latitude": 10.0260143,
     "longitude": 105.7653375,
     "sfRestaurantId": 275399,
     "sfDiscoveredAt": "2026-07-18T09:56:15.968Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.344Z",
+    "foodySlug": "bun-mam-tam-du-duong-3-thang-2"
   },
   {
     "id": "r_ct_vit_hun_khoi_hoa_ky_bui_huu_nghia",
@@ -10128,7 +10905,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:25:28.224Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 07:30 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:25:28.224Z"
+    "menuUpdatedAt": "2026-07-13T19:25:28.224Z",
+    "latitude": 10.0635148,
+    "longitude": 105.7393606,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.399Z",
+    "foodySlug": "vit-hun-khoi-hoa-ky-bui-huu-nghia",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_an_vat_anh_thu_ca_vien_chien_hem_330_nguyen_van_linh",
@@ -10181,7 +10965,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:24:50.023Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:24:50.023Z"
+    "menuUpdatedAt": "2026-07-13T19:24:50.023Z",
+    "latitude": 10.0278416,
+    "longitude": 105.757225,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.979Z",
+    "foodySlug": "an-vat-anh-thu-ca-vien-chien-hem-330-nguyen-van-linh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_tam_metro_ngo_si_lien",
@@ -10217,7 +11008,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:28:04.857Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:28:04.857Z"
+    "menuUpdatedAt": "2026-07-13T19:28:04.857Z",
+    "latitude": 10.0220688,
+    "longitude": 105.7609943,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:11.704Z",
+    "foodySlug": "com-tam-metro-ngo-si-lien",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_chay_kho_quet_duong_3_thang_2",
@@ -10242,7 +11040,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.360Z",
     "shopeefoodSlug": "com-chay-kho-quet-duong-3-thang-2",
-    "menuUpdatedAt": "2026-07-13T19:26:18.384Z"
+    "menuUpdatedAt": "2026-07-13T19:26:18.384Z",
+    "latitude": 10.026666,
+    "longitude": 105.769399,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:12.024Z",
+    "foodySlug": "com-chay-kho-quet-duong-3-thang-2",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_goi_ga_co_ut_quan_an_nguyen_van_cu",
@@ -10292,7 +11097,12 @@
     "menuUpdatedAt": "2026-07-13T19:25:40.988Z",
     "foodySlug": "goi-ga-co-ut-quan-an-nguyen-van-cu",
     "sfDiscoveredAt": "2026-07-18T07:04:58.891Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.0493525,
+    "longitude": 105.7709139,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:12.095Z"
   },
   {
     "id": "r_ct_sky_garden_food_beer_hai_ba_trung",
@@ -10408,11 +11218,15 @@
     "shopeefoodSlug": "sky-garden-food-beer-hai-ba-trung",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:28:18.655Z",
-    "latitude": 10.03436302,
-    "longitude": 105.78859779,
+    "latitude": 10.034363,
+    "longitude": 105.7885978,
     "sfRestaurantId": 1129920,
     "sfDiscoveredAt": "2026-07-18T10:18:08.558Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:12.384Z",
+    "foodySlug": "sky-garden-food-beer-hai-ba-trung"
   },
   {
     "id": "r_ct_quan_arthur",
@@ -10447,7 +11261,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:25:54.765Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 18:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:25:54.765Z"
+    "menuUpdatedAt": "2026-07-13T19:25:54.765Z",
+    "latitude": 10.028412,
+    "longitude": 105.771772,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:12.941Z",
+    "foodySlug": "quan-arthur",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_68_sinh_to_nuoc_ep_nguyen_van_cu_noi_dai",
@@ -10518,7 +11339,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:27:44.902Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:27:44.902Z"
+    "menuUpdatedAt": "2026-07-13T19:27:44.902Z",
+    "latitude": 10.04442,
+    "longitude": 105.76977,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:12.692Z",
+    "foodySlug": "quan-68-sinh-to-nuoc-ep-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_lau_me_51",
@@ -10566,12 +11394,15 @@
     "shopeefoodSlug": "quan-lau-me-51",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:28:35.869Z",
-    "latitude": 10.0246502061785,
-    "longitude": 105.766128109433,
+    "latitude": 10.0246502,
+    "longitude": 105.7661281,
     "sfRestaurantId": 1062159,
     "sfDiscoveredAt": "2026-07-18T10:03:17.818Z",
     "source": "shopeefood",
-    "foodySlug": "quan-lau-me-51"
+    "foodySlug": "quan-lau-me-51",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.133Z"
   },
   {
     "id": "r_ct_lau_chay_organic",
@@ -10630,12 +11461,15 @@
     "shopeefoodSlug": "lau-chay-organic",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:31:34.725Z",
-    "latitude": 10.02465208,
-    "longitude": 105.75907383,
+    "latitude": 10.0246521,
+    "longitude": 105.7590738,
     "sfRestaurantId": 1081879,
     "sfDiscoveredAt": "2026-07-18T10:02:40.944Z",
     "source": "shopeefood",
-    "foodySlug": "lau-chay-organic"
+    "foodySlug": "lau-chay-organic",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.075Z"
   },
   {
     "id": "r_ct_sun_house_food_tiem_com_healthy_eatclean_duong_30_4",
@@ -10663,7 +11497,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:28:48.579Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:28:48.579Z"
+    "menuUpdatedAt": "2026-07-13T19:28:48.579Z",
+    "latitude": 10.0180276,
+    "longitude": 105.7644457,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.401Z",
+    "foodySlug": "sun-house-food-tiem-com-healthy-eatclean-duong-30-4",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_thao_moc_food_bua_an_healthy_nguyen_van_linh",
@@ -10713,7 +11554,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:31:49.337Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:31:49.337Z"
+    "menuUpdatedAt": "2026-07-13T19:31:49.337Z",
+    "latitude": 10.0351234,
+    "longitude": 105.7482233,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.932Z",
+    "foodySlug": "thao-moc-food-bua-an-healthy-nguyen-van-linh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bep_cua_xuan_healthy_food",
@@ -10755,7 +11603,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:30:26.056Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:30:26.056Z"
+    "menuUpdatedAt": "2026-07-13T19:30:26.056Z",
+    "latitude": 10.01959,
+    "longitude": 105.76442,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.789Z",
+    "foodySlug": "bep-cua-xuan-healthy-food",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_nguyen_vu_icafe_com_trua",
@@ -10818,7 +11673,14 @@
     ],
     "brandBranchCount": 2,
     "lastCrawlError": "",
-    "menuTemplateFallback": true
+    "menuTemplateFallback": true,
+    "latitude": 10.035477,
+    "longitude": 105.7575442,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:13.920Z",
+    "foodySlug": "nguyen-vu-icafe-com-trua",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_nha_nup_hem_com_trua_giai_nhiet_can_tho",
@@ -10854,7 +11716,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:32:02.620Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 11:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:32:02.620Z"
+    "menuUpdatedAt": "2026-07-13T19:32:02.620Z",
+    "latitude": 10.051577,
+    "longitude": 105.755418,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:14.091Z",
+    "foodySlug": "com-nha-nup-hem-com-trua-giai-nhiet-can-tho",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_gu22_coffee_tra_sua_tra_trai_cay_com_trua_van_phong_nguyen_van_cu",
@@ -10919,7 +11788,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.437Z",
     "shopeefoodSlug": "gu22-coffee-tra-sua-tra-trai-cay-com-trua-van-phong-nguyen-van-cu",
-    "menuUpdatedAt": "2026-07-13T19:30:39.353Z"
+    "menuUpdatedAt": "2026-07-13T19:30:39.353Z",
+    "latitude": 10.0422332,
+    "longitude": 105.7640732,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:14.757Z",
+    "foodySlug": "gu22-coffee-tra-sua-tra-trai-cay-com-trua-van-phong-nguyen-van-cu",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_thu_suong_cafe_diem_tam_com_trua",
@@ -11035,7 +11911,14 @@
     ],
     "menuProcessedAt": "2026-06-30T16:55:49.437Z",
     "shopeefoodSlug": "thu-suong-cafe-diem-tam-com-trua",
-    "menuUpdatedAt": "2026-07-13T19:32:15.378Z"
+    "menuUpdatedAt": "2026-07-13T19:32:15.378Z",
+    "latitude": 10.01892,
+    "longitude": 105.77038,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:14.643Z",
+    "foodySlug": "thu-suong-cafe-diem-tam-com-trua",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bep_nha_voi_break_lunch",
@@ -11075,7 +11958,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:30:52.953Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:30:52.953Z"
+    "menuUpdatedAt": "2026-07-13T19:30:52.953Z",
+    "latitude": 10.020417,
+    "longitude": 105.768722,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:14.939Z",
+    "foodySlug": "bep-nha-voi-break-lunch",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ca_vien_sot_mam_toi_doi_dien_benh_vien_nhi",
@@ -11105,7 +11995,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:32:29.478Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 16:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:32:29.478Z"
+    "menuUpdatedAt": "2026-07-13T19:32:29.478Z",
+    "latitude": 10.01801,
+    "longitude": 105.73906,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:14.740Z",
+    "foodySlug": "ca-vien-sot-mam-toi-doi-dien-benh-vien-nhi",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tea_coffee_79_tra_trai_cay_tran_hoang_na_moi",
@@ -11146,7 +12043,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:32:19.221Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:32:19.221Z"
+    "menuUpdatedAt": "2026-07-13T19:32:19.221Z",
+    "latitude": 10.01677,
+    "longitude": 105.7599,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:15.373Z",
+    "foodySlug": "tea-coffee-79-tra-trai-cay-tran-hoang-na-moi",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_minhon_juice_nuoc_ep_giam_can_pham_ngu_lao",
@@ -11216,7 +12120,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:32:33.554Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:32:33.554Z"
+    "menuUpdatedAt": "2026-07-13T19:32:33.554Z",
+    "latitude": 10.0436524,
+    "longitude": 105.7737604,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:15.445Z",
+    "foodySlug": "minhon-juice-nuoc-ep-giam-can-pham-ngu-lao",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_xing_food_tran_quang_dieu_giam_can_com_lut_salad_healthy",
@@ -11399,7 +12310,12 @@
     "source": "foody-brand",
     "menuFromSiblingId": "r_ct_xingfood_com_salad_nuoc_ep_healthy_nguyen_van_cu",
     "lastCrawlError": "",
-    "foodySlug": "xing-food-tran-quang-dieu-giam-can-com-lut-salad-healthy"
+    "foodySlug": "xing-food-tran-quang-dieu-giam-can-com-lut-salad-healthy",
+    "latitude": 10.059028,
+    "longitude": 105.764,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:15.390Z"
   },
   {
     "id": "r_ct_mi_cay_ba_bao_ninh_kieu",
@@ -11446,7 +12362,11 @@
     "longitude": 105.77043,
     "sfRestaurantId": 1258057,
     "sfDiscoveredAt": "2026-07-18T09:57:23.094Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:16.079Z",
+    "foodySlug": "mi-cay-ba-bao-ninh-kieu"
   },
   {
     "id": "r_ct_dong_dong_sua_tuoi_thot_not_rim",
@@ -11486,7 +12406,11 @@
     "longitude": 105.75024,
     "sfRestaurantId": 1148766,
     "sfDiscoveredAt": "2026-07-18T10:15:11.288Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:16.046Z",
+    "foodySlug": "dong-dong-sua-tuoi-thot-not-rim"
   },
   {
     "id": "r_ct_cha_lua_tuan_cuong_3_xoi_banh_mi_banh_uot_duong_30_thang_4",
@@ -11549,7 +12473,12 @@
     "brandPortalId": "r_ct_cha_lua_tuan_cuong_can_tho",
     "sfDiscoveredAt": "2026-07-18T09:47:53.480Z",
     "source": "foody-brand",
-    "foodySlug": "cha-lua-tuan-cuong-3-xoi-banh-mi-banh-uot-duong-30-thang-4"
+    "foodySlug": "cha-lua-tuan-cuong-3-xoi-banh-mi-banh-uot-duong-30-thang-4",
+    "latitude": 10.014774,
+    "longitude": 105.7624428,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:16.092Z"
   },
   {
     "id": "r_ct_vcafe_nguyen_van_cu",
@@ -11584,7 +12513,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:37:37.637Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 09:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:37:37.637Z"
+    "menuUpdatedAt": "2026-07-13T19:37:37.637Z",
+    "latitude": 10.0475344,
+    "longitude": 105.7695329,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:16.493Z",
+    "foodySlug": "vcafe-nguyen-van-cu",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_matcha_nga_milk_tea_nguyen_van_cu",
@@ -11638,8 +12574,11 @@
     "sfDiscoveredAt": "2026-07-18T09:59:42.659Z",
     "source": "shopeefood",
     "latitude": 10.0379049,
-    "longitude": 105.75948235,
-    "sfRestaurantId": 718191
+    "longitude": 105.7594823,
+    "sfRestaurantId": 718191,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.045Z"
   },
   {
     "id": "r_ct_chao_ga_tuyet_van_chao_goi_ga_mien_ga_phan_dinh_phung",
@@ -11683,7 +12622,10 @@
     "source": "shopeefood",
     "latitude": 10.030334,
     "longitude": 105.786572,
-    "sfRestaurantId": 258390
+    "sfRestaurantId": 258390,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.086Z"
   },
   {
     "id": "r_ct_xoi_la_dua_bep_nha_hiep_phan_dinh_phung",
@@ -11711,7 +12653,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:39:04.092Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 08:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:39:04.092Z"
+    "menuUpdatedAt": "2026-07-13T19:39:04.092Z",
+    "latitude": 10.03251,
+    "longitude": 105.78682,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.067Z",
+    "foodySlug": "xoi-la-dua-bep-nha-hiep-phan-dinh-phung",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_rau_ma_nature_nguyen_trai",
@@ -11759,11 +12708,15 @@
     "shopeefoodSlug": "rau-ma-nature-nguyen-trai",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:38:39.722Z",
-    "latitude": 10.04452747,
-    "longitude": 105.78089557,
+    "latitude": 10.0445275,
+    "longitude": 105.7808956,
     "sfRestaurantId": 1026493,
     "sfDiscoveredAt": "2026-07-18T10:18:52.704Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.144Z",
+    "foodySlug": "rau-ma-nature-nguyen-trai"
   },
   {
     "id": "r_ct_gong_cha_tra_ca_phe_vincom_xuan_khanh",
@@ -11836,7 +12789,10 @@
     "foodySlug": "gong-cha-tra-ca-phe-vincom-xuan-khanh",
     "latitude": 10.0255012,
     "longitude": 105.7754358,
-    "sfRestaurantId": 675151
+    "sfRestaurantId": 675151,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.236Z"
   },
   {
     "id": "r_ct_pho_cuon_can_tho",
@@ -11890,7 +12846,12 @@
     "menuUpdatedAt": "2026-07-13T19:41:19.621Z",
     "sfDiscoveredAt": "2026-07-18T06:51:19.872Z",
     "source": "foody-detail",
-    "foodySlug": "pho-cuon-can-tho"
+    "foodySlug": "pho-cuon-can-tho",
+    "latitude": 10.0711073,
+    "longitude": 105.7479522,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.296Z"
   },
   {
     "id": "r_ct_an_vat_gau_con_duong_so_15_khu_dan_cu_an_khanh",
@@ -11922,7 +12883,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:43:12.576Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 10:00 19/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:43:12.576Z"
+    "menuUpdatedAt": "2026-07-13T19:43:12.576Z",
+    "latitude": 10.0404494,
+    "longitude": 105.7540755,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.759Z",
+    "foodySlug": "an-vat-gau-con-duong-so-15-khu-dan-cu-an-khanh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_coca_an_vat_duong_13_khu_tai_dinh_cu_an_binh",
@@ -11964,7 +12932,11 @@
     "longitude": 105.7480423,
     "sfRestaurantId": 1000073323,
     "sfDiscoveredAt": "2026-07-18T10:16:04.023Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:18.049Z",
+    "foodySlug": "coca-an-vat-duong-13-khu-tai-dinh-cu-an-binh"
   },
   {
     "id": "r_ct_ma_nam_an_vat_goi_cuon",
@@ -12000,7 +12972,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:42:45.363Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:42:45.363Z"
+    "menuUpdatedAt": "2026-07-13T19:42:45.363Z",
+    "latitude": 10.00474,
+    "longitude": 105.75488,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.864Z",
+    "foodySlug": "ma-nam-an-vat-goi-cuon",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_ca_phe_hat_pha_may_an_phat_coffee_ca_phe_pha_may_tran_nam_phu.pszh7i",
@@ -12049,7 +13028,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:40:37.425Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nĐóng cửa\nQuán sẽ mở cửa vào lúc 08:18 28/08/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:40:37.425Z"
+    "menuUpdatedAt": "2026-07-13T19:40:37.425Z",
+    "latitude": 10.0334401,
+    "longitude": 105.7602321,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:17.849Z",
+    "foodySlug": "ca-phe-hat-pha-may-an-phat-coffee-ca-phe-pha-may-tran-nam-phu.pszh7i",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mochi_sweets_vincom_xuan_khanh",
@@ -12125,12 +13111,15 @@
     "menuUpdatedAt": "2026-07-18T03:10:30.799Z",
     "shopeefoodSlug": "highlands-coffee-tra-ca-phe-banh-vincom-xuan-khanh",
     "brandPortalId": "r_ct_banh_mochi_sweets_can_tho",
-    "latitude": 10.02463881,
-    "longitude": 105.77472031,
+    "latitude": 10.024822,
+    "longitude": 105.774564,
     "sfRestaurantId": 277704,
     "sfDiscoveredAt": "2026-07-18T10:11:13.438Z",
     "source": "shopeefood",
-    "foodySlug": "mochi-sweets-vincom-xuan-khanh"
+    "foodySlug": "mochi-sweets-vincom-xuan-khanh",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:18.756Z"
   },
   {
     "id": "r_ct_tiem_banh_happy_cake",
@@ -12166,7 +13155,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:42:42.195Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:42:42.195Z"
+    "menuUpdatedAt": "2026-07-13T19:42:42.195Z",
+    "latitude": 10.0400940977315,
+    "longitude": 105.7823176681995,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:18.525Z",
+    "foodySlug": "tiem-banh-happy-cake",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_coba_tra_sua_hao_vi_olong_hoa_nhai_truong_dinh",
@@ -12206,7 +13202,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:46:01.584Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:46:01.584Z"
+    "menuUpdatedAt": "2026-07-13T19:46:01.584Z",
+    "latitude": 10.0372123,
+    "longitude": 105.7828973,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:18.555Z",
+    "foodySlug": "coba-tra-sua-hao-vi-olong-hoa-nhai-truong-dinh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_mi_tron_top_mo_so_mi_long_dao_tran_vinh_khiet",
@@ -12238,7 +13241,12 @@
     "brandPortalId": "r_ct_so_mi_long_dao",
     "foodySlug": "mi-tron-top-mo-so-mi-long-dao-tran-vinh-khiet",
     "sfDiscoveredAt": "2026-07-18T09:47:54.541Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.018806,
+    "longitude": 105.750806,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:18.991Z"
   },
   {
     "id": "r_ct_tiem_tra_an_vat_em_be_xoai_nguyen_van_cu_noi_dai",
@@ -12279,7 +13287,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:48:20.232Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:48:20.232Z"
+    "menuUpdatedAt": "2026-07-13T19:48:20.232Z",
+    "latitude": 10.03647,
+    "longitude": 105.7576,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.187Z",
+    "foodySlug": "tiem-tra-an-vat-em-be-xoai-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tiem_nuoc_nha_joy_ca_phe_tra_sua_bui_huu_nghia",
@@ -12320,7 +13335,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:44:43.720Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 08:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:44:43.720Z"
+    "menuUpdatedAt": "2026-07-13T19:44:43.720Z",
+    "latitude": 10.0799775,
+    "longitude": 105.7556564,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.220Z",
+    "foodySlug": "tiem-nuoc-nha-joy-ca-phe-tra-sua-bui-huu-nghia",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_gia_han_com_bun_nguyen_thi_minh_khai",
@@ -12351,11 +13373,15 @@
     "shopeefoodSlug": "gia-han-com-bun-nguyen-thi-minh-khai",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:48:33.991Z",
-    "latitude": 10.03085856,
-    "longitude": 105.78354414,
+    "latitude": 10.0308586,
+    "longitude": 105.7835441,
     "sfRestaurantId": 1127062,
     "sfDiscoveredAt": "2026-07-18T10:18:23.390Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.420Z",
+    "foodySlug": "gia-han-com-bun-nguyen-thi-minh-khai"
   },
   {
     "id": "r_ct_angel_moon_hai_ba_trung",
@@ -12400,7 +13426,11 @@
     "longitude": 105.787029,
     "sfRestaurantId": 1149864,
     "sfDiscoveredAt": "2026-07-18T10:18:08.558Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.736Z",
+    "foodySlug": "angel-moon-hai-ba-trung"
   },
   {
     "id": "r_ct_rau_cau_dua_so_pt_hai_ba_trung",
@@ -12430,7 +13460,11 @@
     "longitude": 105.78777,
     "sfRestaurantId": 1195126,
     "sfDiscoveredAt": "2026-07-18T10:18:08.558Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.893Z",
+    "foodySlug": "rau-cau-dua-so-pt-hai-ba-trung"
   },
   {
     "id": "r_ct_cafe_30_ngo_quyen",
@@ -12456,11 +13490,15 @@
     "shopeefoodSlug": "cafe-30-ngo-quyen",
     "isClosed": false,
     "menuUpdatedAt": "2026-07-13T19:50:38.566Z",
-    "latitude": 10.0341459280994,
-    "longitude": 105.787593868945,
+    "latitude": 10.0341459,
+    "longitude": 105.7875939,
     "sfRestaurantId": 1157118,
     "sfDiscoveredAt": "2026-07-18T10:17:38.397Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:19.931Z",
+    "foodySlug": "cafe-30-ngo-quyen"
   },
   {
     "id": "r_ct_tram_vitamin_juice_ngo_quyen",
@@ -12527,7 +13565,11 @@
     "longitude": 105.78623,
     "sfRestaurantId": 1190926,
     "sfDiscoveredAt": "2026-07-18T10:17:38.657Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:20.175Z",
+    "foodySlug": "tram-vitamin-juice-ngo-quyen"
   },
   {
     "id": "r_ct_bun_nuoc_hai_san_co_ut_tran_van_kheo",
@@ -12565,7 +13607,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:51:27.880Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:51:27.880Z"
+    "menuUpdatedAt": "2026-07-13T19:51:27.880Z",
+    "latitude": 10.0464426,
+    "longitude": 105.787145,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:20.412Z",
+    "foodySlug": "bun-nuoc-hai-san-co-ut-tran-van-kheo",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_tra_anh_tra_sua_thu_cong_va_tra_tuoi_nong_san_tran_quang_dieu",
@@ -12662,7 +13711,10 @@
     "source": "shopeefood",
     "latitude": 10.058569,
     "longitude": 105.761805,
-    "sfRestaurantId": 972865
+    "sfRestaurantId": 972865,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:20.857Z"
   },
   {
     "id": "r_ct_tra_sua_olong_o_o_tran_quang_dieu",
@@ -12739,7 +13791,12 @@
     "brandPortalId": "r_ct_tra_sua_olong_o_o",
     "foodySlug": "tra-sua-olong-o-o-tran-quang-dieu",
     "sfDiscoveredAt": "2026-07-18T09:48:00.624Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.0590204,
+    "longitude": 105.7572341,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:20.537Z"
   },
   {
     "id": "r_ct_lau_tomyum",
@@ -12789,7 +13846,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:52:24.932Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:52:24.932Z"
+    "menuUpdatedAt": "2026-07-13T19:52:24.932Z",
+    "latitude": 10.030049,
+    "longitude": 105.778709,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.307Z",
+    "foodySlug": "lau-tomyum",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_chao_long_107_duong_quang_trung",
@@ -12825,7 +13889,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:50:51.925Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:50:51.925Z"
+    "menuUpdatedAt": "2026-07-13T19:50:51.925Z",
+    "latitude": 10.0190982,
+    "longitude": 105.78137,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.069Z",
+    "foodySlug": "chao-long-107-duong-quang-trung",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_quan_thao_truc_nguyen_hien",
@@ -12869,7 +13940,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:53:15.129Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:53:15.129Z"
+    "menuUpdatedAt": "2026-07-13T19:53:15.129Z",
+    "latitude": 10.0239,
+    "longitude": 105.75689,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.192Z",
+    "foodySlug": "quan-thao-truc-nguyen-hien",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_ga_xoi_mo_ngoc_hang",
@@ -12933,7 +14011,11 @@
     "longitude": 105.7587008,
     "sfRestaurantId": 174608,
     "sfDiscoveredAt": "2026-07-18T09:53:46.936Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.969Z",
+    "foodySlug": "com-ga-xoi-mo-ngoc-hang"
   },
   {
     "id": "r_ct_tra_sua_te_amo_tran_viet_chau",
@@ -13077,7 +14159,10 @@
     "foodySlug": "tra-sua-te-amo-tran-viet-chau",
     "latitude": 10.049091,
     "longitude": 105.774237,
-    "sfRestaurantId": 1073015
+    "sfRestaurantId": 1073015,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.748Z"
   },
   {
     "id": "r_ct_milano_coffee_146_tran_van_hoai",
@@ -13187,7 +14272,11 @@
     "longitude": 105.77014,
     "sfRestaurantId": 1231519,
     "sfDiscoveredAt": "2026-07-18T10:12:27.315Z",
-    "source": "shopeefood"
+    "source": "shopeefood",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.928Z",
+    "foodySlug": "milano-coffee-146-tran-van-hoai"
   },
   {
     "id": "r_ct_bep_nha_quang_mau_than",
@@ -13263,7 +14352,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:57:06.001Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:57:06.001Z"
+    "menuUpdatedAt": "2026-07-13T19:57:06.001Z",
+    "latitude": 10.028276,
+    "longitude": 105.776514,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:21.992Z",
+    "foodySlug": "bep-nha-quang-mau-than",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bep_nha_kristy_banh_bong_lan_hinh_thu_phan_chu_trinh",
@@ -13298,7 +14394,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:55:55.023Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 10:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:55:55.023Z"
+    "menuUpdatedAt": "2026-07-13T19:55:55.023Z",
+    "latitude": 10.031475,
+    "longitude": 105.7874754,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:22.444Z",
+    "foodySlug": "bep-nha-kristy-banh-bong-lan-hinh-thu-phan-chu-trinh",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_bach_milk_tea",
@@ -13361,7 +14464,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:53:45.797Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:53:45.797Z"
+    "menuUpdatedAt": "2026-07-13T19:53:45.797Z",
+    "latitude": 10.02874,
+    "longitude": 105.76275,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:22.596Z",
+    "foodySlug": "bach-milk-tea",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_she_s_coconut_nuoc_dua_tien_tien_kv2",
@@ -13404,7 +14514,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:57:18.263Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 11:30 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:57:18.263Z"
+    "menuUpdatedAt": "2026-07-13T19:57:18.263Z",
+    "latitude": 10.0398037,
+    "longitude": 105.76599,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:22.647Z",
+    "foodySlug": "she-s-coconut-nuoc-dua-tien-tien-kv2",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_zen_b_tra_sua_bo_ne_nguyen_van_cu_noi_dai",
@@ -13444,7 +14561,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:53:59.761Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-13T19:53:59.761Z"
+    "menuUpdatedAt": "2026-07-13T19:53:59.761Z",
+    "latitude": 10.03657,
+    "longitude": 105.7582,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:22.663Z",
+    "foodySlug": "zen-b-tra-sua-bo-ne-nguyen-van-cu-noi-dai",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_cafe_soc_cach_mang_thang_tam",
@@ -13531,7 +14655,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:57:31.017Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa vào lúc 06:00 21/07/2026\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:57:31.017Z"
+    "menuUpdatedAt": "2026-07-13T19:57:31.017Z",
+    "latitude": 10.0644,
+    "longitude": 105.7609,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:23.180Z",
+    "foodySlug": "cafe-soc-cach-mang-thang-tam",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_adnil_bigsteak",
@@ -13570,7 +14701,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:56:44.383Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:56:44.383Z"
+    "menuUpdatedAt": "2026-07-13T19:56:44.383Z",
+    "latitude": 10.037756,
+    "longitude": 105.7745709,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:23.597Z",
+    "foodySlug": "adnil-bigsteak",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_com_tam_huong",
@@ -13621,7 +14759,14 @@
     "isClosed": true,
     "closedAt": "2026-07-13T19:54:13.641Z",
     "closedReason": "x\nShopeeFood Thông báo\n\nNgoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 10:00 Hôm nay\n\nOk",
-    "menuUpdatedAt": "2026-07-13T19:54:13.641Z"
+    "menuUpdatedAt": "2026-07-13T19:54:13.641Z",
+    "latitude": 10.0437641,
+    "longitude": 105.772444,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:09:23.621Z",
+    "foodySlug": "com-tam-huong",
+    "source": "foody-gps"
   },
   {
     "id": "r_ct_nem_nuong_nam_long_duong_so_1",
@@ -13653,7 +14798,12 @@
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
     "foodySlug": "nem-nuong-nam-long-duong-so-1",
     "sfDiscoveredAt": "2026-07-18T09:47:58.654Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.007472,
+    "longitude": 105.785704,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.046Z"
   },
   {
     "id": "r_ct_404_lo_vit_quay_404_nguyen_van_linh",
@@ -13677,7 +14827,12 @@
       "Vịt nướng một con",
       "Vịt quay tiêu một con",
       "Gà nướng một con"
-    ]
+    ],
+    "latitude": 10.0224699934994,
+    "longitude": 105.7633008062839,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.315Z"
   },
   {
     "id": "r_ct_tra_sua_muoi_house_ba_thang_hai",
@@ -13763,7 +14918,12 @@
       "Trùm Deal - Trà Sữa Ba Anh Em",
       "Trùm Deal - Trà Dứa Thạch Konjac"
     ],
-    "foodySlug": "tra-sua-muoi-house-ba-thang-hai"
+    "foodySlug": "tra-sua-muoi-house-ba-thang-hai",
+    "latitude": 10.0174017,
+    "longitude": 105.7609621,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.668Z"
   },
   {
     "id": "r_ct_milano_coffee_nguyen_de",
@@ -13818,7 +14978,12 @@
     ],
     "foodySlug": "milano-coffee-nguyen-de",
     "sfDiscoveredAt": "2026-07-18T09:47:56.280Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.051013,
+    "longitude": 105.7698833,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.923Z"
   },
   {
     "id": "r_ct_tra_sua_chin_duong_3_thang_2",
@@ -13861,7 +15026,10 @@
     "foodySlug": "tra-sua-chin-duong-3-thang-2",
     "latitude": 10.0245886,
     "longitude": 105.7672563,
-    "sfRestaurantId": 1081816
+    "sfRestaurantId": 1081816,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:07.907Z"
   },
   {
     "id": "r_ct_bun_dau_mam_tom_dau_bu_nguyen_van_cu_noi_dai",
@@ -13913,12 +15081,15 @@
     ],
     "menuUpdatedAt": "2026-07-18T01:01:18.072Z",
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
-    "latitude": 10.02627608,
-    "longitude": 105.74744001,
+    "latitude": 10.0262761,
+    "longitude": 105.74744,
     "sfRestaurantId": 1175931,
     "sfDiscoveredAt": "2026-07-18T09:55:30.642Z",
     "source": "shopeefood",
-    "foodySlug": "bun-dau-mam-tom-dau-bu-nguyen-van-cu-noi-dai"
+    "foodySlug": "bun-dau-mam-tom-dau-bu-nguyen-van-cu-noi-dai",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:08.263Z"
   },
   {
     "id": "r_ct_bun_dau_mam_tom_xua_2_tran_van_hoai",
@@ -13966,7 +15137,12 @@
     "menuUpdatedAt": "2026-07-18T01:08:06.712Z",
     "sfDiscoveredAt": "2026-07-18T09:47:53.798Z",
     "source": "foody-brand",
-    "foodySlug": "bun-dau-mam-tom-xua-2-tran-van-hoai"
+    "foodySlug": "bun-dau-mam-tom-xua-2-tran-van-hoai",
+    "latitude": 10.025917,
+    "longitude": 105.772167,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:08.320Z"
   },
   {
     "id": "r_ct_matcha_nga_milk_tea_329_nguyen_van_linh",
@@ -14010,9 +15186,12 @@
     "foodySlug": "matcha-nga-milk-tea-329-nguyen-van-linh",
     "sfDiscoveredAt": "2026-07-18T09:59:42.811Z",
     "source": "shopeefood",
-    "latitude": 10.02575037,
-    "longitude": 105.75870983,
-    "sfRestaurantId": 772588
+    "latitude": 10.0257504,
+    "longitude": 105.7587098,
+    "sfRestaurantId": 772588,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:08.900Z"
   },
   {
     "id": "r_ct_com_ga_le_dung_5",
@@ -14048,12 +15227,15 @@
       "Nước suối"
     ],
     "menuUpdatedAt": "2026-07-18T01:08:41.429Z",
-    "latitude": 10.03009659,
-    "longitude": 105.78648347,
+    "latitude": 10.0300966,
+    "longitude": 105.7864835,
     "sfRestaurantId": 750015,
     "sfDiscoveredAt": "2026-07-18T09:53:02.995Z",
     "source": "shopeefood",
-    "foodySlug": "com-ga-le-dung-5"
+    "foodySlug": "com-ga-le-dung-5",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:08.568Z"
   },
   {
     "id": "r_ct_bo_ne_3_ngon_bo_quanh_lua_hong_mau_than",
@@ -14136,7 +15318,12 @@
       "1 chai coca -cola+ đá",
       "2chai coca-cola +đá"
     ],
-    "foodySlug": "bo-ne-3-ngon-bo-quanh-lua-hong-mau-than"
+    "foodySlug": "bo-ne-3-ngon-bo-quanh-lua-hong-mau-than",
+    "latitude": 10.0406457640543,
+    "longitude": 105.7675960287451,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.280Z"
   },
   {
     "id": "r_ct_trung_nguyen_legend_3_thang_2_can_tho",
@@ -14181,9 +15368,12 @@
     "foodySlug": "trung-nguyen-legend-3-thang-2-can-tho",
     "sfDiscoveredAt": "2026-07-18T10:13:19.467Z",
     "source": "shopeefood",
-    "latitude": 10.01606359,
-    "longitude": 105.75955342,
-    "sfRestaurantId": 1213481
+    "latitude": 10.0160636,
+    "longitude": 105.7595534,
+    "sfRestaurantId": 1213481,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.040Z"
   },
   {
     "id": "r_ct_i_m_good_tea_tra_sua_chiet_xuat_may_vo_nguyen_giap",
@@ -14262,7 +15452,12 @@
       "TRÂN CHÂU HOÀNG KIM https://mms.img.susercontent.com/vn-11134517-820l4-mi8wms5n8jk2c0@resize_ss500x500!@crop_w500_h500_cTBABY"
     ],
     "menuUpdatedAt": "2026-07-18T02:24:52.288Z",
-    "foodySlug": "i-m-good-tea-tra-sua-chiet-xuat-may-vo-nguyen-giap"
+    "foodySlug": "i-m-good-tea-tra-sua-chiet-xuat-may-vo-nguyen-giap",
+    "latitude": 10.0079899,
+    "longitude": 105.7936162,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.212Z"
   },
   {
     "id": "r_ct_1893_dalat_garden_flower_tea_more_phan_huy_chu",
@@ -14288,7 +15483,12 @@
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
     "foodySlug": "1893-dalat-garden-flower-tea-more-phan-huy-chu",
     "sfDiscoveredAt": "2026-07-18T09:47:55.957Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.0399028,
+    "longitude": 105.7571141,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.535Z"
   },
   {
     "id": "r_ct_tra_sua_su_kem_nguyen_van_cu_noi_dai",
@@ -14400,7 +15600,12 @@
     "closedAt": "2026-07-18T02:25:00.934Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
     "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
-    "foodySlug": "tra-sua-su-kem-nguyen-van-cu-noi-dai"
+    "foodySlug": "tra-sua-su-kem-nguyen-van-cu-noi-dai",
+    "latitude": 10.0255271,
+    "longitude": 105.7459796,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.971Z"
   },
   {
     "id": "r_ct_phuc_long_winmart_ninh_kieu",
@@ -14413,8 +15618,8 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.03074998,
-    "longitude": 105.78080296,
+    "latitude": 10.03075,
+    "longitude": 105.780803,
     "sfRestaurantId": 1135589,
     "sfDiscoveredAt": "2026-07-18T10:11:49.962Z",
     "source": "shopeefood",
@@ -14506,14 +15711,17 @@
       "Combo 88k_2"
     ],
     "menuUpdatedAt": "2026-07-18T02:25:09.676Z",
-    "foodySlug": "phuc-long-winmart-ninh-kieu"
+    "foodySlug": "phuc-long-winmart-ninh-kieu",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:09.878Z"
   },
   {
     "id": "1115591",
     "name": "Cháo Vịt Cô Mơ - Ba Tháng Hai",
     "address": "C112/54 Đường 3 Tháng 2, P. Hưng Lợi, Quận Ninh Kiều, Cần Thơ",
-    "latitude": 10.01790955,
-    "longitude": 105.75928604,
+    "latitude": 10.0179096,
+    "longitude": 105.759286,
     "img": "https://mms.img.susercontent.com/vn-11134513-7r98o-lsv74f8dm56s6c@resize_ss60x60!@crop_w60_h60_cT",
     "shopeefoodSlug": "chao-vit-co-mo-ba-thang-hai",
     "sfRestaurantId": 1115591,
@@ -14526,7 +15734,11 @@
     "isClosed": true,
     "closedAt": "2026-07-18T02:25:37.822Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-18T02:25:37.950Z"
+    "menuUpdatedAt": "2026-07-18T02:25:37.950Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:20.709Z",
+    "foodySlug": "chao-vit-co-mo-ba-thang-hai"
   },
   {
     "id": "1205861",
@@ -14657,7 +15869,10 @@
       "Lục Trà Sữa Xoài Trân Châu Hoàng Kim"
     ],
     "menuUpdatedAt": "2026-07-18T02:25:18.263Z",
-    "foodySlug": "tra-sua-maycha-15c-mau-than"
+    "foodySlug": "tra-sua-maycha-15c-mau-than",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:10.213Z"
   },
   {
     "id": "1064435",
@@ -14703,14 +15918,18 @@
     "isClosed": true,
     "closedAt": "2026-07-18T02:25:25.027Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:21.217Z",
+    "foodySlug": "mi-cay-takami"
   },
   {
     "id": "1000079911",
     "name": "BaBoBu - Dimsum & Tea - Nguyễn Văn Linh",
     "address": "329F11/11 Hẻm Tổ 11, Nguyễn Văn Linh Kv3, Quận Ninh Kiều, Cần Thơ",
-    "latitude": 10.03020711,
-    "longitude": 105.75858204,
+    "latitude": 10.0302071,
+    "longitude": 105.758582,
     "img": "https://mms.img.susercontent.com/vn-11134513-7r98o-lzsgziceylvxb3@resize_ss60x60!@crop_w60_h60_cT",
     "shopeefoodSlug": "babobu-dimsum-tea-nguyen-van-linh.fxnhxr",
     "sfRestaurantId": 1000079911,
@@ -14766,7 +15985,11 @@
     "isClosed": true,
     "closedAt": "2026-07-18T02:25:26.317Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:21.432Z",
+    "foodySlug": "babobu-dimsum-tea-nguyen-van-linh.fxnhxr"
   },
   {
     "id": "r_ct_pho_nuong_102_nuong_lau_binh_dan",
@@ -14991,7 +16214,12 @@
     "menuUpdatedAt": "2026-07-18T02:25:34.528Z",
     "closedAt": "2026-07-18T02:25:34.528Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.034738,
+    "longitude": 105.756564,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:10.594Z"
   },
   {
     "id": "r_ct_am-thuc-vuon-nuong-han-quoc",
@@ -15163,7 +16391,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T02:26:15.238Z"
+    "menuUpdatedAt": "2026-07-18T02:26:15.238Z",
+    "latitude": 10.0568536374205,
+    "longitude": 105.778539776802,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:10.934Z"
   },
   {
     "id": "r_ct_pho-phu-trung-nguyen-van-cu",
@@ -15237,7 +16470,12 @@
     "menuUpdatedAt": "2026-07-18T02:25:42.521Z",
     "closedAt": "2026-07-18T02:25:42.521Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.0465411,
+    "longitude": 105.7697831,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:10.741Z"
   },
   {
     "id": "r_ct_com-ga-thoi-ky",
@@ -15291,7 +16529,12 @@
     "menuUpdatedAt": "2026-07-18T02:25:50.108Z",
     "closedAt": "2026-07-18T02:25:50.108Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.0385196,
+    "longitude": 105.7598277,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:11.196Z"
   },
   {
     "id": "r_ct_ca-phe-pu-duong-3-thang-2",
@@ -15333,7 +16576,12 @@
     "menuUpdatedAt": "2026-07-18T02:25:58.217Z",
     "closedAt": "2026-07-18T02:25:58.217Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nQuán sẽ mở cửa lại sớm, vui lòng trở lại sau",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.0257,
+    "longitude": 105.76697,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:11.284Z"
   },
   {
     "id": "r_ct_che-thanh-ngoc-nguyen-van-cu",
@@ -15357,7 +16605,12 @@
     "menuUpdatedAt": "2026-07-18T02:26:05.821Z",
     "closedAt": "2026-07-18T02:26:05.821Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 15:00 Hôm nay",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.0243554,
+    "longitude": 105.745243,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:11.428Z"
   },
   {
     "id": "r_ct_che-thiet-giap",
@@ -15396,7 +16649,12 @@
     "menuUpdatedAt": "2026-07-18T02:26:48.550Z",
     "closedAt": "2026-07-18T02:26:48.550Z",
     "closedReason": "Ngoài giờ phục vụ của quán\nBạn có thể hẹn đơn giao sau 17:00 Hôm nay",
-    "crawlNextAttempt": "2026-07-19T00:00:00.000Z"
+    "crawlNextAttempt": "2026-07-19T00:00:00.000Z",
+    "latitude": 10.0667325,
+    "longitude": 105.7560441,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:11.972Z"
   },
   {
     "id": "r_ct_nhu_ngoc_milktea",
@@ -15422,7 +16680,12 @@
     "menuUpdatedAt": "2026-07-18T04:48:57.536Z",
     "foodySlug": "pho-ngoc-nhu-bun-bo-hue-tran-quang-dieu",
     "sfDiscoveredAt": "2026-07-18T07:08:01.272Z",
-    "source": "foody-detail"
+    "source": "foody-detail",
+    "latitude": 10.058393,
+    "longitude": 105.763016,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:12.228Z"
   },
   {
     "id": "1243283",
@@ -15444,7 +16707,11 @@
       "Bánh tráng cuộn",
       "Gỏi xoài"
     ],
-    "menuUpdatedAt": "2026-07-18T07:57:38.768Z"
+    "menuUpdatedAt": "2026-07-18T07:57:38.768Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:21.412Z",
+    "foodySlug": "an-vat-co-hang-banh-trang-tron-banh-trang-nuong"
   },
   {
     "id": "1247207",
@@ -15495,7 +16762,11 @@
       "Yaourt Đá",
       "Cà phê đá"
     ],
-    "menuUpdatedAt": "2026-07-18T07:57:40.867Z"
+    "menuUpdatedAt": "2026-07-18T07:57:40.867Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:21.746Z",
+    "foodySlug": "banh-uot-dieu-huong"
   },
   {
     "id": "r_ct_dac-san-an-giang-banh-ngot-cac-loai",
@@ -15516,9 +16787,12 @@
     "closedAt": "2026-07-18T07:59:03.703Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
     "menuUpdatedAt": "2026-07-18T07:59:03.819Z",
-    "latitude": 10.0502163,
-    "longitude": 105.7729822,
-    "sfRestaurantId": 1156942
+    "latitude": 10.030261,
+    "longitude": 105.7522,
+    "sfRestaurantId": 1156942,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:11.932Z"
   },
   {
     "id": "r_ct_bao-quy-lo-banh-mi",
@@ -15536,7 +16810,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:58:19.414Z"
+    "menuUpdatedAt": "2026-07-18T07:58:19.414Z",
+    "latitude": 10.0590215583665,
+    "longitude": 105.7593194022774,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:12.068Z"
   },
   {
     "id": "r_ct_bep-nha-wan",
@@ -15590,7 +16869,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:57:49.266Z"
+    "menuUpdatedAt": "2026-07-18T07:57:49.266Z",
+    "latitude": 10.0370341,
+    "longitude": 105.7713942,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:12.614Z"
   },
   {
     "id": "r_ct_com-chay-sen-vang-2",
@@ -15661,7 +16945,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:58:28.117Z"
+    "menuUpdatedAt": "2026-07-18T07:58:28.117Z",
+    "latitude": 10.033836,
+    "longitude": 105.782632,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:13.189Z"
   },
   {
     "id": "r_ct_milano-coffee-hem-lo-mo",
@@ -15696,7 +16985,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T07:58:32.083Z",
     "menuFromSiblingId": "r_ct_milano_coffee_khu_do_thi_moi_thoi_lai",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 10.040569,
+    "longitude": 105.765321,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:13.046Z"
   },
   {
     "id": "r_ct_dl-1984-milano-can-tho",
@@ -15736,7 +17030,10 @@
     "menuUpdatedAt": "2026-07-18T07:58:26.876Z",
     "latitude": 10.051299,
     "longitude": 105.774288,
-    "sfRestaurantId": 1064529
+    "sfRestaurantId": 1064529,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:13.274Z"
   },
   {
     "id": "r_ct_com-chay-au-lac-nguyen-van-cu",
@@ -15866,7 +17163,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:59:07.379Z"
+    "menuUpdatedAt": "2026-07-18T07:59:07.379Z",
+    "latitude": 10.0137076,
+    "longitude": 105.7341188,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:13.260Z"
   },
   {
     "id": "r_ct_com-sinh-vien-trung-tam-ho-tro-va-phat-trien-sinh-vien-can-tho",
@@ -16087,9 +17389,12 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T07:59:11.533Z",
-    "latitude": 10.02300109,
-    "longitude": 105.76582931,
-    "sfRestaurantId": 164263
+    "latitude": 10.036721,
+    "longitude": 105.777542,
+    "sfRestaurantId": 164263,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:14.016Z"
   },
   {
     "id": "r_ct_smile-tra-sua-nha-lam",
@@ -16174,7 +17479,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:09.824Z"
+    "menuUpdatedAt": "2026-07-18T08:00:09.824Z",
+    "latitude": 10.0388141,
+    "longitude": 105.7541645,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:13.869Z"
   },
   {
     "id": "r_ct_tra-sua-nha-lam-duong-3-thang-2",
@@ -16246,9 +17556,12 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T08:00:11.820Z",
-    "latitude": 10.02167072,
-    "longitude": 105.77055344,
-    "sfRestaurantId": 698587
+    "latitude": 10.0106146,
+    "longitude": 105.7514155,
+    "sfRestaurantId": 698587,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:14.271Z"
   },
   {
     "id": "r_ct_miu-tea-tra-sua-nha-lam",
@@ -16293,7 +17606,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:59:15.963Z"
+    "menuUpdatedAt": "2026-07-18T07:59:15.963Z",
+    "latitude": 10.058302,
+    "longitude": 105.763004,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:14.247Z"
   },
   {
     "id": "r_ct_ngoc-anh-banh-mi-cha-ca-bien-tuoi",
@@ -16311,7 +17629,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T07:59:23.157Z"
+    "menuUpdatedAt": "2026-07-18T07:59:23.157Z",
+    "latitude": 10.031623,
+    "longitude": 105.784696,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:14.568Z"
   },
   {
     "id": "r_ct_a-weo-banh-mi-cha-ca",
@@ -16415,7 +17738,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:02.018Z"
+    "menuUpdatedAt": "2026-07-18T08:00:02.018Z",
+    "latitude": 10.036182,
+    "longitude": 105.786594,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:14.956Z"
   },
   {
     "id": "r_ct_quan-co-tu-mi-tron-ca-vien-chien-ga-u-muoi-tra-trai-cay",
@@ -16466,9 +17794,12 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T07:59:55.333Z",
-    "latitude": 10.06134499,
+    "latitude": 10.061345,
     "longitude": 105.776425,
-    "sfRestaurantId": 1297034
+    "sfRestaurantId": 1297034,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:15.188Z"
   },
   {
     "id": "r_ct_ga-u-muoi-hau-83-325e-hem-to-3-nguyen-van-linh",
@@ -16495,7 +17826,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:02.970Z"
+    "menuUpdatedAt": "2026-07-18T08:00:02.970Z",
+    "latitude": 10.0320626,
+    "longitude": 105.7475686,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:15.228Z"
   },
   {
     "id": "r_ct_ngoc-yen-cafe-nguyen-van-cu",
@@ -16625,7 +17961,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:42.928Z"
+    "menuUpdatedAt": "2026-07-18T08:00:42.928Z",
+    "latitude": 10.043026733229,
+    "longitude": 105.764834024012,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:15.767Z"
   },
   {
     "id": "r_ct_diem-xoi-ga-quay-lu",
@@ -16650,7 +17991,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:42.529Z"
+    "menuUpdatedAt": "2026-07-18T08:00:42.529Z",
+    "latitude": 10.0111476302583,
+    "longitude": 105.7519175112247,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:15.640Z"
   },
   {
     "id": "r_ct_kem-cuon-thai-lan",
@@ -16669,7 +18015,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:00:50.972Z"
+    "menuUpdatedAt": "2026-07-18T08:00:50.972Z",
+    "latitude": 10.0371333733574,
+    "longitude": 105.7839994132518,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:16.176Z"
   },
   {
     "id": "r_ct_sushi-kimpap-nguyen-viet-hong",
@@ -16689,7 +18040,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:01:42.870Z"
+    "menuUpdatedAt": "2026-07-18T08:01:42.870Z",
+    "latitude": 10.0310072,
+    "longitude": 105.7767551,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:16.232Z"
   },
   {
     "id": "r_ct_banh-xeo-de-tham",
@@ -16713,9 +18069,12 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T08:01:39.382Z",
-    "latitude": 10.033569,
-    "longitude": 105.783198,
-    "sfRestaurantId": 881058
+    "latitude": 10.033671,
+    "longitude": 105.782961,
+    "sfRestaurantId": 881058,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:16.600Z"
   },
   {
     "id": "r_ct_thanh-nhan-bun-ca-chau-doc",
@@ -16768,7 +18127,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T08:01:39.009Z",
     "menuFromSiblingId": "r_ct_thanh_nhan_bun_ca_chau_doc",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 10.0761683,
+    "longitude": 105.7482781,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:16.487Z"
   },
   {
     "id": "r_ct_quan-toi-bun-dau-mam-tom",
@@ -16811,7 +18175,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:01:46.319Z"
+    "menuUpdatedAt": "2026-07-18T08:01:46.319Z",
+    "latitude": 10.02113,
+    "longitude": 105.760468,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:17.079Z"
   },
   {
     "id": "r_ct_bun-rieu-mien-tay-phan-chu-trinh",
@@ -16834,7 +18203,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T08:01:47.487Z"
+    "menuUpdatedAt": "2026-07-18T08:01:47.487Z",
+    "latitude": 10.0313641,
+    "longitude": 105.7877851,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:16.923Z"
   },
   {
     "id": "r_ct_com-chay-15",
@@ -16905,7 +18279,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:08.648Z"
+    "menuUpdatedAt": "2026-07-18T13:58:08.648Z",
+    "latitude": 10.0284596949124,
+    "longitude": 105.7547284662723,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:17.117Z"
   },
   {
     "id": "r_ct_com-chay-nguyen-huong",
@@ -17035,7 +18414,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:14.685Z"
+    "menuUpdatedAt": "2026-07-18T13:58:14.685Z",
+    "latitude": 10.0336242,
+    "longitude": 105.7739639,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:17.284Z"
   },
   {
     "id": "r_ct_com-phan-co-thu",
@@ -17066,7 +18450,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:15.747Z"
+    "menuUpdatedAt": "2026-07-18T13:58:15.747Z",
+    "latitude": 10.0043215992025,
+    "longitude": 105.7976585626602,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:17.526Z"
   },
   {
     "id": "r_ct_quan-138c-com-phan",
@@ -17148,7 +18537,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:48.455Z"
+    "menuUpdatedAt": "2026-07-18T13:58:48.455Z",
+    "latitude": 10.040931,
+    "longitude": 105.762437,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:18.051Z"
   },
   {
     "id": "r_ct_com-phan-ut-linh",
@@ -17191,7 +18585,10 @@
     "latitude": 10.01598,
     "longitude": 105.7524,
     "sfRestaurantId": 1275003,
-    "menuUpdatedAt": "2026-07-18T13:58:21.848Z"
+    "menuUpdatedAt": "2026-07-18T13:58:21.848Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:17.820Z"
   },
   {
     "id": "r_ct_hoang-phat-06-com-duong-chau-tran-van-hoai",
@@ -17216,10 +18613,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.0262248843945,
-    "longitude": 105.771894802714,
+    "latitude": 10.0262249,
+    "longitude": 105.7718948,
     "sfRestaurantId": 1087964,
-    "menuUpdatedAt": "2026-07-18T13:58:22.954Z"
+    "menuUpdatedAt": "2026-07-18T13:58:22.954Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:18.018Z"
   },
   {
     "id": "r_ct_tiem-tra-trai-cay-tuoi-68",
@@ -17345,7 +18745,10 @@
     "latitude": 10.03342,
     "longitude": 105.77509,
     "sfRestaurantId": 1217195,
-    "menuUpdatedAt": "2026-07-18T13:58:24.028Z"
+    "menuUpdatedAt": "2026-07-18T13:58:24.028Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:18.959Z"
   },
   {
     "id": "r_ct_datokima-tiem-tra-trai-cay-tuoi",
@@ -17386,7 +18789,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:30.586Z"
+    "menuUpdatedAt": "2026-07-18T13:58:30.586Z",
+    "latitude": 10.016974,
+    "longitude": 105.760756,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:18.931Z"
   },
   {
     "id": "r_ct_tra-sua-n2-tea-milk-hung-vuong",
@@ -17471,7 +18879,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:26.055Z"
+    "menuUpdatedAt": "2026-07-18T14:01:26.055Z",
+    "latitude": 10.04364,
+    "longitude": 105.778534,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:19.160Z"
   },
   {
     "id": "r_ct_ghe-tra-co-gu-an-vat-co-vi",
@@ -17567,7 +18980,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:33.504Z"
+    "menuUpdatedAt": "2026-07-18T13:58:33.504Z",
+    "latitude": 10.026129,
+    "longitude": 105.76226,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:19.083Z"
   },
   {
     "id": "r_ct_ma-mia-mix-muoi-hai-mau-than",
@@ -17608,7 +19026,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:39.573Z"
+    "menuUpdatedAt": "2026-07-18T13:58:39.573Z",
+    "latitude": 10.0308541,
+    "longitude": 105.7760193,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:19.643Z"
   },
   {
     "id": "r_ct_ca-ri-vit-46",
@@ -17637,7 +19060,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:41.160Z"
+    "menuUpdatedAt": "2026-07-18T13:58:41.160Z",
+    "latitude": 10.025131,
+    "longitude": 105.7598987,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:19.922Z"
   },
   {
     "id": "r_ct_com-ga-tay-do-tran-chien",
@@ -17679,7 +19107,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T13:58:48.695Z"
+    "menuUpdatedAt": "2026-07-18T13:58:48.695Z",
+    "latitude": 10.00223,
+    "longitude": 105.75651,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:20.058Z"
   },
   {
     "id": "r_ct_cua-hap-vua-cua-ca-mau",
@@ -17709,7 +19142,10 @@
     "latitude": 10.027721,
     "longitude": 105.752609,
     "sfRestaurantId": 1283474,
-    "menuUpdatedAt": "2026-07-18T13:58:49.094Z"
+    "menuUpdatedAt": "2026-07-18T13:58:49.094Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:19.836Z"
   },
   {
     "id": "r_ct_banh-trang-tron-tra-sua-xoai-lac",
@@ -17794,7 +19230,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:25.536Z"
+    "menuUpdatedAt": "2026-07-18T14:01:25.536Z",
+    "latitude": 10.0194143513434,
+    "longitude": 105.7595239207148,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:20.320Z"
   },
   {
     "id": "r_ct_kimbap-nang-tran-hoang-na",
@@ -17817,7 +19258,10 @@
     "lastCrawlError": "closed_no_menu",
     "closedAt": "2026-07-18T14:01:25.178Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-18T14:01:25.288Z"
+    "menuUpdatedAt": "2026-07-18T14:01:25.288Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:20.595Z"
   },
   {
     "id": "r_ct_ca-vien-panda",
@@ -17839,10 +19283,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.03433436,
-    "longitude": 105.77395725,
+    "latitude": 10.0343344,
+    "longitude": 105.7739572,
     "sfRestaurantId": 1249578,
-    "menuUpdatedAt": "2026-07-18T13:58:57.977Z"
+    "menuUpdatedAt": "2026-07-18T13:58:57.977Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:20.874Z"
   },
   {
     "id": "r_ct_an-vat-banh-trang-ca-vien-9999",
@@ -17878,7 +19325,10 @@
     "latitude": 10.04408,
     "longitude": 105.78366,
     "sfRestaurantId": 1210720,
-    "menuUpdatedAt": "2026-07-18T13:59:05.495Z"
+    "menuUpdatedAt": "2026-07-18T13:59:05.495Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:21.074Z"
   },
   {
     "id": "r_ct_xoi-ga-pha-lau-390",
@@ -17902,7 +19352,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:25.787Z"
+    "menuUpdatedAt": "2026-07-18T14:01:25.787Z",
+    "latitude": 10.036646,
+    "longitude": 105.75831,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:20.943Z"
   },
   {
     "id": "r_ct_bep-cua-ga-yogurts-and-cakes-duong-b15_t2eaua",
@@ -17922,7 +19377,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T14:02:23.707Z",
     "menuFromSiblingId": "r_ct_bep-cua-ga-shop-online",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 10.0244671,
+    "longitude": 105.7566447,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:21.272Z"
   },
   {
     "id": "r_ct_hu-tieu-hap-ba-hai",
@@ -17967,7 +19427,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:02:07.408Z"
+    "menuUpdatedAt": "2026-07-18T14:02:07.408Z",
+    "latitude": 9.995661,
+    "longitude": 105.728406,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:21.794Z"
   },
   {
     "id": "r_ct_bun-thit-xao-68",
@@ -17987,7 +19452,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:35.989Z"
+    "menuUpdatedAt": "2026-07-18T14:01:35.989Z",
+    "latitude": 10.0345679,
+    "longitude": 105.7757575,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:21.979Z"
   },
   {
     "id": "r_ct_hat-may-sua-hat-can-tho",
@@ -18011,7 +19481,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:35.626Z"
+    "menuUpdatedAt": "2026-07-18T14:01:35.626Z",
+    "latitude": 10.00422,
+    "longitude": 105.76639,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:22.067Z"
   },
   {
     "id": "r_ct_tiem-ca-phe-da-lat-d33-khu-dan-cu-hong-loan",
@@ -18033,7 +19508,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:01:43.342Z"
+    "menuUpdatedAt": "2026-07-18T14:01:43.342Z",
+    "latitude": 10.0000429,
+    "longitude": 105.7676773,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:21.992Z"
   },
   {
     "id": "r_ct_thai-bao-cafe",
@@ -18089,7 +19569,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:02:48.110Z"
+    "menuUpdatedAt": "2026-07-18T14:02:48.110Z",
+    "latitude": 10.0469827612624,
+    "longitude": 105.7671105489134,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:22.755Z"
   },
   {
     "id": "r_ct_cafe-minh-thu",
@@ -18148,7 +19633,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:02:50.859Z"
+    "menuUpdatedAt": "2026-07-18T14:02:50.859Z",
+    "latitude": 10.0553498,
+    "longitude": 105.7701721999999,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:22.599Z"
   },
   {
     "id": "r_ct_mozzo-coffee",
@@ -18238,7 +19728,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:02:29.551Z"
+    "menuUpdatedAt": "2026-07-18T14:02:29.551Z",
+    "latitude": 10.0304406,
+    "longitude": 105.7809302,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.055Z"
   },
   {
     "id": "r_ct_pho-xua-cafe",
@@ -18257,7 +19752,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:03:08.943Z"
+    "menuUpdatedAt": "2026-07-18T14:03:08.943Z",
+    "latitude": 10.0715157,
+    "longitude": 105.7525250999999,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.083Z"
   },
   {
     "id": "r_ct_kim-yen-cafe",
@@ -18317,7 +19817,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:03:27.658Z"
+    "menuUpdatedAt": "2026-07-18T14:03:27.658Z",
+    "latitude": 9.9880747778642,
+    "longitude": 105.7063843309879,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.560Z"
   },
   {
     "id": "r_ct_khanh-ngoc-lau-chao-mat-heo",
@@ -18335,7 +19840,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:03:40.622Z"
+    "menuUpdatedAt": "2026-07-18T14:03:40.622Z",
+    "latitude": 10.0155260009447,
+    "longitude": 105.6499318778514,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.429Z"
   },
   {
     "id": "r_ct_bun-mang-bich-ngoc",
@@ -18361,7 +19871,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:04:19.315Z"
+    "menuUpdatedAt": "2026-07-18T14:04:19.315Z",
+    "latitude": 10.0238328897575,
+    "longitude": 105.7664849236607,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.748Z"
   },
   {
     "id": "r_ct_ngan-ha-cafe-tran-hung-dao-noi-dai",
@@ -18399,7 +19914,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T14:04:40.980Z",
     "menuFromSiblingId": "r_ct_ngan-ha-cafe",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 9.9984952235516,
+    "longitude": 105.7533826678991,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:23.992Z"
   },
   {
     "id": "r_ct_com-tam-84",
@@ -18434,7 +19954,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:04:43.583Z"
+    "menuUpdatedAt": "2026-07-18T14:04:43.583Z",
+    "latitude": 10.0404701,
+    "longitude": 105.7804728,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:24.407Z"
   },
   {
     "id": "r_ct_quan-535-com-tam-dem",
@@ -18507,7 +20032,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:04:59.667Z"
+    "menuUpdatedAt": "2026-07-18T14:04:59.667Z",
+    "latitude": 10.059129,
+    "longitude": 105.757539,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:24.293Z"
   },
   {
     "id": "r_ct_bao-bao-cafe",
@@ -18563,7 +20093,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:05:22.973Z"
+    "menuUpdatedAt": "2026-07-18T14:05:22.973Z",
+    "latitude": 10.001746,
+    "longitude": 105.7569229000001,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:24.384Z"
   },
   {
     "id": "r_ct_popcorn",
@@ -18588,7 +20123,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:05:34.884Z"
+    "menuUpdatedAt": "2026-07-18T14:05:34.884Z",
+    "latitude": 10.033762,
+    "longitude": 105.784738,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:24.954Z"
   },
   {
     "id": "r_ct_hu-tieu-bo-kho-bun-xao",
@@ -18611,7 +20151,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:05:38.893Z"
+    "menuUpdatedAt": "2026-07-18T14:05:38.893Z",
+    "latitude": 10.035573,
+    "longitude": 105.781316,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:25.252Z"
   },
   {
     "id": "r_ct_ong-trinh-banh-ran-tran-viet-chau",
@@ -18651,7 +20196,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:05:23.838Z"
+    "menuUpdatedAt": "2026-07-18T14:05:23.838Z",
+    "latitude": 10.0484435,
+    "longitude": 105.7746715,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:25.059Z"
   },
   {
     "id": "r_ct_nuoc-ep-hem-38-tran-viet-chau",
@@ -18714,7 +20264,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:05:31.216Z"
+    "menuUpdatedAt": "2026-07-18T14:05:31.216Z",
+    "latitude": 10.0493155,
+    "longitude": 105.7737963,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:25.092Z"
   },
   {
     "id": "r_ct_the-lighthouse-cafe-restaurant",
@@ -18787,7 +20342,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:06:04.240Z"
+    "menuUpdatedAt": "2026-07-18T14:06:04.240Z",
+    "latitude": 10.028033,
+    "longitude": 105.786774,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:25.972Z"
   },
   {
     "id": "r_ct_bb-coffee-vo-truong-toan",
@@ -19119,7 +20679,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:06:44.530Z"
+    "menuUpdatedAt": "2026-07-18T14:06:44.530Z",
+    "latitude": 10.049052,
+    "longitude": 105.7651,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.031Z"
   },
   {
     "id": "r_ct_banh-mi-thit-vo-truong-toan",
@@ -19451,7 +21016,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:06:51.304Z"
+    "menuUpdatedAt": "2026-07-18T14:06:51.304Z",
+    "latitude": 10.0466556,
+    "longitude": 105.7674676,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.044Z"
   },
   {
     "id": "r_ct_grey-coffee-sua-dua-latte-cafe-82-2-mac-thien-tich",
@@ -19484,7 +21054,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:06:22.654Z"
+    "menuUpdatedAt": "2026-07-18T14:06:22.654Z",
+    "latitude": 10.0279592,
+    "longitude": 105.7734855,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:25.895Z"
   },
   {
     "id": "r_ct_kem-monterosa-vincom-hung-vuong",
@@ -19528,7 +21103,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:07:24.919Z"
+    "menuUpdatedAt": "2026-07-18T14:07:24.919Z",
+    "latitude": 10.045108,
+    "longitude": 105.7798589999999,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.856Z"
   },
   {
     "id": "r_ct_july-food-drink",
@@ -19682,7 +21262,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:07:31.289Z"
+    "menuUpdatedAt": "2026-07-18T14:07:31.289Z",
+    "latitude": 10.045369,
+    "longitude": 105.778781,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.968Z"
   },
   {
     "id": "r_ct_phong-cach-cafe",
@@ -19732,7 +21317,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:07:37.107Z"
+    "menuUpdatedAt": "2026-07-18T14:07:37.107Z",
+    "latitude": 10.0228,
+    "longitude": 105.766368,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.722Z"
   },
   {
     "id": "r_ct_bun-bap-bo-cao-ba-quat",
@@ -19760,7 +21350,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:00.963Z"
+    "menuUpdatedAt": "2026-07-18T14:08:00.963Z",
+    "latitude": 10.0290488,
+    "longitude": 105.7859103,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:26.946Z"
   },
   {
     "id": "r_ct_cau-sau-cafe",
@@ -19849,7 +21444,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:04.680Z"
+    "menuUpdatedAt": "2026-07-18T14:08:04.680Z",
+    "latitude": 10.0425695,
+    "longitude": 105.7830546,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:27.444Z"
   },
   {
     "id": "r_ct_bun-xao-co-ba",
@@ -19912,7 +21512,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:10.675Z"
+    "menuUpdatedAt": "2026-07-18T14:08:10.675Z",
+    "latitude": 10.0494397547408,
+    "longitude": 105.7709436569136,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:27.511Z"
   },
   {
     "id": "r_ct_bao-anh-coffee-tran-chien",
@@ -19958,7 +21563,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:07:44.546Z"
+    "menuUpdatedAt": "2026-07-18T14:07:44.546Z",
+    "latitude": 9.997198,
+    "longitude": 105.760964,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:27.649Z"
   },
   {
     "id": "r_ct_banh-mi-anh-hai-lua",
@@ -19977,7 +21587,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:07:53.116Z"
+    "menuUpdatedAt": "2026-07-18T14:07:53.116Z",
+    "latitude": 10.02787,
+    "longitude": 105.776821,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:27.939Z"
   },
   {
     "id": "r_ct_a-nhon-rau-ma-le-lai_apyjt8",
@@ -20007,7 +21622,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:00.546Z"
+    "menuUpdatedAt": "2026-07-18T14:08:00.546Z",
+    "latitude": 10.0326293,
+    "longitude": 105.7789341,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:28.132Z"
   },
   {
     "id": "r_ct_tuyet-do-nuoc-ep-tra-trai-cay-rau-ma",
@@ -20039,7 +21659,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:08.654Z"
+    "menuUpdatedAt": "2026-07-18T14:08:08.654Z",
+    "latitude": 10.0431313,
+    "longitude": 105.7658436,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:28.172Z"
   },
   {
     "id": "r_ct_rau-ma-dau-xanh-le-lai",
@@ -20069,7 +21694,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:41.324Z"
+    "menuUpdatedAt": "2026-07-18T14:08:41.324Z",
+    "latitude": 10.034374,
+    "longitude": 105.779672,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:28.724Z"
   },
   {
     "id": "r_ct_com-tam-di-ut",
@@ -20099,7 +21729,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:43.418Z"
+    "menuUpdatedAt": "2026-07-18T14:08:43.418Z",
+    "latitude": 10.038691,
+    "longitude": 105.785546,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:28.881Z"
   },
   {
     "id": "r_ct_ut-oi-tra-sua",
@@ -20184,7 +21819,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:15.513Z"
+    "menuUpdatedAt": "2026-07-18T14:09:15.513Z",
+    "latitude": 10.0481446,
+    "longitude": 105.7752318,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:28.768Z"
   },
   {
     "id": "r_ct_hai-san-tin-tran",
@@ -20229,7 +21869,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:52.379Z"
+    "menuUpdatedAt": "2026-07-18T14:08:52.379Z",
+    "latitude": 10.047741,
+    "longitude": 105.791704,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:29.156Z"
   },
   {
     "id": "r_ct_cai-vac-lung-pham-ngoc-hung",
@@ -20311,7 +21956,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:08:49.745Z"
+    "menuUpdatedAt": "2026-07-18T14:08:49.745Z",
+    "latitude": 10.04585,
+    "longitude": 105.75769,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:29.394Z"
   },
   {
     "id": "r_ct_cat-dang-cafe",
@@ -20329,7 +21979,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:29.684Z"
+    "menuUpdatedAt": "2026-07-18T14:09:29.684Z",
+    "latitude": 10.031563,
+    "longitude": 105.775113,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:29.416Z"
   },
   {
     "id": "r_ct_tiem-mi-nekko-tran-bach-dang",
@@ -20358,7 +22013,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:00.102Z"
+    "menuUpdatedAt": "2026-07-18T14:09:00.102Z",
+    "latitude": 10.0408325,
+    "longitude": 105.7503449,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:29.871Z"
   },
   {
     "id": "r_ct_dau-hu-thui-chung-vo-diem",
@@ -20393,10 +22053,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.03501862,
-    "longitude": 105.78160429,
+    "latitude": 10.0350186,
+    "longitude": 105.7816043,
     "sfRestaurantId": 1287876,
-    "menuUpdatedAt": "2026-07-18T14:09:08.966Z"
+    "menuUpdatedAt": "2026-07-18T14:09:08.966Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:29.859Z"
   },
   {
     "id": "r_ct_do-chien-hem-51",
@@ -20449,7 +22112,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:48.251Z"
+    "menuUpdatedAt": "2026-07-18T14:09:48.251Z",
+    "latitude": 10.0252674243236,
+    "longitude": 105.7668104767799,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:30.348Z"
   },
   {
     "id": "r_ct_tiem-tra-bi-ngo",
@@ -20498,7 +22166,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:23.963Z"
+    "menuUpdatedAt": "2026-07-18T14:09:23.963Z",
+    "latitude": 10.02827,
+    "longitude": 105.77192,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:30.167Z"
   },
   {
     "id": "r_ct_hu-tieu-muc-phuc-ngo-si-lien",
@@ -20574,7 +22247,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T14:09:59.772Z",
     "menuFromSiblingId": "r_ct_hu_tieu_muc_phuc_quang_trung",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 10.0216234237521,
+    "longitude": 105.7608515022415,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:30.531Z"
   },
   {
     "id": "r_ct_am-thuc-tia-oi-dinh-cong-tru",
@@ -20602,7 +22280,10 @@
     "latitude": 10.07461,
     "longitude": 105.73174,
     "sfRestaurantId": 1268867,
-    "menuUpdatedAt": "2026-07-18T14:09:31.699Z"
+    "menuUpdatedAt": "2026-07-18T14:09:31.699Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:30.851Z"
   },
   {
     "id": "r_ct_mum-dinh-tien-hoang",
@@ -20644,7 +22325,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:08.913Z"
+    "menuUpdatedAt": "2026-07-18T14:10:08.913Z",
+    "latitude": 10.043465,
+    "longitude": 105.779479,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:30.819Z"
   },
   {
     "id": "r_ct_dac-san-bac-truong-thach",
@@ -20665,7 +22351,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:09:56.147Z"
+    "menuUpdatedAt": "2026-07-18T14:09:56.147Z",
+    "latitude": 10.0360688,
+    "longitude": 105.7859167,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.023Z"
   },
   {
     "id": "r_ct_hanh-khoai-lac-pho-mai-xi-muoi",
@@ -20715,7 +22406,12 @@
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T14:10:32.992Z",
     "menuFromSiblingId": "r_ct_hanh_phuc_coffee",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "latitude": 10.0506097,
+    "longitude": 105.7727718,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.144Z"
   },
   {
     "id": "r_ct_tiem-mi-lam-ty",
@@ -20748,7 +22444,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:07.004Z"
+    "menuUpdatedAt": "2026-07-18T14:10:07.004Z",
+    "latitude": 10.05136,
+    "longitude": 105.77428,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.546Z"
   },
   {
     "id": "r_ct_chao-vit-tung-lam",
@@ -20770,7 +22471,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:15.064Z"
+    "menuUpdatedAt": "2026-07-18T14:10:15.064Z",
+    "latitude": 10.01698,
+    "longitude": 105.78231,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.822Z"
   },
   {
     "id": "r_ct_truc-lam-cafe-sinh-to",
@@ -20807,7 +22513,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:47.696Z"
+    "menuUpdatedAt": "2026-07-18T14:10:47.696Z",
+    "latitude": 10.0442046660203,
+    "longitude": 105.779060125351,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.952Z"
   },
   {
     "id": "r_ct_nuoc-sam-nuoc-mat-tiem-sam-phuc-lam-cn2",
@@ -20845,7 +22556,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:16.955Z"
+    "menuUpdatedAt": "2026-07-18T14:10:16.955Z",
+    "latitude": 10.0212,
+    "longitude": 105.77125,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:31.800Z"
   },
   {
     "id": "r_ct_com-tam-kim-yen",
@@ -20975,7 +22691,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:55.542Z"
+    "menuUpdatedAt": "2026-07-18T14:10:55.542Z",
+    "latitude": 10.0523533475914,
+    "longitude": 105.7731176912784,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:32.494Z"
   },
   {
     "id": "r_ct_binh-minh-banh-mi-pate-thit-khia",
@@ -20994,7 +22715,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:24.838Z"
+    "menuUpdatedAt": "2026-07-18T14:10:24.838Z",
+    "latitude": 10.050164,
+    "longitude": 105.772186,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:32.474Z"
   },
   {
     "id": "r_ct_thanh-hoa-coffee-tea-134-xo-viet-nghe-tinh",
@@ -21037,7 +22763,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:32.441Z"
+    "menuUpdatedAt": "2026-07-18T14:10:32.441Z",
+    "latitude": 10.03951,
+    "longitude": 105.78279,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:32.792Z"
   },
   {
     "id": "r_ct_sam-ninh-huong-can-tho_ef42cw",
@@ -21092,7 +22823,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:40.519Z"
+    "menuUpdatedAt": "2026-07-18T14:10:40.519Z",
+    "latitude": 10.0278518,
+    "longitude": 105.7774348,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:32.602Z"
   },
   {
     "id": "r_ct_thu-ngan-cafe",
@@ -21128,7 +22864,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:20.095Z"
+    "menuUpdatedAt": "2026-07-18T14:11:20.095Z",
+    "latitude": 10.01244,
+    "longitude": 105.755924,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.117Z"
   },
   {
     "id": "r_ct_bun-nuoc-nha-trang-thien-ky",
@@ -21146,7 +22887,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:10:55.111Z"
+    "menuUpdatedAt": "2026-07-18T14:10:55.111Z",
+    "latitude": 10.0493333,
+    "longitude": 105.7736389,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.172Z"
   },
   {
     "id": "r_ct_bich-phuong-coffee",
@@ -21205,7 +22951,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:35.325Z"
+    "menuUpdatedAt": "2026-07-18T14:11:35.325Z",
+    "latitude": 10.029181,
+    "longitude": 105.7854,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.088Z"
   },
   {
     "id": "r_ct_cafe-ngoc-trinh",
@@ -21277,7 +23028,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:34.960Z"
+    "menuUpdatedAt": "2026-07-18T14:11:34.960Z",
+    "latitude": 10.09282,
+    "longitude": 105.724702,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.886Z"
   },
   {
     "id": "r_ct_an-vat-be-zau-le-lai",
@@ -21324,7 +23080,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:18.180Z"
+    "menuUpdatedAt": "2026-07-18T14:11:18.180Z",
+    "latitude": 10.03216,
+    "longitude": 105.77981,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.816Z"
   },
   {
     "id": "r_ct_an-an-thuc-pham-chay",
@@ -21363,7 +23124,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:57.246Z"
+    "menuUpdatedAt": "2026-07-18T14:11:57.246Z",
+    "latitude": 10.022059,
+    "longitude": 105.763994,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:34.080Z"
   },
   {
     "id": "r_ct_bi-bear-drink",
@@ -21383,7 +23149,12 @@
     "lastCrawlError": "closed_no_menu",
     "closedAt": "2026-07-18T14:12:17.135Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-18T14:12:17.275Z"
+    "menuUpdatedAt": "2026-07-18T14:12:17.275Z",
+    "latitude": 10.013291,
+    "longitude": 105.764015,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:33.856Z"
   },
   {
     "id": "r_ct_trinh-cloud-tra-bi-dao-hat-chia-duong-3-2",
@@ -21411,7 +23182,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:11:42.814Z"
+    "menuUpdatedAt": "2026-07-18T14:11:42.814Z",
+    "latitude": 10.0251718,
+    "longitude": 105.76693,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:34.839Z"
   },
   {
     "id": "r_ct_phindeli-can-tho",
@@ -21496,7 +23272,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:12:48.590Z"
+    "menuUpdatedAt": "2026-07-18T14:12:48.590Z",
+    "latitude": 10.0312007060164,
+    "longitude": 105.7764283877884,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:34.905Z"
   },
   {
     "id": "r_ct_bun-xi-dau-co-chu-mac-thien-tich",
@@ -21525,7 +23306,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:12:19.315Z"
+    "menuUpdatedAt": "2026-07-18T14:12:19.315Z",
+    "latitude": 10.028104,
+    "longitude": 105.773811,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:34.871Z"
   },
   {
     "id": "r_ct_ca-phe-vuon-hoa-co-chu-nho",
@@ -21562,7 +23348,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:12:25.077Z"
+    "menuUpdatedAt": "2026-07-18T14:12:25.077Z",
+    "latitude": 10.0456389,
+    "longitude": 105.7805213,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:34.761Z"
   },
   {
     "id": "r_ct_tiem-tra-nha-may-tra-sua-tra-trai-cay-nguyen-van-truong",
@@ -21596,7 +23387,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:12:33.622Z"
+    "menuUpdatedAt": "2026-07-18T14:12:33.622Z",
+    "latitude": 10.006845,
+    "longitude": 105.733562,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:35.404Z"
   },
   {
     "id": "r_ct_quan-mr-cam-goi-du-du",
@@ -21616,7 +23412,12 @@
     "lastCrawlError": "closed_no_menu",
     "closedAt": "2026-07-18T14:13:30.628Z",
     "closedReason": "Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.",
-    "menuUpdatedAt": "2026-07-18T14:13:30.766Z"
+    "menuUpdatedAt": "2026-07-18T14:13:30.766Z",
+    "latitude": 10.039079,
+    "longitude": 105.75366,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:35.490Z"
   },
   {
     "id": "r_ct_papaya-an-vat-du-du-dam",
@@ -21641,7 +23442,10 @@
     "latitude": 10.047748,
     "longitude": 105.775619,
     "sfRestaurantId": 1041517,
-    "menuUpdatedAt": "2026-07-18T14:12:42.142Z"
+    "menuUpdatedAt": "2026-07-18T14:12:42.142Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:35.926Z"
   },
   {
     "id": "r_ct_bun-xao-chao-long-nguyen-hien",
@@ -21688,7 +23492,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:13:27.383Z"
+    "menuUpdatedAt": "2026-07-18T14:13:27.383Z",
+    "latitude": 10.0233865,
+    "longitude": 105.7565825,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:35.594Z"
   },
   {
     "id": "r_ct_bep-me-bi-mi-tron-com-ga-chan-ga-sot-thai",
@@ -21727,7 +23536,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:13:03.425Z"
+    "menuUpdatedAt": "2026-07-18T14:13:03.425Z",
+    "latitude": 10.04817,
+    "longitude": 105.77053,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:36.101Z"
   },
   {
     "id": "r_ct_la-mancha-tra-ngon-dam-vi",
@@ -21768,7 +23582,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:13:11.258Z"
+    "menuUpdatedAt": "2026-07-18T14:13:11.258Z",
+    "latitude": 10.0224403,
+    "longitude": 105.7668366,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:36.157Z"
   },
   {
     "id": "r_ct_cafe-ken-le-cafe-sua-bot-xo-viet-nghe-tinh",
@@ -21811,7 +23630,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:13:50.836Z"
+    "menuUpdatedAt": "2026-07-18T14:13:50.836Z",
+    "latitude": 10.039519,
+    "longitude": 105.782622,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:36.265Z"
   },
   {
     "id": "r_ct_hung-phat-lo-banh-mi",
@@ -21852,7 +23676,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:13:57.298Z"
+    "menuUpdatedAt": "2026-07-18T14:13:57.298Z",
+    "latitude": 10.0638687088992,
+    "longitude": 105.7617635652422,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:36.879Z"
   },
   {
     "id": "r_ct_sam-luc-vi-co-nau-3-thang-2",
@@ -21887,10 +23716,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.02379496,
+    "latitude": 10.023795,
     "longitude": 105.7663218,
     "sfRestaurantId": 1279514,
-    "menuUpdatedAt": "2026-07-18T14:13:35.391Z"
+    "menuUpdatedAt": "2026-07-18T14:13:35.391Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:36.812Z"
   },
   {
     "id": "r_ct_nha-quynh-cafe",
@@ -21999,7 +23831,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:10.221Z"
+    "menuUpdatedAt": "2026-07-18T14:14:10.221Z",
+    "latitude": 10.03244,
+    "longitude": 105.781859,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.164Z"
   },
   {
     "id": "r_ct_nisa-cafe-khu-bai-cat",
@@ -22017,7 +23854,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:30.078Z"
+    "menuUpdatedAt": "2026-07-18T14:14:30.078Z",
+    "latitude": 10.048768,
+    "longitude": 105.790958,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.312Z"
   },
   {
     "id": "r_ct_an-vat-nieu-khoai-lang-lac-ga-ran",
@@ -22059,7 +23901,12 @@
     "reviews": 50,
     "isClosed": false,
     "menuUpdatedAt": "2026-07-18T14:14:36.553Z",
-    "brandPortalId": "r_ct_mr_thinh_ga_ran_khoai_lang_lac_ct"
+    "brandPortalId": "r_ct_mr_thinh_ga_ran_khoai_lang_lac_ct",
+    "latitude": 10.0375926,
+    "longitude": 105.7844678,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.852Z"
   },
   {
     "id": "r_ct_pateso-hang-linh",
@@ -22077,7 +23924,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:21.403Z"
+    "menuUpdatedAt": "2026-07-18T14:14:21.403Z",
+    "latitude": 10.0508,
+    "longitude": 105.72375,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.864Z"
   },
   {
     "id": "r_ct_an-vat-pe-nong-tran-hung-dao",
@@ -22099,7 +23951,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:29.436Z"
+    "menuUpdatedAt": "2026-07-18T14:14:29.436Z",
+    "latitude": 10.03941,
+    "longitude": 105.7768,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.840Z"
   },
   {
     "id": "r_ct_pho-tai-duong",
@@ -22122,7 +23979,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:08.785Z"
+    "menuUpdatedAt": "2026-07-18T14:15:08.785Z",
+    "latitude": 10.020875,
+    "longitude": 105.7696885,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:37.981Z"
   },
   {
     "id": "r_ct_pong-tea-tea-miilk-tea-le-van-thuan",
@@ -22171,7 +24033,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:38.587Z"
+    "menuUpdatedAt": "2026-07-18T14:14:38.587Z",
+    "latitude": 10.019084,
+    "longitude": 105.760071,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:38.528Z"
   },
   {
     "id": "r_ct_tiem-trai-cay-3ce-bede",
@@ -22237,7 +24104,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:44.761Z"
+    "menuUpdatedAt": "2026-07-18T14:14:44.761Z",
+    "latitude": 10.0263802,
+    "longitude": 105.7619827,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:38.824Z"
   },
   {
     "id": "r_ct_com-nha-lua-com-an-vat-pham-the-hien",
@@ -22340,7 +24212,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:46.508Z"
+    "menuUpdatedAt": "2026-07-18T14:14:46.508Z",
+    "latitude": 10.0414792,
+    "longitude": 105.7525948,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:38.567Z"
   },
   {
     "id": "r_ct_banh-sau-rieng-9-sach-124-mau-than",
@@ -22372,7 +24249,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:14:53.049Z"
+    "menuUpdatedAt": "2026-07-18T14:14:53.049Z",
+    "latitude": 10.03063,
+    "longitude": 105.77587,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:38.668Z"
   },
   {
     "id": "r_ct_cam-tu-sinh-to-trai-cay",
@@ -22455,7 +24337,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:26.312Z"
+    "menuUpdatedAt": "2026-07-18T14:15:26.312Z",
+    "latitude": 10.036695,
+    "longitude": 105.77598,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:39.455Z"
   },
   {
     "id": "r_ct_pho-thuy-duong-so-4",
@@ -22495,7 +24382,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:31.113Z"
+    "menuUpdatedAt": "2026-07-18T14:15:31.113Z",
+    "latitude": 10.0231778550618,
+    "longitude": 105.7456538826227,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:39.200Z"
   },
   {
     "id": "r_ct_thi-nhan-cafe",
@@ -22526,7 +24418,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:32.233Z"
+    "menuUpdatedAt": "2026-07-18T14:15:32.233Z",
+    "latitude": 10.049728,
+    "longitude": 105.773693,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:39.320Z"
   },
   {
     "id": "r_ct_ti-do-banh-cuon-banh-crepe",
@@ -22608,7 +24505,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:47.511Z"
+    "menuUpdatedAt": "2026-07-18T14:15:47.511Z",
+    "latitude": 10.031447,
+    "longitude": 105.787303,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:40.016Z"
   },
   {
     "id": "r_ct_yen-sao-minh-duc",
@@ -22630,7 +24532,12 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "menuUpdatedAt": "2026-07-18T14:15:34.803Z"
+    "menuUpdatedAt": "2026-07-18T14:15:34.803Z",
+    "latitude": 10.0014523,
+    "longitude": 105.8045384,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:39.915Z"
   },
   {
     "id": "r_ct_hong_tra_ngo_gia_90d_duong_3_2",
@@ -22683,10 +24590,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.03036604,
-    "longitude": 105.77237622,
+    "latitude": 10.030366,
+    "longitude": 105.7723762,
     "sfRestaurantId": 1193462,
-    "menuUpdatedAt": "2026-07-18T14:15:43.186Z"
+    "menuUpdatedAt": "2026-07-18T14:15:43.186Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:39.992Z"
   },
   {
     "id": "r_ct_sup_tran_gia_can_tho_689_1_duong_30_4",
@@ -22722,10 +24632,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.01247431,
-    "longitude": 105.75482073,
+    "latitude": 10.0124743,
+    "longitude": 105.7548207,
     "sfRestaurantId": 1000066922,
-    "menuUpdatedAt": "2026-07-18T14:15:51.096Z"
+    "menuUpdatedAt": "2026-07-18T14:15:51.096Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:40.080Z"
   },
   {
     "id": "r_ct_the_cheezy_cup_tran_hoang_na",
@@ -22780,10 +24693,13 @@
     "rating": 4.6,
     "reviews": 50,
     "isClosed": false,
-    "latitude": 10.01813704,
+    "latitude": 10.018137,
     "longitude": 105.7582442,
     "sfRestaurantId": 1294110,
-    "menuUpdatedAt": "2026-07-18T14:15:55.067Z"
+    "menuUpdatedAt": "2026-07-18T14:15:55.067Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:17:40.564Z"
   },
   {
     "id": "1140854",
@@ -22801,13 +24717,17 @@
       "Chân Gà Rút Xương Sốt Thái 450g (9-10 chân)",
       "Chân Gà Rút Xương Sả Tắc (9-10 chân)"
     ],
-    "menuUpdatedAt": "2026-07-18T14:15:58.746Z"
+    "menuUpdatedAt": "2026-07-18T14:15:58.746Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:21.922Z",
+    "foodySlug": "chan-ga-rut-xuong-sot-thai-le-duong-tran-hoang-na"
   },
   {
     "id": "1240646",
     "name": "Quán Cô Ba - Cơm Tấm Heo Quay Lá Mắc Mật",
     "address": "331/10 Nguyễn Văn Linh, P. An Khánh, Quận Ninh Kiều, Cần Thơ",
-    "latitude": 10.02694699,
+    "latitude": 10.026947,
     "longitude": 105.756767,
     "img": "https://mms.img.susercontent.com/vn-11134513-7ra0g-m6xdwcr1d55z1f@resize_ss60x60!@crop_w60_h60_cT",
     "shopeefoodSlug": "quan-co-ba-com-tam-heo-quay-la-mac-mat",
@@ -22851,7 +24771,11 @@
     ],
     "menuUpdatedAt": "2026-07-18T14:16:53.566Z",
     "menuFromSiblingId": "r_ct_quan_co_ba_com_trua_lau_do_nuong_tran_chien",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.076Z",
+    "foodySlug": "quan-co-ba-com-tam-heo-quay-la-mac-mat"
   },
   {
     "id": "1210400",
@@ -22879,14 +24803,18 @@
       "Sprite",
       "Nước suối"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:06.587Z"
+    "menuUpdatedAt": "2026-07-18T14:16:06.587Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.144Z",
+    "foodySlug": "lau-ca-hai-san-39k-lau-ca-tam"
   },
   {
     "id": "1000102450",
     "name": "Mì Bò Đài Loan - Mì Nước Súp - Lê Hồng Phong",
     "address": "65C/8 Lê Hồng Phong, Quận Bình Thủy, Cần Thơ",
     "latitude": 10.0982933,
-    "longitude": 105.71138763,
+    "longitude": 105.7113876,
     "img": "https://mms.img.susercontent.com/vn-11134513-81ztc-mq08dh5pukg114@resize_ss60x60!@crop_w60_h60_cT",
     "shopeefoodSlug": "mi-bo-dai-loan-mi-nuoc-sup-le-hong-phong.k8v0r5",
     "sfRestaurantId": 1000102450,
@@ -22896,7 +24824,11 @@
     "dishNames": [
       "Mì bò Đài Loan"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:14.490Z"
+    "menuUpdatedAt": "2026-07-18T14:16:14.490Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.743Z",
+    "foodySlug": "mi-bo-dai-loan-mi-nuoc-sup-le-hong-phong.k8v0r5"
   },
   {
     "id": "1136462",
@@ -22925,7 +24857,11 @@
       "Bún Riêu",
       "Bún thêm"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:15.437Z"
+    "menuUpdatedAt": "2026-07-18T14:16:15.437Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.597Z",
+    "foodySlug": "quan-mai-37-mau-than"
   },
   {
     "id": "1000076158",
@@ -22949,7 +24885,11 @@
       "Chả chiên 0,5kg (loại nhiều nạc)",
       "Chả chiên 0,5kg (vị béo)"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:17.121Z"
+    "menuUpdatedAt": "2026-07-18T14:16:17.121Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.757Z",
+    "foodySlug": "cha-lua-cong-danh-do-an-lien-duong-3-2"
   },
   {
     "id": "1121012",
@@ -22966,7 +24906,11 @@
     "dishNames": [
       "Chân gà ta rút xương ngâm sả tắc"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:22.802Z"
+    "menuUpdatedAt": "2026-07-18T14:16:22.802Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:22.818Z",
+    "foodySlug": "chan-ga-ngam-sa-tac-com-ga-huynh-chau"
   },
   {
     "id": "1298747",
@@ -23002,14 +24946,18 @@
       "Hồng trà Yakult dừa sợi",
       "Yakult lựu cheese"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:24.712Z"
+    "menuUpdatedAt": "2026-07-18T14:16:24.712Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:23.312Z",
+    "foodySlug": "tra-sua-nong-tran-hoang-na"
   },
   {
     "id": "1000087651",
     "name": "Trường Tồn - Cơm Chiên Dương Châu - Phạm Sơn Khai",
     "address": "Đối Diện 20T2 Búng Xáng (Giao Với Phạm Sơn Khai), Quận Ninh Kiều, Cần Thơ",
-    "latitude": 10.02930162,
-    "longitude": 105.76236101,
+    "latitude": 10.0293016,
+    "longitude": 105.762361,
     "img": "https://mms.img.susercontent.com/vn-11134513-7ras8-mb1p4b4mdxhd78@resize_ss60x60!@crop_w60_h60_cT",
     "shopeefoodSlug": "truong-ton-com-chien-duong-chau-pham-son-khai.b3wqbg",
     "sfRestaurantId": 1000087651,
@@ -23021,7 +24969,11 @@
       "Cơm Chiên Dương Châu",
       "Cơm Chiên Dương Châu"
     ],
-    "menuUpdatedAt": "2026-07-18T14:16:25.182Z"
+    "menuUpdatedAt": "2026-07-18T14:16:25.182Z",
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T06:19:23.723Z",
+    "foodySlug": "truong-ton-com-chien-duong-chau-pham-son-khai.b3wqbg"
   },
   {
     "id": "r_ct_grab_5-C8BXVU6UNRB1VX",

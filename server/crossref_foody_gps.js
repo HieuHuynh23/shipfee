@@ -6,11 +6,11 @@
  *
  * Usage:
  *   node crossref_foody_gps.js --id=r_ct_dannygreen_...
- *   node crossref_foody_gps.js --limit=30 --concurrency=3
- *   node crossref_foody_gps.js --only-missing --limit=100
+ *   node crossref_foody_gps.js --include-heuristic --limit=300 --concurrency=3
+ *   node crossref_foody_gps.js --include-heuristic --all --concurrency=4
+ *   node crossref_foody_gps.js --only-missing --limit=500
  */
 
-const path = require('path');
 const dbHelper = require('./dbHelper');
 const { fetchFoodyGpsBySlug, resolveFoodySlugFromRestaurant, isPlausibleCanThoGps } = require('./foodyGps');
 
@@ -21,7 +21,8 @@ function parseArgs(argv) {
     concurrency: 2,
     onlyMissing: true,
     dryRun: false,
-    force: false
+    force: false,
+    all: false
   };
   for (const a of argv) {
     if (a.startsWith('--id=')) out.id = a.slice(5);
@@ -29,7 +30,10 @@ function parseArgs(argv) {
     else if (a.startsWith('--concurrency=')) out.concurrency = Math.max(1, parseInt(a.slice(14), 10) || 2);
     else if (a === '--only-missing') out.onlyMissing = true;
     else if (a === '--include-heuristic') out.onlyMissing = false;
-    else if (a === '--dry-run') out.dryRun = true;
+    else if (a === '--all') {
+      out.all = true;
+      out.limit = Number.MAX_SAFE_INTEGER;
+    } else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--force') out.force = true;
   }
   return out;
@@ -47,7 +51,20 @@ function needsGps(r, { onlyMissing, force }) {
   // include-heuristic: ghi đè khi chưa exact / đang heuristic
   if (r.coordsSource === 'exact' && r.geoSource === 'foody') return false;
   if (r.coordsSource === 'exact' && (r.source === 'shopeefood' || r.sfRestaurantId)) return false;
-  return r.coordsSource === 'heuristic' || r.coordsSource == null || r.geoSource === 'nominatim' || r.geoSource === 'photon';
+  return (
+    r.coordsSource === 'heuristic' ||
+    r.coordsSource == null ||
+    r.geoSource === 'nominatim' ||
+    r.geoSource === 'photon'
+  );
+}
+
+/** Ưu tiên quán có foodyHref (slug đáng tin) trước id-fallback. */
+function rankTarget(r) {
+  if (r && r.foodyHref) return 0;
+  if (r && r.foodySlug) return 1;
+  if (r && r.shopeefoodSlug) return 2;
+  return 3;
 }
 
 async function mapPool(items, concurrency, worker) {
@@ -75,26 +92,33 @@ async function main() {
       process.exit(1);
     }
   } else {
-    targets = targets.slice(0, args.limit);
+    targets.sort((a, b) => rankTarget(a) - rankTarget(b));
+    if (!args.all) targets = targets.slice(0, args.limit);
   }
 
+  const totalCandidates = all.filter((r) => needsGps(r, args)).length;
   console.log(
-    `[Foody GPS] Đối chiếu ${targets.length} quán (concurrency=${args.concurrency}, dryRun=${args.dryRun})`
+    `[Foody GPS] Đối chiếu ${targets.length}/${totalCandidates} quán còn thiếu` +
+      ` (concurrency=${args.concurrency}, dryRun=${args.dryRun}, all=${args.all})`
   );
 
   let ok = 0;
   let fail = 0;
   let skip = 0;
+  const started = Date.now();
+  let done = 0;
 
   await mapPool(targets, args.concurrency, async (r) => {
     const slug = resolveFoodySlugFromRestaurant(r);
     if (!slug) {
       skip++;
+      done++;
       return;
     }
     const gps = await fetchFoodyGpsBySlug(slug);
     if (!gps || !isPlausibleCanThoGps(gps.lat, gps.lon)) {
       fail++;
+      done++;
       console.warn(`  ✗ ${r.id} slug=${slug} — không lấy được GPS`);
       return;
     }
@@ -103,33 +127,43 @@ async function main() {
       `  ✓ ${r.name || r.id}\n    ${r.latitude || '∅'},${r.longitude || '∅'} → ${gps.lat},${gps.lon} (${gps.url || 'foody'})`
     );
 
-    if (args.dryRun) {
+    if (!args.dryRun) {
+      const updated = {
+        ...r,
+        latitude: gps.lat,
+        longitude: gps.lon,
+        coordsSource: 'exact',
+        geoSource: 'foody',
+        foodyGpsAt: new Date().toISOString(),
+        foodySlug: slug
+      };
+      if (!updated.source) updated.source = 'foody-gps';
+
+      const written = dbHelper.updateRestaurant(updated);
+      if (written) ok++;
+      else {
+        fail++;
+        console.warn(`  ✗ Lỗi ghi chunk ${r.id}`);
+        done++;
+        return;
+      }
+    } else {
       ok++;
-      return;
     }
 
-    const updated = {
-      ...r,
-      latitude: gps.lat,
-      longitude: gps.lon,
-      coordsSource: 'exact',
-      geoSource: 'foody',
-      foodyGpsAt: new Date().toISOString(),
-      // Luôn ghi slug đã dùng (ưu tiên foodyHref) — tránh giữ shopeefoodSlug lệch
-      foodySlug: slug
-    };
-    // giữ source cũ nếu đã có; đánh dấu đã đối chiếu GPS
-    if (!updated.source) updated.source = 'foody-gps';
-
-    const written = dbHelper.updateRestaurant(updated);
-    if (written) ok++;
-    else {
-      fail++;
-      console.warn(`  ✗ Lỗi ghi chunk ${r.id}`);
+    done++;
+    if (done % 50 === 0 || done === targets.length) {
+      const elapsed = ((Date.now() - started) / 1000).toFixed(0);
+      const rate = done / Math.max(1, (Date.now() - started) / 1000);
+      const eta = Math.round((targets.length - done) / Math.max(0.01, rate));
+      console.log(
+        `[Foody GPS] tiến độ ${done}/${targets.length} | ok=${ok} fail=${fail} | ${elapsed}s | ~${eta}s còn lại`
+      );
     }
   });
 
-  console.log(`[Foody GPS] Xong: ok=${ok} fail=${fail} skip=${skip}`);
+  const elapsed = ((Date.now() - started) / 1000).toFixed(1);
+  console.log(`[Foody GPS] Xong: ok=${ok} fail=${fail} skip=${skip} (${elapsed}s)`);
 }
 
 main().catch((e) => {
