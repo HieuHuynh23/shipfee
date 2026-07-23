@@ -2862,6 +2862,18 @@ async function showOrderDetail(orderId) {
         </div>
       </div>` : ''}
 
+    ${o.rating ? `
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+        <h4 class="mb-2"><i class="fa-solid fa-star" style="color: var(--amber);"></i> Đánh giá khách hàng</h4>
+        <div class="text-sm fw-700" style="color: var(--amber); margin-bottom: 6px;">
+          ${'★'.repeat(Math.max(0, Math.min(5, Number(o.rating) || 0)))}${'☆'.repeat(Math.max(0, 5 - Math.min(5, Number(o.rating) || 0)))}
+          <span class="text-muted" style="font-weight:600;"> (${Number(o.rating)}/5)</span>
+        </div>
+        <div class="card" style="padding: 10px 12px; background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.25);">
+          <div class="text-sm">${o.comment ? escapeHtml(String(o.comment)) : '<span class="text-muted">Khách không để lại ý kiến</span>'}</div>
+        </div>
+      </div>` : ''}
+
     <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
       <h4 class="mb-2">Chat</h4>
       <div data-live-chat style="max-height:140px; overflow-y:auto;">${messagesHtml}</div>

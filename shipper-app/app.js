@@ -3048,7 +3048,7 @@ function renderHistoryAndStats() {
           for (let i = 1; i <= 5; i++) stars += i <= order.rating ? '★' : '☆';
           const note = order.comment
             ? escapeHtml(String(order.comment))
-            : 'Khách hàng đánh giá qua App';
+            : 'Khách không để lại ý kiến';
           feedbackHtml = `
             <div class="history-card__feedback">
               <span class="history-card__stars">${stars}</span>
