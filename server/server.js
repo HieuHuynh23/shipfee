@@ -26,6 +26,7 @@ const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
 const realtimeHub = require('./realtimeHub');
 const demoOrders = require('./demoOrders');
+const foodyGps = require('./foodyGps');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -2979,7 +2980,8 @@ function isPlaceholderCoord(lat, lon) {
 function isCrawlGpsRestaurant(r) {
   if (!r) return false;
   const src = String(r.source || '').toLowerCase();
-  if (src.includes('shopee') || src.includes('grab')) return true;
+  if (src.includes('shopee') || src.includes('grab') || src.includes('foody')) return true;
+  if (r.geoSource === 'foody') return true;
   if (r.sfRestaurantId != null && String(r.sfRestaurantId).trim() !== '') return true;
   if (r.grabMerchantId != null && String(r.grabMerchantId).trim() !== '') return true;
   return false;
@@ -3112,6 +3114,92 @@ function hydrateOrderRestaurantCoords(order) {
     order.restaurantCoordsSource = mem.coordsSource || 'heuristic';
   }
   return order;
+}
+
+/** Dedup in-flight Foody GPS fetches (tránh spam khi nhiều đơn cùng quán) */
+const foodyGpsInflight = new Map();
+
+function applyFoodyGpsToRestaurant(restaurant, gps) {
+  if (!restaurant || !gps) return restaurant;
+  restaurant.latitude = Number(gps.lat);
+  restaurant.longitude = Number(gps.lon);
+  restaurant.coordsSource = 'exact';
+  restaurant.geoSource = 'foody';
+  restaurant.foodyGpsAt = new Date().toISOString();
+  if (!restaurant.foodySlug && gps.slug) restaurant.foodySlug = gps.slug;
+  if (!restaurant.source) restaurant.source = 'foody-gps';
+  try {
+    geocodeCache.set(String(restaurant.id), {
+      lat: restaurant.latitude,
+      lon: restaurant.longitude,
+      source: 'exact'
+    });
+  } catch (_) {}
+  return restaurant;
+}
+
+/**
+ * Đối chiếu GPS Foody khi quán chưa có tọa độ nav-grade.
+ * Persist vào chunk + cập nhật RAM cache.
+ */
+async function ensureRestaurantNavGps(restaurant, opts = {}) {
+  if (!restaurant || !restaurant.id) return restaurant;
+  if (isNavGradeRestaurantCoords(restaurant) && !opts.force) return restaurant;
+
+  const slug = foodyGps.resolveFoodySlugFromRestaurant(restaurant);
+  if (!slug) return restaurant;
+
+  const key = String(restaurant.id);
+  if (foodyGpsInflight.has(key)) {
+    try {
+      await foodyGpsInflight.get(key);
+    } catch (_) {}
+    return findRestaurantInCache(restaurant.id) || restaurant;
+  }
+
+  const job = (async () => {
+    const gps = await foodyGps.fetchFoodyGpsBySlug(slug, { timeoutMs: opts.timeoutMs || 10000 });
+    if (!gps) {
+      console.warn(`[Foody GPS] Không đối chiếu được GPS cho ${restaurant.id} slug=${slug}`);
+      return null;
+    }
+    const mem = findRestaurantInCache(restaurant.id) || restaurant;
+    applyFoodyGpsToRestaurant(mem, { ...gps, slug });
+    try {
+      dbHelper.updateRestaurant({ ...mem, menu: undefined });
+    } catch (e) {
+      console.warn(`[Foody GPS] Lỗi ghi chunk ${mem.id}:`, e.message);
+    }
+    try { nearbyListCache.clear(); } catch (_) {}
+    console.log(`[Foody GPS] ✓ ${mem.name || mem.id} → ${mem.latitude},${mem.longitude}`);
+    return mem;
+  })();
+
+  foodyGpsInflight.set(key, job);
+  try {
+    await job;
+  } finally {
+    foodyGpsInflight.delete(key);
+  }
+  return findRestaurantInCache(restaurant.id) || restaurant;
+}
+
+async function ensureOrdersRestaurantNavGps(orders, { concurrency = 3 } = {}) {
+  const list = Array.isArray(orders) ? orders : [];
+  const ids = [...new Set(list.map(o => o && o.restaurantId).filter(Boolean).map(String))];
+  if (ids.length === 0) return;
+  let i = 0;
+  async function worker() {
+    while (i < ids.length) {
+      const id = ids[i++];
+      const mem = findRestaurantInCache(id);
+      if (!mem) continue;
+      try {
+        await ensureRestaurantNavGps(mem);
+      } catch (_) {}
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, () => worker()));
 }
 
 function normalizeUserCoords(lat, lon) {
@@ -5358,6 +5446,21 @@ app.post('/api/orders', async (req, res) => {
     }
 
     // Find nearest available shipper for targeted dispatch
+    // Đối chiếu GPS Foody trước khi gán (để shipper chỉ đường đúng)
+    if (restMem) {
+      try {
+        await ensureRestaurantNavGps(restMem);
+        if (isNavGradeRestaurantCoords(restMem)) {
+          newOrder.restaurantLat = restMem.latitude;
+          newOrder.restaurantLon = restMem.longitude;
+          newOrder.restaurantCoordsExact = true;
+          newOrder.restaurantCoordsSource = restMem.coordsSource || 'exact';
+        }
+      } catch (e) {
+        console.warn('[Foody GPS] ensure trước dispatch thất bại:', e.message);
+      }
+    }
+
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, [], newOrder);
     if (nearest) {
       if (nearest.isAssisted === true) {
@@ -5463,6 +5566,10 @@ app.get('/api/orders', async (req, res) => {
         }
         return cleanPhone(o.shipperPhone) === cleanInputPhone;
       });
+      // Đối chiếu GPS Foody cho các quán trong đơn shipper đang xem (chỉ đường)
+      try {
+        await ensureOrdersRestaurantNavGps(resultData, { concurrency: 2 });
+      } catch (_) {}
     }
 
     res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrdersRestaurantCoords(resultData), req) });
@@ -5475,7 +5582,7 @@ app.get('/api/orders', async (req, res) => {
  * GET /api/orders/:id
  * Lấy thông tin chi tiết một đơn hàng kèm tọa độ shipper hiện tại
  */
-app.get('/api/orders/:id', (req, res) => {
+app.get('/api/orders/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const orders = readOrdersDatabase();
@@ -5483,6 +5590,10 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
+    try {
+      const mem = findRestaurantInCache(order.restaurantId);
+      if (mem) await ensureRestaurantNavGps(mem);
+    } catch (_) {}
     // Nếu đơn chưa có GPS gắn sẵn, fallback vị trí live của tài xế đang online
     const payload = { ...order };
     const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
@@ -7629,6 +7740,43 @@ app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) 
       message: `Đã bắt đầu đồng bộ ${restaurants.length} quán với ShopeeFood. Dữ liệu sẽ được lưu ngay sau mỗi quán.`,
       total: restaurants.length,
       scope
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/restaurants/:id/sync-gps
+ * Đối chiếu GPS quán từ Foody (place:location meta) → lưu exact cho chỉ đường
+ */
+app.post('/api/admin/restaurants/:id/sync-gps', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const found = findRestaurantById(id) || findRestaurantInCache(id);
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
+    }
+    const before = {
+      lat: found.latitude ?? null,
+      lon: found.longitude ?? null,
+      coordsSource: found.coordsSource || null
+    };
+    const updated = await ensureRestaurantNavGps(found, { force: true, timeoutMs: 15000 });
+    const ok = isNavGradeRestaurantCoords(updated);
+    res.json({
+      success: ok,
+      message: ok
+        ? `Đã đối chiếu GPS Foody: ${updated.latitude}, ${updated.longitude}`
+        : 'Không lấy được GPS Foody (thiếu slug hoặc trang không có tọa độ).',
+      before,
+      after: {
+        lat: updated?.latitude ?? null,
+        lon: updated?.longitude ?? null,
+        coordsSource: updated?.coordsSource || null,
+        geoSource: updated?.geoSource || null,
+        foodySlug: updated?.foodySlug || updated?.shopeefoodSlug || null
+      }
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

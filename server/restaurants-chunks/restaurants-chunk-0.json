@@ -923,7 +923,12 @@
     "brandPortalId": "r_ct_dannygreen",
     "foodySlug": "dannygreen-tra-sua-tra-trai-cay-nuoc-ep-organic-hoang-van-thu",
     "sfDiscoveredAt": "2026-07-18T09:47:56.026Z",
-    "source": "foody-brand"
+    "source": "foody-brand",
+    "latitude": 10.041575,
+    "longitude": 105.783158,
+    "coordsSource": "exact",
+    "geoSource": "foody",
+    "foodyGpsAt": "2026-07-23T03:24:17.321Z"
   },
   {
     "id": "r_ct_quan_an_gia_dinh_song_hau_lau_mam_com_van_phong_le_loi",
