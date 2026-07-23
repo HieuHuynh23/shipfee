@@ -380,16 +380,10 @@ function getCartTotal() {
   });
 
   if (itemsList.length > 1) {
-    // Sort items by appPrice descending so the most expensive item is the primary item
+    // PRICING.md: món 2+ giảm max(2000đ, 15% phụ thu km) mỗi món
     itemsList.sort((a, b) => b.appPrice - a.appPrice);
-    
-    const surchargeDiscount = round100(surchargePerItem * 0.30);
-    
-    itemsList.slice(1).forEach(item => {
-      // Refund the actual markup for items from the 2nd onwards
-      const markupDiscount = Math.max(0, item.appPrice - surchargePerItem - item.inStorePrice);
-      discountValue += (markupDiscount + surchargeDiscount);
-    });
+    const perExtra = Math.max(2000, round100(surchargePerItem * 0.15));
+    discountValue = perExtra * (itemsList.length - 1);
   }
 
   let minServiceFee = 0;
@@ -508,35 +502,26 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     throw new Error('Không tìm thấy quán trong giỏ hàng. Vui lòng thử lại.');
   }
 
-  const orderId = 'SPF-' + Math.floor(100000 + Math.random() * 900000);
-
   const items = [];
   Object.entries(cart.items).forEach(([cartKey, qty]) => {
     const [itemId, optionsStr] = cartKey.split('::');
     const item = (restaurant.menu || []).find(m => m.id === itemId);
     if (item && qty > 0) {
-      let toppingsInStore = 0;
-      let toppingsApp = 0;
       let selectedOptions = [];
       if (optionsStr) {
         try {
           selectedOptions = JSON.parse(optionsStr);
-          selectedOptions.forEach(opt => {
-            toppingsInStore += opt.price;
-            toppingsApp += calcToppingAppPrice(opt.price);
-          });
         } catch (e) {}
       }
 
       items.push({
-        ...item,
-        id: cartKey, // Sử dụng cartKey để làm ID dòng sản phẩm duy nhất
+        id: itemId,
         realItemId: itemId,
-        inStorePrice: item.inStorePrice + toppingsInStore,
-        appPrice: item.appPrice + toppingsApp,
-        selectedOptions,
+        name: item.name,
+        quantity: qty,
         qty,
-        note: (cart.itemNotes && cart.itemNotes[cartKey]) || ''
+        note: (cart.itemNotes && cart.itemNotes[cartKey]) || '',
+        selectedOptions
       });
     }
   });
@@ -546,7 +531,6 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
   }
 
   const orderPayload = {
-    id: orderId,
     restaurantId: cart.restaurantId,
     restaurantName: restaurant.name,
     restaurantAddress: restaurant.address || '',
@@ -555,6 +539,7 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     restaurantLon: (typeof restaurant.longitude === 'number' ? restaurant.longitude : null)
       ?? (typeof restaurant.lon === 'number' ? restaurant.lon : null),
     items,
+    // Totals gửi để UI ước lượng — server tính lại từ menu
     storeTotal: totals.storeTotal,
     appTotal: totals.appTotal,
     shipperEarning: totals.shipperEarning,
@@ -564,7 +549,6 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     deliveryName: name,
     deliveryPhone: phone,
     ordererPhone: ordererPhone || '',
-    // Chỉ gắn pin khi có tọa độ thật từ map/GPS — không bịa mặc định Ninh Kiều
     pinnedLat: (typeof pinnedLat === 'number' && Number.isFinite(pinnedLat))
       ? pinnedLat
       : ((typeof state.userLat === 'number' && Number.isFinite(state.userLat)) ? state.userLat : null),
@@ -605,13 +589,31 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
   return savedOrder;
 }
 
+function orderAuthHeaders(order) {
+  const o = order || getState().activeOrder;
+  const headers = { 'Content-Type': 'application/json' };
+  if (o && o.trackingToken) {
+    headers['X-Order-Token'] = o.trackingToken;
+  } else if (o && (o.deliveryPhone || o.ordererPhone)) {
+    headers['X-Delivery-Phone'] = o.deliveryPhone || o.ordererPhone;
+  }
+  return headers;
+}
+
+function orderAuthQuery(order) {
+  const o = order || getState().activeOrder;
+  if (!o) return '';
+  if (o.trackingToken) return `&token=${encodeURIComponent(o.trackingToken)}`;
+  const phone = o.deliveryPhone || o.ordererPhone || '';
+  if (phone) return `&phone=${encodeURIComponent(phone)}`;
+  return '';
+}
+
 async function rateOrder(orderId, rating, comment) {
   try {
     const response = await fetch(`${_API_BASE}/api/orders/${orderId}/rate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: orderAuthHeaders(),
       body: JSON.stringify({ rating, comment })
     });
     const result = await response.json();
@@ -623,6 +625,9 @@ async function rateOrder(orderId, rating, comment) {
     if (state.activeOrder && state.activeOrder.id === orderId) {
       state.activeOrder.rating = rating;
       state.activeOrder.comment = comment;
+      if (result.data && result.data.trackingToken) {
+        state.activeOrder.trackingToken = result.data.trackingToken;
+      }
       saveState(state);
     }
     return result.data;
@@ -1253,6 +1258,7 @@ window.SF = {
   getState, saveState, getCart, getCartTotal, updateCartItemNote,
   addToCart, removeFromCart, removeItemFromCart, clearCart,
   placeOrder, getActiveOrder, completeOrder, rateOrder,
+  orderAuthHeaders, orderAuthQuery,
   navigate, getParam,
   formatCurrency, formatTime,
   showToast, updateCartBar,

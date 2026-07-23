@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "postinstall": "npx puppeteer browsers install chrome",
+    "postinstall": "node -e \"if(process.env.RENDER){console.log('[postinstall] Skip Chrome on Render');process.exit(0)}require('child_process').execSync('npx puppeteer browsers install chrome',{stdio:'inherit'})\"",
     "crawl:menus": "node crawl_restaurant_menus.js --only-fallback --open-only",
     "crawl:menus:one": "node crawl_restaurant_menus.js --id",
     "crawl:menus:dry": "node crawl_restaurant_menus.js --only-fallback --open-only --dry-run",

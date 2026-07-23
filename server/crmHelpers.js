@@ -28,6 +28,9 @@ function writeJson(file, data) {
 
 function resolveAdminRole(user) {
   if (!user) return null;
+  // Ưu tiên app_metadata (chỉ service-role ghi được) — tránh escalate qua user_metadata
+  const appRole = user.app_metadata?.role;
+  if (appRole === 'admin' || appRole === 'ops' || appRole === 'viewer') return appRole;
   if (user.email === 'admin@shipfee.vn') return 'admin';
   const role = user.user_metadata?.role;
   if (role === 'admin' || role === 'ops' || role === 'viewer') return role;

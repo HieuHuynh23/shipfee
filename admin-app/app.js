@@ -11,11 +11,18 @@ let API_BASE = localStorage.getItem('shipfee_api_url') || defaultApiUrl;
 
 const originalFetch = window.fetch;
 window.fetch = function(input, init) {
+  let url = typeof input === 'string' ? input : (input && input.url) || '';
   if (typeof input === 'string' && input.startsWith('http://localhost:3001')) {
-    input = input.replace('http://localhost:3001', API_BASE);
+    url = input.replace('http://localhost:3001', API_BASE);
+    input = url;
   }
   const token = localStorage.getItem('shipfee_jwt');
-  if (token) {
+  const isShipfeeApi = typeof url === 'string' && (
+    url.startsWith(API_BASE) ||
+    url.startsWith('/api/') ||
+    (url.startsWith('http') && url.includes('shipfee-eo5s.onrender.com'))
+  );
+  if (token && isShipfeeApi) {
     init = init || {};
     init.headers = init.headers || {};
     if (typeof init.headers.set === 'function') {
@@ -222,15 +229,7 @@ async function handleAdminLogin() {
       showToast('Lỗi đăng nhập hệ thống: ' + e.message, 'error');
     }
   } else {
-    // Demo admin credentials — chỉ khi thiếu Supabase (mutations admin sẽ 401)
-    if (email === 'admin@shipfee.vn' && password === 'admin123') {
-      adminUser = { email, name: 'Admin ShipFee', role: 'admin', demo: true };
-      localStorage.setItem('shipfee_admin', JSON.stringify(adminUser));
-      showToast('Đăng nhập demo (không JWT) — thao tác admin cần Supabase Auth', 'warning');
-      showApp();
-    } else {
-      showToast('Email hoặc mật khẩu không đúng', 'error');
-    }
+    showToast('Cần kết nối Supabase Auth để đăng nhập quản trị.', 'error');
   }
 }
 
@@ -3293,7 +3292,7 @@ function renderSettings() {
         <div class="text-sm text-muted mb-4" style="line-height:1.8;">
           <div>Trạng thái client: <span class="mono" id="settings-supabase-status">${supabaseClient ? 'Đã kết nối' : 'Chưa kết nối'}</span></div>
           <div>JWT: <span class="mono">${localStorage.getItem('shipfee_jwt') ? 'Có' : 'Không'}</span></div>
-          <div>Đăng nhập admin: <span class="mono">admin@shipfee.vn</span> / <span class="mono">admin123</span></div>
+          <div>Đăng nhập bằng tài khoản Supabase Auth được cấp quyền admin.</div>
         </div>
         <button class="btn btn--secondary btn--sm" onclick="reloadSupabaseConfig()">
           <i class="fa-solid fa-arrows-rotate"></i> Tải lại cấu hình

@@ -1119,11 +1119,12 @@
         </div>`;
       }
 
+      const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
       el.innerHTML = `
-        <img src="${item.img}" alt="${item.name}" class="food-item__img" loading="lazy">
+        <img src="${esc(item.img || '')}" alt="${esc(item.name)}" class="food-item__img" loading="lazy">
         <div class="food-item__info">
-          <div class="food-item__name">${item.name}</div>
-          <div class="food-item__desc">${item.desc}</div>
+          <div class="food-item__name">${esc(item.name)}</div>
+          <div class="food-item__desc">${esc(item.desc || '')}</div>
           <div class="food-item__price-row">
             <span class="food-item__price">${SF.formatCurrency(item.appPrice)}</span>
             ${!isAvailable ? `<span class="out-of-stock-badge"><i class="fa-solid fa-circle-minus"></i> Tạm hết</span>` : ''}
@@ -1140,6 +1141,7 @@
       CURRENT_TOPPING_ITEM = item;
       document.getElementById('topping-title').textContent = item.name;
       document.getElementById('topping-desc').textContent = item.desc;
+      const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
       
       const container = document.getElementById('topping-groups-container');
       container.innerHTML = '';
@@ -1154,7 +1156,7 @@
         
         groupEl.innerHTML = `
           <div class="topping-group-header">
-            <h4 class="topping-group-title">${group.name}</h4>
+            <h4 class="topping-group-title">${esc(group.name)}</h4>
             <span class="topping-group-badge ${badgeClass}">${badgeText}</span>
           </div>
           <div class="topping-items-list" id="topping-group-${groupIdx}"></div>
@@ -1184,12 +1186,12 @@
                    class="topping-item-input" 
                    value="${optIdx}" 
                    data-group-idx="${groupIdx}" 
-                   data-name="${opt.name}" 
-                   data-price="${opt.price}"
+                   data-name="${esc(opt.name)}" 
+                   data-price="${Number(opt.price) || 0}"
                    onchange="updateToppingModalPrice()"
                    ${isChecked}>
             <div class="topping-item-control ${inputType}"></div>
-            <span class="topping-item-name">${opt.name}</span>
+            <span class="topping-item-name">${esc(opt.name)}</span>
             <span class="topping-item-price">${priceText}</span>
           `;
           

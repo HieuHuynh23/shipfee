@@ -456,16 +456,18 @@
 
         const optionsHtml = selectedOptions.length > 0
           ? `<div style="font-size: 11px; color: var(--clr-text-muted); margin-top: 2px; font-weight: 500;">
-              Lựa chọn: ${selectedOptions.map(o => `${o.name} (${o.price > 0 ? '+' + SF.formatCurrency(fmtTopping(o.price)) : 'Miễn phí'})`).join(', ')}
+              Lựa chọn: ${selectedOptions.map(o => `${SF.escapeHtml(o.name)} (${o.price > 0 ? '+' + SF.formatCurrency(fmtTopping(o.price)) : 'Miễn phí'})`).join(', ')}
              </div>`
           : '';
 
+        const safeCartKey = SF.escapeHtml(cartKey);
+        const noteVal = SF.escapeHtml((cart.itemNotes && cart.itemNotes[cartKey]) || '');
         const row = document.createElement('div');
         row.className = 'order-item-row';
         row.innerHTML = `
-          <img src="${item.img}" alt="${item.name}" class="order-item-row__img">
+          <img src="${SF.escapeHtml(item.img || '')}" alt="${SF.escapeHtml(item.name)}" class="order-item-row__img">
           <div style="flex:1;min-width:0;">
-            <div class="order-item-row__name">${item.name}</div>
+            <div class="order-item-row__name">${SF.escapeHtml(item.name)}</div>
             ${optionsHtml}
             <div class="order-item-row__qty">x${qty}</div>
             <div style="margin-top: 8px; max-width: 95%;">
@@ -473,18 +475,25 @@
                 <i class="fa-solid fa-pen-to-square"></i> Ghi chú cho món ăn này:
               </label>
               <input type="text" class="item-note-input" placeholder="Ví dụ: ít hành, không cay..." 
-                     data-cart-key="${cartKey}"
-                     value="${(cart.itemNotes && cart.itemNotes[cartKey]) || ''}" 
-                     onchange="updateItemNote('${cartKey}', this.value)"
+                     data-cart-key="${safeCartKey}"
+                     value="${noteVal}" 
                      style="width: 100%; border: 1.5px dashed var(--clr-primary); border-radius: 6px; padding: 6px 10px; font-size: 12px; outline: none; background: rgba(124, 58, 237, 0.03); color: var(--clr-text-main);">
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
             <div class="order-item-row__price">${SF.formatCurrency(itemTotalApp)}</div>
-            <button class="order-item-row__delete-btn" onclick="deleteItem('${cartKey}')" title="Xóa món">
+            <button class="order-item-row__delete-btn" data-delete-key="${safeCartKey}" title="Xóa món">
               <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>`;
+        const noteInput = row.querySelector('.item-note-input');
+        if (noteInput) {
+          noteInput.addEventListener('change', () => updateItemNote(cartKey, noteInput.value));
+        }
+        const delBtn = row.querySelector('.order-item-row__delete-btn');
+        if (delBtn) {
+          delBtn.addEventListener('click', () => deleteItem(cartKey));
+        }
         listEl.appendChild(row);
       });
     }
@@ -492,13 +501,14 @@
     function renderAddress(state) {
       const isRel = state.isRelative === true;
       const banner = document.getElementById('relative-order-banner');
+      const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
       
       if (isRel) {
-        document.getElementById('addr-name').innerHTML = `<span style="color:var(--clr-primary); font-weight: 800;">👤 Người nhận hộ:</span> ${state.deliveryName} <span class="badge" style="background:#f59e0b; color:white; font-size:9px; padding:1px 6px; border-radius:10px; border:none; margin-left:5px; display:inline-block;">Người thân</span>`;
-        document.getElementById('addr-address').innerHTML = `<span style="font-weight: 600; color: var(--clr-text-primary);">📍 Địa chỉ người thân:</span> ${state.deliveryAddress}`;
+        document.getElementById('addr-name').innerHTML = `<span style="color:var(--clr-primary); font-weight: 800;">Người nhận hộ:</span> ${esc(state.deliveryName)} <span class="badge" style="background:#f59e0b; color:white; font-size:9px; padding:1px 6px; border-radius:10px; border:none; margin-left:5px; display:inline-block;">Người thân</span>`;
+        document.getElementById('addr-address').innerHTML = `<span style="font-weight: 600; color: var(--clr-text-primary);">Địa chỉ người thân:</span> ${esc(state.deliveryAddress)}`;
         document.getElementById('addr-phone').innerHTML = `
-          <div style="margin-bottom:4px;"><span style="font-weight: 600; color: var(--clr-text-primary);">📞 SĐT người thân:</span> ${state.deliveryPhone}</div>
-          <div><span style="font-weight: 600; color: var(--clr-text-primary);">📱 SĐT người đặt:</span> ${state.ordererPhone}</div>`;
+          <div style="margin-bottom:4px;"><span style="font-weight: 600; color: var(--clr-text-primary);">SĐT người thân:</span> ${esc(state.deliveryPhone)}</div>
+          <div><span style="font-weight: 600; color: var(--clr-text-primary);">SĐT người đặt:</span> ${esc(state.ordererPhone)}</div>`;
         if (banner) {
           banner.style.display = 'flex';
         }

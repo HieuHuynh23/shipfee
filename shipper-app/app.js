@@ -516,7 +516,7 @@ async function initApp() {
     
     // Đồng bộ từ server; nếu local đang ONLINE mà server OFFLINE (sau deploy) → tự check-in lại
     try {
-      const res = await apiFetch(`${API_BASE}/api/shippers/profile?phone=${encodeURIComponent(currentDriver.phone)}`, {}, 10000);
+      const res = await apiFetch(`${API_BASE}/api/shippers/profile`, {}, 10000);
       if (res.ok) {
         const json = await safeJson(res);
         if (json.success && json.shipper) {
@@ -703,7 +703,7 @@ async function registerDriver() {
 async function refreshDriverInfo() {
   if (!currentDriver || !currentDriver.phone) return;
   try {
-    const res = await fetch(`${API_BASE}/api/shippers/profile?phone=${currentDriver.phone}`).then(r => r.json());
+    const res = await apiFetch(`${API_BASE}/api/shippers/profile`, {}, 10000).then(r => r.json());
     if (res.success && res.shipper) {
       currentDriver = {
         name: res.shipper.name,

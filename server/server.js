@@ -18,6 +18,7 @@ const compression = require('compression');
 const axios       = require('axios');
 const fs          = require('fs');
 const path        = require('path');
+const crypto      = require('crypto');
 const { exec }    = require('child_process');
 const cheerio     = require('cheerio');
 const menuScraper = require('./menuScraper');
@@ -320,22 +321,28 @@ async function sendShipperApprovalConfirmationEmail(shipper) {
 
 async function seedAdminUser() {
   try {
-    const adminEmail = 'admin@shipfee.vn';
-    const adminPassword = 'admin123';
-    
+    const adminEmail = (process.env.ADMIN_SEED_EMAIL || 'admin@shipfee.vn').trim().toLowerCase();
+    const adminPassword = process.env.ADMIN_SEED_PASSWORD;
+    // Không seed mật khẩu cứng — chỉ tạo khi set ADMIN_SEED_PASSWORD trên môi trường triển khai
+    if (!adminPassword || String(adminPassword).length < 12) {
+      console.log('[Supabase Admin Seed] Bỏ qua seed (cần ADMIN_SEED_PASSWORD ≥ 12 ký tự).');
+      return;
+    }
+
     const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
     if (listError) {
       console.warn('[Supabase Admin Seed] Không thể lấy danh sách user:', listError.message);
       return;
     }
 
-    const adminExists = users.some(u => u.email === adminEmail);
+    const adminExists = users.some(u => (u.email || '').toLowerCase() === adminEmail);
     if (!adminExists) {
-      console.log('[Supabase Admin Seed] Đang khởi tạo tài khoản Admin mặc định...');
-      const { data, error } = await supabase.auth.admin.createUser({
+      console.log('[Supabase Admin Seed] Đang khởi tạo tài khoản Admin từ biến môi trường...');
+      const { error } = await supabase.auth.admin.createUser({
         email: adminEmail,
         password: adminPassword,
         email_confirm: true,
+        app_metadata: { role: 'admin' },
         user_metadata: {
           role: 'admin',
           full_name: 'ShipFee Admin'
@@ -344,7 +351,7 @@ async function seedAdminUser() {
       if (error) {
         console.error('[Supabase Admin Seed] Tạo tài khoản Admin thất bại:', error.message);
       } else {
-        console.log('[Supabase Admin Seed] Đã khởi tạo thành công tài khoản Admin mặc định: admin@shipfee.vn / admin123');
+        console.log(`[Supabase Admin Seed] Đã tạo admin: ${adminEmail} (mật khẩu không log).`);
       }
     } else {
       console.log('[Supabase Admin Seed] Tài khoản Admin đã sẵn sàng.');
@@ -1494,7 +1501,309 @@ function round100(value) {
 
 // Helper: Tính giá app từ giá gốc (markup 28%)
 function calcAppPrice(inStorePrice) {
-  return round100(inStorePrice * (1 + PRICING_CONFIG.MARKUP_RATE));
+  return round100(Number(inStorePrice || 0) * (1 + PRICING_CONFIG.MARKUP_RATE));
+}
+
+function calcToppingAppPriceServer(inStorePrice) {
+  return calcAppPrice(inStorePrice);
+}
+
+function generateTrackingToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+function safeTokenEqual(a, b) {
+  const sa = String(a || '');
+  const sb = String(b || '');
+  if (!sa || !sb || sa.length !== sb.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(sa), Buffer.from(sb));
+  } catch (_) {
+    return false;
+  }
+}
+
+function extractOrderToken(req) {
+  const h = req.headers || {};
+  const q = req.query || {};
+  const b = req.body && typeof req.body === 'object' ? req.body : {};
+  return String(h['x-order-token'] || q.token || b.token || '').trim();
+}
+
+function extractLegacyOrderPhone(req) {
+  const h = req.headers || {};
+  const q = req.query || {};
+  return cleanPhone(h['x-delivery-phone'] || q.phone || '');
+}
+
+function stripOrderSecrets(order, { keepTrackingToken = false } = {}) {
+  if (!order || typeof order !== 'object') return order;
+  const clone = { ...order };
+  if (!keepTrackingToken) delete clone.trackingToken;
+  return clone;
+}
+
+function authorizeOrderAccess(req, order) {
+  if (!order) return { ok: false, status: 404, error: 'Không tìm thấy đơn hàng' };
+  if (req.adminRole) return { ok: true, role: 'admin' };
+
+  if (req.shipperPhone) {
+    const p = cleanPhone(req.shipperPhone);
+    if (
+      p &&
+      (p === cleanPhone(order.shipperPhone) || p === cleanPhone(order.assignedShipperPhone))
+    ) {
+      return { ok: true, role: 'shipper' };
+    }
+    return { ok: false, status: 403, error: 'Không có quyền truy cập đơn này' };
+  }
+
+  const token = extractOrderToken(req);
+  if (order.trackingToken && safeTokenEqual(order.trackingToken, token)) {
+    return { ok: true, role: 'customer' };
+  }
+
+  // Đơn cũ (chưa có trackingToken): cho phép 1 lần qua SĐT khớp rồi cấp token
+  if (!order.trackingToken) {
+    const phone = extractLegacyOrderPhone(req);
+    if (
+      phone &&
+      (phone === cleanPhone(order.deliveryPhone) || phone === cleanPhone(order.ordererPhone))
+    ) {
+      return { ok: true, role: 'customer', mintToken: true };
+    }
+  }
+
+  return { ok: false, status: 401, error: 'Thiếu quyền truy cập đơn hàng (token)' };
+}
+
+/** Soft-auth Bearer → gắn shipperPhone hoặc adminRole nếu hợp lệ (không 401). */
+async function softAuthenticateBearer(req) {
+  try {
+    if (!supabase) return;
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return;
+    const token = authHeader.split(' ')[1];
+    if (!token) return;
+
+    const cachedShipper = getCachedShipperAuth(token);
+    if (cachedShipper) {
+      const fresh = resolveShipperFromAuthUser(cachedShipper.user);
+      if (fresh.shipper && fresh.shipper.isApproved === false) return;
+      req.user = cachedShipper.user;
+      req.shipper = fresh.shipper;
+      req.shipperPhone = fresh.shipperPhone;
+      return;
+    }
+
+    const cachedAdmin = getCachedAdminAuth(token);
+    if (cachedAdmin) {
+      req.user = cachedAdmin.user;
+      req.adminRole = cachedAdmin.role;
+      return;
+    }
+
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) return;
+
+    const adminRole = crm.resolveAdminRole(user);
+    if (adminRole) {
+      setCachedAdminAuth(token, user, adminRole);
+      req.user = user;
+      req.adminRole = adminRole;
+      return;
+    }
+
+    const { shipper, shipperPhone } = resolveShipperFromAuthUser(user);
+    if (shipper && shipper.isApproved === false) return;
+    setCachedShipperAuth(token, { user });
+    req.user = user;
+    req.shipper = shipper;
+    req.shipperPhone = shipperPhone;
+  } catch (_) {}
+}
+
+function findMenuItemById(menu, itemId) {
+  if (!itemId || !Array.isArray(menu)) return null;
+  const id = String(itemId);
+  return menu.find(m => m && String(m.id) === id) || null;
+}
+
+function resolveToppingsFromMenu(menuItem, selectedOptions) {
+  const resolved = [];
+  let toppingsInStore = 0;
+  for (const opt of Array.isArray(selectedOptions) ? selectedOptions : []) {
+    let matched = null;
+    for (const group of menuItem.options || []) {
+      matched = (group.items || []).find(
+        (i) =>
+          (opt.id != null && String(i.id) === String(opt.id)) ||
+          (opt.name && i.name === opt.name)
+      );
+      if (matched) break;
+    }
+    if (!matched) {
+      return { error: `Topping không hợp lệ: ${opt.name || opt.id || '?'}` };
+    }
+    const price = Number(matched.price) || 0;
+    toppingsInStore += price;
+    resolved.push({
+      id: matched.id,
+      name: matched.name,
+      price
+    });
+  }
+  return { toppingsInStore, resolved };
+}
+
+function computeDistanceSurchargePerItem(restLat, restLon, pinLat, pinLon) {
+  const rLat = Number(restLat);
+  const rLon = Number(restLon);
+  const pLat = Number(pinLat);
+  const pLon = Number(pinLon);
+  if (![rLat, rLon, pLat, pLon].every(Number.isFinite)) return 0;
+  const distKm = getHaversineDistance({ lat: pLat, lon: pLon }, { lat: rLat, lon: rLon });
+  if (!(distKm > PRICING_CONFIG.FREE_DISTANCE_KM)) return 0;
+  return round100(
+    PRICING_CONFIG.SURCHARGE_COEFFICIENT *
+      Math.sqrt(distKm - PRICING_CONFIG.FREE_DISTANCE_KM)
+  );
+}
+
+/**
+ * Tính lại tổng đơn từ menu DB — không tin appTotal/storeTotal từ client.
+ * Multi-item theo PRICING.md: món 2+ giảm max(2000, 15% surcharge)/món.
+ */
+function recomputeOrderPricingFromMenu({
+  clientItems,
+  menu,
+  restLat,
+  restLon,
+  pinLat,
+  pinLon
+}) {
+  if (!Array.isArray(clientItems) || clientItems.length === 0) {
+    return { error: 'Đơn hàng không có món' };
+  }
+  if (!Array.isArray(menu) || menu.length === 0) {
+    return { error: 'Không tải được thực đơn quán để tính giá' };
+  }
+
+  const surchargePerItem = computeDistanceSurchargePerItem(restLat, restLon, pinLat, pinLon);
+  const lineUnits = [];
+
+  for (const raw of clientItems) {
+    const qty = Math.max(1, parseInt(raw.quantity || raw.qty || 1, 10) || 1);
+    const lookupId = String(raw.realItemId || String(raw.id || '').split('::')[0] || '').trim();
+    const menuItem = findMenuItemById(menu, lookupId);
+    if (!menuItem) {
+      return { error: `Món không hợp lệ hoặc đã hết: ${raw.name || lookupId}` };
+    }
+    const inStoreBase = Number(menuItem.inStorePrice);
+    if (!Number.isFinite(inStoreBase) || inStoreBase < 0) {
+      return { error: `Giá món không hợp lệ: ${menuItem.name}` };
+    }
+    const toppingResult = resolveToppingsFromMenu(menuItem, raw.selectedOptions);
+    if (toppingResult.error) return { error: toppingResult.error };
+
+    const inStoreUnit = inStoreBase + toppingResult.toppingsInStore;
+    const appUnit = calcAppPrice(inStoreBase) + calcToppingAppPriceServer(toppingResult.toppingsInStore) + surchargePerItem;
+
+    for (let i = 0; i < qty; i++) {
+      lineUnits.push({
+        id: lookupId,
+        name: menuItem.name,
+        inStorePrice: inStoreUnit,
+        appPrice: appUnit,
+        selectedOptions: toppingResult.resolved,
+        note: raw.note || ''
+      });
+    }
+  }
+
+  if (lineUnits.length === 0) {
+    return { error: 'Không có món hợp lệ trong đơn' };
+  }
+
+  let storeTotal = 0;
+  let appTotalRaw = 0;
+  lineUnits.forEach((u) => {
+    storeTotal += u.inStorePrice;
+    appTotalRaw += u.appPrice;
+  });
+
+  // Gộp theo dòng hiển thị (cùng id + options + note)
+  const mergedMap = new Map();
+  lineUnits.forEach((u) => {
+    const key = `${u.id}|${JSON.stringify(u.selectedOptions)}|${u.note}`;
+    if (!mergedMap.has(key)) {
+      mergedMap.set(key, {
+        id: u.id,
+        realItemId: u.id,
+        name: u.name,
+        price: u.appPrice,
+        inStorePrice: u.inStorePrice,
+        appPrice: u.appPrice,
+        quantity: 0,
+        note: u.note,
+        selectedOptions: u.selectedOptions
+      });
+    }
+    mergedMap.get(key).quantity += 1;
+  });
+  const pricedItems = Array.from(mergedMap.values());
+
+  let discountValue = 0;
+  if (lineUnits.length > 1) {
+    const sorted = [...lineUnits].sort((a, b) => b.appPrice - a.appPrice);
+    const perExtra = Math.max(
+      2000,
+      round100(surchargePerItem * PRICING_CONFIG.MULTI_ITEM_DISCOUNT)
+    );
+    discountValue = perExtra * (sorted.length - 1);
+  }
+
+  const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
+  let minServiceFee = 0;
+  let appTotal = appTotalRaw;
+
+  if (shipperEarningBeforeDiscount >= PRICING_CONFIG.MIN_SHIPPER_EARNING) {
+    discountValue = Math.min(
+      discountValue,
+      shipperEarningBeforeDiscount - PRICING_CONFIG.MIN_SHIPPER_EARNING
+    );
+    appTotal = Math.max(0, appTotalRaw - discountValue);
+  } else {
+    discountValue = 0;
+    minServiceFee = round100(PRICING_CONFIG.MIN_SHIPPER_EARNING - shipperEarningBeforeDiscount);
+    appTotal = appTotalRaw + minServiceFee;
+  }
+
+  const shipperEarning = Math.max(0, appTotal - storeTotal);
+
+  return {
+    items: pricedItems,
+    storeTotal,
+    appTotal,
+    shipperEarning,
+    discountValue,
+    minServiceFee,
+    surchargePerItem,
+    itemCount: lineUnits.length
+  };
+}
+
+async function loadMenuForPricing(restaurantId) {
+  if (!restaurantId) return [];
+  const mem = findRestaurantInCache(restaurantId);
+  if (mem && Array.isArray(mem.menu) && mem.menu.length > 0) return mem.menu;
+  const fileMenu = readRestaurantMenu(restaurantId);
+  if (fileMenu && fileMenu.length > 0) {
+    if (mem) mem.menu = fileMenu;
+    return fileMenu;
+  }
+  const hydrated = await hydrateOneMenuFromSupabase(restaurantId);
+  return Array.isArray(hydrated) ? hydrated : [];
 }
 
 // ── ONLINE SHIPPERS REAL-TIME COORDINATES & DISPATCH LOGIC ──────────────────
@@ -2323,10 +2632,9 @@ const geocodeCache = new Map();
 const nearbyListCache = new Map(); // key -> { at, data }
 const NEARBY_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-// Puppeteer scrape kills free Render dynos — off on Render unless explicitly enabled
+// Puppeteer scrape kills free Render dynos — never enable on Render (crawl on VPS only)
 const IS_RENDER = !!process.env.RENDER;
-const MENU_SCRAPE_ENABLED = process.env.ENABLE_MENU_SCRAPE === 'true'
-  || (!IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false');
+const MENU_SCRAPE_ENABLED = !IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false';
 
 function buildSearchIndex(restaurants) {
   return restaurants.map((r, idx) => ({
@@ -5248,9 +5556,9 @@ app.get('/api/restaurants/:id', async (req, res) => {
 
 /**
  * POST /api/cache/clear
- * Xóa cache để force reload từ ShopeeFood
+ * Xóa cache — chỉ admin
  */
-app.post('/api/cache/clear', (req, res) => {
+app.post('/api/cache/clear', authenticateAdmin, (req, res) => {
   try {
     if (fs.existsSync(CACHE_FILE)) fs.unlinkSync(CACHE_FILE);
     console.log('[Cache] Đã xóa cache');
@@ -5374,7 +5682,8 @@ app.post('/api/orders', async (req, res) => {
       return res.status(400).json({ error: 'Đơn hàng không hợp lệ' });
     }
 
-    const orderId = orderData.id || 'SPF-' + Math.floor(100000 + Math.random() * 900000);
+    const orderId = 'SPF-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const trackingToken = generateTrackingToken();
 
     // Luôn ưu tiên địa chỉ + tọa độ exact từ DB quán đã cào
     const restMem = findRestaurantInCache(orderData.restaurantId);
@@ -5427,27 +5736,48 @@ app.post('/api/orders', async (req, res) => {
       restaurantCoordsExact = true;
     }
 
+    const pinLat = typeof orderData.pinnedLat === 'number' ? orderData.pinnedLat : null;
+    const pinLon = typeof orderData.pinnedLon === 'number' ? orderData.pinnedLon : null;
+
+    const menu = await loadMenuForPricing(orderData.restaurantId);
+    const priced = recomputeOrderPricingFromMenu({
+      clientItems: Array.isArray(orderData.items) ? orderData.items : [],
+      menu,
+      restLat,
+      restLon,
+      pinLat,
+      pinLon
+    });
+    if (priced.error) {
+      return res.status(400).json({ success: false, error: priced.error });
+    }
+
     const newOrder = {
       id: orderId,
+      trackingToken,
       restaurantId: orderData.restaurantId || null,
       restaurantName: restaurantName || '',
       restaurantAddress: restaurantAddress || '',
       restaurantLat: restLat,
       restaurantLon: restLon,
       restaurantCoordsExact,
-      items: Array.isArray(orderData.items) ? orderData.items.map(item => ({
+      items: priced.items.map(item => ({
         id: item.id,
+        realItemId: item.realItemId,
         name: item.name,
         price: item.price,
-        quantity: item.quantity || item.qty || 1,
+        inStorePrice: item.inStorePrice,
+        appPrice: item.appPrice,
+        quantity: item.quantity,
         note: item.note || '',
         selectedOptions: item.selectedOptions || []
-      })) : [],
-      storeTotal: typeof orderData.storeTotal === 'number' ? orderData.storeTotal : 0,
-      appTotal: typeof orderData.appTotal === 'number' ? orderData.appTotal : 0,
-      shipperEarning: typeof orderData.shipperEarning === 'number' ? orderData.shipperEarning : 0,
-      discountValue: typeof orderData.discountValue === 'number' ? orderData.discountValue : 0,
-      minServiceFee: typeof orderData.minServiceFee === 'number' ? orderData.minServiceFee : 0,
+      })),
+      storeTotal: priced.storeTotal,
+      appTotal: priced.appTotal,
+      shipperEarning: priced.shipperEarning,
+      discountValue: priced.discountValue,
+      minServiceFee: priced.minServiceFee,
+      surchargePerItem: priced.surchargePerItem,
       promoCode: null,
       promoDiscount: 0,
       status: 'PENDING',
@@ -5460,11 +5790,11 @@ app.post('/api/orders', async (req, res) => {
       deliveryName: orderData.deliveryName || '',
       deliveryPhone: orderData.deliveryPhone || '',
       ordererPhone: orderData.ordererPhone || '',
-      pinnedLat: typeof orderData.pinnedLat === 'number' ? orderData.pinnedLat : null,
-      pinnedLon: typeof orderData.pinnedLon === 'number' ? orderData.pinnedLon : null,
+      pinnedLat: pinLat,
+      pinnedLon: pinLon,
       isRelative: orderData.isRelative === true,
       note: orderData.note || '',
-      createdAt: orderData.createdAt || Date.now(),
+      createdAt: Date.now(),
       acceptedAt: null,
       purchasedAt: null,
       deliveredAt: null,
@@ -5573,6 +5903,7 @@ app.post('/api/orders', async (req, res) => {
     upsertOrderToSupabase(newOrder).catch(() => {});
     if (telegramBot) telegramBot.sendNewOrderNotification(newOrder).catch(e => console.error('Lỗi gửi Telegram đơn mới:', e.message));
     addNotification('order_new', newOrder.restaurantId, newOrder.restaurantName, 'Đơn mới chờ xử lý', `Đơn ${newOrder.id} — ${newOrder.restaurantName} (${(newOrder.appTotal || 0).toLocaleString('vi-VN')}đ)`);
+    // Trả trackingToken cho khách; shipper list sẽ strip
     res.json({ success: true, data: newOrder });
     // Sau khi đề xuất: đối chiếu GPS Foody nền → cập nhật tọa độ quán trên đơn
     scheduleOrdersRestaurantNavGpsAfterOffer([newOrder], { label: 'create' });
@@ -5605,39 +5936,36 @@ function enrichOrdersWithShipperAvatar(ordersOrOrder, req) {
 
 /**
  * GET /api/orders
- * Shipper/Khách hàng lấy danh sách đơn hàng (hỗ trợ filter trạng thái ?status=PENDING)
- * Read-only: expire-offer chạy nền qua processExpiredOffers().
+ * Danh sách đơn của tài xế đang đăng nhập (JWT bắt buộc)
  */
-app.get('/api/orders', async (req, res) => {
+app.get('/api/orders', authenticateShipper, async (req, res) => {
   try {
-    const { status, shipperPhone } = req.query;
+    const { status } = req.query;
     let orders = readOrdersDatabase();
     const now = Date.now();
+    const cleanInputPhone = cleanPhone(req.shipperPhone);
+    if (!cleanInputPhone) {
+      return res.status(403).json({ success: false, error: 'Không xác định được tài xế từ token' });
+    }
 
-    // Now filter orders
-    let resultData = orders;
+    let resultData = orders.filter(o => {
+      if (o.status === 'PENDING') {
+        if (!o.assignedShipperPhone || !o.offerExpiresAt) return false;
+        return cleanPhone(o.assignedShipperPhone) === cleanInputPhone && now <= o.offerExpiresAt;
+      }
+      return cleanPhone(o.shipperPhone) === cleanInputPhone;
+    });
     if (status) {
       resultData = resultData.filter(o => o.status === status);
     }
 
-    // If shipperPhone is provided, filter PENDING orders and assign driver ownership for ACCEPTED/DELIVERED
-    if (shipperPhone) {
-      const cleanInputPhone = cleanPhone(shipperPhone);
-      resultData = resultData.filter(o => {
-        if (o.status === 'PENDING') {
-          // Chỉ đề xuất đích danh — không mở bể chung
-          if (!o.assignedShipperPhone || !o.offerExpiresAt) return false;
-          return cleanPhone(o.assignedShipperPhone) === cleanInputPhone && now <= o.offerExpiresAt;
-        }
-        return cleanPhone(o.shipperPhone) === cleanInputPhone;
-      });
-    }
+    const sanitized = enrichOrdersWithShipperAvatar(
+      hydrateOrdersRestaurantCoords(resultData),
+      req
+    ).map(o => stripOrderSecrets(o, { keepTrackingToken: false }));
 
-    // Trả đề xuất/đơn ngay — hydrate tọa độ đã có; Foody GPS chạy nền sau
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrdersRestaurantCoords(resultData), req) });
-    if (shipperPhone) {
-      scheduleOrdersRestaurantNavGpsAfterOffer(resultData, { label: 'list' });
-    }
+    res.json({ success: true, data: sanitized });
+    scheduleOrdersRestaurantNavGpsAfterOffer(resultData, { label: 'list' });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -5645,17 +5973,32 @@ app.get('/api/orders', async (req, res) => {
 
 /**
  * GET /api/orders/:id
- * Lấy thông tin chi tiết một đơn hàng kèm tọa độ shipper hiện tại
+ * Chi tiết đơn — cần tracking token (khách) hoặc JWT shipper/admin
  */
 app.get('/api/orders/:id', async (req, res) => {
   try {
+    await softAuthenticateBearer(req);
     const { id } = req.params;
     const orders = readOrdersDatabase();
     const order = orders.find(o => o.id === id);
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    // Nếu đơn chưa có GPS gắn sẵn, fallback vị trí live của tài xế đang online
+
+    const authz = authorizeOrderAccess(req, order);
+    if (!authz.ok) {
+      return res.status(authz.status).json({ success: false, error: authz.error });
+    }
+
+    if (authz.mintToken) {
+      order.trackingToken = generateTrackingToken();
+      await updateOrdersDatabase((list) => {
+        const idx = list.findIndex(o => o.id === id);
+        if (idx !== -1) list[idx].trackingToken = order.trackingToken;
+        else return false;
+      });
+    }
+
     const payload = { ...order };
     const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
     if (!hasGps && payload.shipperPhone) {
@@ -5665,8 +6008,15 @@ app.get('/api/orders/:id', async (req, res) => {
         payload.shipperLon = liveLoc.lon;
       }
     }
-    res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(payload), req) });
-    // Đối chiếu GPS Foody nền sau khi đã trả chi tiết đơn
+
+    const keepToken = authz.role === 'customer';
+    res.json({
+      success: true,
+      data: stripOrderSecrets(
+        enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(payload), req),
+        { keepTrackingToken: keepToken }
+      )
+    });
     scheduleOrdersRestaurantNavGpsAfterOffer([order], { label: 'detail' });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -5984,15 +6334,29 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
 
 /**
  * POST /api/orders/:id/rate
- * Khách hàng gửi đánh giá chất lượng shipper (rating và comment)
+ * Khách hàng gửi đánh giá — cần tracking token
  */
 app.post('/api/orders/:id/rate', async (req, res) => {
   try {
+    await softAuthenticateBearer(req);
     const { id } = req.params;
     const { rating, comment } = req.body;
 
-    if (typeof rating !== 'number') {
-      return res.status(400).json({ error: 'Đánh giá rating không hợp lệ' });
+    if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: 'Đánh giá rating phải từ 1 đến 5' });
+    }
+
+    const orders = readOrdersDatabase();
+    const existing = orders.find(o => o.id === id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+    const authz = authorizeOrderAccess(req, existing);
+    if (!authz.ok || authz.role === 'shipper') {
+      return res.status(authz.ok ? 403 : authz.status).json({
+        success: false,
+        error: authz.ok ? 'Chỉ khách hàng được đánh giá đơn' : authz.error
+      });
     }
 
     let found = false;
@@ -6002,8 +6366,11 @@ app.post('/api/orders/:id/rate', async (req, res) => {
       const idx = orders.findIndex(o => o.id === id);
       if (idx !== -1) {
         found = true;
+        if (authz.mintToken && !orders[idx].trackingToken) {
+          orders[idx].trackingToken = generateTrackingToken();
+        }
         orders[idx].rating = rating;
-        orders[idx].comment = comment || '';
+        orders[idx].comment = String(comment || '').slice(0, 500);
         updatedOrder = orders[idx];
       } else {
         return false;
@@ -6018,7 +6385,10 @@ app.post('/api/orders/:id/rate', async (req, res) => {
       ? String(comment).trim().slice(0, 80)
       : '(không có ý kiến)';
     console.log(`[Order Server] ⭐ Khách hàng đánh giá đơn ${id}: ${rating} sao — ${commentPreview}`);
-    res.json({ success: true, data: updatedOrder });
+    res.json({
+      success: true,
+      data: stripOrderSecrets(updatedOrder, { keepTrackingToken: true })
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -6026,15 +6396,33 @@ app.post('/api/orders/:id/rate', async (req, res) => {
 
 /**
  * POST /api/orders/:id/messages
- * Gửi tin nhắn mới cho đơn hàng (được lưu trong mảng messages của đơn hàng)
+ * Gửi tin nhắn — tracking token (khách) hoặc JWT shipper gắn đơn
  */
 app.post('/api/orders/:id/messages', async (req, res) => {
   try {
+    await softAuthenticateBearer(req);
     const { id } = req.params;
-    const { sender, text } = req.body;
+    let { sender, text } = req.body;
 
-    if (!sender || !text) {
-      return res.status(400).json({ error: 'Thiếu người gửi (sender) hoặc nội dung tin nhắn (text)' });
+    if (!text || !String(text).trim()) {
+      return res.status(400).json({ error: 'Thiếu nội dung tin nhắn (text)' });
+    }
+    text = String(text).trim().slice(0, 1000);
+
+    const ordersSnap = readOrdersDatabase();
+    const existing = ordersSnap.find(o => o.id === id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+    const authz = authorizeOrderAccess(req, existing);
+    if (!authz.ok) {
+      return res.status(authz.status).json({ success: false, error: authz.error });
+    }
+
+    if (authz.role === 'customer') sender = 'customer';
+    else if (authz.role === 'shipper') sender = 'shipper';
+    else if (!sender || !['customer', 'shipper'].includes(sender)) {
+      return res.status(400).json({ error: 'sender phải là customer hoặc shipper' });
     }
 
     let updatedOrder = null;
@@ -6044,8 +6432,14 @@ app.post('/api/orders/:id/messages', async (req, res) => {
       const idx = orders.findIndex(o => o.id === id);
       if (idx !== -1) {
         found = true;
+        if (authz.mintToken && !orders[idx].trackingToken) {
+          orders[idx].trackingToken = generateTrackingToken();
+        }
         if (!orders[idx].messages) {
           orders[idx].messages = [];
+        }
+        if (orders[idx].messages.length > 200) {
+          orders[idx].messages = orders[idx].messages.slice(-150);
         }
         orders[idx].messages.push({
           sender,
@@ -6072,17 +6466,32 @@ app.post('/api/orders/:id/messages', async (req, res) => {
 // ── WebRTC VoIP CALL SIGNALING REGISTRY ───────────────────────────────────
 const activeCalls = {};
 
+async function requireOrderPartyForCall(req, res) {
+  await softAuthenticateBearer(req);
+  const { id } = req.params;
+  const orders = readOrdersDatabase();
+  const order = orders.find(o => o.id === id);
+  if (!order) {
+    res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    return null;
+  }
+  const authz = authorizeOrderAccess(req, order);
+  if (!authz.ok) {
+    res.status(authz.status).json({ success: false, error: authz.error });
+    return null;
+  }
+  return { order, authz };
+}
+
 /**
  * POST /api/orders/:id/call/initiate
- * Bắt đầu một cuộc gọi từ customer hoặc shipper
  */
-app.post('/api/orders/:id/call/initiate', (req, res) => {
+app.post('/api/orders/:id/call/initiate', async (req, res) => {
+  const access = await requireOrderPartyForCall(req, res);
+  if (!access) return;
   const { id } = req.params;
-  const { caller, offer } = req.body;
-  
-  if (!caller) {
-    return res.status(400).json({ error: 'Thiếu người gọi (caller)' });
-  }
+  const { offer } = req.body;
+  const caller = access.authz.role === 'shipper' ? 'shipper' : 'customer';
 
   activeCalls[id] = {
     status: 'ringing',
@@ -6103,12 +6512,13 @@ app.post('/api/orders/:id/call/initiate', (req, res) => {
 
 /**
  * POST /api/orders/:id/call/respond
- * Trả lời hoặc xử lý cuộc gọi (accept/decline/end)
  */
-app.post('/api/orders/:id/call/respond', (req, res) => {
+app.post('/api/orders/:id/call/respond', async (req, res) => {
+  const access = await requireOrderPartyForCall(req, res);
+  if (!access) return;
   const { id } = req.params;
-  const { action, answer } = req.body; // action: 'accept' | 'decline' | 'end'
-  
+  const { action, answer } = req.body;
+
   const call = activeCalls[id];
   if (!call) {
     return res.status(404).json({ error: 'Không có cuộc gọi hoạt động cho đơn hàng này' });
@@ -6118,34 +6528,36 @@ app.post('/api/orders/:id/call/respond', (req, res) => {
     call.status = 'connected';
     if (answer) call.answer = answer;
     console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} đã được chấp nhận`);
-  } else if (action === 'decline') {
+  } else if (action === 'decline' || action === 'end') {
     call.status = 'ended';
-    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} bị từ chối`);
-  } else if (action === 'end') {
-    call.status = 'ended';
-    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} kết thúc`);
+    console.log(`[Call Server] 📞 Cuộc gọi cho đơn ${id} ${action === 'decline' ? 'bị từ chối' : 'kết thúc'}`);
+    setTimeout(() => { delete activeCalls[id]; }, 60_000);
   }
 
+  try { realtimeHub.publishCallUpdate(id, call); } catch (_) {}
   res.json({ success: true, call });
 });
 
 /**
  * POST /api/orders/:id/call/candidate
- * Gửi ứng viên ICE candidate
  */
-app.post('/api/orders/:id/call/candidate', (req, res) => {
+app.post('/api/orders/:id/call/candidate', async (req, res) => {
+  const access = await requireOrderPartyForCall(req, res);
+  if (!access) return;
   const { id } = req.params;
-  const { sender, candidate } = req.body; // sender: 'customer' | 'shipper'
-  
+  const { sender, candidate } = req.body;
+
   const call = activeCalls[id];
   if (!call) {
     return res.status(404).json({ error: 'Không có cuộc gọi hoạt động' });
   }
 
-  if (sender === call.caller) {
-    call.callerCandidates.push(candidate);
-  } else {
-    call.calleeCandidates.push(candidate);
+  const role = access.authz.role === 'shipper' ? 'shipper' : 'customer';
+  const from = sender === 'shipper' || sender === 'customer' ? sender : role;
+  const listKey = from === call.caller ? 'callerCandidates' : 'calleeCandidates';
+  if (!Array.isArray(call[listKey])) call[listKey] = [];
+  if (call[listKey].length < 50 && candidate) {
+    call[listKey].push(candidate);
   }
 
   res.json({ success: true });
@@ -6153,13 +6565,14 @@ app.post('/api/orders/:id/call/candidate', (req, res) => {
 
 /**
  * GET /api/orders/:id/call/poll
- * Thăm dò trạng thái cuộc gọi
  */
-app.get('/api/orders/:id/call/poll', (req, res) => {
+app.get('/api/orders/:id/call/poll', async (req, res) => {
+  const access = await requireOrderPartyForCall(req, res);
+  if (!access) return;
   const { id } = req.params;
-  const { role } = req.query; // 'customer' | 'shipper'
+  const role = access.authz.role === 'shipper' ? 'shipper' : 'customer';
   const call = activeCalls[id] || null;
-  
+
   if (call) {
     const now = Date.now();
     if (role === 'customer') {
@@ -6167,20 +6580,20 @@ app.get('/api/orders/:id/call/poll', (req, res) => {
     } else if (role === 'shipper') {
       call.lastPollShipper = now;
     }
-    
-    // Auto-timeout detection
+
     if (call.status === 'ringing' || call.status === 'connected') {
       const customerTimeout = call.lastPollCustomer && (now - call.lastPollCustomer > 6000);
       const shipperTimeout = call.lastPollShipper && (now - call.lastPollShipper > 6000);
       const ringTimeout = call.status === 'ringing' && (now - call.timestamp > 30000);
-      
+
       if (customerTimeout || shipperTimeout || ringTimeout) {
         console.log(`[Call Server] 📞 Auto-ending call for order ${id} due to connection timeout or inactive polling`);
         call.status = 'ended';
+        setTimeout(() => { delete activeCalls[id]; }, 60_000);
       }
     }
   }
-  
+
   res.json({ success: true, call });
 });
 
@@ -6880,9 +7293,9 @@ app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
 
 /**
  * GET /api/shippers
- * Lấy danh sách tài xế cùng lịch sử check-in/out phục vụ CRM
+ * Danh sách tài xế — chỉ admin CRM
  */
-app.get('/api/shippers', (req, res) => {
+app.get('/api/shippers', authenticateAdmin, (req, res) => {
   try {
     const shippers = readShippersDatabase();
     const normalizedShippers = shippers.map(s => ({
@@ -6944,12 +7357,32 @@ app.get('/api/realtime/stream', async (req, res) => {
       if (res.headersSent) return;
     } else if (role === 'customer') {
       meta.orderId = String(req.query.orderId || '').trim();
+      const orderToken = String(req.query.token || '').trim();
       if (!meta.orderId) {
         return res.status(400).json({ success: false, error: 'customer cần orderId' });
       }
       const orders = readOrdersDatabase();
-      if (!orders.some(o => o && String(o.id) === meta.orderId)) {
+      const order = orders.find(o => o && String(o.id) === meta.orderId);
+      if (!order) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+      }
+      req.query.token = orderToken;
+      const authz = authorizeOrderAccess(req, order);
+      if (!authz.ok) {
+        // Legacy phone via query for SSE
+        if (!authz.ok && !order.trackingToken) {
+          const phone = cleanPhone(req.query.phone || '');
+          if (
+            phone &&
+            (phone === cleanPhone(order.deliveryPhone) || phone === cleanPhone(order.ordererPhone))
+          ) {
+            // ok legacy
+          } else {
+            return res.status(authz.status).json({ success: false, error: authz.error });
+          }
+        } else {
+          return res.status(authz.status).json({ success: false, error: authz.error });
+        }
       }
     }
 
@@ -7553,17 +7986,13 @@ app.post('/api/admin/shippers/:phone/reject', authenticateAdmin, async (req, res
 
 /**
  * GET /api/shippers/profile
- * Get specific shipper profile details and approval status by phone number
+ * Hồ sơ tài xế đang đăng nhập (JWT) — không public theo ?phone=
  */
-app.get('/api/shippers/profile', (req, res) => {
+app.get('/api/shippers/profile', authenticateShipper, (req, res) => {
   try {
-    const { phone } = req.query;
-    if (!phone) {
-      return res.status(400).json({ success: false, error: 'Thiếu số điện thoại!' });
-    }
     const shippers = readShippersDatabase();
-    const cleanedPhone = phone.trim().replace(/\s+/g, '');
-    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === cleanedPhone);
+    const cleanedPhone = cleanPhone(req.shipperPhone);
+    const shipper = req.shipper || shippers.find(s => cleanPhone(s.phone) === cleanedPhone);
     if (!shipper) {
       return res.status(404).json({ success: false, error: 'Không tìm thấy tài xế!' });
     }
