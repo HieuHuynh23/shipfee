@@ -12,6 +12,7 @@
     "crawl:menus:dry": "node crawl_restaurant_menus.js --only-fallback --open-only --dry-run",
     "crossref:gps": "node crossref_foody_gps.js --only-missing",
     "crossref:gps:all": "node crossref_foody_gps.js --include-heuristic --all --concurrency=4",
+    "crossref:gps:address": "node crossref_address_gps.js --all",
     "crossref:gps:one": "node crossref_foody_gps.js --id"
   },
   "dependencies": {

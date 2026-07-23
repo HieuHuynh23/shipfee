@@ -2973,7 +2973,8 @@ const PLACEHOLDER_COORDS = [
   [10.0452, 105.7469]      // discovery fallback
 ];
 function isPlaceholderCoord(lat, lon) {
-  return PLACEHOLDER_COORDS.some(([a, b]) => Math.abs(lat - a) < 1e-6 && Math.abs(lon - b) < 1e-6);
+  // 1e-4: bắt nhiễu float / làm tròn (Grab discovery hay ghi 10.034500)
+  return PLACEHOLDER_COORDS.some(([a, b]) => Math.abs(lat - a) < 1e-4 && Math.abs(lon - b) < 1e-4);
 }
 
 /** Quán có GPS từ crawl ShopeeFood/Grab (giống pin trên app Shopee) */
