@@ -4806,13 +4806,216 @@ function navigateToPoint(target) {
 window.navigateToPoint = navigateToPoint;
 
 /* --------------------------------------------------------------------------
-   PWA — register service worker (ShipFee Tài Xế, tách biệt customer-app)
+   PWA — register service worker + install prompt (ShipFee Tài Xế)
    -------------------------------------------------------------------------- */
+const PWA_DISMISS_KEY = 'shipfee_tx_pwa_install_dismissed_v1';
+const PWA_DISMISS_MS = 14 * 24 * 60 * 60 * 1000;
+
+let _pwaDeferredPrompt = null;
+let _pwaInstallUiReady = false;
+
+function isAppleMobileDevice() {
+  const ua = navigator.userAgent || '';
+  const iOS = /iPad|iPhone|iPod/.test(ua);
+  const iPadOS = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return iOS || iPadOS;
+}
+
+function isMobileShipperClient() {
+  if (isAppleMobileDevice()) return true;
+  return /Android/i.test(navigator.userAgent || '');
+}
+
+function isPwaInstalled() {
+  try {
+    if (window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+  } catch (_) {}
+  if (typeof navigator.standalone === 'boolean' && navigator.standalone) return true;
+  return false;
+}
+
+function wasPwaInstallDismissed() {
+  try {
+    const raw = localStorage.getItem(PWA_DISMISS_KEY);
+    if (!raw) return false;
+    const ts = Number(raw);
+    if (!Number.isFinite(ts)) return false;
+    return Date.now() - ts < PWA_DISMISS_MS;
+  } catch (_) {
+    return false;
+  }
+}
+
+function dismissPwaInstall(persist) {
+  hidePwaInstallBanner();
+  closePwaInstallSheet();
+  if (persist) {
+    try { localStorage.setItem(PWA_DISMISS_KEY, String(Date.now())); } catch (_) {}
+  }
+}
+
+function ensurePwaInstallUi() {
+  if (_pwaInstallUiReady) return;
+  _pwaInstallUiReady = true;
+
+  const banner = document.createElement('div');
+  banner.id = 'pwa-install';
+  banner.className = 'pwa-install';
+  banner.setAttribute('role', 'dialog');
+  banner.setAttribute('aria-label', 'Cài đặt ứng dụng ShipFee Tài Xế');
+  banner.innerHTML = `
+    <img class="pwa-install__icon" src="icons/icon-192.png" width="44" height="44" alt="">
+    <div class="pwa-install__body">
+      <div class="pwa-install__title">Cài app Tài Xế</div>
+      <div class="pwa-install__sub">Nhận đơn nhanh, mở fullscreen như app</div>
+    </div>
+    <div class="pwa-install__actions">
+      <button type="button" class="pwa-install__btn" id="pwa-install-btn">Cài đặt</button>
+      <button type="button" class="pwa-install__close" id="pwa-install-close" aria-label="Đóng">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  const sheet = document.createElement('div');
+  sheet.id = 'pwa-install-sheet';
+  sheet.className = 'pwa-install-sheet';
+  sheet.setAttribute('aria-hidden', 'true');
+  sheet.innerHTML = `
+    <div class="pwa-install-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="pwa-sheet-title">
+      <div class="pwa-install-sheet__handle" aria-hidden="true"></div>
+      <h3 class="pwa-install-sheet__title" id="pwa-sheet-title">Thêm app Tài Xế vào màn hình chính</h3>
+      <p class="pwa-install-sheet__desc">Trên iPhone/iPad, Safari không cho tự cài — làm theo 3 bước:</p>
+      <ol class="pwa-install-sheet__steps">
+        <li><span class="pwa-install-sheet__num">1</span><span>Chạm nút <strong>Chia sẻ</strong> <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> ở thanh Safari</span></li>
+        <li><span class="pwa-install-sheet__num">2</span><span>Chọn <strong>Thêm vào Màn hình chính</strong></span></li>
+        <li><span class="pwa-install-sheet__num">3</span><span>Nhấn <strong>Thêm</strong> — mở app Tài Xế như ứng dụng thật</span></li>
+      </ol>
+      <button type="button" class="pwa-install-sheet__done" id="pwa-sheet-done">Đã hiểu</button>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+
+  banner.querySelector('#pwa-install-btn').addEventListener('click', () => {
+    triggerPwaInstall();
+  });
+  banner.querySelector('#pwa-install-close').addEventListener('click', () => {
+    dismissPwaInstall(true);
+  });
+  sheet.querySelector('#pwa-sheet-done').addEventListener('click', () => {
+    dismissPwaInstall(true);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet) dismissPwaInstall(true);
+  });
+}
+
+function showPwaInstallBanner() {
+  if (isPwaInstalled() || wasPwaInstallDismissed() || !isMobileShipperClient()) return;
+  ensurePwaInstallUi();
+  const el = document.getElementById('pwa-install');
+  if (!el) return;
+  requestAnimationFrame(() => el.classList.add('visible'));
+}
+
+function hidePwaInstallBanner() {
+  const el = document.getElementById('pwa-install');
+  if (el) el.classList.remove('visible');
+}
+
+function openPwaInstallSheet() {
+  ensurePwaInstallUi();
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (!sheet) return;
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden', 'false');
+  hidePwaInstallBanner();
+}
+
+function closePwaInstallSheet() {
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+function setPwaSheetAndroidGuide() {
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (!sheet) return;
+  const title = sheet.querySelector('#pwa-sheet-title');
+  const desc = sheet.querySelector('.pwa-install-sheet__desc');
+  const steps = sheet.querySelector('.pwa-install-sheet__steps');
+  if (title) title.textContent = 'Cài app Tài Xế từ trình duyệt';
+  if (desc) desc.textContent = 'Trình duyệt hỗ trợ cài web app. Làm theo các bước:';
+  if (steps) {
+    steps.innerHTML = `
+      <li><span class="pwa-install-sheet__num">1</span><span>Mở menu trình duyệt <strong>⋮</strong> (góc trên)</span></li>
+      <li><span class="pwa-install-sheet__num">2</span><span>Chọn <strong>Cài đặt ứng dụng</strong> / <strong>Add to Home screen</strong></span></li>
+      <li><span class="pwa-install-sheet__num">3</span><span>Xác nhận — icon SF Tài Xế hiện trên màn hình chính</span></li>
+    `;
+  }
+}
+
+async function triggerPwaInstall() {
+  if (_pwaDeferredPrompt) {
+    try {
+      _pwaDeferredPrompt.prompt();
+      const choice = await _pwaDeferredPrompt.userChoice;
+      _pwaDeferredPrompt = null;
+      if (choice && choice.outcome === 'accepted') {
+        dismissPwaInstall(true);
+        showToast('Đã cài app Tài Xế', 'Mở từ màn hình chính để nhận đơn nhanh hơn.', 'success');
+      } else {
+        dismissPwaInstall(true);
+      }
+      return;
+    } catch (_) {
+      _pwaDeferredPrompt = null;
+    }
+  }
+
+  if (isAppleMobileDevice()) {
+    openPwaInstallSheet();
+    return;
+  }
+
+  ensurePwaInstallUi();
+  setPwaSheetAndroidGuide();
+  openPwaInstallSheet();
+}
+
+function initPwaInstallPrompt() {
+  if (isPwaInstalled() || wasPwaInstallDismissed()) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _pwaDeferredPrompt = e;
+    showPwaInstallBanner();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    _pwaDeferredPrompt = null;
+    dismissPwaInstall(true);
+    showToast('Cài đặt thành công', 'ShipFee Tài Xế đã sẵn sàng trên màn hình chính.', 'success');
+  });
+
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (_pwaDeferredPrompt || isPwaInstalled() || wasPwaInstallDismissed()) return;
+      if (isMobileShipperClient()) showPwaInstallBanner();
+    }, 2200);
+  });
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=3.0', window.location.href).href;
+    const swUrl = new URL('sw.js?v=3.1', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});
   });
 }
+
+initPwaInstallPrompt();

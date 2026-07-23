@@ -1265,14 +1265,206 @@ document.addEventListener('gesturestart', function (event) {
 }, { passive: false });
 
 /* --------------------------------------------------------------------------
-   PWA — register service worker so Android can install SHIPFEE to home screen
+   PWA — register service worker + install prompt (Android / iOS)
    -------------------------------------------------------------------------- */
+const PWA_DISMISS_KEY = 'shipfee_pwa_install_dismissed_v1';
+const PWA_DISMISS_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+
+let _pwaDeferredPrompt = null;
+let _pwaInstallUiReady = false;
+
+function isPwaInstalled() {
+  try {
+    if (window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+  } catch (_) {}
+  if (typeof navigator.standalone === 'boolean' && navigator.standalone) return true;
+  return false;
+}
+
+function wasPwaInstallDismissed() {
+  try {
+    const raw = localStorage.getItem(PWA_DISMISS_KEY);
+    if (!raw) return false;
+    const ts = Number(raw);
+    if (!Number.isFinite(ts)) return false;
+    return Date.now() - ts < PWA_DISMISS_MS;
+  } catch (_) {
+    return false;
+  }
+}
+
+function dismissPwaInstall(persist) {
+  hidePwaInstallBanner();
+  closePwaInstallSheet();
+  if (persist) {
+    try { localStorage.setItem(PWA_DISMISS_KEY, String(Date.now())); } catch (_) {}
+  }
+}
+
+function ensurePwaInstallUi() {
+  if (_pwaInstallUiReady) return;
+  _pwaInstallUiReady = true;
+
+  const banner = document.createElement('div');
+  banner.id = 'pwa-install';
+  banner.className = 'pwa-install';
+  banner.setAttribute('role', 'dialog');
+  banner.setAttribute('aria-label', 'Cài đặt ứng dụng SHIPFEE');
+  banner.innerHTML = `
+    <img class="pwa-install__icon" src="icons/icon-192.png" width="44" height="44" alt="">
+    <div class="pwa-install__body">
+      <div class="pwa-install__title">Cài SHIPFEE vào máy</div>
+      <div class="pwa-install__sub">Mở nhanh như app, không cần App Store</div>
+    </div>
+    <div class="pwa-install__actions">
+      <button type="button" class="pwa-install__btn" id="pwa-install-btn">Cài đặt</button>
+      <button type="button" class="pwa-install__close" id="pwa-install-close" aria-label="Đóng">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+  `;
+  document.body.appendChild(banner);
+
+  const sheet = document.createElement('div');
+  sheet.id = 'pwa-install-sheet';
+  sheet.className = 'pwa-install-sheet';
+  sheet.setAttribute('aria-hidden', 'true');
+  sheet.innerHTML = `
+    <div class="pwa-install-sheet__panel" role="dialog" aria-modal="true" aria-labelledby="pwa-sheet-title">
+      <div class="pwa-install-sheet__handle" aria-hidden="true"></div>
+      <h3 class="pwa-install-sheet__title" id="pwa-sheet-title">Thêm SHIPFEE vào màn hình chính</h3>
+      <p class="pwa-install-sheet__desc">Trên iPhone/iPad, Safari không cho tự cài — làm theo 3 bước sau:</p>
+      <ol class="pwa-install-sheet__steps">
+        <li><span class="pwa-install-sheet__num">1</span><span>Chạm nút <strong>Chia sẻ</strong> <i class="fa-solid fa-arrow-up-from-bracket" aria-hidden="true"></i> ở thanh Safari</span></li>
+        <li><span class="pwa-install-sheet__num">2</span><span>Chọn <strong>Thêm vào Màn hình chính</strong></span></li>
+        <li><span class="pwa-install-sheet__num">3</span><span>Nhấn <strong>Thêm</strong> — icon SHIPFEE sẽ xuất hiện như app</span></li>
+      </ol>
+      <button type="button" class="pwa-install-sheet__done" id="pwa-sheet-done">Đã hiểu</button>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+
+  banner.querySelector('#pwa-install-btn').addEventListener('click', () => {
+    triggerPwaInstall();
+  });
+  banner.querySelector('#pwa-install-close').addEventListener('click', () => {
+    dismissPwaInstall(true);
+  });
+  sheet.querySelector('#pwa-sheet-done').addEventListener('click', () => {
+    dismissPwaInstall(true);
+  });
+  sheet.addEventListener('click', (e) => {
+    if (e.target === sheet) dismissPwaInstall(true);
+  });
+}
+
+function showPwaInstallBanner() {
+  if (isPwaInstalled() || wasPwaInstallDismissed() || isDesktopBrowser()) return;
+  ensurePwaInstallUi();
+  const el = document.getElementById('pwa-install');
+  if (!el) return;
+  requestAnimationFrame(() => el.classList.add('visible'));
+}
+
+function hidePwaInstallBanner() {
+  const el = document.getElementById('pwa-install');
+  if (el) el.classList.remove('visible');
+}
+
+function openPwaInstallSheet() {
+  ensurePwaInstallUi();
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (!sheet) return;
+  sheet.classList.add('open');
+  sheet.setAttribute('aria-hidden', 'false');
+  hidePwaInstallBanner();
+}
+
+function closePwaInstallSheet() {
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (!sheet) return;
+  sheet.classList.remove('open');
+  sheet.setAttribute('aria-hidden', 'true');
+}
+
+async function triggerPwaInstall() {
+  if (_pwaDeferredPrompt) {
+    try {
+      _pwaDeferredPrompt.prompt();
+      const choice = await _pwaDeferredPrompt.userChoice;
+      _pwaDeferredPrompt = null;
+      if (choice && choice.outcome === 'accepted') {
+        dismissPwaInstall(true);
+        showToast('Đã cài SHIPFEE', 'Mở app từ màn hình chính để đặt món nhanh hơn.', 'success');
+      } else {
+        dismissPwaInstall(true);
+      }
+      return;
+    } catch (_) {
+      _pwaDeferredPrompt = null;
+    }
+  }
+
+  if (isAppleMobile()) {
+    openPwaInstallSheet();
+    return;
+  }
+
+  // Android/other without native prompt — guide via browser menu
+  ensurePwaInstallUi();
+  const sheet = document.getElementById('pwa-install-sheet');
+  if (sheet) {
+    const title = sheet.querySelector('#pwa-sheet-title');
+    const desc = sheet.querySelector('.pwa-install-sheet__desc');
+    const steps = sheet.querySelector('.pwa-install-sheet__steps');
+    if (title) title.textContent = 'Cài SHIPFEE từ trình duyệt';
+    if (desc) desc.textContent = 'Trình duyệt của bạn hỗ trợ cài web app. Làm theo các bước:';
+    if (steps) {
+      steps.innerHTML = `
+        <li><span class="pwa-install-sheet__num">1</span><span>Mở menu trình duyệt <strong>⋮</strong> (góc trên)</span></li>
+        <li><span class="pwa-install-sheet__num">2</span><span>Chọn <strong>Cài đặt ứng dụng</strong> / <strong>Add to Home screen</strong></span></li>
+        <li><span class="pwa-install-sheet__num">3</span><span>Xác nhận — icon SHIPFEE sẽ nằm trên màn hình chính</span></li>
+      `;
+    }
+  }
+  openPwaInstallSheet();
+}
+
+function initPwaInstallPrompt() {
+  if (isPwaInstalled() || wasPwaInstallDismissed()) return;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _pwaDeferredPrompt = e;
+    showPwaInstallBanner();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    _pwaDeferredPrompt = null;
+    dismissPwaInstall(true);
+    showToast('Cài đặt thành công', 'SHIPFEE đã sẵn sàng trên màn hình chính.', 'success');
+  });
+
+  // iOS / browsers without beforeinstallprompt: show after short delay
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      if (_pwaDeferredPrompt || isPwaInstalled() || wasPwaInstallDismissed()) return;
+      if (isAppleMobile() || /Android/i.test(navigator.userAgent || '')) {
+        showPwaInstallBanner();
+      }
+    }, 2800);
+  });
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-19e', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-23a', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});
   });
 }
+
+initPwaInstallPrompt();
