@@ -3126,7 +3126,10 @@ function applyFoodyGpsToRestaurant(restaurant, gps) {
   restaurant.coordsSource = 'exact';
   restaurant.geoSource = 'foody';
   restaurant.foodyGpsAt = new Date().toISOString();
-  if (!restaurant.foodySlug && gps.slug) restaurant.foodySlug = gps.slug;
+  if (gps.slug) restaurant.foodySlug = gps.slug;
+  else if (!restaurant.foodySlug) {
+    restaurant.foodySlug = foodyGps.resolveFoodySlugFromRestaurant(restaurant) || undefined;
+  }
   if (!restaurant.source) restaurant.source = 'foody-gps';
   try {
     geocodeCache.set(String(restaurant.id), {

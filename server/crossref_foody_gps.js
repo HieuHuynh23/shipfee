@@ -115,7 +115,8 @@ async function main() {
       coordsSource: 'exact',
       geoSource: 'foody',
       foodyGpsAt: new Date().toISOString(),
-      foodySlug: r.foodySlug || slug
+      // Luôn ghi slug đã dùng (ưu tiên foodyHref) — tránh giữ shopeefoodSlug lệch
+      foodySlug: slug
     };
     // giữ source cũ nếu đã có; đánh dấu đã đối chiếu GPS
     if (!updated.source) updated.source = 'foody-gps';

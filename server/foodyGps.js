@@ -99,19 +99,50 @@ async function fetchFoodyGpsBySlug(slug, opts = {}) {
   return null;
 }
 
+/**
+ * Ưu tiên foodyHref (đường dẫn trang Foody đúng quán).
+ * shopeefoodSlug đôi khi lệch menu/chi nhánh → không dùng khi đã có foodyHref.
+ */
+function slugFromFoodyHref(href) {
+  const m = String(href || '').match(/\/(?:can-tho|thuong-hieu)\/([^/?#]+)/i);
+  if (!m) return '';
+  try {
+    return decodeURIComponent(m[1]).trim().replace(/\/+$/, '');
+  } catch (_) {
+    return String(m[1]).trim().replace(/\/+$/, '');
+  }
+}
+
 function resolveFoodySlugFromRestaurant(restaurant) {
   if (!restaurant) return '';
-  return String(
-    restaurant.foodySlug ||
-      restaurant.shopeefoodSlug ||
-      ''
-  ).trim();
+  const fromHref = slugFromFoodyHref(restaurant.foodyHref);
+  if (fromHref) return fromHref;
+
+  const explicit = String(restaurant.foodySlug || '')
+    .trim()
+    .split('?')[0];
+  if (explicit) return explicit;
+
+  const sf = String(restaurant.shopeefoodSlug || '')
+    .trim()
+    .split('?')[0];
+  if (sf) return sf;
+
+  // Fallback: id r_ct_* → kebab (thường trùng slug Foody Cần Thơ)
+  // Bỏ qua id Grab/synthetic — không có trang Foody tương ứng
+  const id = String(restaurant.id || '');
+  if (id.startsWith('r_ct_grab_') || id.startsWith('r_ct_gf_')) return '';
+  if (id.startsWith('r_ct_')) {
+    return id.slice(5).replace(/_/g, '-');
+  }
+  return '';
 }
 
 module.exports = {
   fetchFoodyGpsBySlug,
   extractGpsFromFoodyHtml,
   resolveFoodySlugFromRestaurant,
+  slugFromFoodyHref,
   isPlausibleCanThoGps,
   foodyUrlsForSlug
 };
