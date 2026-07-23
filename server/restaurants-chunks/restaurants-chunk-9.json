@@ -24195,8 +24195,8 @@
     "address": "Số 1200 Nguyễn Văn Cừ, Phường An Bình",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7J2PE5EBBABE2/hero/f0bb8f3c-cba6-4b8c-bcab-c3ffea26bf89__store_cover__2025__07__07__12__55__50.webp",
     "rating": 4.5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0049207,
+    "longitude": 105.7228915,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:26:50.819Z",
     "hasRealMenu": true,
@@ -24241,7 +24241,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T11:32:40.632Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:07.604Z",
+    "addressGpsQuery": "Số 1200 Nguyễn Văn Cừ, Phường An Bình, Cần Thơ",
+    "addressGpsDisplay": "Trung tâm Tần số Vô tuyến điện Khu vực 4, Nguyễn Văn Cừ, Phường An Bình, Thành phố Cần Thơ, 94000, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C3VJNAAYNB2JE6",
@@ -24499,8 +24504,8 @@
     "address": "87/47 Phạm Ngũ Lão, Ninh Kiều, Cần Thơ, 94000",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C75WRYKDNPXCHA/hero/c9621111-ad0e-4082-8d1a-8fd6aac01eb7__store_cover__2026__04__30__12__18__18.webp",
     "rating": 4.8,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0447607,
+    "longitude": 105.7748009,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:27:00.083Z",
     "hasRealMenu": true,
@@ -24545,7 +24550,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T11:30:58.582Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:13.230Z",
+    "addressGpsQuery": "87/47 Phạm Ngũ Lão, Ninh Kiều, Cần Thơ, 94000",
+    "addressGpsDisplay": "Phạm Ngũ Lão, Phường Ninh Kiều, Thành phố Cần Thơ, 94108, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7NVEGNKTKN2C6",
@@ -25012,8 +25022,8 @@
     "address": "2 Nguyễn Hiền, P.Tân An, TP.Cần Thơ, 94000",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C3E2KEMYEEKFRA/hero/0509f31b70cc4504b16c36db50080b71_1670796821537722013.webp",
     "rating": 4.2,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0253025,
+    "longitude": 105.7581138,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:29:47.362Z",
     "hasRealMenu": true,
@@ -25082,7 +25092,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T10:35:45.004Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:29.487Z",
+    "addressGpsQuery": "2 Nguyễn Hiền, P.Tân An, TP.Cần Thơ, 94000",
+    "addressGpsDisplay": "2, Nguyễn Hiền, Khu dân cư 91B, Phường Tân An, Thành phố Cần Thơ, 94000, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C3DJAZNHGGJCA2",
@@ -25585,8 +25600,8 @@
     "address": "94 Mạc Thiên Tích, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7L2TJT1GK21NN/hero/fabc23e71be24a6db24080ec7fee8dba_1755883020368409047.webp",
     "rating": 4,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0290393,
+    "longitude": 105.7769643,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:30:13.859Z",
     "hasRealMenu": true,
@@ -25613,7 +25628,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T10:26:16.531Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:40.078Z",
+    "addressGpsQuery": "94 Mạc Thiên Tích, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "Mạc Thiên Tích, Phường Ninh Kiều, Thành phố Cần Thơ, 94111, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C6AVLU3UEP2TG2",
@@ -25826,8 +25846,8 @@
     "address": "407 Lê Phước Thọ, Bình Thủy",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C8AJLJDGGA2HBA/hero/8460a9af-2b47-4ca9-97d2-903704357866__store_cover__2026__06__09__09__33__32.webp",
     "rating": 4.5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0595995,
+    "longitude": 105.7559282,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:30:15.782Z",
     "hasRealMenu": true,
@@ -25870,7 +25890,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T10:25:44.914Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:46.842Z",
+    "addressGpsQuery": "407 Lê Phước Thọ, Bình Thủy, Cần Thơ",
+    "addressGpsDisplay": "Lê Phước Thọ, Phường Bình Thủy, Thành phố Cần Thơ, 94120, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C73GCJD2CU5ULJ",
@@ -25879,8 +25904,8 @@
     "address": "2A Ngô Thì Nhậm, Phường Tân An",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C73GCJD2CU5ULJ/hero/be706f1c-32fd-41ad-b274-887f2da5f008__store_cover__2026__03__09__03__41__40.webp",
     "rating": 5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0401043,
+    "longitude": 105.758511,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:30:51.244Z",
     "hasRealMenu": true,
@@ -25925,7 +25950,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T10:12:55.664Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:06:48.348Z",
+    "addressGpsQuery": "2A Ngô Thì Nhậm, Phường Tân An, Cần Thơ",
+    "addressGpsDisplay": "2A Café, 2A, Ngô Thì Nhậm, Phường Tân An, Thành phố Cần Thơ, 94120, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7UXJ2CDLYLWLJ",
@@ -26565,8 +26595,8 @@
     "address": "579A Trần Quang Diệu, Phường Bình Thuỷ",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C62YTEVTAKJVJN/hero/4805cb06f1d94f758ffeba673a19c5e5_1731652537956253413.webp",
     "rating": 4.3,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0658435,
+    "longitude": 105.7502683,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:33:29.411Z",
     "hasRealMenu": true,
@@ -26581,7 +26611,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:46:44.558Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:04.646Z",
+    "addressGpsQuery": "579A Trần Quang Diệu, Phường Bình Thuỷ, Cần Thơ",
+    "addressGpsDisplay": "Trần Quang Diệu, Phường Bình Thủy, Thành phố Cần Thơ, 94108, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7ABCCJHE2J2CX",
@@ -27081,8 +27116,8 @@
     "address": "38 Đường B23 Khu Dân Cư 91B, Phường Tân An, Thành Phố Cần Thơ",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7TDE3CXAUWHKE/hero/127f5c4c9d7d44bb8ac54cc3631f7f6e_1760674704805617797.webp",
     "rating": 4.9,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0230355,
+    "longitude": 105.7541354,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:35:41.785Z",
     "hasRealMenu": true,
@@ -27115,7 +27150,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:32:23.866Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:15.755Z",
+    "addressGpsQuery": "38 Đường B23 Khu Dân Cư 91B, Phường Tân An, Thành Phố Cần Thơ",
+    "addressGpsDisplay": "Đường B23, Khu dân cư 91B, Phường Tân An, Thành phố Cần Thơ, 94000, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C74CGLDKRUUCJJ",
@@ -27175,8 +27215,8 @@
     "address": "280 Tạ Thị Phi, Phường Long Tuyền, Cần Thơ, 94000",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7JWLEXBFE3UJE/hero/bf2bce86c86149ab9a08c68c39ef89cc_1751353543454123853.webp",
     "rating": 4.5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0160355,
+    "longitude": 105.7310837,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:35:41.785Z",
     "hasRealMenu": true,
@@ -27234,7 +27274,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:32:44.863Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:18.890Z",
+    "addressGpsQuery": "280 Tạ Thị Phi, Phường Long Tuyền, Cần Thơ, 94000",
+    "addressGpsDisplay": "Tạ Thị Phi, Phường Long Tuyền, Thành phố Cần Thơ, 94000, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C6L2JYUDMF2WVA",
@@ -27541,8 +27586,8 @@
     "address": "66 Mậu Thân, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7LZRLEJLTV1GX/hero/d30f119b90a749c398962aaa6c2a25a0_1755674135363156415.webp",
     "rating": 4.5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0364022,
+    "longitude": 105.7722907,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:36:31.964Z",
     "hasRealMenu": true,
@@ -27572,7 +27617,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:21:45.534Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:32.379Z",
+    "addressGpsQuery": "66 Mậu Thân, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "Mậu Thân, Phường Ninh Kiều, Thành phố Cần Thơ, 94108, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7TWWBNUEYAKJ6",
@@ -27809,8 +27859,8 @@
     "address": "70 - 72 Lê Lợi, Phường Cái Khế",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C74GR2KCG6VEKE/hero/6c2aece84e5544979d70e191ac96705b_1774928123368095222.webp",
     "rating": 5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0486787,
+    "longitude": 105.7706916,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:38:24.729Z",
     "hasRealMenu": true,
@@ -27847,7 +27897,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:19:34.549Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:37.391Z",
+    "addressGpsQuery": "70 - 72 Lê Lợi, Phường Cái Khế, Cần Thơ",
+    "addressGpsDisplay": "Phường Cái Khế, Thành phố Cần Thơ, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C6UCFFNBME4YAN",
@@ -28103,8 +28158,8 @@
     "address": "79 Xô Viết Nghệ Tĩnh, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C8A1NZEWLVCVGN/hero/b7945a456292411a92f7c07a868f8d8a_1781765902625532650.webp",
     "rating": 4.5,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0374743,
+    "longitude": 105.7847192,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:40:46.183Z",
     "hasRealMenu": true,
@@ -28136,7 +28191,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:06:55.420Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:47.907Z",
+    "addressGpsQuery": "79 Xô Viết Nghệ Tĩnh, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "Xô Viết Nghệ Tĩnh, Phường Ninh Kiều, Thành phố Cần Thơ, 94111, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C75ECYMJARAJV2",
@@ -28145,8 +28205,8 @@
     "address": "02 Mạc Thiên Tích, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C75ECYMJARAJV2/hero/648c3c3e-5be6-4ed4-afb0-cf941f7db778__store_cover__2026__05__27__02__56__38.webp",
     "rating": 4.8,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0286576,
+    "longitude": 105.771722,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:42:49.246Z",
     "hasRealMenu": true,
@@ -28236,7 +28296,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T09:03:57.813Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:49.350Z",
+    "addressGpsQuery": "02 Mạc Thiên Tích, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "02, Mạc Thiên Tích, Phường Ninh Kiều, Thành phố Cần Thơ, 94111, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7M1NRMUTTL1VE",
@@ -28245,8 +28310,8 @@
     "address": "118 Nguyễn Văn Linh, Phường Tân An",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7M1NRMUTTL1VE/hero/36214f49b99248409e8b42d480ce275d_1757764049494293122.webp",
     "rating": 3.7,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.0250579,
+    "longitude": 105.7595501,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:46:01.647Z",
     "hasRealMenu": true,
@@ -28301,7 +28366,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T08:53:37.471Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:07:50.848Z",
+    "addressGpsQuery": "118 Nguyễn Văn Linh, Phường Tân An, Cần Thơ",
+    "addressGpsDisplay": "Nguyễn Văn Linh, Phường Tân An, Thành phố Cần Thơ, 94000, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C7ECJY6TRGBYR6",
@@ -28831,8 +28901,8 @@
     "address": "84 Mậu Thân, phường Cái Khế, 94000",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C74DNLBBHFNJTN/hero/a0f001f2-ac4b-4573-9f5a-cecf98b06fc0__store_cover__2026__05__30__08__15__53.webp",
     "rating": 4.6,
-    "latitude": 10.045158,
-    "longitude": 105.746857,
+    "latitude": 10.042663,
+    "longitude": 105.7670274,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T05:49:18.518Z",
     "hasRealMenu": true,
@@ -28855,7 +28925,12 @@
     "isClosed": false,
     "lastCrawlError": "",
     "menuQuality": "scraped_signals",
-    "menuUpdatedAt": "2026-07-19T16:54:12.511Z"
+    "menuUpdatedAt": "2026-07-19T16:54:12.511Z",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:08:05.743Z",
+    "addressGpsQuery": "84 Mậu Thân, phường Cái Khế, 94000, Cần Thơ",
+    "addressGpsDisplay": "LOTTE Mart Cần Thơ, 84, Mậu Thân, Phường Cái Khế, Thành phố Cần Thơ, 94120, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-CZC1GFC2JCDTCX",
@@ -28953,8 +29028,8 @@
     "address": "142 Mậu Thân, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C752R6BZGTXHCA/hero/8a0dd82c-ccc0-491c-959b-5c2b92df1044__store_cover__2026__05__11__06__28__30.webp",
     "rating": 4.6,
-    "latitude": 10.0345,
-    "longitude": 105.761,
+    "latitude": 10.0312432,
+    "longitude": 105.7755303,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T06:04:12.725Z",
     "hasRealMenu": true,
@@ -28981,7 +29056,12 @@
     "isClosed": false,
     "menuQuality": "scraped_signals",
     "menuUpdatedAt": "2026-07-19T07:39:48.891Z",
-    "lastCrawlError": ""
+    "lastCrawlError": "",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:08:08.702Z",
+    "addressGpsQuery": "142 Mậu Thân, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "Tuyết Ngân, 142C, Mậu Thân, Phường Ninh Kiều, Thành phố Cần Thơ, 94111, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-CZBATKC3EXDESA",
@@ -29254,8 +29334,8 @@
     "address": "173 Nguyễn Trãi, Phường Ninh Kiều",
     "img": "https://huawei-food-cms.grab.com/compressed_webp/merchants/5-C7J3A4NYEATWTJ/hero/00a23b0937924634b2704e1bda70c6dc_1751946849345362945.webp",
     "rating": 3.7,
-    "latitude": 10.0345,
-    "longitude": 105.761,
+    "latitude": 10.0400664,
+    "longitude": 105.7853561,
     "source": "grabfood",
     "grabDiscoveredAt": "2026-07-19T06:11:11.054Z",
     "hasRealMenu": true,
@@ -29304,7 +29384,12 @@
     "isClosed": false,
     "lastCrawlError": "",
     "menuQuality": "scraped_signals",
-    "menuUpdatedAt": "2026-07-19T12:14:32.146Z"
+    "menuUpdatedAt": "2026-07-19T12:14:32.146Z",
+    "coordsSource": "exact",
+    "geoSource": "address",
+    "addressGpsAt": "2026-07-23T08:08:19.083Z",
+    "addressGpsQuery": "173 Nguyễn Trãi, Phường Ninh Kiều, Cần Thơ",
+    "addressGpsDisplay": "Nguyễn Trãi, Phường Ninh Kiều, Thành phố Cần Thơ, 94111, Việt Nam"
   },
   {
     "id": "r_ct_grab_5-C6TTJBBBCTUKN6",
