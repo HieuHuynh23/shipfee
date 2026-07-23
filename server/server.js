@@ -2667,29 +2667,36 @@ async function hydrateRestaurantDeltaFromSupabase() {
         const cur = cachedRestaurants[idx];
         if (row.name) cur.name = row.name;
         if (row.address != null) cur.address = row.address;
-        if (row.lat != null) cur.latitude = row.lat;
-        if (row.lon != null) cur.longitude = row.lon;
+        if (row.lat != null) cur.latitude = Number(row.lat);
+        if (row.lon != null) cur.longitude = Number(row.lon);
         cur.rating = row.rating || cur.rating || 4.5;
         if (row.image_url) cur.img = row.image_url;
         cur.isClosed = row.is_closed === true;
         cur.closedReason = row.closed_reason || '';
         cur.hasRealMenu = row.has_real_menu === true;
         if (Array.isArray(row.dish_names) && row.dish_names.length) cur.dishNames = row.dish_names;
+        if (row.lat != null && row.lon != null) {
+          cur.coordsSource = classifyRestaurantCoordsSource(cur);
+        }
         updated++;
       } else {
-        cachedRestaurants.push({
+        const addedRow = {
           id: row.id,
           name: row.name || '',
           address: row.address || '',
-          latitude: row.lat != null ? row.lat : undefined,
-          longitude: row.lon != null ? row.lon : undefined,
+          latitude: row.lat != null ? Number(row.lat) : undefined,
+          longitude: row.lon != null ? Number(row.lon) : undefined,
           rating: row.rating || 4.5,
           img: row.image_url || '',
           isClosed: row.is_closed === true,
           closedReason: row.closed_reason || '',
           hasRealMenu: row.has_real_menu === true,
           dishNames: Array.isArray(row.dish_names) ? row.dish_names : []
-        });
+        };
+        if (addedRow.latitude != null && addedRow.longitude != null) {
+          addedRow.coordsSource = classifyRestaurantCoordsSource(addedRow);
+        }
+        cachedRestaurants.push(addedRow);
         added++;
       }
     }
@@ -2968,6 +2975,66 @@ function isPlaceholderCoord(lat, lon) {
   return PLACEHOLDER_COORDS.some(([a, b]) => Math.abs(lat - a) < 1e-6 && Math.abs(lon - b) < 1e-6);
 }
 
+/** Quán có GPS từ crawl ShopeeFood/Grab (giống pin trên app Shopee) */
+function isCrawlGpsRestaurant(r) {
+  if (!r) return false;
+  const src = String(r.source || '').toLowerCase();
+  if (src.includes('shopee') || src.includes('grab')) return true;
+  if (r.sfRestaurantId != null && String(r.sfRestaurantId).trim() !== '') return true;
+  if (r.grabMerchantId != null && String(r.grabMerchantId).trim() !== '') return true;
+  return false;
+}
+
+/**
+ * Tọa độ đủ chuẩn để chỉ đường Google Maps (nav-grade).
+ * Không dùng street-centroid heuristic / placeholder / nominatim-phường.
+ */
+function isNavGradeRestaurantCoords(r) {
+  if (!r) return false;
+  const lat = Number(r.latitude);
+  const lon = Number(r.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (isPlaceholderCoord(lat, lon)) return false;
+  if (r.geoSource === 'nominatim' || r.geoSource === 'photon') return false;
+  // GPS ShopeeFood/Grab thắng cả khi từng bị gắn nhầm heuristic
+  if (isCrawlGpsRestaurant(r)) return true;
+  if (r.coordsSource === 'heuristic' || r.coordsSource === 'geocoded') return false;
+  if (r.coordsSource === 'exact') return true;
+  // Có lat/lon trong DB cào, chưa gắn cờ heuristic → coi là GPS thật
+  return r.coordsSource == null || r.coordsSource === '';
+}
+
+/** Gắn / sửa coordsSource sau khi có lat-lon (kể cả khi từng bị đánh heuristic nhầm). */
+function classifyRestaurantCoordsSource(r) {
+  if (!r) return null;
+  const lat = Number(r.latitude);
+  const lon = Number(r.longitude);
+  const hasNum = Number.isFinite(lat) && Number.isFinite(lon);
+  if (!hasNum || isPlaceholderCoord(lat, lon)) {
+    return 'heuristic';
+  }
+  if (r.geoSource === 'nominatim' || r.geoSource === 'photon') {
+    return 'geocoded';
+  }
+  // GPS crawl Shopee/Grab luôn thắng cờ heuristic cũ (bug: heuristic bị đóng băng sau khi đã có GPS thật)
+  if (isCrawlGpsRestaurant(r)) {
+    return 'exact';
+  }
+  if (r.coordsSource === 'heuristic') {
+    // Street-centroid: so khớp với ước lượng theo tên đường (KHÔNG dùng cache theo restaurantId —
+    // cache có thể đang giữ đúng lat quán → khoảng cách 0 → gắn heuristic sai).
+    const guess = geocodeAddress(r.address || '', r.name || '', null);
+    if (guess && Number.isFinite(guess.lat) && Number.isFinite(guess.lon)) {
+      const d = calcDistance(lat, lon, guess.lat, guess.lon);
+      if (Number.isFinite(d) && d < 0.2) return 'heuristic';
+    }
+    // Lệch xa centroid → có thể là GPS thật bị gắn nhầm cờ
+    return 'exact';
+  }
+  if (r.coordsSource === 'geocoded') return 'geocoded';
+  return 'exact';
+}
+
 function precomputeRestaurantCoordinates() {
   const t0 = Date.now();
   let geocoded = 0;
@@ -2980,15 +3047,9 @@ function precomputeRestaurantCoordinates() {
       Number.isFinite(r.latitude) && Number.isFinite(r.longitude);
     const isPlaceholder = hasNum && isPlaceholderCoord(r.latitude, r.longitude);
     if (hasNum && !isPlaceholder) {
-      // Geocoder (Nominatim/Photon) chỉ đạt cấp đường/phường → dùng cho khoảng cách + bản đồ,
-      // KHÔNG dùng chỉ đường Maps (nút chỉ đường dùng địa chỉ text, Google resolve chuẩn hơn).
-      if (r.geoSource === 'nominatim' || r.geoSource === 'photon') {
-        r.coordsSource = 'geocoded';
-      } else if (r.coordsSource !== 'heuristic') {
-        // GPS thật từ file cào (Grab/Shopee) hoặc đối chiếu (crossref) → nav-grade.
-        r.coordsSource = 'exact';
-        exact++;
-      }
+      r.coordsSource = classifyRestaurantCoordsSource(r);
+      if (r.coordsSource === 'exact') exact++;
+      else if (r.coordsSource === 'geocoded') geocoded++;
       geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude, source: r.coordsSource });
       continue;
     }
@@ -3001,7 +3062,7 @@ function precomputeRestaurantCoordinates() {
     if (isPlaceholder) placeholder++;
     else geocoded++;
   }
-  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic ${geocoded}, placeholder→heuristic ${placeholder}) in ${Date.now() - t0}ms`);
+  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic/geocoded ${geocoded}, placeholder→heuristic ${placeholder}) in ${Date.now() - t0}ms`);
 }
 
 /** Lấy bản ghi quán chuẩn từ DB RAM theo restaurantId */
@@ -3013,7 +3074,7 @@ function findRestaurantInCache(restaurantId) {
 /**
  * Đồng bộ địa chỉ + tọa độ quán từ DB đã cào vào đơn hàng.
  * - Luôn cập nhật restaurantAddress từ DB (địa chỉ cào chính xác)
- * - Chỉ gán lat/lon khi coordsSource === 'exact' (tránh heuristic đường phố sai)
+ * - Gán lat/lon khi tọa độ nav-grade (GPS ShopeeFood/Grab) — giống pin chỉ đường trên Shopee
  */
 function hydrateOrderRestaurantCoords(order) {
   if (!order || !order.restaurantId) return order;
@@ -3027,19 +3088,28 @@ function hydrateOrderRestaurantCoords(order) {
     order.restaurantName = String(mem.name).trim();
   }
 
-  const exact =
-    mem.coordsSource === 'exact' &&
+  // Reclassify on read — sửa quán từng bị đóng băng ở heuristic dù đã có GPS crawl
+  if (
     typeof mem.latitude === 'number' &&
     typeof mem.longitude === 'number' &&
-    Number.isFinite(mem.latitude) &&
-    Number.isFinite(mem.longitude);
+    mem.coordsSource !== 'exact'
+  ) {
+    const classified = classifyRestaurantCoordsSource(mem);
+    if (classified && classified !== mem.coordsSource) {
+      mem.coordsSource = classified;
+    }
+  }
+
+  const exact = isNavGradeRestaurantCoords(mem);
 
   if (exact) {
-    order.restaurantLat = mem.latitude;
-    order.restaurantLon = mem.longitude;
+    order.restaurantLat = Number(mem.latitude);
+    order.restaurantLon = Number(mem.longitude);
     order.restaurantCoordsExact = true;
+    order.restaurantCoordsSource = mem.coordsSource || 'exact';
   } else {
     order.restaurantCoordsExact = false;
+    order.restaurantCoordsSource = mem.coordsSource || 'heuristic';
   }
   return order;
 }
@@ -3081,6 +3151,8 @@ function toListRestaurant(r, distKm) {
     menuUpdatedAt: r.menuUpdatedAt || null,
     latitude: r.latitude,
     longitude: r.longitude,
+    coordsSource: r.coordsSource || null,
+    coordsExact: isNavGradeRestaurantCoords(r),
     distanceValue: distKm,
     distance: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`,
     time: `${estMins}-${estMins + 8} phút`,
@@ -3113,6 +3185,8 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
         coords = geocodeAddress(r.address || '', r.name || '', r.id);
         r.latitude = coords.lat;
         r.longitude = coords.lon;
+        // Đánh dấu heuristic — tránh hydrate/nav coi nhầm là GPS Shopee
+        if (r.coordsSource !== 'exact') r.coordsSource = 'heuristic';
       }
       scored.push({ idx: i, distKm: getHaversineDistance(user, coords), isClosed: !!r.isClosed });
     }
@@ -5152,14 +5226,11 @@ app.post('/api/orders', async (req, res) => {
       if (restMem.name && String(restMem.name).trim()) {
         restaurantName = String(restMem.name).trim();
       }
-      if (
-        restMem.coordsSource === 'exact' &&
-        typeof restMem.latitude === 'number' &&
-        typeof restMem.longitude === 'number'
-      ) {
+      if (isNavGradeRestaurantCoords(restMem)) {
         restLat = restMem.latitude;
         restLon = restMem.longitude;
         restaurantCoordsExact = true;
+        if (restMem.coordsSource !== 'exact') restMem.coordsSource = 'exact';
         console.log(`[Order Server] Using EXACT crawl coords for ${orderData.restaurantId}: ${restLat}, ${restLon}`);
       }
     }
@@ -5175,7 +5246,7 @@ app.post('/api/orders', async (req, res) => {
       ) {
         restLat = restMem.latitude;
         restLon = restMem.longitude;
-        restaurantCoordsExact = restMem.coordsSource === 'exact';
+        restaurantCoordsExact = isNavGradeRestaurantCoords(restMem);
         console.log(`[Order Server] Fallback DB coords for restaurant ${orderData.restaurantId}: ${restLat}, ${restLon} (${restMem.coordsSource || 'unknown'})`);
       } else {
         const coords = geocodeAddress(restaurantAddress || '', restaurantName || '', orderData.restaurantId);
@@ -5184,6 +5255,11 @@ app.post('/api/orders', async (req, res) => {
         restaurantCoordsExact = false;
         console.log(`[Order Server] Geocoded missing restaurant coordinates for "${restaurantName}": ${restLat}, ${restLon}`);
       }
+    } else if (!restaurantCoordsExact && restMem && isNavGradeRestaurantCoords(restMem)) {
+      // Client gửi tọa độ heuristic — ưu tiên GPS Shopee/Grab trong DB
+      restLat = restMem.latitude;
+      restLon = restMem.longitude;
+      restaurantCoordsExact = true;
     }
 
     const newOrder = {
