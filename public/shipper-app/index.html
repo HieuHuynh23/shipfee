@@ -447,11 +447,12 @@
               <div class="route-point">
                 <span class="point-marker from">🏪</span>
                 <div>
-                  <div class="point-label">Điểm lấy hàng (Cửa hàng)</div>
+                  <div class="point-label">Điểm lấy hàng · Quán</div>
                   <div class="point-name" id="trip-restaurant-name">—</div>
                   <div class="point-address" id="trip-restaurant-address">—</div>
-                  <button type="button" id="btn-nav-restaurant" style="display: none; margin-top: 6px; padding: 6px 10px; font-size: 11px; font-weight: 700; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.25); border-radius: var(--radius-sm); cursor: pointer; align-items: center; gap: 5px; font-family: inherit;" onclick="navigateToPoint('restaurant')">
-                    <i class="fa-solid fa-location-arrow"></i> Bản đồ chỉ đường
+                  <div class="point-nav-meta" id="trip-restaurant-nav-meta" style="display:none; margin-top:4px; font-size:10px; color:var(--clr-text-muted);"></div>
+                  <button type="button" id="btn-nav-restaurant" class="btn-nav-maps btn-nav-maps--restaurant" style="display: none;" onclick="navigateToPoint('restaurant')">
+                    <i class="fa-solid fa-store"></i> Chỉ đường đến quán
                   </button>
                 </div>
               </div>
@@ -459,12 +460,13 @@
               <div class="route-point">
                 <span class="point-marker to">🏠</span>
                 <div>
-                  <div class="point-label">Điểm giao hàng (Khách hàng)</div>
+                  <div class="point-label">Điểm giao hàng · Khách</div>
                   <div class="point-name" id="trip-customer-name">—</div>
                   <div class="point-address" id="trip-customer-address">—</div>
                   <div class="point-phone" id="trip-customer-phone">—</div>
-                  <button type="button" id="btn-nav-customer" style="display: none; margin-top: 6px; padding: 6px 10px; font-size: 11px; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); cursor: pointer; align-items: center; gap: 5px; font-family: inherit;" onclick="navigateToPoint('customer')">
-                    <i class="fa-solid fa-location-arrow"></i> Bản đồ chỉ đường
+                  <div class="point-nav-meta" id="trip-customer-nav-meta" style="display:none; margin-top:4px; font-size:10px; color:var(--clr-text-muted);"></div>
+                  <button type="button" id="btn-nav-customer" class="btn-nav-maps btn-nav-maps--customer" style="display: none;" onclick="navigateToPoint('customer')">
+                    <i class="fa-solid fa-house-user"></i> Chỉ đường đến khách
                   </button>
                 </div>
               </div>
