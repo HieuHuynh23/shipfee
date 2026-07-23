@@ -2712,3 +2712,213 @@ body.modal-open {
   }
 }
 
+/* ── PWA Install Prompt ─────────────────────────────────────────────────── */
+.pwa-install {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(76px + var(--safe-bottom));
+  z-index: 110;
+  max-width: 456px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  color: #fff;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.32);
+  transform: translateY(120%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 240ms ease;
+}
+
+.pwa-install.visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* On login / approval overlays (no tab bar), sit lower above content */
+body:has(#login-overlay.active) .pwa-install,
+body:has(#approval-overlay[style*="flex"]) .pwa-install {
+  bottom: calc(16px + var(--safe-bottom));
+  z-index: 10060;
+}
+
+.pwa-install__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  object-fit: cover;
+  background: #fff;
+}
+
+.pwa-install__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pwa-install__title {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+
+.pwa-install__sub {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.35;
+}
+
+.pwa-install__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.pwa-install__btn {
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--clr-accent);
+  color: #fff;
+  white-space: nowrap;
+  min-height: 40px;
+}
+
+.pwa-install__btn:active {
+  transform: scale(0.97);
+  background: #ea580c;
+}
+
+.pwa-install__close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pwa-install-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 12050;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+}
+
+.pwa-install-sheet.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pwa-install-sheet__panel {
+  width: 100%;
+  max-width: 480px;
+  background: var(--clr-surface);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 12px 20px calc(20px + var(--safe-bottom));
+  transform: translateY(24px);
+  transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pwa-install-sheet.open .pwa-install-sheet__panel {
+  transform: translateY(0);
+}
+
+.pwa-install-sheet__handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--clr-border);
+  margin: 0 auto 16px;
+}
+
+.pwa-install-sheet__title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--clr-text-primary);
+  margin-bottom: 6px;
+}
+
+.pwa-install-sheet__desc {
+  font-size: 13px;
+  color: var(--clr-text-secondary);
+  line-height: 1.45;
+  margin-bottom: 16px;
+}
+
+.pwa-install-sheet__steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.pwa-install-sheet__steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--clr-text-primary);
+  line-height: 1.4;
+}
+
+.pwa-install-sheet__num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.12);
+  color: #c2410c;
+  font-size: 12px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pwa-install-sheet__steps strong {
+  font-weight: 800;
+}
+
+.pwa-install-sheet__done {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--clr-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 14px 16px;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.pwa-install-sheet__done:active {
+  background: #ea580c;
+}
+
