@@ -2668,17 +2668,25 @@ async function hydrateRestaurantDeltaFromSupabase() {
         const cur = cachedRestaurants[idx];
         if (row.name) cur.name = row.name;
         if (row.address != null) cur.address = row.address;
-        if (row.lat != null) cur.latitude = Number(row.lat);
-        if (row.lon != null) cur.longitude = Number(row.lon);
+        // Không ghi đè GPS Foody/address exact bằng lat/lon cũ trên Supabase
+        const localNav =
+          isNavGradeRestaurantCoords(cur) &&
+          (cur.geoSource === 'foody' || cur.geoSource === 'address' || cur.coordsSource === 'exact');
+        if (row.lat != null && row.lon != null && !localNav) {
+          const newLat = Number(row.lat);
+          const newLon = Number(row.lon);
+          if (!isPlaceholderCoord(newLat, newLon)) {
+            cur.latitude = newLat;
+            cur.longitude = newLon;
+            cur.coordsSource = classifyRestaurantCoordsSource(cur);
+          }
+        }
         cur.rating = row.rating || cur.rating || 4.5;
         if (row.image_url) cur.img = row.image_url;
         cur.isClosed = row.is_closed === true;
         cur.closedReason = row.closed_reason || '';
         cur.hasRealMenu = row.has_real_menu === true;
         if (Array.isArray(row.dish_names) && row.dish_names.length) cur.dishNames = row.dish_names;
-        if (row.lat != null && row.lon != null) {
-          cur.coordsSource = classifyRestaurantCoordsSource(cur);
-        }
         updated++;
       } else {
         const addedRow = {
