@@ -114,9 +114,21 @@ async function apiFetch(url, options = {}, timeoutMs = 8000) {
   return fetch(url, opts);
 }
 
-// Helper to normalize phone numbers for robust matching (removes spaces)
+// Helper to normalize phone numbers for robust matching (+84/84 → 0…)
 function cleanPhone(p) {
-  return (p || '').toString().trim().replace(/\s+/g, '');
+  return (p || '').toString().trim().replace(/\s+/g, '').replace(/^\+84/, '0').replace(/^84/, '0');
+}
+
+async function refreshShipperJwtFromSession() {
+  if (!supabaseClient) return null;
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error || !session?.access_token) return null;
+    setAuthItem(AUTH_JWT_KEY, session.access_token);
+    return session.access_token;
+  } catch (_) {
+    return null;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -384,8 +396,9 @@ function openShipperRealtime() {
     shipperRealtime = new EventSource(url);
     shipperRealtime.addEventListener('connected', () => {
       shipperRealtimeActive = true;
-      // SSE sống → bỏ polling 3s, chỉ sync khi có event (+ fallback chậm)
-      schedulePolling(45000);
+      // Khi đang chạy đơn: nới poll. Khi chờ đề xuất: giữ poll nhanh (offer TTL).
+      const idleWaitingOffer = isOnline && activeOrders.length === 0;
+      schedulePolling(idleWaitingOffer ? 5000 : 45000);
       console.log('[Realtime] Shipper SSE connected');
     });
     shipperRealtime.addEventListener('order_updated', () => {
@@ -939,8 +952,12 @@ function startPolling() {
   pollBackoffActive = false;
   syncAllData();
   openShipperRealtime();
-  // Khi SSE chưa sẵn sàng: poll 3s; khi connected sẽ nới 45s
-  schedulePolling(shipperRealtimeActive ? 45000 : 3000);
+  // Chờ đề xuất: poll nhanh kể cả khi SSE đã nối (tránh miss offer)
+  const idleWaitingOffer = isOnline && activeOrders.length === 0;
+  const pollMs = idleWaitingOffer
+    ? 5000
+    : (shipperRealtimeActive ? 45000 : 3000);
+  schedulePolling(pollMs);
   startCrmSupportPolling();
 }
 
@@ -1091,6 +1108,13 @@ async function syncAllData() {
       // Badge: số đề xuất đang chờ + số đơn đang chạy
       const pendingBadge = document.getElementById('pending-count');
       if (pendingBadge) pendingBadge.textContent = String(pendingOrders.length);
+
+      // Điều chỉnh nhịp poll: chờ đề xuất → nhanh; đang chạy đơn + SSE → chậm
+      if (!pollBackoffActive && pollMode === 'all') {
+        const idleWaitingOffer = isOnline && activeOrders.length === 0;
+        const desired = idleWaitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 3000);
+        schedulePolling(desired);
+      }
     }
   } catch (err) {
     console.error('[Shipper App] Error syncing data:', err);
@@ -1801,6 +1825,35 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+function applyGpsFix(lat, lon) {
+  // Outside service area: warn but keep real GPS (never fabricate coordinates)
+  const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
+  const outsideArea = distFromCenter > 20;
+  const indicatorText = outsideArea
+    ? `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Ngoài khu vực Cần Thơ (${lat.toFixed(5)}, ${lon.toFixed(5)})`
+    : `<i class="fa-solid fa-location-crosshairs"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+
+  const now = Date.now();
+  if (now - lastGpsUiUpdate >= 1500 || indicatorText !== lastGpsIndicatorText) {
+    lastGpsUiUpdate = now;
+    lastGpsIndicatorText = indicatorText;
+    const el = document.getElementById('gps-indicator');
+    if (el) el.innerHTML = indicatorText;
+  }
+
+  if (shipperMarker) {
+    shipperMarker.setLatLng([lat, lon]);
+  }
+  if (tripMap && mapFollowGps) {
+    tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
+  }
+
+  if (now - lastGpsSendTime >= 3000) {
+    lastGpsSendTime = now;
+    sendLocationToServer(lat, lon);
+  }
+}
+
 function startGpsTracking() {
   stopGpsTracking();
   
@@ -1814,56 +1867,34 @@ function startGpsTracking() {
   if (gpsEl) gpsEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> GPS: Đang khởi động định vị...`;
   lastGpsIndicatorText = '';
   lastGpsUiUpdate = 0;
+
+  const geoOpts = {
+    enableHighAccuracy: true,
+    maximumAge: 3000,
+    // iOS Safari cold GPS regularly needs >15s on first fix
+    timeout: (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+      ? 28000
+      : 18000
+  };
+
+  // Lấy fix ngay khi vào ca — không chờ watchPosition (tránh miss đề xuất đơn đầu)
+  navigator.geolocation.getCurrentPosition(
+    (position) => applyGpsFix(position.coords.latitude, position.coords.longitude),
+    (error) => console.warn('getCurrentPosition:', error && error.message),
+    geoOpts
+  );
   
   watchPositionId = navigator.geolocation.watchPosition(
-    async (position) => {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      
-      // Outside service area: warn but keep real GPS (never fabricate coordinates)
-      const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
-      const outsideArea = distFromCenter > 20;
-      const indicatorText = outsideArea
-        ? `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Ngoài khu vực Cần Thơ (${lat.toFixed(5)}, ${lon.toFixed(5)})`
-        : `<i class="fa-solid fa-location-crosshairs"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
-
-      const now = Date.now();
-      // Throttle GPS UI updates to reduce jank
-      if (now - lastGpsUiUpdate >= 1500 || indicatorText !== lastGpsIndicatorText) {
-        lastGpsUiUpdate = now;
-        lastGpsIndicatorText = indicatorText;
-        const el = document.getElementById('gps-indicator');
-        if (el) el.innerHTML = indicatorText;
-      }
-      
-      if (shipperMarker) {
-        shipperMarker.setLatLng([lat, lon]);
-      }
-      // Only auto-follow when user hasn't panned the map
-      if (tripMap && mapFollowGps) {
-        tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
-      }
-      
-      // Gửi GPS thường xuyên hơn để app khách theo dõi vị trí thật mượt hơn
-      if (now - lastGpsSendTime >= 3000) {
-        lastGpsSendTime = now;
-        sendLocationToServer(lat, lon);
-      }
+    (position) => {
+      applyGpsFix(position.coords.latitude, position.coords.longitude);
     },
     (error) => {
       console.warn('Geolocation error:', error);
       const el = document.getElementById('gps-indicator');
       if (el) el.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color:var(--clr-danger)"></i> GPS: Không thể lấy vị trí (${escapeHtml(error.message)})`;
     },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 3000,
-      // iOS Safari cold GPS regularly needs >15s on first fix
-      timeout: (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
-        ? 28000
-        : 18000
-    }
+    geoOpts
   );
 }
 
@@ -1883,12 +1914,12 @@ async function sendLocationToServer(lat, lon) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat, lon })
-        }, 8000).catch(err => console.warn(`[GPS] Lỗi gửi đơn ${order.id}:`, err.message))
+        }, 12000).catch(err => console.warn(`[GPS] Lỗi gửi đơn ${order.id}:`, err.message))
       ));
     }
     // Vẫn cập nhật vị trí tài xế (để dispatch chọn khoảng cách)
     if (isOnline && currentDriver) {
-      await apiFetch(`${API_BASE}/api/shippers/location`, {
+      let res = await apiFetch(`${API_BASE}/api/shippers/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1898,7 +1929,36 @@ async function sendLocationToServer(lat, lon) {
           lat,
           lon
         })
-      }, 8000);
+      }, 12000);
+
+      // JWT hết hạn / lệch với Supabase session → refresh rồi gửi lại 1 lần
+      if (res && res.status === 401) {
+        const refreshed = await refreshShipperJwtFromSession();
+        if (refreshed) {
+          res = await apiFetch(`${API_BASE}/api/shippers/location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: currentDriver.phone,
+              lat,
+              lon
+            })
+          }, 12000);
+        }
+      }
+
+      if (!res || !res.ok) {
+        let detail = '';
+        try {
+          const body = await safeJson(res);
+          detail = body.error || body.code || '';
+        } catch (_) {}
+        console.warn('[GPS] Server từ chối vị trí:', res && res.status, detail);
+        const el = document.getElementById('gps-indicator');
+        if (el && detail) {
+          el.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Lỗi đồng bộ (${escapeHtml(detail)})`;
+        }
+      }
     }
   } catch (e) {
     console.warn('Không thể gửi GPS lên server:', e.message);
@@ -4129,6 +4189,15 @@ async function initSupabase() {
             setAuthItem(AUTH_JWT_KEY, session.access_token);
           }
         }).catch(e => console.warn('Lỗi lấy session shipper:', e));
+
+        // Giữ shipfee_jwt khớp khi Supabase auto-refresh — tránh GPS/API 401 âm thầm
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+          if (session?.access_token) {
+            setAuthItem(AUTH_JWT_KEY, session.access_token);
+          } else if (event === 'SIGNED_OUT') {
+            removeAuthItem(AUTH_JWT_KEY);
+          }
+        });
 
         // Update UI: hide name/phone, show email/password
         const nameGroup = document.getElementById('login-group-name');

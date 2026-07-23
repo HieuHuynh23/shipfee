@@ -11,9 +11,25 @@ CREATE TABLE IF NOT EXISTS public.shipper_profiles (
   total_earnings NUMERIC DEFAULT 0,
   acceptance_rate NUMERIC DEFAULT 100,
   completion_rate NUMERIC DEFAULT 100,
+  is_approved BOOLEAN DEFAULT true,
+  assistance_requested BOOLEAN DEFAULT false,
+  assistance_limit_today INTEGER DEFAULT 0,
+  last_assistance_date TEXT,
+  last_lat DOUBLE PRECISION,
+  last_lon DOUBLE PRECISION,
+  last_location_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration an toàn cho DB đã tạo trước đó (thiếu cột → lỗi sync SOS / CRM)
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT true;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS assistance_requested BOOLEAN DEFAULT false;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS assistance_limit_today INTEGER DEFAULT 0;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_assistance_date TEXT;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_lat DOUBLE PRECISION;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_lon DOUBLE PRECISION;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_location_at TIMESTAMPTZ;
 
 -- Bật Row Level Security
 ALTER TABLE public.shipper_profiles ENABLE ROW LEVEL SECURITY;
