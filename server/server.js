@@ -26,6 +26,7 @@ const { analyzeMenuQuality, applyMenuFlags } = require('./menuQuality');
 const crm = require('./crmHelpers');
 const realtimeHub = require('./realtimeHub');
 const demoOrders = require('./demoOrders');
+const foodyGps = require('./foodyGps');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -795,6 +796,40 @@ function notifyCrmAndTelegram(type, restaurantId, restaurantName, title, message
 }
 
 // Middleware: Authenticate Shipper via Supabase JWT
+// Cache ngắn hạn — GPS ping ~3s; tránh gọi supabase.auth.getUser mỗi request (timeout → mất vị trí → không dispatch)
+const SHIPPER_AUTH_CACHE_TTL_MS = 2 * 60 * 1000;
+const shipperAuthCache = new Map();
+
+function getCachedShipperAuth(token) {
+  const hit = shipperAuthCache.get(token);
+  if (!hit) return null;
+  if (hit.exp <= Date.now()) {
+    shipperAuthCache.delete(token);
+    return null;
+  }
+  return hit;
+}
+
+function setCachedShipperAuth(token, payload) {
+  if (shipperAuthCache.size > 300) {
+    const oldest = shipperAuthCache.keys().next().value;
+    shipperAuthCache.delete(oldest);
+  }
+  shipperAuthCache.set(token, { ...payload, exp: Date.now() + SHIPPER_AUTH_CACHE_TTL_MS });
+}
+
+function resolveShipperFromAuthUser(user) {
+  const shippers = readShippersDatabase();
+  const userPhone = normalizeShipperPhone(user.phone || user.user_metadata?.phone || '');
+  const shipper = shippers.find(s =>
+    normalizeShipperPhone(s.phone) === userPhone || s.id === user.id
+  ) || null;
+  const shipperPhone = shipper
+    ? normalizeShipperPhone(shipper.phone)
+    : userPhone;
+  return { shipper, shipperPhone };
+}
+
 async function authenticateShipper(req, res, next) {
   try {
     if (!supabase) {
@@ -805,25 +840,34 @@ async function authenticateShipper(req, res, next) {
       return res.status(401).json({ success: false, error: 'Thiếu hoặc sai token xác thực Bearer!' });
     }
     const token = authHeader.split(' ')[1];
+
+    const cached = getCachedShipperAuth(token);
+    if (cached) {
+      // Re-read local profile (approval/status) without hitting Supabase Auth
+      const fresh = resolveShipperFromAuthUser(cached.user);
+      if (fresh.shipper && fresh.shipper.isApproved === false) {
+        return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
+      }
+      req.user = cached.user;
+      req.shipper = fresh.shipper;
+      req.shipperPhone = fresh.shipperPhone;
+      return next();
+    }
+
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (error || !user) {
       return res.status(401).json({ success: false, error: 'Token không hợp lệ hoặc đã hết hạn!' });
     }
 
-    // Kiểm tra xem shipper đã được duyệt tài khoản chưa
-    const shippers = readShippersDatabase();
-    const userPhone = (user.phone || user.user_metadata?.phone || '').trim().replace(/\s+/g, '');
-    const shipper = shippers.find(s => s.phone.trim().replace(/\s+/g, '') === userPhone || s.id === user.id);
-    
+    const { shipper, shipperPhone } = resolveShipperFromAuthUser(user);
     if (shipper && shipper.isApproved === false) {
       return res.status(403).json({ success: false, error: 'PENDING_APPROVAL', message: 'Tài khoản của bạn đang chờ Admin phê duyệt!' });
     }
 
+    setCachedShipperAuth(token, { user });
     req.user = user;
-    req.shipper = shipper || null;
-    req.shipperPhone = shipper
-      ? shipper.phone.trim().replace(/\s+/g, '')
-      : userPhone;
+    req.shipper = shipper;
+    req.shipperPhone = shipperPhone;
     next();
   } catch (e) {
     res.status(500).json({ success: false, error: 'Lỗi xác thực Shipper: ' + e.message });
@@ -831,7 +875,8 @@ async function authenticateShipper(req, res, next) {
 }
 
 function cleanPhone(phone) {
-  return (phone || '').trim().replace(/\s+/g, '');
+  // Chuẩn hóa +84/84 → 0… để khớp Map GPS / dispatch / JWT metadata
+  return normalizeShipperPhone(phone);
 }
 
 /** Cần Thơ service center — reject GPS spoofing far outside city */
@@ -935,7 +980,9 @@ const MAX_ACTIVE_ORDERS_PER_SHIPPER = 2; // tối thiểu 1, tối đa 2 đơn �
 const BATCH_NEAR_RESTAURANT1_KM = 2;
 const BATCH_NEAR_CUSTOMER1_KM = 2;
 const BATCH_DELIVERY_CLUSTER_KM = 2;
-const OFFER_TTL_MS = 30000;
+const OFFER_TTL_MS = 90000; // đủ dài khi SSE nới poll; vẫn re-dispatch qua processExpiredOffers
+const GPS_FRESH_MS = 120000;
+const GPS_STALE_OK_MS = 12 * 60 * 1000; // chấp nhận GPS gần đây khi không còn ping tươi
 
 function getShipperActiveOrders(phone, orders = null) {
   const cleaned = cleanPhone(phone);
@@ -1518,16 +1565,43 @@ function escapeCsvCell(val) {
 }
 
 function calcDistance(lat1, lon1, lat2, lon2) {
-  if (lat1 === null || lon1 === null || lat2 === null || lon2 === null) return Infinity;
+  if (
+    lat1 == null || lon1 == null || lat2 == null || lon2 == null ||
+    !Number.isFinite(Number(lat1)) || !Number.isFinite(Number(lon1)) ||
+    !Number.isFinite(Number(lat2)) || !Number.isFinite(Number(lon2))
+  ) {
+    return Infinity;
+  }
   const R = 6371; // Earth radius in km
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
+  const dLat = (Number(lat2) - Number(lat1)) * Math.PI / 180;
+  const dLon = (Number(lon2) - Number(lon1)) * Math.PI / 180;
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.cos(Number(lat1) * Math.PI / 180) * Math.cos(Number(lat2) * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+}
+
+/** Lấy tọa độ dispatch: GPS tươi → GPS gần đây trong Map → lastLat/lastLon đã persist */
+function resolveShipperDispatchLocation(shipper, cleanedPhone, now = Date.now()) {
+  const loc = onlineShipperLocations.get(cleanedPhone);
+  if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
+    const age = now - (loc.lastSeen || 0);
+    if (age <= GPS_FRESH_MS) {
+      return { lat: loc.lat, lon: loc.lon, ageMs: age, source: 'live' };
+    }
+    if (age <= GPS_STALE_OK_MS) {
+      return { lat: loc.lat, lon: loc.lon, ageMs: age, source: 'memory-stale' };
+    }
+  }
+  const lastLat = Number(shipper.lastLat);
+  const lastLon = Number(shipper.lastLon);
+  const lastAt = Number(shipper.lastLocationAt) || 0;
+  if (Number.isFinite(lastLat) && Number.isFinite(lastLon) && lastAt && (now - lastAt) <= GPS_STALE_OK_MS) {
+    return { lat: lastLat, lon: lastLon, ageMs: now - lastAt, source: 'persisted' };
+  }
+  return null;
 }
 
 function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShippers = [], candidateOrder = null) {
@@ -1546,7 +1620,7 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       pinnedLon: null
     };
 
-    // 🆘 ƯU TIÊN 1: SOS (còn chỗ nhận thêm đơn)
+    // 🆘 ƯU TIÊN 1: SOS (còn chỗ nhận thêm đơn) — không bắt buộc GPS tươi
     let assistanceShipper = null;
     let minAssistanceDist = Infinity;
     for (const s of onlineShippers) {
@@ -1554,9 +1628,9 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       if (cleanDeclined.includes(cleanedPhone)) continue;
       if (getShipperActiveOrderCount(cleanedPhone, orders) >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
       if (s.assistanceRequested !== true) continue;
-      const loc = onlineShipperLocations.get(cleanedPhone);
-      const dist = (loc && now - loc.lastSeen <= 120000)
-        ? calcDistance(restaurantLat, restaurantLon, loc.lat, loc.lon)
+      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
+      const dist = resolved
+        ? calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon)
         : 0;
       if (dist < minAssistanceDist) {
         minAssistanceDist = dist;
@@ -1575,7 +1649,7 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       return assistanceShipper;
     }
 
-    // 🚴 ƯU TIÊN 2: rảnh / ghép đơn theo giai đoạn / gần quán
+    // 🚴 ƯU TIÊN 2: GPS tươi — rảnh / ghép đơn theo giai đoạn / gần quán
     let bestShipper = null;
     let bestScore = Infinity;
     for (const s of onlineShippers) {
@@ -1583,10 +1657,10 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
       if (cleanDeclined.includes(cleanedPhone)) continue;
       const activeOrders = getShipperActiveOrders(cleanedPhone, orders);
       if (activeOrders.length >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
-      const loc = onlineShipperLocations.get(cleanedPhone);
-      if (!loc || now - loc.lastSeen > 120000) continue;
+      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
+      if (!resolved || resolved.source !== 'live') continue;
 
-      const distToRestaurant = calcDistance(restaurantLat, restaurantLon, loc.lat, loc.lon);
+      const distToRestaurant = calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon);
       let score = distToRestaurant;
       let batchCompatible = false;
       let batchReason = 'IDLE';
@@ -1599,7 +1673,7 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
           console.log(`[Batch Dispatch] 📦 ${s.name} status=${activeOrders[0].status} reason=${batch.reason} score=${score.toFixed(2)}`);
         }
       }
-      if (score < bestScore) {
+      if (Number.isFinite(score) && score < bestScore) {
         bestScore = score;
         bestShipper = {
           phone: s.phone,
@@ -1608,7 +1682,8 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
           activeLoad: activeOrders.length,
           batchCompatible,
           batchReason,
-          score
+          score,
+          locSource: resolved.source
         };
       }
     }
@@ -1617,8 +1692,61 @@ function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShipp
         ? `GHÉP ĐƠN:${bestShipper.batchReason}`
         : (bestShipper.activeLoad === 0 ? 'ĐƠN LẺ' : 'LOAD+1');
       console.log(`[Dispatch] 🎯 Chọn ${bestShipper.name} (${bestShipper.phone}) [${tag}] dist=${bestShipper.distance.toFixed(2)}km score=${bestScore.toFixed(2)}`);
+      return bestShipper;
     }
-    return bestShipper;
+
+    // 🛟 ƯU TIÊN 3: GPS stale / persisted / hoặc ONLINE không có GPS
+    // Tránh kẹt đơn khi ping GPS lỗi (Supabase auth chậm) — tài xế duy nhất vẫn nhận đề xuất
+    let fallbackShipper = null;
+    let fallbackScore = Infinity;
+    for (const s of onlineShippers) {
+      const cleanedPhone = cleanPhone(s.phone);
+      if (cleanDeclined.includes(cleanedPhone)) continue;
+      const activeOrders = getShipperActiveOrders(cleanedPhone, orders);
+      if (activeOrders.length >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
+
+      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
+      let distToRestaurant = 25; // không có GPS: vẫn đề xuất (điểm phạt), không bỏ qua
+      let locSource = 'online-no-gps';
+      if (resolved) {
+        distToRestaurant = calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon);
+        if (!Number.isFinite(distToRestaurant)) distToRestaurant = 25;
+        locSource = resolved.source;
+      }
+
+      let score = distToRestaurant + (resolved ? 2 : 8); // ưu tiên có GPS cũ hơn không có
+      let batchCompatible = false;
+      let batchReason = 'FALLBACK';
+      if (activeOrders.length === 1 && resolved) {
+        const batch = scoreBatchCandidate(activeOrders[0], orderHint, distToRestaurant);
+        score = batch.score + 3;
+        batchCompatible = batch.batchCompatible;
+        batchReason = `FALLBACK:${batch.reason}`;
+      }
+      if (Number.isFinite(score) && score < fallbackScore) {
+        fallbackScore = score;
+        fallbackShipper = {
+          phone: s.phone,
+          name: s.name,
+          distance: distToRestaurant,
+          activeLoad: activeOrders.length,
+          batchCompatible,
+          batchReason,
+          score,
+          locSource
+        };
+      }
+    }
+    if (fallbackShipper) {
+      console.log(
+        `[Dispatch] 🛟 Fallback gán ${fallbackShipper.name} (${fallbackShipper.phone}) ` +
+        `source=${fallbackShipper.locSource} dist=${fallbackShipper.distance.toFixed(2)}km ` +
+        `(không có GPS tươi — tránh bắt bấm SOS)`
+      );
+    } else {
+      console.log('[Dispatch] ⚠️ Không có tài xế ONLINE khả dụng (kể cả fallback)');
+    }
+    return fallbackShipper;
   } catch (e) {
     console.error('[Dispatch Error] findNearestAvailableShipper:', e.message);
     return null;
@@ -2540,29 +2668,36 @@ async function hydrateRestaurantDeltaFromSupabase() {
         const cur = cachedRestaurants[idx];
         if (row.name) cur.name = row.name;
         if (row.address != null) cur.address = row.address;
-        if (row.lat != null) cur.latitude = row.lat;
-        if (row.lon != null) cur.longitude = row.lon;
+        if (row.lat != null) cur.latitude = Number(row.lat);
+        if (row.lon != null) cur.longitude = Number(row.lon);
         cur.rating = row.rating || cur.rating || 4.5;
         if (row.image_url) cur.img = row.image_url;
         cur.isClosed = row.is_closed === true;
         cur.closedReason = row.closed_reason || '';
         cur.hasRealMenu = row.has_real_menu === true;
         if (Array.isArray(row.dish_names) && row.dish_names.length) cur.dishNames = row.dish_names;
+        if (row.lat != null && row.lon != null) {
+          cur.coordsSource = classifyRestaurantCoordsSource(cur);
+        }
         updated++;
       } else {
-        cachedRestaurants.push({
+        const addedRow = {
           id: row.id,
           name: row.name || '',
           address: row.address || '',
-          latitude: row.lat != null ? row.lat : undefined,
-          longitude: row.lon != null ? row.lon : undefined,
+          latitude: row.lat != null ? Number(row.lat) : undefined,
+          longitude: row.lon != null ? Number(row.lon) : undefined,
           rating: row.rating || 4.5,
           img: row.image_url || '',
           isClosed: row.is_closed === true,
           closedReason: row.closed_reason || '',
           hasRealMenu: row.has_real_menu === true,
           dishNames: Array.isArray(row.dish_names) ? row.dish_names : []
-        });
+        };
+        if (addedRow.latitude != null && addedRow.longitude != null) {
+          addedRow.coordsSource = classifyRestaurantCoordsSource(addedRow);
+        }
+        cachedRestaurants.push(addedRow);
         added++;
       }
     }
@@ -2841,6 +2976,67 @@ function isPlaceholderCoord(lat, lon) {
   return PLACEHOLDER_COORDS.some(([a, b]) => Math.abs(lat - a) < 1e-6 && Math.abs(lon - b) < 1e-6);
 }
 
+/** Quán có GPS từ crawl ShopeeFood/Grab (giống pin trên app Shopee) */
+function isCrawlGpsRestaurant(r) {
+  if (!r) return false;
+  const src = String(r.source || '').toLowerCase();
+  if (src.includes('shopee') || src.includes('grab') || src.includes('foody')) return true;
+  if (r.geoSource === 'foody') return true;
+  if (r.sfRestaurantId != null && String(r.sfRestaurantId).trim() !== '') return true;
+  if (r.grabMerchantId != null && String(r.grabMerchantId).trim() !== '') return true;
+  return false;
+}
+
+/**
+ * Tọa độ đủ chuẩn để chỉ đường Google Maps (nav-grade).
+ * Không dùng street-centroid heuristic / placeholder / nominatim-phường.
+ */
+function isNavGradeRestaurantCoords(r) {
+  if (!r) return false;
+  const lat = Number(r.latitude);
+  const lon = Number(r.longitude);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (isPlaceholderCoord(lat, lon)) return false;
+  if (r.geoSource === 'nominatim' || r.geoSource === 'photon') return false;
+  // GPS ShopeeFood/Grab thắng cả khi từng bị gắn nhầm heuristic
+  if (isCrawlGpsRestaurant(r)) return true;
+  if (r.coordsSource === 'heuristic' || r.coordsSource === 'geocoded') return false;
+  if (r.coordsSource === 'exact') return true;
+  // Có lat/lon trong DB cào, chưa gắn cờ heuristic → coi là GPS thật
+  return r.coordsSource == null || r.coordsSource === '';
+}
+
+/** Gắn / sửa coordsSource sau khi có lat-lon (kể cả khi từng bị đánh heuristic nhầm). */
+function classifyRestaurantCoordsSource(r) {
+  if (!r) return null;
+  const lat = Number(r.latitude);
+  const lon = Number(r.longitude);
+  const hasNum = Number.isFinite(lat) && Number.isFinite(lon);
+  if (!hasNum || isPlaceholderCoord(lat, lon)) {
+    return 'heuristic';
+  }
+  if (r.geoSource === 'nominatim' || r.geoSource === 'photon') {
+    return 'geocoded';
+  }
+  // GPS crawl Shopee/Grab luôn thắng cờ heuristic cũ (bug: heuristic bị đóng băng sau khi đã có GPS thật)
+  if (isCrawlGpsRestaurant(r)) {
+    return 'exact';
+  }
+  if (r.coordsSource === 'heuristic') {
+    // Street-centroid: so khớp với ước lượng theo tên đường (KHÔNG dùng cache theo restaurantId —
+    // cache có thể đang giữ đúng lat quán → khoảng cách 0 → gắn heuristic sai).
+    const guess = geocodeAddress(r.address || '', r.name || '', null);
+    if (guess && Number.isFinite(guess.lat) && Number.isFinite(guess.lon)) {
+      const d = calcDistance(lat, lon, guess.lat, guess.lon);
+      if (Number.isFinite(d) && d < 0.2) return 'heuristic';
+    }
+    // Lệch xa centroid → có thể là GPS thật bị gắn nhầm cờ
+    return 'exact';
+  }
+  if (r.coordsSource === 'geocoded') return 'geocoded';
+  return 'exact';
+}
+
 function precomputeRestaurantCoordinates() {
   const t0 = Date.now();
   let geocoded = 0;
@@ -2853,15 +3049,9 @@ function precomputeRestaurantCoordinates() {
       Number.isFinite(r.latitude) && Number.isFinite(r.longitude);
     const isPlaceholder = hasNum && isPlaceholderCoord(r.latitude, r.longitude);
     if (hasNum && !isPlaceholder) {
-      // Geocoder (Nominatim/Photon) chỉ đạt cấp đường/phường → dùng cho khoảng cách + bản đồ,
-      // KHÔNG dùng chỉ đường Maps (nút chỉ đường dùng địa chỉ text, Google resolve chuẩn hơn).
-      if (r.geoSource === 'nominatim' || r.geoSource === 'photon') {
-        r.coordsSource = 'geocoded';
-      } else if (r.coordsSource !== 'heuristic') {
-        // GPS thật từ file cào (Grab/Shopee) hoặc đối chiếu (crossref) → nav-grade.
-        r.coordsSource = 'exact';
-        exact++;
-      }
+      r.coordsSource = classifyRestaurantCoordsSource(r);
+      if (r.coordsSource === 'exact') exact++;
+      else if (r.coordsSource === 'geocoded') geocoded++;
       geocodeCache.set(String(r.id), { lat: r.latitude, lon: r.longitude, source: r.coordsSource });
       continue;
     }
@@ -2874,7 +3064,7 @@ function precomputeRestaurantCoordinates() {
     if (isPlaceholder) placeholder++;
     else geocoded++;
   }
-  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic ${geocoded}, placeholder→heuristic ${placeholder}) in ${Date.now() - t0}ms`);
+  console.log(`[Geo] ✅ Coords ready for ${cachedRestaurants.length} restaurants (exact ${exact}, heuristic/geocoded ${geocoded}, placeholder→heuristic ${placeholder}) in ${Date.now() - t0}ms`);
 }
 
 /** Lấy bản ghi quán chuẩn từ DB RAM theo restaurantId */
@@ -2886,7 +3076,7 @@ function findRestaurantInCache(restaurantId) {
 /**
  * Đồng bộ địa chỉ + tọa độ quán từ DB đã cào vào đơn hàng.
  * - Luôn cập nhật restaurantAddress từ DB (địa chỉ cào chính xác)
- * - Chỉ gán lat/lon khi coordsSource === 'exact' (tránh heuristic đường phố sai)
+ * - Gán lat/lon khi tọa độ nav-grade (GPS ShopeeFood/Grab) — giống pin chỉ đường trên Shopee
  */
 function hydrateOrderRestaurantCoords(order) {
   if (!order || !order.restaurantId) return order;
@@ -2900,21 +3090,119 @@ function hydrateOrderRestaurantCoords(order) {
     order.restaurantName = String(mem.name).trim();
   }
 
-  const exact =
-    mem.coordsSource === 'exact' &&
+  // Reclassify on read — sửa quán từng bị đóng băng ở heuristic dù đã có GPS crawl
+  if (
     typeof mem.latitude === 'number' &&
     typeof mem.longitude === 'number' &&
-    Number.isFinite(mem.latitude) &&
-    Number.isFinite(mem.longitude);
+    mem.coordsSource !== 'exact'
+  ) {
+    const classified = classifyRestaurantCoordsSource(mem);
+    if (classified && classified !== mem.coordsSource) {
+      mem.coordsSource = classified;
+    }
+  }
+
+  const exact = isNavGradeRestaurantCoords(mem);
 
   if (exact) {
-    order.restaurantLat = mem.latitude;
-    order.restaurantLon = mem.longitude;
+    order.restaurantLat = Number(mem.latitude);
+    order.restaurantLon = Number(mem.longitude);
     order.restaurantCoordsExact = true;
+    order.restaurantCoordsSource = mem.coordsSource || 'exact';
   } else {
     order.restaurantCoordsExact = false;
+    order.restaurantCoordsSource = mem.coordsSource || 'heuristic';
   }
   return order;
+}
+
+/** Dedup in-flight Foody GPS fetches (tránh spam khi nhiều đơn cùng quán) */
+const foodyGpsInflight = new Map();
+
+function applyFoodyGpsToRestaurant(restaurant, gps) {
+  if (!restaurant || !gps) return restaurant;
+  restaurant.latitude = Number(gps.lat);
+  restaurant.longitude = Number(gps.lon);
+  restaurant.coordsSource = 'exact';
+  restaurant.geoSource = 'foody';
+  restaurant.foodyGpsAt = new Date().toISOString();
+  if (gps.slug) restaurant.foodySlug = gps.slug;
+  else if (!restaurant.foodySlug) {
+    restaurant.foodySlug = foodyGps.resolveFoodySlugFromRestaurant(restaurant) || undefined;
+  }
+  if (!restaurant.source) restaurant.source = 'foody-gps';
+  try {
+    geocodeCache.set(String(restaurant.id), {
+      lat: restaurant.latitude,
+      lon: restaurant.longitude,
+      source: 'exact'
+    });
+  } catch (_) {}
+  return restaurant;
+}
+
+/**
+ * Đối chiếu GPS Foody khi quán chưa có tọa độ nav-grade.
+ * Persist vào chunk + cập nhật RAM cache.
+ */
+async function ensureRestaurantNavGps(restaurant, opts = {}) {
+  if (!restaurant || !restaurant.id) return restaurant;
+  if (isNavGradeRestaurantCoords(restaurant) && !opts.force) return restaurant;
+
+  const slug = foodyGps.resolveFoodySlugFromRestaurant(restaurant);
+  if (!slug) return restaurant;
+
+  const key = String(restaurant.id);
+  if (foodyGpsInflight.has(key)) {
+    try {
+      await foodyGpsInflight.get(key);
+    } catch (_) {}
+    return findRestaurantInCache(restaurant.id) || restaurant;
+  }
+
+  const job = (async () => {
+    const gps = await foodyGps.fetchFoodyGpsBySlug(slug, { timeoutMs: opts.timeoutMs || 10000 });
+    if (!gps) {
+      console.warn(`[Foody GPS] Không đối chiếu được GPS cho ${restaurant.id} slug=${slug}`);
+      return null;
+    }
+    const mem = findRestaurantInCache(restaurant.id) || restaurant;
+    applyFoodyGpsToRestaurant(mem, { ...gps, slug });
+    try {
+      dbHelper.updateRestaurant({ ...mem, menu: undefined });
+    } catch (e) {
+      console.warn(`[Foody GPS] Lỗi ghi chunk ${mem.id}:`, e.message);
+    }
+    try { nearbyListCache.clear(); } catch (_) {}
+    console.log(`[Foody GPS] ✓ ${mem.name || mem.id} → ${mem.latitude},${mem.longitude}`);
+    return mem;
+  })();
+
+  foodyGpsInflight.set(key, job);
+  try {
+    await job;
+  } finally {
+    foodyGpsInflight.delete(key);
+  }
+  return findRestaurantInCache(restaurant.id) || restaurant;
+}
+
+async function ensureOrdersRestaurantNavGps(orders, { concurrency = 3 } = {}) {
+  const list = Array.isArray(orders) ? orders : [];
+  const ids = [...new Set(list.map(o => o && o.restaurantId).filter(Boolean).map(String))];
+  if (ids.length === 0) return;
+  let i = 0;
+  async function worker() {
+    while (i < ids.length) {
+      const id = ids[i++];
+      const mem = findRestaurantInCache(id);
+      if (!mem) continue;
+      try {
+        await ensureRestaurantNavGps(mem);
+      } catch (_) {}
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, () => worker()));
 }
 
 function normalizeUserCoords(lat, lon) {
@@ -2954,6 +3242,8 @@ function toListRestaurant(r, distKm) {
     menuUpdatedAt: r.menuUpdatedAt || null,
     latitude: r.latitude,
     longitude: r.longitude,
+    coordsSource: r.coordsSource || null,
+    coordsExact: isNavGradeRestaurantCoords(r),
     distanceValue: distKm,
     distance: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`,
     time: `${estMins}-${estMins + 8} phút`,
@@ -2986,6 +3276,8 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
         coords = geocodeAddress(r.address || '', r.name || '', r.id);
         r.latitude = coords.lat;
         r.longitude = coords.lon;
+        // Đánh dấu heuristic — tránh hydrate/nav coi nhầm là GPS Shopee
+        if (r.coordsSource !== 'exact') r.coordsSource = 'heuristic';
       }
       scored.push({ idx: i, distKm: getHaversineDistance(user, coords), isClosed: !!r.isClosed });
     }
@@ -5025,14 +5317,11 @@ app.post('/api/orders', async (req, res) => {
       if (restMem.name && String(restMem.name).trim()) {
         restaurantName = String(restMem.name).trim();
       }
-      if (
-        restMem.coordsSource === 'exact' &&
-        typeof restMem.latitude === 'number' &&
-        typeof restMem.longitude === 'number'
-      ) {
+      if (isNavGradeRestaurantCoords(restMem)) {
         restLat = restMem.latitude;
         restLon = restMem.longitude;
         restaurantCoordsExact = true;
+        if (restMem.coordsSource !== 'exact') restMem.coordsSource = 'exact';
         console.log(`[Order Server] Using EXACT crawl coords for ${orderData.restaurantId}: ${restLat}, ${restLon}`);
       }
     }
@@ -5048,7 +5337,7 @@ app.post('/api/orders', async (req, res) => {
       ) {
         restLat = restMem.latitude;
         restLon = restMem.longitude;
-        restaurantCoordsExact = restMem.coordsSource === 'exact';
+        restaurantCoordsExact = isNavGradeRestaurantCoords(restMem);
         console.log(`[Order Server] Fallback DB coords for restaurant ${orderData.restaurantId}: ${restLat}, ${restLon} (${restMem.coordsSource || 'unknown'})`);
       } else {
         const coords = geocodeAddress(restaurantAddress || '', restaurantName || '', orderData.restaurantId);
@@ -5057,6 +5346,11 @@ app.post('/api/orders', async (req, res) => {
         restaurantCoordsExact = false;
         console.log(`[Order Server] Geocoded missing restaurant coordinates for "${restaurantName}": ${restLat}, ${restLon}`);
       }
+    } else if (!restaurantCoordsExact && restMem && isNavGradeRestaurantCoords(restMem)) {
+      // Client gửi tọa độ heuristic — ưu tiên GPS Shopee/Grab trong DB
+      restLat = restMem.latitude;
+      restLon = restMem.longitude;
+      restaurantCoordsExact = true;
     }
 
     const newOrder = {
@@ -5155,6 +5449,21 @@ app.post('/api/orders', async (req, res) => {
     }
 
     // Find nearest available shipper for targeted dispatch
+    // Đối chiếu GPS Foody trước khi gán (để shipper chỉ đường đúng)
+    if (restMem) {
+      try {
+        await ensureRestaurantNavGps(restMem);
+        if (isNavGradeRestaurantCoords(restMem)) {
+          newOrder.restaurantLat = restMem.latitude;
+          newOrder.restaurantLon = restMem.longitude;
+          newOrder.restaurantCoordsExact = true;
+          newOrder.restaurantCoordsSource = restMem.coordsSource || 'exact';
+        }
+      } catch (e) {
+        console.warn('[Foody GPS] ensure trước dispatch thất bại:', e.message);
+      }
+    }
+
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, [], newOrder);
     if (nearest) {
       if (nearest.isAssisted === true) {
@@ -5180,7 +5489,10 @@ app.post('/api/orders', async (req, res) => {
               .from('shipper_profiles')
               .update({ assistance_requested: false })
               .eq('id', targetS.id)
-              .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+              .then(({ error }) => {
+                if (error) console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', error.message);
+              })
+              .catch(err => console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', err.message));
           }
         }
         console.log(`[SOS Dispatch] ⚡ Đơn ${newOrder.id} đã được TỰ ĐỘNG NHẬN cho tài xế SOS: ${nearest.name} (${nearest.phone})`);
@@ -5257,6 +5569,10 @@ app.get('/api/orders', async (req, res) => {
         }
         return cleanPhone(o.shipperPhone) === cleanInputPhone;
       });
+      // Đối chiếu GPS Foody cho các quán trong đơn shipper đang xem (chỉ đường)
+      try {
+        await ensureOrdersRestaurantNavGps(resultData, { concurrency: 2 });
+      } catch (_) {}
     }
 
     res.json({ success: true, data: enrichOrdersWithShipperAvatar(hydrateOrdersRestaurantCoords(resultData), req) });
@@ -5269,7 +5585,7 @@ app.get('/api/orders', async (req, res) => {
  * GET /api/orders/:id
  * Lấy thông tin chi tiết một đơn hàng kèm tọa độ shipper hiện tại
  */
-app.get('/api/orders/:id', (req, res) => {
+app.get('/api/orders/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const orders = readOrdersDatabase();
@@ -5277,6 +5593,10 @@ app.get('/api/orders/:id', (req, res) => {
     if (!order) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
+    try {
+      const mem = findRestaurantInCache(order.restaurantId);
+      if (mem) await ensureRestaurantNavGps(mem);
+    } catch (_) {}
     // Nếu đơn chưa có GPS gắn sẵn, fallback vị trí live của tài xế đang online
     const payload = { ...order };
     const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
@@ -5389,7 +5709,10 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
             .from('shipper_profiles')
             .update({ assistance_requested: false })
             .eq('id', shippersDb[sIdx].id)
-            .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+            .then(({ error }) => {
+              if (error) console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', error.message);
+            })
+            .catch(err => console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', err.message));
         }
       }
     } catch (err) {
@@ -5516,12 +5839,24 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
 
     // Mirror into dispatch map only when still inside service area
     if (isShipperGpsInServiceArea(lat, lon)) {
+      const nowMs = Date.now();
       onlineShipperLocations.set(authPhone, {
         lat,
         lon,
-        lastSeen: Date.now(),
+        lastSeen: nowMs,
         ip: getClientIp(req) || null
       });
+      const shippersDb = readShippersDatabase();
+      const sIdx = shippersDb.findIndex(s => cleanPhone(s.phone) === authPhone);
+      if (sIdx !== -1) {
+        const prevAt = Number(shippersDb[sIdx].lastLocationAt) || 0;
+        if (!prevAt || (nowMs - prevAt) >= 20000) {
+          shippersDb[sIdx].lastLat = lat;
+          shippersDb[sIdx].lastLon = lon;
+          shippersDb[sIdx].lastLocationAt = nowMs;
+          writeShippersDatabase(shippersDb);
+        }
+      }
     }
 
     res.json({ success: true, data: updatedOrder });
@@ -6038,13 +6373,26 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
       });
     }
 
+    const nowMs = Date.now();
     onlineShipperLocations.set(cleanedPhone, {
       lat,
       lon,
       accuracy: Number.isFinite(accuracy) ? accuracy : null,
-      lastSeen: Date.now(),
+      lastSeen: nowMs,
       ip: clientIp || null
     });
+
+    // Persist GPS thưa (sống qua restart Render) — dùng cho dispatch fallback
+    const prevAt = Number(shipper.lastLocationAt) || 0;
+    if (!prevAt || (nowMs - prevAt) >= 20000) {
+      const idx = shippers.findIndex(s => cleanPhone(s.phone) === cleanedPhone);
+      if (idx !== -1) {
+        shippers[idx].lastLat = lat;
+        shippers[idx].lastLon = lon;
+        shippers[idx].lastLocationAt = nowMs;
+        writeShippersDatabase(shippers);
+      }
+    }
 
     res.json({ success: true });
   } catch (e) {
@@ -6146,10 +6494,10 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
 
     console.log(`[Order Assistance] 🆘 Shipper ${shipper.name} (${shipper.phone}) yêu cầu hỗ trợ tìm đơn. Lượt dùng: ${shipper.assistanceLimitToday}/3`);
 
-    // Đồng bộ lên Supabase nếu có
+    // Đồng bộ lên Supabase nếu có (cột assistance_* — không chặn luồng local nếu schema thiếu)
     if (supabase && shipper.id) {
       try {
-        await supabase
+        const { error: assistErr } = await supabase
           .from('shipper_profiles')
           .update({
             assistance_limit_today: shipper.assistanceLimitToday,
@@ -6157,8 +6505,11 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
             assistance_requested: true
           })
           .eq('id', shipper.id);
+        if (assistErr) {
+          console.warn('[Supabase Sync] Bỏ qua sync SOS (kiểm tra cột assistance_*):', assistErr.message);
+        }
       } catch (err) {
-        console.error('[Supabase Sync Error] Lỗi đồng bộ yêu cầu hỗ trợ:', err.message);
+        console.warn('[Supabase Sync] Lỗi đồng bộ yêu cầu hỗ trợ:', err.message);
       }
     }
 
@@ -6198,7 +6549,10 @@ app.post('/api/shippers/request-assistance', authenticateShipper, async (req, re
           .from('shipper_profiles')
           .update({ assistance_requested: false })
           .eq('id', shipper.id)
-          .catch(err => console.error('[Supabase Sync Error] Lỗi dọn cờ hỗ trợ:', err.message));
+          .then(({ error }) => {
+            if (error) console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', error.message);
+          })
+          .catch(err => console.warn('[Supabase Sync] Lỗi dọn cờ hỗ trợ:', err.message));
       }
 
       console.log(`[Priority Dispatch] 🎯 Tự động gán và nhận đơn ${targetOrder.id} cho tài xế SOS ${shipper.name}`);
@@ -7389,6 +7743,43 @@ app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) 
       message: `Đã bắt đầu đồng bộ ${restaurants.length} quán với ShopeeFood. Dữ liệu sẽ được lưu ngay sau mỗi quán.`,
       total: restaurants.length,
       scope
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/admin/restaurants/:id/sync-gps
+ * Đối chiếu GPS quán từ Foody (place:location meta) → lưu exact cho chỉ đường
+ */
+app.post('/api/admin/restaurants/:id/sync-gps', authenticateAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const found = findRestaurantById(id) || findRestaurantInCache(id);
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy quán ăn!' });
+    }
+    const before = {
+      lat: found.latitude ?? null,
+      lon: found.longitude ?? null,
+      coordsSource: found.coordsSource || null
+    };
+    const updated = await ensureRestaurantNavGps(found, { force: true, timeoutMs: 15000 });
+    const ok = isNavGradeRestaurantCoords(updated);
+    res.json({
+      success: ok,
+      message: ok
+        ? `Đã đối chiếu GPS Foody: ${updated.latitude}, ${updated.longitude}`
+        : 'Không lấy được GPS Foody (thiếu slug hoặc trang không có tọa độ).',
+      before,
+      after: {
+        lat: updated?.latitude ?? null,
+        lon: updated?.longitude ?? null,
+        coordsSource: updated?.coordsSource || null,
+        geoSource: updated?.geoSource || null,
+        foodySlug: updated?.foodySlug || updated?.shopeefoodSlug || null
+      }
     });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

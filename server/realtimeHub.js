@@ -51,6 +51,12 @@ function publish(event, payload, predicate) {
   }
 }
 
+function normalizePhoneDigits(raw) {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (digits.startsWith('84') && digits.length >= 11) digits = '0' + digits.slice(2);
+  return digits;
+}
+
 function publishOrderUpdate(order) {
   if (!order || !order.id) return;
   const slim = {
@@ -74,10 +80,10 @@ function publishOrderUpdate(order) {
     if (meta.role === 'admin') return true;
     if (meta.role === 'customer' && meta.orderId && String(meta.orderId) === String(order.id)) return true;
     if (meta.role === 'shipper') {
-      const phone = String(meta.phone || '').replace(/\D/g, '');
+      const phone = normalizePhoneDigits(meta.phone);
       if (!phone) return false;
-      const assigned = String(order.assignedShipperPhone || '').replace(/\D/g, '');
-      const shipper = String(order.shipperPhone || '').replace(/\D/g, '');
+      const assigned = normalizePhoneDigits(order.assignedShipperPhone);
+      const shipper = normalizePhoneDigits(order.shipperPhone);
       return phone === assigned || phone === shipper || order.status === 'PENDING';
     }
     return false;

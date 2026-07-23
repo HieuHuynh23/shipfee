@@ -72,3 +72,6 @@ server/test_*.js
 
 .vercel
 .env*
+
+# Puppeteer / tool caches
+server/.cache/

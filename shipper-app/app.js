@@ -114,9 +114,21 @@ async function apiFetch(url, options = {}, timeoutMs = 8000) {
   return fetch(url, opts);
 }
 
-// Helper to normalize phone numbers for robust matching (removes spaces)
+// Helper to normalize phone numbers for robust matching (+84/84 → 0…)
 function cleanPhone(p) {
-  return (p || '').toString().trim().replace(/\s+/g, '');
+  return (p || '').toString().trim().replace(/\s+/g, '').replace(/^\+84/, '0').replace(/^84/, '0');
+}
+
+async function refreshShipperJwtFromSession() {
+  if (!supabaseClient) return null;
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error || !session?.access_token) return null;
+    setAuthItem(AUTH_JWT_KEY, session.access_token);
+    return session.access_token;
+  } catch (_) {
+    return null;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -384,8 +396,9 @@ function openShipperRealtime() {
     shipperRealtime = new EventSource(url);
     shipperRealtime.addEventListener('connected', () => {
       shipperRealtimeActive = true;
-      // SSE sống → bỏ polling 3s, chỉ sync khi có event (+ fallback chậm)
-      schedulePolling(45000);
+      // Khi đang chạy đơn: nới poll. Khi chờ đề xuất: giữ poll nhanh (offer TTL).
+      const idleWaitingOffer = isOnline && activeOrders.length === 0;
+      schedulePolling(idleWaitingOffer ? 5000 : 45000);
       console.log('[Realtime] Shipper SSE connected');
     });
     shipperRealtime.addEventListener('order_updated', () => {
@@ -939,8 +952,12 @@ function startPolling() {
   pollBackoffActive = false;
   syncAllData();
   openShipperRealtime();
-  // Khi SSE chưa sẵn sàng: poll 3s; khi connected sẽ nới 45s
-  schedulePolling(shipperRealtimeActive ? 45000 : 3000);
+  // Chờ đề xuất: poll nhanh kể cả khi SSE đã nối (tránh miss offer)
+  const idleWaitingOffer = isOnline && activeOrders.length === 0;
+  const pollMs = idleWaitingOffer
+    ? 5000
+    : (shipperRealtimeActive ? 45000 : 3000);
+  schedulePolling(pollMs);
   startCrmSupportPolling();
 }
 
@@ -1091,6 +1108,13 @@ async function syncAllData() {
       // Badge: số đề xuất đang chờ + số đơn đang chạy
       const pendingBadge = document.getElementById('pending-count');
       if (pendingBadge) pendingBadge.textContent = String(pendingOrders.length);
+
+      // Điều chỉnh nhịp poll: chờ đề xuất → nhanh; đang chạy đơn + SSE → chậm
+      if (!pollBackoffActive && pollMode === 'all') {
+        const idleWaitingOffer = isOnline && activeOrders.length === 0;
+        const desired = idleWaitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 3000);
+        schedulePolling(desired);
+      }
     }
   } catch (err) {
     console.error('[Shipper App] Error syncing data:', err);
@@ -1503,12 +1527,12 @@ function renderActiveTrip() {
   statusBadge.className = 'trip-card__status badge ' + getStatusBadgeClass(activeOrder.status);
   
   document.getElementById('trip-restaurant-name').textContent = activeOrder.restaurantName;
-  document.getElementById('trip-restaurant-address').textContent = activeOrder.restaurantAddress;
+  document.getElementById('trip-restaurant-address').textContent = activeOrder.restaurantAddress || '—';
   
   const clientName = activeOrder.isRelative ? `👤 ${activeOrder.deliveryName} (Người thân)` : activeOrder.deliveryName || 'Khách hàng';
   document.getElementById('trip-customer-name').textContent = clientName;
-  document.getElementById('trip-customer-address').textContent = activeOrder.deliveryAddress;
-  document.getElementById('trip-customer-phone').textContent = `SĐT: ${activeOrder.deliveryPhone}`;
+  document.getElementById('trip-customer-address').textContent = formatCustomerAddressDisplay(activeOrder);
+  document.getElementById('trip-customer-phone').textContent = `SĐT: ${activeOrder.deliveryPhone || '—'}`;
   
   document.getElementById('trip-store-total').textContent = formatCurrency(activeOrder.storeTotal);
   document.getElementById('trip-app-total').textContent = formatCurrency(activeOrder.appTotal);
@@ -1579,21 +1603,82 @@ function renderActiveTrip() {
     advanceTripStatus();
   });
   
-  // Hiện nút chỉ đường khi có tọa độ hoặc địa chỉ (Maps resolve bằng text)
-  const btnNavRest = document.getElementById('btn-nav-restaurant');
-  const btnNavCust = document.getElementById('btn-nav-customer');
-  if (btnNavRest) {
-    const hasRestCoords = Number.isFinite(parseFloat(activeOrder.restaurantLat)) && Number.isFinite(parseFloat(activeOrder.restaurantLon));
-    const hasRestAddress = !!(activeOrder.restaurantAddress || activeOrder.restaurantName);
-    btnNavRest.style.display = (hasRestCoords || hasRestAddress) ? 'inline-flex' : 'none';
-  }
-  if (btnNavCust) {
-    const hasCustCoords = Number.isFinite(parseFloat(activeOrder.pinnedLat)) && Number.isFinite(parseFloat(activeOrder.pinnedLon));
-    const hasCustAddress = !!activeOrder.deliveryAddress;
-    btnNavCust.style.display = (hasCustCoords || hasCustAddress) ? 'inline-flex' : 'none';
-  }
+  updateTripNavigationButtons(activeOrder);
 
   initTripMap();
+}
+
+/** Địa chỉ hiển thị cho khách — nếu chỉ là placeholder ghim thì kèm tọa độ pin */
+function formatCustomerAddressDisplay(order) {
+  if (!order) return '—';
+  const addr = cleanMapsText(order.deliveryAddress || '');
+  const lat = parseCoord(order.pinnedLat);
+  const lon = parseCoord(order.pinnedLon);
+  if (isMapPinPlaceholderAddress(addr)) {
+    if (lat != null && lon != null) {
+      return `Ghim GPS khách (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+    }
+    return addr || 'Chưa có địa chỉ giao';
+  }
+  return addr || (lat != null && lon != null
+    ? `Ghim GPS khách (${lat.toFixed(5)}, ${lon.toFixed(5)})`
+    : 'Chưa có địa chỉ giao');
+}
+
+function updateTripNavigationButtons(order) {
+  const btnNavRest = document.getElementById('btn-nav-restaurant');
+  const btnNavCust = document.getElementById('btn-nav-customer');
+  const metaRest = document.getElementById('trip-restaurant-nav-meta');
+  const metaCust = document.getElementById('trip-customer-nav-meta');
+  if (!order) return;
+
+  const restDest = resolveRestaurantNavDestination(order);
+  if (btnNavRest) {
+    btnNavRest.style.display = restDest ? 'inline-flex' : 'none';
+    if (restDest) {
+      btnNavRest.innerHTML = restDest.useGps
+        ? '<i class="fa-solid fa-store"></i> Chỉ đường GPS đến quán'
+        : '<i class="fa-solid fa-store"></i> Chỉ đường đến quán';
+      btnNavRest.title = restDest.useGps
+        ? `Quán · GPS ${restDest.lat}, ${restDest.lon}`
+        : `Quán · địa chỉ: ${restDest.label}`;
+    }
+  }
+  if (metaRest) {
+    if (restDest) {
+      metaRest.style.display = 'block';
+      metaRest.textContent = restDest.useGps
+        ? `Nav quán · GPS ${Number(restDest.lat).toFixed(5)}, ${Number(restDest.lon).toFixed(5)}`
+        : `Nav quán · theo địa chỉ (chưa có GPS crawl)`;
+    } else {
+      metaRest.style.display = 'none';
+      metaRest.textContent = '';
+    }
+  }
+
+  const custDest = resolveCustomerNavDestination(order);
+  if (btnNavCust) {
+    btnNavCust.style.display = custDest ? 'inline-flex' : 'none';
+    if (custDest) {
+      btnNavCust.innerHTML = custDest.useGps
+        ? '<i class="fa-solid fa-house-user"></i> Chỉ đường GPS đến khách'
+        : '<i class="fa-solid fa-house-user"></i> Chỉ đường đến khách';
+      btnNavCust.title = custDest.useGps
+        ? `Khách · GPS pin ${custDest.lat}, ${custDest.lon}`
+        : `Khách · địa chỉ: ${custDest.label}`;
+    }
+  }
+  if (metaCust) {
+    if (custDest) {
+      metaCust.style.display = 'block';
+      metaCust.textContent = custDest.useGps
+        ? `Nav khách · GPS pin ${Number(custDest.lat).toFixed(5)}, ${Number(custDest.lon).toFixed(5)}`
+        : `Nav khách · theo địa chỉ giao`;
+    } else {
+      metaCust.style.display = 'none';
+      metaCust.textContent = '';
+    }
+  }
 }
 
 function getStatusBadgeClass(status) {
@@ -1628,13 +1713,16 @@ async function initTripMap() {
   }
   if (token !== tripMapInitToken || !activeOrder) return;
   
-  const restLat = activeOrder.restaurantLat || 10.0354;
-  const restLon = activeOrder.restaurantLon || 105.7825;
-  const custLat = activeOrder.pinnedLat || 10.0276;
-  const custLon = activeOrder.pinnedLon || 105.7725;
+  // Quán: ưu tiên GPS exact; Khách: luôn ưu tiên pin GPS (không trộn địa chỉ quán)
+  const restNav = resolveRestaurantNavDestination(activeOrder);
+  const custNav = resolveCustomerNavDestination(activeOrder);
+  const restLat = (restNav && restNav.lat != null) ? restNav.lat : (parseCoord(activeOrder.restaurantLat) ?? 10.0354);
+  const restLon = (restNav && restNav.lon != null) ? restNav.lon : (parseCoord(activeOrder.restaurantLon) ?? 105.7825);
+  const custLat = (custNav && custNav.lat != null) ? custNav.lat : (parseCoord(activeOrder.pinnedLat) ?? restLat);
+  const custLon = (custNav && custNav.lon != null) ? custNav.lon : (parseCoord(activeOrder.pinnedLon) ?? restLon);
   
-  const shipLat = activeOrder.shipperLat || restLat + 0.005;
-  const shipLon = activeOrder.shipperLon || restLon - 0.005;
+  const shipLat = parseCoord(activeOrder.shipperLat) ?? (restLat + 0.005);
+  const shipLon = parseCoord(activeOrder.shipperLon) ?? (restLon - 0.005);
   
   try {
     if (!tripMap) {
@@ -1680,8 +1768,10 @@ async function initTripMap() {
         className: '', iconSize: [34, 34], iconAnchor: [17, 17]
       });
 
-      restMarker = L.marker([restLat, restLon], { icon: restIcon }).addTo(tripMap);
-      destMarker = L.marker([custLat, custLon], { icon: destIcon }).addTo(tripMap);
+      restMarker = L.marker([restLat, restLon], { icon: restIcon }).addTo(tripMap)
+        .bindPopup(`<b>🏪 Quán</b><br>${escapeHtml(activeOrder.restaurantName || '')}<br>${escapeHtml(activeOrder.restaurantAddress || '')}`);
+      destMarker = L.marker([custLat, custLon], { icon: destIcon }).addTo(tripMap)
+        .bindPopup(`<b>🏠 Khách</b><br>${escapeHtml(activeOrder.deliveryName || '')}<br>${escapeHtml(formatCustomerAddressDisplay(activeOrder))}`);
       shipperMarker = L.marker([shipLat, shipLon], { icon: shipIcon }).addTo(tripMap).bindPopup('Vị trí của bạn (Shipper)').openPopup();
       
       routeLine = L.polyline([[restLat, restLon], [custLat, custLon]], {
@@ -1801,6 +1891,35 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
+function applyGpsFix(lat, lon) {
+  // Outside service area: warn but keep real GPS (never fabricate coordinates)
+  const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
+  const outsideArea = distFromCenter > 20;
+  const indicatorText = outsideArea
+    ? `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Ngoài khu vực Cần Thơ (${lat.toFixed(5)}, ${lon.toFixed(5)})`
+    : `<i class="fa-solid fa-location-crosshairs"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
+
+  const now = Date.now();
+  if (now - lastGpsUiUpdate >= 1500 || indicatorText !== lastGpsIndicatorText) {
+    lastGpsUiUpdate = now;
+    lastGpsIndicatorText = indicatorText;
+    const el = document.getElementById('gps-indicator');
+    if (el) el.innerHTML = indicatorText;
+  }
+
+  if (shipperMarker) {
+    shipperMarker.setLatLng([lat, lon]);
+  }
+  if (tripMap && mapFollowGps) {
+    tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
+  }
+
+  if (now - lastGpsSendTime >= 3000) {
+    lastGpsSendTime = now;
+    sendLocationToServer(lat, lon);
+  }
+}
+
 function startGpsTracking() {
   stopGpsTracking();
   
@@ -1814,56 +1933,34 @@ function startGpsTracking() {
   if (gpsEl) gpsEl.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> GPS: Đang khởi động định vị...`;
   lastGpsIndicatorText = '';
   lastGpsUiUpdate = 0;
+
+  const geoOpts = {
+    enableHighAccuracy: true,
+    maximumAge: 3000,
+    // iOS Safari cold GPS regularly needs >15s on first fix
+    timeout: (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+      ? 28000
+      : 18000
+  };
+
+  // Lấy fix ngay khi vào ca — không chờ watchPosition (tránh miss đề xuất đơn đầu)
+  navigator.geolocation.getCurrentPosition(
+    (position) => applyGpsFix(position.coords.latitude, position.coords.longitude),
+    (error) => console.warn('getCurrentPosition:', error && error.message),
+    geoOpts
+  );
   
   watchPositionId = navigator.geolocation.watchPosition(
-    async (position) => {
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      
-      // Outside service area: warn but keep real GPS (never fabricate coordinates)
-      const distFromCenter = calculateDistance(lat, lon, 10.0345, 105.7876);
-      const outsideArea = distFromCenter > 20;
-      const indicatorText = outsideArea
-        ? `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Ngoài khu vực Cần Thơ (${lat.toFixed(5)}, ${lon.toFixed(5)})`
-        : `<i class="fa-solid fa-location-crosshairs"></i> GPS: (${lat.toFixed(5)}, ${lon.toFixed(5)})`;
-
-      const now = Date.now();
-      // Throttle GPS UI updates to reduce jank
-      if (now - lastGpsUiUpdate >= 1500 || indicatorText !== lastGpsIndicatorText) {
-        lastGpsUiUpdate = now;
-        lastGpsIndicatorText = indicatorText;
-        const el = document.getElementById('gps-indicator');
-        if (el) el.innerHTML = indicatorText;
-      }
-      
-      if (shipperMarker) {
-        shipperMarker.setLatLng([lat, lon]);
-      }
-      // Only auto-follow when user hasn't panned the map
-      if (tripMap && mapFollowGps) {
-        tripMap.setView([lat, lon], tripMap.getZoom() || 16, { animate: false });
-      }
-      
-      // Gửi GPS thường xuyên hơn để app khách theo dõi vị trí thật mượt hơn
-      if (now - lastGpsSendTime >= 3000) {
-        lastGpsSendTime = now;
-        sendLocationToServer(lat, lon);
-      }
+    (position) => {
+      applyGpsFix(position.coords.latitude, position.coords.longitude);
     },
     (error) => {
       console.warn('Geolocation error:', error);
       const el = document.getElementById('gps-indicator');
       if (el) el.innerHTML = `<i class="fa-solid fa-circle-exclamation" style="color:var(--clr-danger)"></i> GPS: Không thể lấy vị trí (${escapeHtml(error.message)})`;
     },
-    {
-      enableHighAccuracy: true,
-      maximumAge: 3000,
-      // iOS Safari cold GPS regularly needs >15s on first fix
-      timeout: (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
-        ? 28000
-        : 18000
-    }
+    geoOpts
   );
 }
 
@@ -1883,12 +1980,12 @@ async function sendLocationToServer(lat, lon) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ lat, lon })
-        }, 8000).catch(err => console.warn(`[GPS] Lỗi gửi đơn ${order.id}:`, err.message))
+        }, 12000).catch(err => console.warn(`[GPS] Lỗi gửi đơn ${order.id}:`, err.message))
       ));
     }
     // Vẫn cập nhật vị trí tài xế (để dispatch chọn khoảng cách)
     if (isOnline && currentDriver) {
-      await apiFetch(`${API_BASE}/api/shippers/location`, {
+      let res = await apiFetch(`${API_BASE}/api/shippers/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1898,7 +1995,36 @@ async function sendLocationToServer(lat, lon) {
           lat,
           lon
         })
-      }, 8000);
+      }, 12000);
+
+      // JWT hết hạn / lệch với Supabase session → refresh rồi gửi lại 1 lần
+      if (res && res.status === 401) {
+        const refreshed = await refreshShipperJwtFromSession();
+        if (refreshed) {
+          res = await apiFetch(`${API_BASE}/api/shippers/location`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: currentDriver.phone,
+              lat,
+              lon
+            })
+          }, 12000);
+        }
+      }
+
+      if (!res || !res.ok) {
+        let detail = '';
+        try {
+          const body = await safeJson(res);
+          detail = body.error || body.code || '';
+        } catch (_) {}
+        console.warn('[GPS] Server từ chối vị trí:', res && res.status, detail);
+        const el = document.getElementById('gps-indicator');
+        if (el && detail) {
+          el.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Lỗi đồng bộ (${escapeHtml(detail)})`;
+        }
+      }
     }
   } catch (e) {
     console.warn('Không thể gửi GPS lên server:', e.message);
@@ -4130,6 +4256,15 @@ async function initSupabase() {
           }
         }).catch(e => console.warn('Lỗi lấy session shipper:', e));
 
+        // Giữ shipfee_jwt khớp khi Supabase auto-refresh — tránh GPS/API 401 âm thầm
+        supabaseClient.auth.onAuthStateChange((event, session) => {
+          if (session?.access_token) {
+            setAuthItem(AUTH_JWT_KEY, session.access_token);
+          } else if (event === 'SIGNED_OUT') {
+            removeAuthItem(AUTH_JWT_KEY);
+          }
+        });
+
         // Update UI: hide name/phone, show email/password
         const nameGroup = document.getElementById('login-group-name');
         const phoneGroup = document.getElementById('login-group-phone');
@@ -4682,26 +4817,28 @@ function shortRestaurantName(name) {
   return cut || n;
 }
 
+/** Địa chỉ placeholder khi khách chỉ ghim map (không nhập số nhà) */
+function isMapPinPlaceholderAddress(addr) {
+  const s = String(addr || '');
+  return /vị\s*trí\s*ghim|ghim\s*bản\s*đồ|pinned\s*location|map\s*pin|^\s*\(?\s*-?\d+\.\d+\s*,\s*-?\d+\.\d+\s*\)?\s*$/i.test(s);
+}
+
 /**
- * Địa chỉ quán cho Google Maps — giữ nguyên địa chỉ đã cào (số nhà + đường + phường/quận).
- * Không rút gọn Quận/TP (dễ làm Google lệch điểm).
+ * Chuỗi tìm quán trên Google Maps — "Tên quán, địa chỉ đầy đủ"
+ * (Google Places khớp listing doanh nghiệp giống ShopeeFood).
  */
 function formatRestaurantMapsDestination(name, address) {
   const shortName = shortRestaurantName(name);
-  let addr = cleanMapsText(address);
-
-  addr = addr
+  let addr = cleanMapsText(address)
     .replace(/\s+,/g, ',')
     .replace(/,{2,}/g, ',')
     .replace(/\s+/g, ' ')
     .trim();
+  if (isMapPinPlaceholderAddress(addr)) addr = '';
 
   const parts = [];
-  if (addr) {
-    parts.push(addr);
-  } else if (shortName) {
-    parts.push(shortName);
-  }
+  if (shortName) parts.push(shortName);
+  if (addr) parts.push(addr);
   let dest = parts.join(', ');
   if (dest && !/việt\s*nam|vietnam/i.test(dest)) {
     dest += ', Việt Nam';
@@ -4709,20 +4846,148 @@ function formatRestaurantMapsDestination(name, address) {
   return dest;
 }
 
+/**
+ * Chuỗi tìm điểm giao khách — ưu tiên địa chỉ số nhà thật.
+ * Không dùng formatter quán; không nhét "Vị trí Ghim Bản Đồ" vào Google search.
+ */
+function formatCustomerMapsDestination(name, address) {
+  const person = cleanMapsText(name);
+  let addr = cleanMapsText(address)
+    .replace(/\s+,/g, ',')
+    .replace(/,{2,}/g, ',')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (isMapPinPlaceholderAddress(addr)) {
+    return ''; // bắt buộc dùng GPS pin
+  }
+  const parts = [];
+  if (addr) parts.push(addr);
+  else if (person) parts.push(person);
+  let dest = parts.join(', ');
+  if (dest && !/việt\s*nam|vietnam/i.test(dest)) {
+    dest += ', Việt Nam';
+  }
+  return dest;
+}
+
+/** Điểm lấy hàng (quán) — GPS crawl exact hoặc tên+địa chỉ quán */
+function resolveRestaurantNavDestination(order) {
+  if (!order) return null;
+  const label = formatRestaurantMapsDestination(order.restaurantName, order.restaurantAddress);
+  const lat = parseCoord(order.restaurantLat);
+  const lon = parseCoord(order.restaurantLon);
+  const exact = order.restaurantCoordsExact === true && lat != null && lon != null;
+  if (exact) {
+    return {
+      target: 'restaurant',
+      useGps: true,
+      lat,
+      lon,
+      label,
+      preferLabel: false
+    };
+  }
+  if (label) {
+    return {
+      target: 'restaurant',
+      useGps: false,
+      lat: null,
+      lon: null,
+      label,
+      preferLabel: true
+    };
+  }
+  return null;
+}
+
+/** Điểm giao hàng (khách) — ưu tiên GPS pin; chỉ dùng địa chỉ khi là số nhà thật */
+function resolveCustomerNavDestination(order) {
+  if (!order) return null;
+  const lat = parseCoord(order.pinnedLat);
+  const lon = parseCoord(order.pinnedLon);
+  const hasPin = lat != null && lon != null;
+  // Từ chối mặc định Ninh Kiều center nếu nghi là fallback cứng (hiếm)
+  const looksLikeCityDefault = hasPin &&
+    Math.abs(lat - 10.0345) < 1e-6 && Math.abs(lon - 105.7876) < 1e-6 &&
+    isMapPinPlaceholderAddress(order.deliveryAddress);
+
+  const label = formatCustomerMapsDestination(order.deliveryName, order.deliveryAddress);
+
+  if (hasPin && !looksLikeCityDefault) {
+    return {
+      target: 'customer',
+      useGps: true,
+      lat,
+      lon,
+      label: label || `Điểm giao ${cleanMapsText(order.deliveryName || 'khách')}`,
+      preferLabel: false
+    };
+  }
+  if (label) {
+    return {
+      target: 'customer',
+      useGps: false,
+      lat: null,
+      lon: null,
+      label,
+      preferLabel: true
+    };
+  }
+  return null;
+}
+
+function isMobileShipperClient() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+}
+
+/**
+ * URL chỉ đường kiểu ShopeeFood: ghim đúng lat,lon khi có GPS.
+ * Fallback: tìm theo chuỗi địa chỉ (quán = tên+địa chỉ; khách = địa chỉ giao).
+ */
 function buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel = false }) {
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
   const text = (label || '').trim();
+  const mode = 'two-wheeler';
 
-  // Có tọa độ exact từ crawl → ghim GPS chính xác
   if (!preferLabel && hasCoords) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=two-wheeler&dir_action=navigate`;
+    const dest = `${lat},${lon}`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(dest)}&travelmode=${mode}&dir_action=navigate`;
   }
-  // Không có GPS exact → dùng đúng chuỗi địa chỉ đã cào
   if (text) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=two-wheeler&dir_action=navigate`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(text)}&travelmode=${mode}&dir_action=navigate`;
   }
   if (hasCoords) {
-    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}&travelmode=two-wheeler&dir_action=navigate`;
+    return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${lat},${lon}`)}&travelmode=${mode}&dir_action=navigate`;
+  }
+  return null;
+}
+
+/** Deep link native (Android/iOS) — fallback nếu HTTPS bị chặn */
+function buildNativeMapsUrl({ lat, lon, label, preferLabel = false }) {
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+  const text = (label || '').trim();
+  const ua = navigator.userAgent || '';
+  const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /Android/i.test(ua);
+
+  if (!preferLabel && hasCoords) {
+    if (isIOS) {
+      return `comgooglemaps://?daddr=${lat},${lon}&directionsmode=driving`;
+    }
+    if (isAndroid) {
+      return `google.navigation:q=${lat},${lon}&mode=d`;
+    }
+  }
+  if (text) {
+    if (isIOS) {
+      return `comgooglemaps://?daddr=${encodeURIComponent(text)}&directionsmode=driving`;
+    }
+    if (isAndroid) {
+      return `geo:0,0?q=${encodeURIComponent(text)}`;
+    }
+  }
+  if (hasCoords) {
+    return `geo:${lat},${lon}?q=${lat},${lon}${text ? `(${encodeURIComponent(text)})` : ''}`;
   }
   return null;
 }
@@ -4733,74 +4998,86 @@ function navigateToPoint(target) {
     return;
   }
 
-  let lat = null;
-  let lon = null;
-  let label = '';
-  let preferLabel = false;
-
+  let dest = null;
   if (target === 'restaurant') {
-    // Địa chỉ chuẩn từ server hydrate (DB cào) — không mangling
-    label = formatRestaurantMapsDestination(
-      activeOrder.restaurantName,
-      activeOrder.restaurantAddress
-    );
-
-    lat = parseCoord(activeOrder.restaurantLat);
-    lon = parseCoord(activeOrder.restaurantLon);
-
-    // Chỉ dùng GPS khi server đánh dấu exact (coords từ Grab/Shopee crawl)
-    // Tránh heuristic đường phố (centroid) → chỉ đường sai
-    const exact = activeOrder.restaurantCoordsExact === true;
-    if (exact && lat != null && lon != null) {
-      preferLabel = false;
-    } else {
-      preferLabel = !!label;
-      // Không fallback geocodeAddressOffline cho quán — dễ lệch
-      if (!preferLabel && (lat == null || lon == null)) {
-        showToast('Thiếu địa chỉ quán', 'Đơn này chưa có địa chỉ quán để chỉ đường.', 'error');
-        return;
-      }
-    }
-
-    console.log('[Navigation] Restaurant', {
-      preferLabel,
-      exact,
-      label,
-      lat,
-      lon,
-      address: activeOrder.restaurantAddress
-    });
+    dest = resolveRestaurantNavDestination(activeOrder);
   } else if (target === 'customer') {
-    // Điểm giao: ưu tiên pin GPS của khách (chính xác)
-    lat = parseCoord(activeOrder.pinnedLat);
-    lon = parseCoord(activeOrder.pinnedLon);
-    label = formatRestaurantMapsDestination(
-      activeOrder.deliveryName || '',
-      activeOrder.deliveryAddress || ''
-    );
-
-    if (lat == null || lon == null) {
-      const coords = geocodeAddressOffline(activeOrder.deliveryAddress || '', '');
-      lat = coords.lat;
-      lon = coords.lon;
-      console.log(`[Navigation] Geocoded customer offline fallback: ${lat}, ${lon}`);
-      preferLabel = !!label;
-    }
+    dest = resolveCustomerNavDestination(activeOrder);
   } else {
-    showToast('Lỗi', 'Điểm chỉ đường không hợp lệ.', 'error');
+    showToast('Lỗi', 'Điểm chỉ đường không hợp lệ (chỉ quán hoặc khách).', 'error');
     return;
   }
 
-  const url = buildGoogleMapsDirectionsUrl({ lat, lon, label, preferLabel });
-  if (!url) {
-    showToast('Thiếu địa chỉ', 'Đơn hàng này chưa có địa chỉ hoặc tọa độ để chỉ đường.', 'error');
+  if (!dest) {
+    showToast(
+      target === 'restaurant' ? 'Thiếu điểm quán' : 'Thiếu điểm khách',
+      target === 'restaurant'
+        ? 'Đơn chưa có địa chỉ/GPS quán để chỉ đường.'
+        : 'Đơn chưa có GPS pin hoặc địa chỉ giao của khách.',
+      'error'
+    );
     return;
+  }
+
+  const url = buildGoogleMapsDirectionsUrl({
+    lat: dest.lat,
+    lon: dest.lon,
+    label: dest.label,
+    preferLabel: dest.preferLabel
+  });
+  if (!url) {
+    showToast('Thiếu địa chỉ', 'Không tạo được liên kết Google Maps.', 'error');
+    return;
+  }
+
+  console.log('[Navigation]', dest.target, {
+    useGps: dest.useGps,
+    preferLabel: dest.preferLabel,
+    label: dest.label,
+    lat: dest.lat,
+    lon: dest.lon,
+    restaurantAddress: activeOrder.restaurantAddress,
+    deliveryAddress: activeOrder.deliveryAddress,
+    pinnedLat: activeOrder.pinnedLat,
+    pinnedLon: activeOrder.pinnedLon
+  });
+
+  if (dest.target === 'restaurant') {
+    showToast(
+      dest.useGps ? 'Chỉ đường đến quán (GPS)' : 'Chỉ đường đến quán (địa chỉ)',
+      dest.useGps
+        ? 'Google Maps ghim tọa độ ShopeeFood/Grab của quán.'
+        : 'Quán chưa có GPS crawl — tìm theo tên + địa chỉ quán.',
+      dest.useGps ? 'success' : 'info'
+    );
+  } else {
+    showToast(
+      dest.useGps ? 'Chỉ đường đến khách (GPS pin)' : 'Chỉ đường đến khách (địa chỉ)',
+      dest.useGps
+        ? 'Google Maps ghim đúng điểm khách đã chọn trên bản đồ.'
+        : 'Dùng địa chỉ giao khách đã nhập (không phải địa chỉ quán).',
+      dest.useGps ? 'success' : 'info'
+    );
   }
 
   console.log('[Navigation] Opening:', url);
-  const ok = openExternalMapsUrl(url);
+  let ok = openExternalMapsUrl(url);
+
+  if (!ok && isMobileShipperClient()) {
+    const nativeUrl = buildNativeMapsUrl({
+      lat: dest.lat,
+      lon: dest.lon,
+      label: dest.label,
+      preferLabel: dest.preferLabel
+    });
+    if (nativeUrl) {
+      console.log('[Navigation] Native fallback:', nativeUrl);
+      ok = openExternalMapsUrl(nativeUrl);
+    }
+  }
+
   if (!ok) {
-    showToast('Không mở được Maps', label || 'Sao chép địa chỉ và mở Google Maps thủ công.', 'error');
+    showToast('Không mở được Maps', dest.label || 'Sao chép địa chỉ và mở Google Maps thủ công.', 'error');
   }
 }
 window.navigateToPoint = navigateToPoint;

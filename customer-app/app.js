@@ -564,8 +564,13 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     deliveryName: name,
     deliveryPhone: phone,
     ordererPhone: ordererPhone || '',
-    pinnedLat: pinnedLat || state.userLat || 10.0345,
-    pinnedLon: pinnedLon || state.userLon || 105.7876,
+    // Chỉ gắn pin khi có tọa độ thật từ map/GPS — không bịa mặc định Ninh Kiều
+    pinnedLat: (typeof pinnedLat === 'number' && Number.isFinite(pinnedLat))
+      ? pinnedLat
+      : ((typeof state.userLat === 'number' && Number.isFinite(state.userLat)) ? state.userLat : null),
+    pinnedLon: (typeof pinnedLon === 'number' && Number.isFinite(pinnedLon))
+      ? pinnedLon
+      : ((typeof state.userLon === 'number' && Number.isFinite(state.userLon)) ? state.userLon : null),
     isRelative: isRelative || false,
     note: note || '',
     promoCode: promoCode || null,
