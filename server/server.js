@@ -30,6 +30,7 @@ const demoOrders = require('./demoOrders');
 const foodyGps = require('./foodyGps');
 const pricingEngine = require('./pricingEngine');
 const { createRateLimiter } = require('./rateLimit');
+const orderPersist = require('./orderPersist');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -530,7 +531,9 @@ async function syncShippersFromSupabase() {
         phone: cleanPhone,
         full_name: metadata.full_name || 'Tài xế tự do',
         status: existingStatus,
-        avatar_url: metadata.avatar_url || ''
+        avatar_url: metadata.avatar_url || '',
+        cccd: metadata.cccd || (idx !== -1 ? (localShippers[idx].cccd || '') : ''),
+        email: email || null
       }).then(({ error }) => {
         if (error) console.error('[Supabase Sync Error] Lỗi ghi profile dự phòng:', error.message);
       });
@@ -540,7 +543,7 @@ async function syncShippersFromSupabase() {
     try {
       const { data: profiles, error: profileErr } = await supabase
         .from('shipper_profiles')
-        .select('id, phone, total_orders, total_earnings, acceptance_rate, completion_rate');
+        .select('id, phone, email, cccd, total_orders, total_earnings, acceptance_rate, completion_rate, is_approved');
       if (profileErr) {
         console.warn('[Supabase Sync] Không đọc được shipper_profiles để restore earnings:', profileErr.message);
       } else if (Array.isArray(profiles) && profiles.length > 0) {
@@ -555,7 +558,6 @@ async function syncShippersFromSupabase() {
         localShippers.forEach(s => {
           const p = (s.id && byId.get(s.id)) || byPhone.get(normalizeShipperPhone(s.phone));
           if (!p) return;
-          // Chỉ restore khi cột có giá trị thật — Number(null)===0 sẽ xóa nhầm earnings
           const patch = {};
           if (p.total_orders != null && Number.isFinite(Number(p.total_orders))) {
             patch.totalOrders = Number(p.total_orders);
@@ -569,6 +571,15 @@ async function syncShippersFromSupabase() {
           if (p.completion_rate != null && Number.isFinite(Number(p.completion_rate))) {
             patch.completionRate = Number(p.completion_rate);
           }
+          if (p.cccd != null && String(p.cccd).trim() && s.cccd !== String(p.cccd).trim()) {
+            patch.cccd = String(p.cccd).trim();
+          }
+          if (p.email && (!s.email || s.email !== p.email)) {
+            patch.email = p.email;
+          }
+          if (typeof p.is_approved === 'boolean' && s.isApproved !== p.is_approved) {
+            patch.isApproved = p.is_approved;
+          }
           Object.keys(patch).forEach(k => {
             if (s[k] !== patch[k]) {
               s[k] = patch[k];
@@ -576,7 +587,7 @@ async function syncShippersFromSupabase() {
             }
           });
         });
-        console.log(`[Supabase Sync] 💰 Đã restore earnings/AR/CR từ ${profiles.length} shipper_profiles.`);
+        console.log(`[Supabase Sync] 💰 Đã restore earnings/AR/CR/CCCD từ ${profiles.length} shipper_profiles.`);
       }
     } catch (earnErr) {
       console.warn('[Supabase Sync] Restore earnings thất bại:', earnErr.message);
@@ -1198,38 +1209,21 @@ async function processExpiredOffers() {
 }
 
 function orderToSupabaseRow(order) {
-  return {
-    id: order.id,
-    restaurant_id: order.restaurantId || null,
-    restaurant_name: order.restaurantName || '',
-    restaurant_address: order.restaurantAddress || '',
-    status: order.status,
-    app_total: order.appTotal || 0,
-    store_total: order.storeTotal || 0,
-    shipper_earning: order.shipperEarning || 0,
-    shipper_id: order.shipperId || null,
-    shipper_name: order.shipperName || null,
-    shipper_phone: order.shipperPhone || null,
-    delivery_name: order.deliveryName || '',
-    delivery_phone: order.deliveryPhone || '',
-    delivery_address: order.deliveryAddress || '',
-    orderer_phone: order.ordererPhone || '',
-    items: order.items || [],
-    created_at: order.createdAt ? new Date(order.createdAt).toISOString() : new Date().toISOString(),
-    accepted_at: order.acceptedAt ? new Date(order.acceptedAt).toISOString() : null,
-    purchased_at: order.purchasedAt ? new Date(order.purchasedAt).toISOString() : null,
-    delivered_at: order.deliveredAt ? new Date(order.deliveredAt).toISOString() : null,
-    cancelled_at: order.cancelledAt ? new Date(order.cancelledAt).toISOString() : null,
-    cancel_reason: order.cancelReason || null
-  };
+  return orderPersist.orderToSupabaseRow(order);
+}
+
+function mapSupabaseOrderRow(row) {
+  return orderPersist.mapSupabaseOrderRow(row);
 }
 
 async function upsertOrderToSupabase(order, { critical = false } = {}) {
   if (!supabase || !order) return { ok: false, skipped: true };
+  const row = orderToSupabaseRow(order);
+  if (!row) return { ok: false, skipped: true };
   const attempt = async () => {
     const { error } = await supabase
       .from('orders')
-      .upsert(orderToSupabaseRow(order), { onConflict: 'id' });
+      .upsert(row, { onConflict: 'id' });
     if (error) throw new Error(error.message);
     return { ok: true };
   };
@@ -1264,46 +1258,11 @@ function pruneOldOrders(orders, maxAgeDays = ORDER_HISTORY_RETENTION_DAYS) {
   });
 }
 
-function mapSupabaseOrderRow(row) {
-  return {
-    id: row.id,
-    restaurantId: row.restaurant_id,
-    restaurantName: row.restaurant_name || '',
-    restaurantAddress: row.restaurant_address || '',
-    restaurantLat: row.restaurant_lat || null,
-    restaurantLon: row.restaurant_lon || null,
-    items: Array.isArray(row.items) ? row.items : [],
-    storeTotal: row.store_total || 0,
-    appTotal: row.app_total || 0,
-    shipperEarning: row.shipper_earning || 0,
-    status: row.status || 'PENDING',
-    shipperId: row.shipper_id || null,
-    shipperName: row.shipper_name || null,
-    shipperPhone: row.shipper_phone || null,
-    shipperLat: null,
-    shipperLon: null,
-    deliveryAddress: row.delivery_address || '',
-    deliveryName: row.delivery_name || '',
-    deliveryPhone: row.delivery_phone || '',
-    ordererPhone: row.orderer_phone || '',
-    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
-    acceptedAt: row.accepted_at ? new Date(row.accepted_at).getTime() : null,
-    purchasedAt: row.purchased_at ? new Date(row.purchased_at).getTime() : null,
-    deliveredAt: row.delivered_at ? new Date(row.delivered_at).getTime() : null,
-    cancelledAt: row.cancelled_at ? new Date(row.cancelled_at).getTime() : null,
-    cancelReason: row.cancel_reason || null,
-    assignedShipperPhone: null,
-    offerExpiresAt: null,
-    declinedShippers: [],
-    messages: []
-  };
-}
-
 /**
  * Đồng bộ đơn từ Supabase vào local (sau redeploy hoặc thiếu lịch sử):
  * - Đơn active
  * - Đơn DELIVERED/CANCELLED trong ORDER_HISTORY_RETENTION_DAYS ngày
- * Merge theo id: giữ messages/GPS local nếu có; bổ sung đơn thiếu từ Supabase.
+ * Merge: remote SoT thắng field persist; GPS live local giữ nếu remote không có.
  */
 async function hydrateOrdersFromSupabaseIfEmpty() {
   if (!supabase) return;
@@ -1344,24 +1303,9 @@ async function hydrateOrdersFromSupabaseIfEmpty() {
     const mergeRemote = (row) => {
       if (!row || !row.id) return;
       const mapped = mapSupabaseOrderRow(row);
+      if (!mapped) return;
       const existing = byId.get(row.id);
-      if (!existing) {
-        byId.set(row.id, mapped);
-        return;
-      }
-      byId.set(row.id, {
-        ...mapped,
-        messages: (Array.isArray(existing.messages) && existing.messages.length)
-          ? existing.messages
-          : mapped.messages,
-        shipperLat: existing.shipperLat != null ? existing.shipperLat : mapped.shipperLat,
-        shipperLon: existing.shipperLon != null ? existing.shipperLon : mapped.shipperLon,
-        assignedShipperPhone: existing.assignedShipperPhone || mapped.assignedShipperPhone,
-        declinedShippers: Array.isArray(existing.declinedShippers) && existing.declinedShippers.length
-          ? existing.declinedShippers
-          : mapped.declinedShippers,
-        offerExpiresAt: existing.offerExpiresAt || mapped.offerExpiresAt
-      });
+      byId.set(row.id, orderPersist.mergeOrderRemoteOverLocal(existing, mapped));
     };
 
     (Array.isArray(recentRes.data) ? recentRes.data : []).forEach(mergeRemote);
@@ -1412,8 +1356,9 @@ async function mergeOrdersFromSupabaseForRange(localOrders, days) {
     const byId = new Map();
     (localOrders || []).forEach(o => { if (o && o.id) byId.set(o.id, o); });
     data.forEach(row => {
-      if (!row || !row.id || byId.has(row.id)) return;
-      byId.set(row.id, mapSupabaseOrderRow(row));
+      if (!row || !row.id) return;
+      const mapped = mapSupabaseOrderRow(row);
+      byId.set(row.id, orderPersist.mergeOrderRemoteOverLocal(byId.get(row.id), mapped));
     });
     return Array.from(byId.values());
   } catch (e) {
@@ -2541,19 +2486,104 @@ function loadRestaurantsIntoMemory() {
       recomputeAdminRestaurantStats(data);
       adminChangedCache = { at: 0, ids: new Set(), count: 0 };
       try { nearbyListCache.clear(); } catch (_) {}
-      // Warm geocode for all restaurants once — list requests then only do haversine
       try { precomputeRestaurantCoordinates(); } catch (geoErr) {
         console.warn('[Geo] Precompute skipped at load:', geoErr.message);
       }
       const elapsed = Date.now() - startMs;
-      console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory (${elapsed}ms, index: ${searchIndex.length} entries)`);
+      console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory from chunks (${elapsed}ms, index: ${searchIndex.length} entries)`);
     }
   } catch (err) {
     console.error('[Cache] ❌ Error loading DB:', err.message);
   }
 }
 
-// Load on startup
+/**
+ * Boot catalog từ Supabase (không kèm menu — tránh OOM).
+ * Chunk git vẫn là seed/fallback nếu count thấp hoặc lỗi.
+ * @returns {Promise<boolean>} true nếu đã thay cachedRestaurants bằng Supabase
+ */
+async function bootRestaurantsCatalogFromSupabase() {
+  if (!supabase) return false;
+  if (process.env.BOOT_RESTAURANTS_FROM_SUPABASE === 'false') {
+    console.log('[Boot Catalog] Bỏ qua Supabase (BOOT_RESTAURANTS_FROM_SUPABASE=false)');
+    return false;
+  }
+  const minCount = Math.max(
+    1,
+    parseInt(process.env.BOOT_RESTAURANTS_MIN_COUNT || '500', 10) || 500
+  );
+  const pageSize = 500;
+  const cols =
+    'id, name, address, lat, lon, rating, image_url, is_closed, closed_reason, has_real_menu, dish_names, category, coords_source, foody_slug, updated_at';
+  const rows = [];
+  let offset = 0;
+  const t0 = Date.now();
+  try {
+    for (let page = 0; page < 40; page++) {
+      const { data, error } = await supabase
+        .from('restaurants')
+        .select(cols)
+        .order('id', { ascending: true })
+        .range(offset, offset + pageSize - 1);
+      if (error) {
+        console.warn('[Boot Catalog] Query lỗi:', error.message);
+        return false;
+      }
+      if (!Array.isArray(data) || data.length === 0) break;
+      rows.push(...data);
+      offset += data.length;
+      if (data.length < pageSize) break;
+    }
+    if (rows.length < minCount) {
+      console.log(
+        `[Boot Catalog] Supabase chỉ có ${rows.length} quán (< ${minCount}) — giữ chunk seed (${cachedRestaurants.length})`
+      );
+      return false;
+    }
+
+    const mapped = rows.map((r) => {
+      const lat = r.lat != null ? Number(r.lat) : null;
+      const lon = r.lon != null ? Number(r.lon) : null;
+      return {
+        id: String(r.id),
+        name: r.name || '',
+        address: r.address || '',
+        latitude: Number.isFinite(lat) ? lat : undefined,
+        longitude: Number.isFinite(lon) ? lon : undefined,
+        rating: r.rating != null ? Number(r.rating) : 4.5,
+        img: r.image_url || '',
+        isClosed: !!r.is_closed,
+        closedReason: r.closed_reason || '',
+        hasRealMenu: r.has_real_menu === true,
+        dishNames: Array.isArray(r.dish_names) ? r.dish_names : [],
+        category: r.category || '',
+        coordsSource: r.coords_source || (Number.isFinite(lat) && Number.isFinite(lon) ? 'exact' : undefined),
+        foodySlug: r.foody_slug || undefined,
+        menu: [], // menu hydrate on-demand
+        menuUpdatedAt: r.updated_at || undefined
+      };
+    });
+
+    cachedRestaurants = mapped;
+    searchIndex = buildSearchIndex(mapped);
+    cacheLoadedAt = Date.now();
+    recomputeAdminRestaurantStats(mapped);
+    adminChangedCache = { at: 0, ids: new Set(), count: 0 };
+    try { nearbyListCache.clear(); } catch (_) {}
+    try { precomputeRestaurantCoordinates(); } catch (geoErr) {
+      console.warn('[Geo] Precompute after Supabase boot:', geoErr.message);
+    }
+    console.log(
+      `[Boot Catalog] ✅ ${mapped.length} quán từ Supabase (no menu payload) trong ${Date.now() - t0}ms — chunk chỉ còn seed/fallback`
+    );
+    return true;
+  } catch (err) {
+    console.warn('[Boot Catalog] Exception:', err.message);
+    return false;
+  }
+}
+
+// Load on startup (chunk seed ngay; Supabase override async trước listen)
 loadRestaurantsIntoMemory();
 
 /**
@@ -9969,6 +9999,13 @@ app.listen(PORT, () => {
   console.log('👉 Mở trình duyệt tại: http://localhost:3001/app/index.html');
   console.log('   (hoặc nhấn Ctrl+Click vào link trên)');
   console.log('');
+
+  // Catalog: ưu tiên Supabase (no menu) — chunk chỉ seed nếu thiếu dữ liệu
+  bootRestaurantsCatalogFromSupabase()
+    .then((used) => {
+      if (!used) console.log('[Boot Catalog] Đang dùng restaurants-chunks làm runtime seed');
+    })
+    .catch((e) => console.warn('[Boot Catalog]', e.message));
 
   // Persist orders across restarts: prune old terminal orders, hydrate from Supabase if empty
   try {

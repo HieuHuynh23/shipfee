@@ -37,7 +37,10 @@ jobs:
           node --check realtimeHub.js
           node --check pricingEngine.js
           node --check rateLimit.js
+          node --check orderPersist.js
 
-      - name: Pricing engine unit smoke
+      - name: Pricing + order persist smoke
         working-directory: server
-        run: node -e "const p=require('./pricingEngine'); const r=p.recomputeOrderPricingFromMenu({clientItems:[{id:'1',quantity:2}],menu:[{id:'1',name:'Test',inStorePrice:10000,options:[]}],restLat:10.03,restLon:105.78,pinLat:10.04,pinLon:105.79,cfg:{markupRate:0.28,freeDistanceKm:1.5,surchargeCoefficient:7000,minShipperEarning:15000,multiItemDiscount:0.15}}); if(r.error||!(r.appTotal>0)) { console.error(r); process.exit(1);} console.log('pricing ok', r.appTotal);"
+        run: |
+          node -e "const p=require('./pricingEngine'); const r=p.recomputeOrderPricingFromMenu({clientItems:[{id:'1',quantity:2}],menu:[{id:'1',name:'Test',inStorePrice:10000,options:[]}],restLat:10.03,restLon:105.78,pinLat:10.04,pinLon:105.79,cfg:{markupRate:0.28,freeDistanceKm:1.5,surchargeCoefficient:7000,minShipperEarning:15000,multiItemDiscount:0.15}}); if(r.error||!(r.appTotal>0)) { console.error(r); process.exit(1);} console.log('pricing ok', r.appTotal);"
+          node -e "const p=require('./orderPersist'); const o={id:'T1',trackingToken:'abc',status:'PENDING',appTotal:10000,storeTotal:8000,shipperEarning:2000,assignedShipperPhone:'0901',offerExpiresAt:Date.now()+60000,pinnedLat:10.03,pinnedLon:105.78,messages:[{sender:'customer',text:'hi',timestamp:1}],rating:5,isRelative:false,note:'x',ordererPhone:'0902',items:[{id:'1'}],declinedShippers:['0900']}; const a=p.assertRoundTrip(o); if(!a.ok){console.error(a);process.exit(1);} console.log('orderPersist ok');"

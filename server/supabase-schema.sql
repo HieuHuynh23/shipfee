@@ -30,6 +30,8 @@ ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_assistance_dat
 ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_lat DOUBLE PRECISION;
 ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_lon DOUBLE PRECISION;
 ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS last_location_at TIMESTAMPTZ;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS cccd TEXT;
+ALTER TABLE public.shipper_profiles ADD COLUMN IF NOT EXISTS email TEXT;
 
 -- Bật Row Level Security
 ALTER TABLE public.shipper_profiles ENABLE ROW LEVEL SECURITY;
@@ -111,3 +113,29 @@ CREATE POLICY "Allow admin write access to system_notifications"
     USING (true)
     WITH CHECK (true);
 
+
+-- Orders: bảng tối thiểu — chạy thêm migrations/001_orders_sot_prep.sql để đủ cột runtime
+CREATE TABLE IF NOT EXISTS public.orders (
+  id TEXT PRIMARY KEY,
+  restaurant_id TEXT,
+  restaurant_name TEXT DEFAULT '',
+  restaurant_address TEXT DEFAULT '',
+  status TEXT DEFAULT 'PENDING',
+  app_total NUMERIC DEFAULT 0,
+  store_total NUMERIC DEFAULT 0,
+  shipper_earning NUMERIC DEFAULT 0,
+  shipper_id TEXT,
+  shipper_name TEXT,
+  shipper_phone TEXT,
+  delivery_name TEXT DEFAULT '',
+  delivery_phone TEXT DEFAULT '',
+  delivery_address TEXT DEFAULT '',
+  orderer_phone TEXT DEFAULT '',
+  items JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  accepted_at TIMESTAMPTZ,
+  purchased_at TIMESTAMPTZ,
+  delivered_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
+  cancel_reason TEXT
+);
