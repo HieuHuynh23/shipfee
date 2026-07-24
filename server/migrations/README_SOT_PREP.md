@@ -1,4 +1,4 @@
-# Prep: Supabase gần đủ để bỏ JSON đơn (chưa cutover)
+# Prep + cutover nhẹ: Supabase là SoT bền; JSON local là cache nóng
 
 ## 1. Chạy migration SQL
 
@@ -9,14 +9,14 @@ Trong [Supabase SQL Editor](https://supabase.com/dashboard) → project ShipFee 
 3. Kiểm tra Table Editor: `orders` có cột `tracking_token`, `messages`, `assigned_shipper_phone`, `pinned_lat`, …
 4. `shipper_profiles` có cột `cccd`, `email`
 
-## 2. Deploy backend (PR này)
+## 2. Hành vi runtime (sau deploy)
 
-Sau deploy Render:
-
-- Mỗi đơn upsert **đủ field** (token, chat, offer, pin, rating…)
-- Boot hydrate merge remote → local **không xóa** các field đó
-- Sync shipper đọc/ghi `cccd` từ `shipper_profiles`
-- Boot catalog quán: thử Supabase (không kèm menu nặng) → nếu ≥ ngưỡng thì dùng; không đủ thì fallback chunk git
+| Luồng | Hành vi |
+|-------|---------|
+| Ghi đơn (status/gán/chat/…) | Ghi `orders-local.json` rồi **await** upsert Supabase (cùng queue) |
+| Đọc chi tiết đơn | Local trước; miss → Supabase → ghi lại cache |
+| Boot | Hydrate active + lịch sử retention từ Supabase |
+| GPS location spam | Không upsert mỗi tick GPS (fingerprint persist) |
 
 Env tùy chọn:
 
@@ -24,6 +24,7 @@ Env tùy chọn:
 |------|----------|---------|
 | `BOOT_RESTAURANTS_FROM_SUPABASE` | `true` (khi có Supabase) | `false` = luôn boot từ chunk |
 | `BOOT_RESTAURANTS_MIN_COUNT` | `500` | Dưới ngưỡng → giữ chunk seed |
+| `ADMIN_EMAIL_ALLOWLIST` | `admin@shipfee.vn` | Email bootstrap admin nếu chưa có `app_metadata.role` |
 
 ## 3. Smoke round-trip (local)
 
@@ -34,9 +35,9 @@ node -e "const p=require('./orderPersist'); const o={id:'T1',trackingToken:'abc'
 
 Kỳ vọng: `{ ok: true, missing: [] }`.
 
-## 4. Chưa làm trong bước này
+## 4. Chưa làm (multi-instance)
 
-- Tắt ghi `orders-local.json` / đọc trực tiếp Postgres mỗi request
-- Multi-instance không dùng RAM dispatch chung
+- Bỏ hẳn file JSON / đọc Postgres mỗi request
+- Dispatch offer trên nhiều instance Render (cần Redis/DB lock)
 
-Local JSON **vẫn là runtime SoT**; Supabase đã là backup/recover **đủ field**.
+Local JSON **vẫn là cache nóng** để latency thấp; Supabase là nguồn bền sau redeploy.

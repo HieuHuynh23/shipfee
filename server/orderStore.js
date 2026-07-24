@@ -1,8 +1,9 @@
 'use strict';
 
 /**
- * Order store helpers — local JSON cache + Supabase read-through.
- * Local remains the hot path; Supabase recovers orders missing after redeploy.
+ * Order store helpers — local JSON = hot cache; Supabase = durable SoT.
+ * Writes: local then await upsert (via updateOrdersDatabase queue).
+ * Reads: local first; miss → Supabase read-through + write-through cache.
  */
 
 const orderPersist = require('./orderPersist');
@@ -23,11 +24,6 @@ async function fetchOrderFromSupabase(supabase, id) {
 
 /**
  * Find order: local first, then Supabase. Optionally write-through into local cache.
- * @param {object} deps
- * @param {object|null} deps.supabase
- * @param {() => object[]} deps.readOrdersDatabase
- * @param {(fn: Function) => Promise<void>} [deps.updateOrdersDatabase]
- * @param {boolean} [deps.writeThrough=true]
  */
 async function findOrderById(deps, id) {
   if (!id) return null;

@@ -28,12 +28,15 @@ function writeJson(file, data) {
 
 function resolveAdminRole(user) {
   if (!user) return null;
-  // Ưu tiên app_metadata (chỉ service-role ghi được) — tránh escalate qua user_metadata
+  // Chỉ tin app_metadata.role (service-role ghi) — không tin user_metadata (client có thể tự set)
   const appRole = user.app_metadata?.role;
   if (appRole === 'admin' || appRole === 'ops' || appRole === 'viewer') return appRole;
-  if (user.email === 'admin@shipfee.vn') return 'admin';
-  const role = user.user_metadata?.role;
-  if (role === 'admin' || role === 'ops' || role === 'viewer') return role;
+  // Bootstrap allowlist (email) khi chưa gán app_metadata — cấu hình ADMIN_EMAIL_ALLOWLIST
+  const allow = String(process.env.ADMIN_EMAIL_ALLOWLIST || 'admin@shipfee.vn')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  if (user.email && allow.includes(String(user.email).toLowerCase())) return 'admin';
   return null;
 }
 
