@@ -106,7 +106,7 @@ async function safeJson(response) {
   }
 }
 
-async function apiFetch(url, options = {}, timeoutMs = 8000) {
+async function apiFetch(url, options = {}, timeoutMs = 20000) {
   const opts = { ...options };
   if (!opts.signal && typeof AbortSignal !== 'undefined' && AbortSignal.timeout) {
     opts.signal = AbortSignal.timeout(timeoutMs);
@@ -122,13 +122,33 @@ function cleanPhone(p) {
 async function refreshShipperJwtFromSession() {
   if (!supabaseClient) return null;
   try {
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (error || !session?.access_token) return null;
-    setAuthItem(AUTH_JWT_KEY, session.access_token);
-    return session.access_token;
+    // refreshSession() thật sự xin access_token mới — getSession() có thể trả token đã hết hạn
+    const { data, error } = await supabaseClient.auth.refreshSession();
+    if (!error && data?.session?.access_token) {
+      setAuthItem(AUTH_JWT_KEY, data.session.access_token);
+      return data.session.access_token;
+    }
+    const { data: fallback } = await supabaseClient.auth.getSession();
+    if (fallback?.session?.access_token) {
+      setAuthItem(AUTH_JWT_KEY, fallback.session.access_token);
+      return fallback.session.access_token;
+    }
+    return null;
   } catch (_) {
     return null;
   }
+}
+
+/** Fetch ShipFee API với timeout + 1 lần refresh JWT khi 401 */
+async function apiFetchAuth(url, options = {}, timeoutMs = 20000) {
+  let res = await apiFetch(url, options, timeoutMs);
+  if (res && res.status === 401) {
+    const refreshed = await refreshShipperJwtFromSession();
+    if (refreshed) {
+      res = await apiFetch(url, options, timeoutMs);
+    }
+  }
+  return res;
 }
 
 /* --------------------------------------------------------------------------
@@ -383,20 +403,28 @@ let pollMode = 'all'; // 'all' | 'active'
 let shipperRealtime = null; // EventSource
 let shipperRealtimeActive = false;
 let shipperRealtimeDebounce = null;
+let shipperRealtimeReconnectTimer = null;
+let shipperRealtimeBackoffMs = 2000;
 
 function openShipperRealtime() {
   if (!currentDriver || typeof EventSource === 'undefined') return;
   const token = getAuthItem(AUTH_JWT_KEY);
   if (!token) return;
   try {
+    if (shipperRealtimeReconnectTimer) {
+      clearTimeout(shipperRealtimeReconnectTimer);
+      shipperRealtimeReconnectTimer = null;
+    }
     if (shipperRealtime) {
-      shipperRealtime.close();
+      try { shipperRealtime.close(); } catch (_) {}
       shipperRealtime = null;
     }
     const url = `${API_BASE}/api/realtime/stream?role=shipper&access_token=${encodeURIComponent(token)}`;
     shipperRealtime = new EventSource(url);
     shipperRealtime.addEventListener('connected', () => {
       shipperRealtimeActive = true;
+      shipperRealtimeBackoffMs = 2000;
+      setConnectionStatus(true);
       // Còn chỗ nhận đề xuất (0–1 đơn): poll nhanh. Đủ 2 đơn + SSE: nới poll.
       const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
       schedulePolling(waitingOffer ? 5000 : 45000);
@@ -421,11 +449,27 @@ function openShipperRealtime() {
     });
     shipperRealtime.onerror = () => {
       shipperRealtimeActive = false;
-      try { shipperRealtime.close(); } catch (_) {}
+      const es = shipperRealtime;
+      // CONNECTING = trình duyệt đang tự reconnect — đừng đóng/mở lại (tránh rate-limit)
+      if (es && es.readyState === EventSource.CONNECTING) {
+        return;
+      }
+      try { if (es) es.close(); } catch (_) {}
       shipperRealtime = null;
-      // Fallback polling nhanh khi SSE đứt
-      schedulePolling(3000);
-      setTimeout(() => { if (currentDriver) openShipperRealtime(); }, 4000);
+      // Fallback poll khi SSE đứt; không báo offline chỉ vì SSE (REST vẫn sống)
+      if (!pollBackoffActive) {
+        const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
+        schedulePolling(waitingOffer ? 4000 : 8000);
+      }
+      const delay = shipperRealtimeBackoffMs;
+      shipperRealtimeBackoffMs = Math.min(30000, Math.round(shipperRealtimeBackoffMs * 1.6));
+      if (shipperRealtimeReconnectTimer) clearTimeout(shipperRealtimeReconnectTimer);
+      shipperRealtimeReconnectTimer = setTimeout(() => {
+        shipperRealtimeReconnectTimer = null;
+        if (currentDriver) {
+          refreshShipperJwtFromSession().finally(() => openShipperRealtime());
+        }
+      }, delay);
     };
   } catch (e) {
     shipperRealtimeActive = false;
@@ -435,6 +479,10 @@ function openShipperRealtime() {
 
 function closeShipperRealtime() {
   shipperRealtimeActive = false;
+  if (shipperRealtimeReconnectTimer) {
+    clearTimeout(shipperRealtimeReconnectTimer);
+    shipperRealtimeReconnectTimer = null;
+  }
   if (shipperRealtimeDebounce) {
     clearTimeout(shipperRealtimeDebounce);
     shipperRealtimeDebounce = null;
@@ -494,11 +542,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       pollBackoffActive = false;
       if (pollMode === 'active') syncActiveOrderOnly();
       else syncAllData();
-      schedulePolling(3000);
+      schedulePolling(5000);
+      openShipperRealtime();
     }
   });
   window.addEventListener('offline', () => {
     setConnectionStatus(false, 'Thiết bị mất mạng — kiểm tra kết nối');
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden || !currentDriver) return;
+    // App nền lâu trên mobile: JWT/SSE hay đứt — làm mới khi quay lại
+    refreshShipperJwtFromSession().finally(() => {
+      if (!shipperRealtimeActive) openShipperRealtime();
+      pollFailCount = 0;
+      syncAllData();
+    });
+  });
+  window.addEventListener('pageshow', (ev) => {
+    if (!currentDriver) return;
+    if (ev.persisted || !shipperRealtimeActive) {
+      refreshShipperJwtFromSession().finally(() => openShipperRealtime());
+      syncAllData();
+    }
   });
 });
 
@@ -957,7 +1022,7 @@ function startPolling() {
   const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
   const pollMs = waitingOffer
     ? 5000
-    : (shipperRealtimeActive ? 45000 : 3000);
+    : (shipperRealtimeActive ? 45000 : 5000);
   schedulePolling(pollMs);
   startCrmSupportPolling();
 }
@@ -1037,15 +1102,31 @@ async function syncAllData() {
   
   try {
     const url = `${API_BASE}/api/orders?shipperPhone=${encodeURIComponent(currentDriver.phone)}`;
-    const res = await apiFetch(url, {}, 8000);
-    if (!res.ok) throw new Error('API server error');
+    let res;
+    try {
+      res = await apiFetchAuth(url, {}, 22000);
+    } catch (firstErr) {
+      // Render cold start / mạng chập chờn — thử lại 1 lần trước khi báo mất kết nối
+      await new Promise((r) => setTimeout(r, 800));
+      res = await apiFetchAuth(url, {}, 25000);
+    }
+    if (!res.ok) {
+      if (res.status === 401) {
+        throw Object.assign(new Error('AUTH'), { code: 'AUTH' });
+      }
+      if (res.status === 429) {
+        throw Object.assign(new Error('RATE'), { code: 'RATE' });
+      }
+      throw Object.assign(new Error('API server error'), { code: 'HTTP', status: res.status });
+    }
     const result = await safeJson(res);
     
     pollFailCount = 0;
     setConnectionStatus(true);
     if (pollBackoffActive) {
       pollBackoffActive = false;
-      schedulePolling(3000);
+      const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
+      schedulePolling(waitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 5000));
     }
     
     if (result.success && Array.isArray(result.data)) {
@@ -1123,7 +1204,7 @@ async function syncAllData() {
       // Còn chỗ nhận đề xuất → poll nhanh (kể cả đang 1 đơn)
       if (!pollBackoffActive && pollMode === 'all') {
         const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
-        const desired = waitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 3000);
+        const desired = waitingOffer ? 5000 : (shipperRealtimeActive ? 45000 : 5000);
         schedulePolling(desired);
       }
     }
@@ -1131,10 +1212,24 @@ async function syncAllData() {
     console.error('[Shipper App] Error syncing data:', err);
     pollFailCount++;
     pollBackoffActive = true;
-    setConnectionStatus(false, pollFailCount > 1
-      ? `Mất kết nối — thử lại lần ${pollFailCount}…`
-      : 'Mất kết nối — đang thử lại…');
-    const backoff = Math.min(15000, 3000 * Math.pow(2, Math.min(pollFailCount - 1, 2)));
+    // Lần fail đầu: chưa spam banner (thường là timeout ngắn / SSE flip)
+    if (pollFailCount >= 2) {
+      let detail = 'Mất kết nối — đang thử lại…';
+      if (err && err.code === 'AUTH') {
+        detail = 'Phiên đăng nhập hết hạn — đang làm mới…';
+        refreshShipperJwtFromSession().then((tok) => {
+          if (!tok && currentDriver) {
+            showToast('Phiên hết hạn', 'Vui lòng đăng nhập lại.', 'error');
+          }
+        });
+      } else if (err && err.code === 'RATE') {
+        detail = 'Máy chủ đang quá tải — thử lại sau…';
+      } else if (pollFailCount > 2) {
+        detail = `Mất kết nối — thử lại lần ${pollFailCount}…`;
+      }
+      setConnectionStatus(false, detail);
+    }
+    const backoff = Math.min(20000, 4000 * Math.pow(2, Math.min(pollFailCount - 1, 2)));
     schedulePolling(backoff);
   } finally {
     syncInFlight = false;
@@ -2069,7 +2164,7 @@ async function sendLocationToServer(lat, lon) {
     }
     // Vẫn cập nhật vị trí tài xế (để dispatch chọn khoảng cách)
     if (isOnline && currentDriver) {
-      let res = await apiFetch(`${API_BASE}/api/shippers/location`, {
+      let res = await apiFetchAuth(`${API_BASE}/api/shippers/location`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -2080,22 +2175,6 @@ async function sendLocationToServer(lat, lon) {
           lon
         })
       }, 12000);
-
-      // JWT hết hạn / lệch với Supabase session → refresh rồi gửi lại 1 lần
-      if (res && res.status === 401) {
-        const refreshed = await refreshShipperJwtFromSession();
-        if (refreshed) {
-          res = await apiFetch(`${API_BASE}/api/shippers/location`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              phone: currentDriver.phone,
-              lat,
-              lon
-            })
-          }, 12000);
-        }
-      }
 
       if (!res || !res.ok) {
         let detail = '';

@@ -1962,7 +1962,7 @@ const rateLimitOrders = createRateLimiter({
 });
 const rateLimitRealtime = createRateLimiter({
   windowMs: 60_000,
-  max: 60,
+  max: 120,
   message: 'Quá nhiều kết nối realtime.'
 });
 
@@ -6746,7 +6746,7 @@ app.get('/api/realtime/stream', rateLimitRealtime, async (req, res) => {
     const client = realtimeHub.addClient(res, meta);
     const heartbeat = setInterval(() => {
       try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); }
-    }, 25000);
+    }, 15000);
 
     req.on('close', () => {
       clearInterval(heartbeat);
