@@ -31,6 +31,8 @@ const foodyGps = require('./foodyGps');
 const pricingEngine = require('./pricingEngine');
 const { createRateLimiter } = require('./rateLimit');
 const orderPersist = require('./orderPersist');
+const orderStore = require('./orderStore');
+const { registerOrderRoutes } = require('./routes/orders');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -5584,6 +5586,33 @@ function updateOrdersDatabase(updaterFn) {
   });
 }
 
+/** Local-first; Supabase read-through + write-through cache khi thiếu (sau redeploy). */
+async function findOrderById(id) {
+  return orderStore.findOrderById({
+    supabase,
+    readOrdersDatabase,
+    updateOrdersDatabase,
+    writeThrough: true
+  }, id);
+}
+
+async function ensureOrderInLocalCache(id) {
+  return orderStore.ensureOrderInLocalCache({
+    supabase,
+    readOrdersDatabase,
+    updateOrdersDatabase
+  }, id);
+}
+
+function scheduleUpsertOrder(order, label = 'sync') {
+  if (!order || !order.id) return;
+  upsertOrderToSupabase(order).then((r) => {
+    if (r && r.ok === false && !r.skipped) {
+      console.error(`[Orders] Supabase upsert fail (${label}) ${order.id}:`, r.error || 'unknown');
+    }
+  }).catch((e) => console.error(`[Orders] Supabase upsert exception (${label}) ${order.id}:`, e.message));
+}
+
 /**
  * POST /api/orders
  * Khách hàng gửi đơn hàng lên server (lưu vào orders-local.json)
@@ -5851,98 +5880,30 @@ function enrichOrdersWithShipperAvatar(ordersOrOrder, req) {
   return enrichSingle(ordersOrOrder);
 }
 
-/**
- * GET /api/orders
- * Danh sách đơn của tài xế đang đăng nhập (JWT bắt buộc)
- */
-app.get('/api/orders', authenticateShipper, async (req, res) => {
-  try {
-    const { status } = req.query;
-    let orders = readOrdersDatabase();
-    const now = Date.now();
-    const cleanInputPhone = cleanPhone(req.shipperPhone);
-    if (!cleanInputPhone) {
-      return res.status(403).json({ success: false, error: 'Không xác định được tài xế từ token' });
-    }
-
-    let resultData = orders.filter(o => {
-      if (o.status === 'PENDING') {
-        if (!o.assignedShipperPhone || !o.offerExpiresAt) return false;
-        return cleanPhone(o.assignedShipperPhone) === cleanInputPhone && now <= o.offerExpiresAt;
-      }
-      return cleanPhone(o.shipperPhone) === cleanInputPhone;
-    });
-    if (status) {
-      resultData = resultData.filter(o => o.status === status);
-    }
-
-    const sanitized = enrichOrdersWithShipperAvatar(
-      hydrateOrdersRestaurantCoords(resultData),
-      req
-    ).map(o => stripOrderSecrets(o, { keepTrackingToken: false }));
-
-    res.json({ success: true, data: sanitized });
-    scheduleOrdersRestaurantNavGpsAfterOffer(resultData, { label: 'list' });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/**
- * GET /api/orders/:id
- * Chi tiết đơn — cần tracking token (khách) hoặc JWT shipper/admin
- */
-app.get('/api/orders/:id', async (req, res) => {
-  try {
-    await softAuthenticateBearer(req);
-    const { id } = req.params;
-    const orders = readOrdersDatabase();
-    const order = orders.find(o => o.id === id);
-    if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
-    }
-
-    const authz = authorizeOrderAccess(req, order);
-    if (!authz.ok) {
-      return res.status(authz.status).json({ success: false, error: authz.error });
-    }
-
-    if (authz.mintToken) {
-      order.trackingToken = generateTrackingToken();
-      await updateOrdersDatabase((list) => {
-        const idx = list.findIndex(o => o.id === id);
-        if (idx !== -1) list[idx].trackingToken = order.trackingToken;
-        else return false;
-      });
-    }
-
-    const payload = { ...order };
-    const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
-    if (!hasGps && payload.shipperPhone) {
-      const liveLoc = onlineShipperLocations.get(cleanPhone(payload.shipperPhone));
-      if (liveLoc && Number.isFinite(liveLoc.lat) && Number.isFinite(liveLoc.lon)) {
-        payload.shipperLat = liveLoc.lat;
-        payload.shipperLon = liveLoc.lon;
-      }
-    }
-
-    const keepToken = authz.role === 'customer';
-    res.json({
-      success: true,
-      data: stripOrderSecrets(
-        enrichOrdersWithShipperAvatar(hydrateOrderRestaurantCoords(payload), req),
-        { keepTrackingToken: keepToken }
-      )
-    });
-    scheduleOrdersRestaurantNavGpsAfterOffer([order], { label: 'detail' });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
+// GET /api/orders + GET /api/orders/:id → routes/orders.js (Supabase read-through)
+registerOrderRoutes(app, {
+  authenticateShipper,
+  softAuthenticateBearer,
+  authorizeOrderAccess,
+  generateTrackingToken,
+  stripOrderSecrets,
+  enrichOrdersWithShipperAvatar,
+  hydrateOrdersRestaurantCoords,
+  hydrateOrderRestaurantCoords,
+  readOrdersDatabase,
+  updateOrdersDatabase,
+  findOrderById,
+  cleanPhone,
+  scheduleOrdersRestaurantNavGpsAfterOffer,
+  onlineShipperLocations
 });
 
 app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+    }
     const authPhone = req.shipperPhone;
     if (!authPhone) {
       return res.status(403).json({ success: false, error: 'Không xác định được tài xế từ token!' });
@@ -6046,7 +6007,7 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
       console.error('[Assistance Clean Error] Lỗi dọn dẹp cờ hỗ trợ tìm đơn:', err.message);
     }
 
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'accept');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -6061,6 +6022,9 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
 app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
     const { status } = req.body;
     const authPhone = req.shipperPhone;
     const bodyLat = Number(req.body?.lat);
@@ -6161,7 +6125,7 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
     }
 
     console.log(`[Order Server] 🔄 Cập nhật trạng thái đơn ${id} thành: ${status}`);
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'status');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -6176,6 +6140,9 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
 app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
     const lat = Number(req.body?.lat);
     const lon = Number(req.body?.lon);
     const authPhone = cleanPhone(req.shipperPhone);
@@ -6263,6 +6230,10 @@ app.post('/api/orders/:id/rate', async (req, res) => {
       return res.status(400).json({ error: 'Đánh giá rating phải từ 1 đến 5' });
     }
 
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
     const orders = readOrdersDatabase();
     const existing = orders.find(o => o.id === id);
     if (!existing) {
@@ -6326,6 +6297,10 @@ app.post('/api/orders/:id/messages', async (req, res) => {
     }
     text = String(text).trim().slice(0, 1000);
 
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+    }
+
     const ordersSnap = readOrdersDatabase();
     const existing = ordersSnap.find(o => o.id === id);
     if (!existing) {
@@ -6386,8 +6361,7 @@ const activeCalls = {};
 async function requireOrderPartyForCall(req, res) {
   await softAuthenticateBearer(req);
   const { id } = req.params;
-  const orders = readOrdersDatabase();
-  const order = orders.find(o => o.id === id);
+  const order = await findOrderById(id);
   if (!order) {
     res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     return null;
@@ -7202,6 +7176,9 @@ app.post('/api/shippers/support/messages', authenticateShipper, async (req, res)
 app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng hoặc đơn không ở trạng thái chờ nhận!' });
+    }
     const cleanedPhone = cleanPhone(req.shipperPhone || req.body?.phone);
 
     if (!cleanedPhone) {
@@ -8771,7 +8748,7 @@ app.post('/api/admin/orders/:id/assign', authenticateAdmin, async (req, res) => 
       return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
     }
 
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram gán đơn:', e.message));
     crm.logAdminAudit(req, 'order_assign', { orderId, shipperPhone: matchedShipper.phone });
 
@@ -8818,7 +8795,7 @@ app.post('/api/admin/orders/:id/status', authenticateAdmin, async (req, res) => 
     if (errMsg) return res.status(400).json({ success: false, error: errMsg });
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
 
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -8855,7 +8832,7 @@ app.post('/api/admin/orders/:id/cancel', authenticateAdmin, async (req, res) => 
     if (errMsg) return res.status(400).json({ success: false, error: errMsg });
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
 
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'admin');
     crm.notifyOrderCancelled(updatedOrder, addNotification);
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
     crm.logAdminAudit(req, 'order_cancel', { orderId, reason });
@@ -8914,7 +8891,7 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, async (req, res) =
     if (errMsg) return res.status(400).json({ success: false, error: errMsg });
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
 
-    upsertOrderToSupabase(updatedOrder).catch(() => {});
+    scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
     console.log(`[Admin Reassign] 🔄 Đơn ${orderId} → ${matchedShipper.name}`);
     res.json({ success: true, data: updatedOrder });
