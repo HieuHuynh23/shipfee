@@ -118,18 +118,7 @@ Hiện tại vẫn hai nhánh (`master` API + `main` frontend). Để bỏ footg
 2. Sau khi hai remote tip bằng nhau: chỉ merge PR vào nhánh production duy nhất.
 3. Cho đến khi đổi xong trên dashboard, **vẫn bắt buộc** sync `master → main` sau mỗi merge.
 
-#### Customer OTP (P2 — chưa ship)
-
-Lịch sử đơn đa thiết bị cần xác thực SĐT (OTP SMS/Zalo). Chưa gắn provider trong repo.
-
-| Bước | Ghi chú |
-|------|---------|
-| Chọn provider | Twilio / ESMS / Zalo ZNS |
-| Env | `CUSTOMER_OTP_PROVIDER`, `CUSTOMER_OTP_API_KEY` |
-| API | `POST /api/customers/otp/request` + `verify` (chưa có) |
-| Client | Lưu session token; không chỉ localStorage phone |
-
-Cho đến khi OTP live: tracking vẫn dựa `trackingToken` trên link đơn.
+Tracking đơn khách dùng `trackingToken` trên link (không cần OTP / SMS).
 
 #### Cấu trúc frontend (canonical → Vercel) — QUAN TRỌNG
 
