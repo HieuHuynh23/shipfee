@@ -2234,9 +2234,11 @@ const MENU_MEMORY_CACHE_TTL_MS = Math.max(
 let menuWarmInFlight = new Set();
 let menuWarmStats = { warmed: 0, lastAt: 0, lastBatch: 0 };
 
-// Puppeteer scrape kills free Render dynos — never enable on Render (crawl on VPS only)
+// Puppeteer scrape: default OFF on Render (OOM risk). Opt-in with ENABLE_MENU_SCRAPE=true
+// Local/VPS: ON unless ENABLE_MENU_SCRAPE=false
 const IS_RENDER = !!process.env.RENDER;
-const MENU_SCRAPE_ENABLED = !IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false';
+const MENU_SCRAPE_ENABLED = process.env.ENABLE_MENU_SCRAPE === 'true'
+  || (!IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false');
 
 function rememberMenuInMemory(restaurantId, menu, meta = {}) {
   if (!restaurantId || !Array.isArray(menu) || menu.length === 0) return;
