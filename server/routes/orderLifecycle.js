@@ -26,7 +26,10 @@ function registerOrderLifecycleRoutes(app, ctx) {
   calcDistance,
   stripOrderSecrets,
   DELIVERY_PROXIMITY_KM,
-  PICKUP_PROXIMITY_KM
+  PICKUP_PROXIMITY_KM,
+  touchShipperPresence,
+  isShipperGpsInServiceArea,
+  getClientIp
   } = ctx;
 
 app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
@@ -328,6 +331,9 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
         lastSeen: nowMs,
         ip: getClientIp(req) || null
       });
+      if (typeof touchShipperPresence === 'function') {
+        touchShipperPresence(authPhone, 'order-gps');
+      }
       const shippersDb = readShippersDatabase();
       const sIdx = shippersDb.findIndex(s => cleanPhone(s.phone) === authPhone);
       if (sIdx !== -1) {

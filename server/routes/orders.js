@@ -20,7 +20,8 @@ function registerOrderRoutes(app, ctx) {
     findOrderById,
     cleanPhone,
     scheduleOrdersRestaurantNavGpsAfterOffer,
-    onlineShipperLocations
+    onlineShipperLocations,
+    touchShipperPresence
   } = ctx;
 
   /**
@@ -35,6 +36,11 @@ function registerOrderRoutes(app, ctx) {
       const cleanInputPhone = cleanPhone(req.shipperPhone);
       if (!cleanInputPhone) {
         return res.status(403).json({ success: false, error: 'Không xác định được tài xế từ token' });
+      }
+
+      // Poll đơn = presence heartbeat — giữ ca ONLINE dù GPS tạm đứt
+      if (typeof touchShipperPresence === 'function') {
+        touchShipperPresence(cleanInputPhone, 'orders');
       }
 
       let resultData = orders.filter((o) => {
