@@ -21,8 +21,9 @@ const CONFIG = {
   OFFER_TTL_MS: 75000,
   GPS_FRESH_MS: 180000,
   GPS_STALE_OK_MS: 20 * 60 * 1000,
-  MAX_PRIMARY_RADIUS_KM: 10,
-  MAX_FALLBACK_RADIUS_KM: 18,
+  MAX_PRIMARY_RADIUS_KM: 12,
+  /** Khớp bán kính phục vụ Cần Thơ — tránh bỏ sót tài xế ở rìa thành phố */
+  MAX_FALLBACK_RADIUS_KM: 30,
   /** Phạt nhẹ nếu vừa bị offer timeout / decline gần đây */
   RECENT_DECLINE_PENALTY: 1.25,
   SSE_CONNECTED_BONUS: 0.85
