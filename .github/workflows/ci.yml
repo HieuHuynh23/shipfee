@@ -38,9 +38,77 @@ jobs:
           node --check pricingEngine.js
           node --check rateLimit.js
           node --check orderPersist.js
+          node --check dispatchEngine.js
+          node --check shipperPresence.js
+          node --check routes/orders.js
+          node --check routes/orderLifecycle.js
 
       - name: Pricing + order persist smoke
         working-directory: server
         run: |
           node -e "const p=require('./pricingEngine'); const r=p.recomputeOrderPricingFromMenu({clientItems:[{id:'1',quantity:2}],menu:[{id:'1',name:'Test',inStorePrice:10000,options:[]}],restLat:10.03,restLon:105.78,pinLat:10.04,pinLon:105.79,cfg:{markupRate:0.28,freeDistanceKm:1.5,surchargeCoefficient:7000,minShipperEarning:15000,multiItemDiscount:0.15}}); if(r.error||!(r.appTotal>0)) { console.error(r); process.exit(1);} console.log('pricing ok', r.appTotal);"
           node -e "const p=require('./orderPersist'); const o={id:'T1',trackingToken:'abc',status:'PENDING',appTotal:10000,storeTotal:8000,shipperEarning:2000,assignedShipperPhone:'0901',offerExpiresAt:Date.now()+60000,pinnedLat:10.03,pinnedLon:105.78,messages:[{sender:'customer',text:'hi',timestamp:1}],rating:5,isRelative:false,note:'x',ordererPhone:'0902',items:[{id:'1'}],declinedShippers:['0900']}; const a=p.assertRoundTrip(o); if(!a.ok){console.error(a);process.exit(1);} console.log('orderPersist ok');"
+
+      - name: Dispatch + presence smoke
+        working-directory: server
+        run: |
+          node -e "
+          const de = require('./dispatchEngine');
+          const presence = require('./shipperPresence');
+          const locs = new Map();
+          locs.set('0901234567', { lat: 10.03, lon: 105.78, lastSeen: Date.now() });
+          const shippers = [
+            { phone: '0901234567', name: 'A', status: 'ONLINE', assistanceRequested: false },
+            { phone: '0909999999', name: 'Busy', status: 'ONLINE', assistanceRequested: false }
+          ];
+          const orders = [{
+            id: 'o1', status: 'ACCEPTED', shipperPhone: '0909999999',
+            restaurantLat: 10.03, restaurantLon: 105.78,
+            pinnedLat: 10.03, pinnedLon: 105.78
+          }];
+          const calc = (a,b,c,d) => {
+            const R = 6371;
+            const dLat = (c - a) * Math.PI / 180;
+            const dLon = (d - b) * Math.PI / 180;
+            const x = Math.sin(dLat/2)**2 + Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
+            return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+          };
+          const cleanPhone = (p) => String(p || '').replace(/\D/g, '').replace(/^84/, '0');
+          const ctx = {
+            calcDistance: calc,
+            cleanPhone,
+            readShippersDatabase: () => shippers,
+            readOrdersDatabase: () => orders,
+            onlineShipperLocations: locs,
+            isSseConnected: (p) => p === '0901234567'
+          };
+          const pick = de.findNearestAvailableShipper(
+            ctx, 10.035, 105.785, [],
+            { restaurantLat: 10.035, restaurantLon: 105.785, pinnedLat: 10.03, pinnedLon: 105.78 }
+          );
+          if (!pick || cleanPhone(pick.phone) !== '0901234567') {
+            console.error('expected idle A', pick);
+            process.exit(1);
+          }
+          // Busy with 1 order + far restaurant → must NOT get incompatible 2nd offer
+          const far = de.findNearestAvailableShipper(
+            ctx, 10.25, 106.05, [],
+            { restaurantLat: 10.25, restaurantLon: 106.05, pinnedLat: 10.26, pinnedLon: 106.06 }
+          );
+          if (far && cleanPhone(far.phone) === '0909999999') {
+            console.error('busy shipper got incompatible batch', far);
+            process.exit(1);
+          }
+          presence.touchPresence('0901234567', 'orders', cleanPhone);
+          if (!presence.isRecentlyPresent('0901234567', 60000, cleanPhone)) {
+            console.error('presence missing');
+            process.exit(1);
+          }
+          const offered = { id: 'n1', status: 'PENDING' };
+          de.assignOfferToShipper(offered, pick, cleanPhone);
+          if (!offered.assignedShipperPhone || !offered.offerExpiresAt) {
+            console.error('assignOffer failed', offered);
+            process.exit(1);
+          }
+          console.log('dispatch+presence ok', pick.name, offered.assignedShipperPhone);
+          "

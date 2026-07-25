@@ -32,6 +32,8 @@ const pricingEngine = require('./pricingEngine');
 const { createRateLimiter } = require('./rateLimit');
 const orderPersist = require('./orderPersist');
 const orderStore = require('./orderStore');
+const dispatchEngine = require('./dispatchEngine');
+const shipperPresence = require('./shipperPresence');
 const { registerOrderRoutes } = require('./routes/orders');
 const { registerOrderLifecycleRoutes } = require('./routes/orderLifecycle');
 const { registerOrderCallRoutes } = require('./routes/orderCalls');
@@ -908,12 +910,17 @@ function cleanPhone(phone) {
 const SHIPPER_SERVICE_CENTER = { lat: 10.0345, lon: 105.7876 };
 const SHIPPER_SERVICE_RADIUS_KM = 35;
 const SHIPPER_MAX_SPEED_KMH = 160; // motorcycle + GPS jitter ceiling
-const SHIPPER_STALE_ONLINE_MS = 12 * 60 * 1000; // no GPS heartbeat → auto OFFLINE
+/** Không GPS / REST / SSE trong khoảng này → auto OFFLINE (presence, không chỉ GPS) */
+const SHIPPER_STALE_ONLINE_MS = shipperPresence.DEFAULT_STALE_MS; // 20 phút
 
 function getClientIp(req) {
   const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const ip = xf || req.headers['cf-connecting-ip'] || req.ip || req.socket?.remoteAddress || '';
   return String(ip).replace(/^::ffff:/, '');
+}
+
+function touchShipperPresence(phone, source = 'api') {
+  return shipperPresence.touchPresence(phone, source, cleanPhone);
 }
 
 /**
@@ -983,8 +990,13 @@ function markStaleShippersOffline() {
       if (s.status !== 'ONLINE') continue;
       const phone = cleanPhone(s.phone);
       const loc = onlineShipperLocations.get(phone);
-      const lastSeen = loc?.lastSeen || 0;
-      // Keep ONLINE briefly after deploy (Map empty) if check-in was recent
+      const presence = shipperPresence.getPresence(phone, cleanPhone);
+      // Presence (poll/SSE/GPS) OR GPS map — bất kỳ tín hiệu nào còn tươi đều giữ ca
+      const lastSeen = Math.max(
+        Number(loc?.lastSeen) || 0,
+        Number(presence?.lastSeen) || 0,
+        Number(s.lastLocationAt) || 0
+      );
       const lastCheckInMs = s.lastCheckIn ? Date.parse(s.lastCheckIn) : 0;
       const freshCheckIn = lastCheckInMs && (now - lastCheckInMs) < SHIPPER_STALE_ONLINE_MS;
       if (!lastSeen && freshCheckIn) continue;
@@ -992,7 +1004,9 @@ function markStaleShippersOffline() {
         shippers[i].status = 'OFFLINE';
         shippers[i].lastCheckOut = new Date().toISOString();
         onlineShipperLocations.delete(phone);
+        shipperPresence.clearPresence(phone, cleanPhone);
         changed = true;
+        console.log(`[Shift TTL] 📴 Auto OFFLINE ${s.name || phone} — không có presence/GPS >${Math.round(SHIPPER_STALE_ONLINE_MS / 60000)} phút`);
       }
     }
     if (changed) writeShippersDatabase(shippers);
@@ -1001,24 +1015,28 @@ function markStaleShippersOffline() {
   }
 }
 
-const MAX_ACTIVE_ORDERS_PER_SHIPPER = 2; // tối thiểu 1, tối đa 2 đơn đang chạy
-const BATCH_NEAR_RESTAURANT1_KM = 2;
-const BATCH_NEAR_CUSTOMER1_KM = 2;
-const BATCH_DELIVERY_CLUSTER_KM = 2;
-const OFFER_TTL_MS = 90000; // đủ dài khi SSE nới poll; vẫn re-dispatch qua processExpiredOffers
-const GPS_FRESH_MS = 120000;
-const GPS_STALE_OK_MS = 12 * 60 * 1000; // chấp nhận GPS gần đây khi không còn ping tươi
+const MAX_ACTIVE_ORDERS_PER_SHIPPER = dispatchEngine.CONFIG.MAX_ACTIVE_ORDERS_PER_SHIPPER;
+const OFFER_TTL_MS = dispatchEngine.CONFIG.OFFER_TTL_MS;
+const GPS_FRESH_MS = dispatchEngine.CONFIG.GPS_FRESH_MS;
+const GPS_STALE_OK_MS = dispatchEngine.CONFIG.GPS_STALE_OK_MS;
 /** Bán kính hoàn thành giao / lấy hàng (km) */
 const DELIVERY_PROXIMITY_KM = 0.35;
 const PICKUP_PROXIMITY_KM = 0.5;
 
+function getDispatchCtx() {
+  return {
+    calcDistance,
+    cleanPhone,
+    readShippersDatabase,
+    readOrdersDatabase,
+    onlineShipperLocations,
+    updateOrdersDatabase,
+    isSseConnected: (phone) => shipperPresence.isSseConnected(phone, cleanPhone)
+  };
+}
+
 function getShipperActiveOrders(phone, orders = null) {
-  const cleaned = cleanPhone(phone);
-  const list = orders || readOrdersDatabase();
-  return list.filter(o =>
-    cleanPhone(o.shipperPhone) === cleaned &&
-    (o.status === 'ACCEPTED' || o.status === 'PURCHASED')
-  );
+  return dispatchEngine.getShipperActiveOrders(phone, orders || readOrdersDatabase(), cleanPhone);
 }
 
 function getShipperActiveOrderCount(phone, orders = null) {
@@ -1038,96 +1056,20 @@ function isShipperBusy(shipperPhone, excludeOrderId = null) {
 }
 
 function assignOfferToShipper(order, shipper) {
-  if (!order || !shipper) return order;
-  order.assignedShipperPhone = cleanPhone(shipper.phone);
-  order.offerExpiresAt = Date.now() + OFFER_TTL_MS;
-  return order;
+  return dispatchEngine.assignOfferToShipper(order, shipper, cleanPhone, OFFER_TTL_MS);
 }
 
 function clearOrderOffer(order) {
-  if (!order) return order;
-  order.assignedShipperPhone = null;
-  order.offerExpiresAt = null;
-  return order;
+  return dispatchEngine.clearOrderOffer(order);
 }
 
 function scoreBatchCandidate(existingOrder, candidateOrder, shipperDistToNewRestaurant) {
-  const result = {
-    batchCompatible: false,
-    score: shipperDistToNewRestaurant + 8,
-    reason: 'INCOMPAT',
-    rest2ToRest1: Infinity,
-    rest2ToCust1: Infinity,
-    deliv2ToCust1: Infinity
-  };
-  if (!existingOrder || !candidateOrder) return result;
-
-  const rest2ToRest1 = calcDistance(
-    existingOrder.restaurantLat, existingOrder.restaurantLon,
-    candidateOrder.restaurantLat, candidateOrder.restaurantLon
+  return dispatchEngine.scoreBatchCandidate(
+    existingOrder,
+    candidateOrder,
+    shipperDistToNewRestaurant,
+    calcDistance
   );
-  const rest2ToCust1 = calcDistance(
-    existingOrder.pinnedLat, existingOrder.pinnedLon,
-    candidateOrder.restaurantLat, candidateOrder.restaurantLon
-  );
-  const deliv2ToCust1 = calcDistance(
-    existingOrder.pinnedLat, existingOrder.pinnedLon,
-    candidateOrder.pinnedLat, candidateOrder.pinnedLon
-  );
-  result.rest2ToRest1 = rest2ToRest1;
-  result.rest2ToCust1 = rest2ToCust1;
-  result.deliv2ToCust1 = deliv2ToCust1;
-
-  if (existingOrder.status === 'PURCHASED') {
-    const nearCust1Pickup = rest2ToCust1 <= BATCH_NEAR_CUSTOMER1_KM;
-    const nearCust1Dropoff = deliv2ToCust1 <= BATCH_DELIVERY_CLUSTER_KM;
-    if (nearCust1Pickup || nearCust1Dropoff) {
-      result.batchCompatible = true;
-      const anchorDist = Math.min(
-        Number.isFinite(rest2ToCust1) ? rest2ToCust1 : Infinity,
-        Number.isFinite(deliv2ToCust1) ? deliv2ToCust1 : Infinity
-      );
-      result.score = anchorDist * 0.22 + shipperDistToNewRestaurant * 0.12;
-      if (nearCust1Pickup && nearCust1Dropoff) {
-        result.score *= 0.75;
-        result.reason = 'NEAR_CUSTOMER1_BOTH';
-      } else if (nearCust1Pickup) {
-        result.reason = 'NEAR_CUSTOMER1_PICKUP';
-      } else {
-        result.reason = 'NEAR_CUSTOMER1_DROPOFF';
-      }
-    } else {
-      result.score = shipperDistToNewRestaurant + 10;
-      result.reason = 'FAR_FROM_CUSTOMER1';
-    }
-    return result;
-  }
-
-  const nearRest1 = rest2ToRest1 <= BATCH_NEAR_RESTAURANT1_KM;
-  const nearCust1Dropoff = deliv2ToCust1 <= BATCH_DELIVERY_CLUSTER_KM;
-  const nearCust1Pickup = rest2ToCust1 <= BATCH_NEAR_CUSTOMER1_KM;
-  if (nearRest1) {
-    result.batchCompatible = true;
-    result.score = rest2ToRest1 * 0.4 + shipperDistToNewRestaurant * 0.3;
-    if (nearCust1Dropoff) {
-      result.score *= 0.7;
-      result.reason = 'NEAR_REST1_AND_CUST1';
-    } else {
-      result.reason = 'NEAR_REST1';
-    }
-  } else if (nearCust1Pickup || nearCust1Dropoff) {
-    result.batchCompatible = true;
-    const anchorDist = Math.min(
-      Number.isFinite(rest2ToCust1) ? rest2ToCust1 : Infinity,
-      Number.isFinite(deliv2ToCust1) ? deliv2ToCust1 : Infinity
-    );
-    result.score = anchorDist * 0.4 + shipperDistToNewRestaurant * 0.3;
-    result.reason = nearCust1Pickup ? 'NEAR_CUST1_PICKUP_EARLY' : 'NEAR_CUST1_DROPOFF_EARLY';
-  } else {
-    result.score = shipperDistToNewRestaurant + 8;
-    result.reason = 'INCOMPAT_BEFORE_PICKUP';
-  }
-  return result;
 }
 
 const ORDER_STATUS_TRANSITIONS = {
@@ -1144,73 +1086,11 @@ function canTransitionOrderStatus(from, to) {
 }
 
 async function processExpiredOffers() {
-  const now = Date.now();
-  const orders = readOrdersDatabase();
-  const expiredOrders = orders.filter(o =>
-    o.status === 'PENDING' &&
-    o.assignedShipperPhone &&
-    o.offerExpiresAt &&
-    now > o.offerExpiresAt
-  );
-  const unassignedPending = orders.filter(o => o.status === 'PENDING' && !o.assignedShipperPhone);
-  if (expiredOrders.length === 0 && unassignedPending.length === 0) return;
+  return dispatchEngine.processExpiredOffers(getDispatchCtx());
+}
 
-  await updateOrdersDatabase((dbOrders) => {
-    let changed = false;
-    for (const exp of expiredOrders) {
-      const idx = dbOrders.findIndex(o => o.id === exp.id);
-      if (idx === -1) continue;
-      if (dbOrders[idx].status !== 'PENDING' || !dbOrders[idx].assignedShipperPhone) continue;
-      if (!(dbOrders[idx].offerExpiresAt && now > dbOrders[idx].offerExpiresAt)) continue;
-
-      console.log(`[Dispatch] ⏰ Đề xuất đơn ${dbOrders[idx].id} cho tài xế ${dbOrders[idx].assignedShipperPhone} đã hết hạn.`);
-      dbOrders[idx].declinedShippers = dbOrders[idx].declinedShippers || [];
-      const oldPhone = cleanPhone(dbOrders[idx].assignedShipperPhone);
-      if (oldPhone && !dbOrders[idx].declinedShippers.includes(oldPhone)) {
-        dbOrders[idx].declinedShippers.push(oldPhone);
-      }
-
-      const nextNearest = findNearestAvailableShipper(
-        dbOrders[idx].restaurantLat,
-        dbOrders[idx].restaurantLon,
-        dbOrders[idx].declinedShippers,
-        dbOrders[idx]
-      );
-      if (nextNearest) {
-        assignOfferToShipper(dbOrders[idx], nextNearest);
-        console.log(`[Dispatch] 🎯 Đơn ${dbOrders[idx].id} chuyển tiếp đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
-      } else {
-        clearOrderOffer(dbOrders[idx]);
-        console.log(`[Dispatch] ⏳ Đơn ${dbOrders[idx].id} chưa có tài xế phù hợp — giữ chờ đề xuất (ẩn bể chung)`);
-      }
-      changed = true;
-    }
-
-    for (const pending of unassignedPending) {
-      const idx = dbOrders.findIndex(o => o.id === pending.id);
-      if (idx === -1 || dbOrders[idx].status !== 'PENDING' || dbOrders[idx].assignedShipperPhone) continue;
-      const nextNearest = findNearestAvailableShipper(
-        dbOrders[idx].restaurantLat,
-        dbOrders[idx].restaurantLon,
-        dbOrders[idx].declinedShippers || [],
-        dbOrders[idx]
-      );
-      if (!nextNearest) continue;
-      if (nextNearest.isAssisted === true) {
-        dbOrders[idx].status = 'ACCEPTED';
-        dbOrders[idx].acceptedAt = Date.now();
-        dbOrders[idx].shipperPhone = cleanPhone(nextNearest.phone);
-        dbOrders[idx].shipperName = nextNearest.name;
-        clearOrderOffer(dbOrders[idx]);
-        console.log(`[SOS Redispatch] ⚡ Đơn ${dbOrders[idx].id} auto-accept cho SOS ${nextNearest.name}`);
-      } else {
-        assignOfferToShipper(dbOrders[idx], nextNearest);
-        console.log(`[Dispatch] 🔁 Đơn chờ ${dbOrders[idx].id} được đề xuất cho ${nextNearest.name} (${nextNearest.phone})`);
-      }
-      changed = true;
-    }
-    return changed;
-  });
+async function tryDispatchOnShipperPresence(opts) {
+  return dispatchEngine.tryDispatchOnPresence(getDispatchCtx(), opts);
 }
 
 function orderToSupabaseRow(order) {
@@ -1702,172 +1582,22 @@ function calcDistance(lat1, lon1, lat2, lon2) {
 
 /** Lấy tọa độ dispatch: GPS tươi → GPS gần đây trong Map → lastLat/lastLon đã persist */
 function resolveShipperDispatchLocation(shipper, cleanedPhone, now = Date.now()) {
-  const loc = onlineShipperLocations.get(cleanedPhone);
-  if (loc && Number.isFinite(loc.lat) && Number.isFinite(loc.lon)) {
-    const age = now - (loc.lastSeen || 0);
-    if (age <= GPS_FRESH_MS) {
-      return { lat: loc.lat, lon: loc.lon, ageMs: age, source: 'live' };
-    }
-    if (age <= GPS_STALE_OK_MS) {
-      return { lat: loc.lat, lon: loc.lon, ageMs: age, source: 'memory-stale' };
-    }
-  }
-  const lastLat = Number(shipper.lastLat);
-  const lastLon = Number(shipper.lastLon);
-  const lastAt = Number(shipper.lastLocationAt) || 0;
-  if (Number.isFinite(lastLat) && Number.isFinite(lastLon) && lastAt && (now - lastAt) <= GPS_STALE_OK_MS) {
-    return { lat: lastLat, lon: lastLon, ageMs: now - lastAt, source: 'persisted' };
-  }
-  return null;
+  return dispatchEngine.resolveShipperDispatchLocation(
+    shipper,
+    cleanedPhone,
+    onlineShipperLocations,
+    now
+  );
 }
 
 function findNearestAvailableShipper(restaurantLat, restaurantLon, declinedShippers = [], candidateOrder = null) {
-  try {
-    const shippers = readShippersDatabase();
-    const orders = readOrdersDatabase();
-    const onlineShippers = shippers.filter(s => s.status === 'ONLINE');
-    if (onlineShippers.length === 0) return null;
-
-    const cleanDeclined = (declinedShippers || []).map(cleanPhone);
-    const now = Date.now();
-    const orderHint = candidateOrder || {
-      restaurantLat,
-      restaurantLon,
-      pinnedLat: null,
-      pinnedLon: null
-    };
-
-    // 🆘 ƯU TIÊN 1: SOS (còn chỗ nhận thêm đơn) — không bắt buộc GPS tươi
-    let assistanceShipper = null;
-    let minAssistanceDist = Infinity;
-    for (const s of onlineShippers) {
-      const cleanedPhone = cleanPhone(s.phone);
-      if (cleanDeclined.includes(cleanedPhone)) continue;
-      if (getShipperActiveOrderCount(cleanedPhone, orders) >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
-      if (s.assistanceRequested !== true) continue;
-      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
-      const dist = resolved
-        ? calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon)
-        : 0;
-      if (dist < minAssistanceDist) {
-        minAssistanceDist = dist;
-        assistanceShipper = {
-          phone: s.phone,
-          name: s.name,
-          distance: dist,
-          isAssisted: true,
-          activeLoad: getShipperActiveOrderCount(cleanedPhone, orders),
-          batchCompatible: false
-        };
-      }
-    }
-    if (assistanceShipper) {
-      console.log(`[Priority Dispatch] 🎯 SOS ${assistanceShipper.name} (${assistanceShipper.phone}), load=${assistanceShipper.activeLoad}`);
-      return assistanceShipper;
-    }
-
-    // 🚴 ƯU TIÊN 2: GPS tươi — rảnh / ghép đơn theo giai đoạn / gần quán
-    let bestShipper = null;
-    let bestScore = Infinity;
-    for (const s of onlineShippers) {
-      const cleanedPhone = cleanPhone(s.phone);
-      if (cleanDeclined.includes(cleanedPhone)) continue;
-      const activeOrders = getShipperActiveOrders(cleanedPhone, orders);
-      if (activeOrders.length >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
-      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
-      if (!resolved || resolved.source !== 'live') continue;
-
-      const distToRestaurant = calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon);
-      let score = distToRestaurant;
-      let batchCompatible = false;
-      let batchReason = 'IDLE';
-      if (activeOrders.length === 1) {
-        const batch = scoreBatchCandidate(activeOrders[0], orderHint, distToRestaurant);
-        score = batch.score;
-        batchCompatible = batch.batchCompatible;
-        batchReason = batch.reason;
-        if (batchCompatible) {
-          console.log(`[Batch Dispatch] 📦 ${s.name} status=${activeOrders[0].status} reason=${batch.reason} score=${score.toFixed(2)}`);
-        }
-      }
-      if (Number.isFinite(score) && score < bestScore) {
-        bestScore = score;
-        bestShipper = {
-          phone: s.phone,
-          name: s.name,
-          distance: distToRestaurant,
-          activeLoad: activeOrders.length,
-          batchCompatible,
-          batchReason,
-          score,
-          locSource: resolved.source
-        };
-      }
-    }
-    if (bestShipper) {
-      const tag = bestShipper.batchCompatible
-        ? `GHÉP ĐƠN:${bestShipper.batchReason}`
-        : (bestShipper.activeLoad === 0 ? 'ĐƠN LẺ' : 'LOAD+1');
-      console.log(`[Dispatch] 🎯 Chọn ${bestShipper.name} (${bestShipper.phone}) [${tag}] dist=${bestShipper.distance.toFixed(2)}km score=${bestScore.toFixed(2)}`);
-      return bestShipper;
-    }
-
-    // 🛟 ƯU TIÊN 3: GPS stale / persisted / hoặc ONLINE không có GPS
-    // Tránh kẹt đơn khi ping GPS lỗi (Supabase auth chậm) — tài xế duy nhất vẫn nhận đề xuất
-    let fallbackShipper = null;
-    let fallbackScore = Infinity;
-    for (const s of onlineShippers) {
-      const cleanedPhone = cleanPhone(s.phone);
-      if (cleanDeclined.includes(cleanedPhone)) continue;
-      const activeOrders = getShipperActiveOrders(cleanedPhone, orders);
-      if (activeOrders.length >= MAX_ACTIVE_ORDERS_PER_SHIPPER) continue;
-
-      const resolved = resolveShipperDispatchLocation(s, cleanedPhone, now);
-      let distToRestaurant = 25; // không có GPS: vẫn đề xuất (điểm phạt), không bỏ qua
-      let locSource = 'online-no-gps';
-      if (resolved) {
-        distToRestaurant = calcDistance(restaurantLat, restaurantLon, resolved.lat, resolved.lon);
-        if (!Number.isFinite(distToRestaurant)) distToRestaurant = 25;
-        locSource = resolved.source;
-      }
-
-      let score = distToRestaurant + (resolved ? 2 : 8); // ưu tiên có GPS cũ hơn không có
-      let batchCompatible = false;
-      let batchReason = 'FALLBACK';
-      if (activeOrders.length === 1 && resolved) {
-        const batch = scoreBatchCandidate(activeOrders[0], orderHint, distToRestaurant);
-        score = batch.score + 3;
-        batchCompatible = batch.batchCompatible;
-        batchReason = `FALLBACK:${batch.reason}`;
-      }
-      if (Number.isFinite(score) && score < fallbackScore) {
-        fallbackScore = score;
-        fallbackShipper = {
-          phone: s.phone,
-          name: s.name,
-          distance: distToRestaurant,
-          activeLoad: activeOrders.length,
-          batchCompatible,
-          batchReason,
-          score,
-          locSource
-        };
-      }
-    }
-    if (fallbackShipper) {
-      console.log(
-        `[Dispatch] 🛟 Fallback gán ${fallbackShipper.name} (${fallbackShipper.phone}) ` +
-        `source=${fallbackShipper.locSource} dist=${fallbackShipper.distance.toFixed(2)}km ` +
-        `(không có GPS tươi — tránh bắt bấm SOS)`
-      );
-    } else {
-      console.log('[Dispatch] ⚠️ Không có tài xế ONLINE khả dụng (kể cả fallback)');
-    }
-    return fallbackShipper;
-  } catch (e) {
-    console.error('[Dispatch Error] findNearestAvailableShipper:', e.message);
-    return null;
-  }
+  return dispatchEngine.findNearestAvailableShipper(
+    getDispatchCtx(),
+    restaurantLat,
+    restaurantLon,
+    declinedShippers,
+    candidateOrder
+  );
 }
 
 // ── CONCURRENCY LIMITER & REQUEST COLLAPSING ────────────────────────────────
@@ -1962,7 +1692,8 @@ const rateLimitOrders = createRateLimiter({
 });
 const rateLimitRealtime = createRateLimiter({
   windowMs: 60_000,
-  max: 120,
+  // Mobile SSE reconnect + cold start có thể mở lại nhiều lần — nới để tránh 429 → banner offline
+  max: 240,
   message: 'Quá nhiều kết nối realtime.'
 });
 
@@ -5905,7 +5636,8 @@ registerOrderRoutes(app, {
   findOrderById,
   cleanPhone,
   scheduleOrdersRestaurantNavGpsAfterOffer,
-  onlineShipperLocations
+  onlineShipperLocations,
+  touchShipperPresence
 });
 
 
@@ -5934,7 +5666,10 @@ registerOrderLifecycleRoutes(app, {
   calcDistance,
   stripOrderSecrets,
   DELIVERY_PROXIMITY_KM,
-  PICKUP_PROXIMITY_KM
+  PICKUP_PROXIMITY_KM,
+  touchShipperPresence,
+  isShipperGpsInServiceArea,
+  getClientIp
 });
 
 // ── WebRTC VoIP CALL SIGNALING REGISTRY ───────────────────────────────────
@@ -6253,13 +5988,18 @@ app.post('/api/shippers/shift', authenticateShipper, async (req, res) => {
     let nowStr = new Date().toISOString();
     if (status === 'ONLINE') {
       shippers[idx].lastCheckIn = nowStr;
+      touchShipperPresence(cleanedPhone, 'shift');
     } else {
       shippers[idx].lastCheckOut = nowStr;
       onlineShipperLocations.delete(cleanedPhone);
+      shipperPresence.clearPresence(cleanedPhone, cleanPhone);
     }
 
     writeShippersDatabase(shippers);
     console.log(`[Shippers DB] 🛵 Tài xế ${shippers[idx].name} (${cleanedPhone}) đã ${status === 'ONLINE' ? 'Vào ca (Check-in)' : 'Tắt ca (Check-out)'} ip=${getClientIp(req)}`);
+    if (status === 'ONLINE') {
+      tryDispatchOnShipperPresence({ force: true }).catch(() => {});
+    }
 
     // Sync to Supabase shipper_profiles if active
     if (supabase && shippers[idx].id) {
@@ -6328,6 +6068,7 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
       lastSeen: nowMs,
       ip: clientIp || null
     });
+    touchShipperPresence(cleanedPhone, 'gps');
 
     // Persist GPS thưa (sống qua restart Render) — dùng cho dispatch fallback
     const prevAt = Number(shipper.lastLocationAt) || 0;
@@ -6342,6 +6083,8 @@ app.post('/api/shippers/location', authenticateShipper, (req, res) => {
     }
 
     res.json({ success: true });
+    // GPS vừa tươi → thử gán đơn PENDING đang chờ (throttled)
+    tryDispatchOnShipperPresence().catch(() => {});
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -6703,6 +6446,8 @@ app.get('/api/realtime/stream', rateLimitRealtime, async (req, res) => {
       if (!meta.phone) {
         return res.status(401).json({ success: false, error: 'Thiếu xác thực tài xế' });
       }
+      touchShipperPresence(meta.phone, 'sse');
+      shipperPresence.setSseConnected(meta.phone, true, cleanPhone);
     } else if (role === 'admin') {
       await new Promise((resolve) => authenticateAdmin(req, res, resolve));
       if (res.headersSent) return;
@@ -6745,11 +6490,23 @@ app.get('/api/realtime/stream', rateLimitRealtime, async (req, res) => {
 
     const client = realtimeHub.addClient(res, meta);
     const heartbeat = setInterval(() => {
-      try { res.write(': ping\n\n'); } catch (_) { clearInterval(heartbeat); }
+      try {
+        // Named event — EventSource client nhận được (comment `: ping` thì không)
+        res.write(`event: heartbeat\n`);
+        res.write(`data: ${JSON.stringify({ at: Date.now() })}\n\n`);
+        if (meta.role === 'shipper' && meta.phone) {
+          touchShipperPresence(meta.phone, 'sse');
+        }
+      } catch (_) {
+        clearInterval(heartbeat);
+      }
     }, 15000);
 
     req.on('close', () => {
       clearInterval(heartbeat);
+      if (meta.role === 'shipper' && meta.phone) {
+        shipperPresence.setSseConnected(meta.phone, false, cleanPhone);
+      }
       realtimeHub.removeClient(client);
     });
   } catch (e) {
@@ -9215,7 +8972,7 @@ app.listen(PORT, () => {
   // Background expire-offer / re-dispatch (không gắn vào GET /api/orders)
   setInterval(() => {
     processExpiredOffers().catch(e => console.warn('[Dispatch Timer]', e.message));
-  }, 8000);
+  }, 5000);
   processExpiredOffers().catch(() => {});
 
   // Không ép toàn bộ OFFLINE khi boot (gây checkout khi shipper reload sau deploy).

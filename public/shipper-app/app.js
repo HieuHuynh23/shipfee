@@ -405,6 +405,33 @@ let shipperRealtimeActive = false;
 let shipperRealtimeDebounce = null;
 let shipperRealtimeReconnectTimer = null;
 let shipperRealtimeBackoffMs = 2000;
+let lastSseHeartbeatAt = 0;
+let jwtRefreshTimer = null;
+let shiftRestoreInFlight = false;
+
+function hasFreshSseHeartbeat(maxAgeMs = 45000) {
+  return lastSseHeartbeatAt > 0 && (Date.now() - lastSseHeartbeatAt) <= maxAgeMs;
+}
+
+function startJwtRefreshLoop() {
+  stopJwtRefreshLoop();
+  // Supabase access_token ~1h — refresh sớm để tránh SSE/GPS 401 hàng loạt
+  jwtRefreshTimer = setInterval(() => {
+    if (!currentDriver) return;
+    refreshShipperJwtFromSession().then((tok) => {
+      if (tok && shipperRealtimeActive && !hasFreshSseHeartbeat(60000)) {
+        openShipperRealtime();
+      }
+    });
+  }, 8 * 60 * 1000);
+}
+
+function stopJwtRefreshLoop() {
+  if (jwtRefreshTimer) {
+    clearInterval(jwtRefreshTimer);
+    jwtRefreshTimer = null;
+  }
+}
 
 function openShipperRealtime() {
   if (!currentDriver || typeof EventSource === 'undefined') return;
@@ -424,11 +451,19 @@ function openShipperRealtime() {
     shipperRealtime.addEventListener('connected', () => {
       shipperRealtimeActive = true;
       shipperRealtimeBackoffMs = 2000;
+      lastSseHeartbeatAt = Date.now();
       setConnectionStatus(true);
       // Còn chỗ nhận đề xuất (0–1 đơn): poll nhanh. Đủ 2 đơn + SSE: nới poll.
       const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
       schedulePolling(waitingOffer ? 5000 : 45000);
       console.log('[Realtime] Shipper SSE connected');
+    });
+    shipperRealtime.addEventListener('heartbeat', () => {
+      lastSseHeartbeatAt = Date.now();
+      shipperRealtimeActive = true;
+      shipperRealtimeBackoffMs = 2000;
+      // SSE còn sống = đã kết nối máy chủ — không chờ REST
+      if (pollFailCount === 0) setConnectionStatus(true);
     });
     shipperRealtime.addEventListener('order_updated', () => {
       if (shipperRealtimeDebounce) clearTimeout(shipperRealtimeDebounce);
@@ -479,6 +514,7 @@ function openShipperRealtime() {
 
 function closeShipperRealtime() {
   shipperRealtimeActive = false;
+  lastSseHeartbeatAt = 0;
   if (shipperRealtimeReconnectTimer) {
     clearTimeout(shipperRealtimeReconnectTimer);
     shipperRealtimeReconnectTimer = null;
@@ -623,21 +659,27 @@ function applyOnlineUi(online) {
 }
 
 async function restoreOnlineShift() {
-  if (!currentDriver) return;
+  if (!currentDriver || shiftRestoreInFlight) return false;
+  shiftRestoreInFlight = true;
   try {
-    const res = await apiFetch(`${API_BASE}/api/shippers/shift`, {
+    const res = await apiFetchAuth(`${API_BASE}/api/shippers/shift`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: currentDriver.phone, status: 'ONLINE' })
-    }, 10000);
-    if (res.ok) {
+    }, 12000);
+    if (res && res.ok) {
       isOnline = true;
       persistOnlineStatus(true);
       applyOnlineUi(true);
-      console.log('[Shift] Đã khôi phục Check-in sau khi tải lại trang');
+      console.log('[Shift] Đã khôi phục Check-in (server OFFLINE / GPS 409)');
+      return true;
     }
+    return false;
   } catch (e) {
     console.warn('[Shift] Không khôi phục được ca ONLINE:', e?.message || e);
+    return false;
+  } finally {
+    shiftRestoreInFlight = false;
   }
 }
 
@@ -1018,6 +1060,7 @@ function startPolling() {
   pollBackoffActive = false;
   syncAllData();
   openShipperRealtime();
+  startJwtRefreshLoop();
   // Còn chỗ nhận đề xuất (kể cả đang 1 đơn — ghép đơn): poll nhanh
   const waitingOffer = isOnline && activeOrders.length < MAX_ACTIVE_ORDERS;
   const pollMs = waitingOffer
@@ -1029,6 +1072,7 @@ function startPolling() {
 
 function stopPolling() {
   closeShipperRealtime();
+  stopJwtRefreshLoop();
   if (pollInterval) {
     clearInterval(pollInterval);
     pollInterval = null;
@@ -1212,19 +1256,23 @@ async function syncAllData() {
     console.error('[Shipper App] Error syncing data:', err);
     pollFailCount++;
     pollBackoffActive = true;
-    // Lần fail đầu: chưa spam banner (thường là timeout ngắn / SSE flip)
-    if (pollFailCount >= 2) {
+    // SSE heartbeat còn tươi → REST timeout tạm thời (Render wake) — chưa báo offline
+    const sseAlive = hasFreshSseHeartbeat(45000);
+    // Lần fail đầu / SSE còn sống: chưa spam banner
+    if (pollFailCount >= 3 && !sseAlive) {
       let detail = 'Mất kết nối — đang thử lại…';
       if (err && err.code === 'AUTH') {
         detail = 'Phiên đăng nhập hết hạn — đang làm mới…';
         refreshShipperJwtFromSession().then((tok) => {
           if (!tok && currentDriver) {
             showToast('Phiên hết hạn', 'Vui lòng đăng nhập lại.', 'error');
+          } else if (tok) {
+            openShipperRealtime();
           }
         });
       } else if (err && err.code === 'RATE') {
         detail = 'Máy chủ đang quá tải — thử lại sau…';
-      } else if (pollFailCount > 2) {
+      } else if (pollFailCount > 3) {
         detail = `Mất kết nối — thử lại lần ${pollFailCount}…`;
       }
       setConnectionStatus(false, detail);
@@ -2176,16 +2224,41 @@ async function sendLocationToServer(lat, lon) {
         })
       }, 12000);
 
-      if (!res || !res.ok) {
-        let detail = '';
+      // Server đánh dấu OFFLINE (TTL) trong khi UI vẫn ONLINE → tự check-in lại rồi gửi GPS
+      let rejectDetail = '';
+      if (res && res.status === 409) {
+        let code = '';
         try {
           const body = await safeJson(res);
-          detail = body.error || body.code || '';
-        } catch (_) {}
-        console.warn('[GPS] Server từ chối vị trí:', res && res.status, detail);
+          code = body.code || '';
+          rejectDetail = body.error || body.code || 'NOT_ONLINE';
+        } catch (_) {
+          rejectDetail = 'NOT_ONLINE';
+        }
+        if (code === 'NOT_ONLINE' || !code) {
+          const restored = await restoreOnlineShift();
+          if (restored) {
+            res = await apiFetchAuth(`${API_BASE}/api/shippers/location`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone: currentDriver.phone, lat, lon })
+            }, 12000);
+            rejectDetail = '';
+          }
+        }
+      }
+
+      if (!res || !res.ok) {
+        if (!rejectDetail) {
+          try {
+            const body = await safeJson(res);
+            rejectDetail = body.error || body.code || '';
+          } catch (_) {}
+        }
+        console.warn('[GPS] Server từ chối vị trí:', res && res.status, rejectDetail);
         const el = document.getElementById('gps-indicator');
-        if (el && detail) {
-          el.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Lỗi đồng bộ (${escapeHtml(detail)})`;
+        if (el && rejectDetail) {
+          el.innerHTML = `<i class="fa-solid fa-triangle-exclamation" style="color:var(--clr-warning,#f59e0b)"></i> GPS: Lỗi đồng bộ (${escapeHtml(rejectDetail)})`;
         }
       }
     }
