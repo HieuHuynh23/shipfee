@@ -179,7 +179,7 @@ Chi tiết: [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md).
 ### Hệ Thống Tính Giá (Chi tiết tại PRICING.md)
 - **Markup cố định 28%**: `appPrice = round100(inStorePrice × 1.28) + distanceSurcharge`
 - **Phụ thu khoảng cách ẩn**: Miễn phí ≤1.5km, trên 1.5km: `round100(7000 × √(d - 1.5))`
-- **Ưu đãi đặt nhiều món**: Giảm 15% phụ thu cho món thứ 2 trở đi (tối thiểu 2.000đ/món)
+- **Ưu đãi đặt nhiều món**: Giảm 15% giá app cho món thứ 2 trở đi (món đắt nhất giữ giá đủ; tối thiểu 2.000đ/món)
 - **Sàn thu nhập shipper**: Tối thiểu 15.000đ/đơn — tự động thu thêm "Phí đơn hàng nhỏ" nếu thiếu
 - **Free Ship hiển thị**: Giao diện luôn hiển thị "Miễn phí vận chuyển"
 
