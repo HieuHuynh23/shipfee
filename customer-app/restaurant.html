@@ -683,10 +683,12 @@
             const retryOk = await fetchRestaurantDetails(restaurantId);
             if (retryOk && RESTAURANT.menu && RESTAURANT.menu.length > 0) {
               initializePage();
+            } else if (retryOk) {
+              showMenuUnavailable();
             }
           }, 4000);
         } else {
-          showMenuLoadingEmpty();
+          showMenuUnavailable();
         }
       } else if (!RESTAURANT) {
         SF.showToast('Không tìm thấy quán', 'Đang tự động chuyển hướng về trang chủ...', 'error');
@@ -961,6 +963,30 @@
           <div class="empty-state__icon"><i class="fa-solid fa-utensils"></i></div>
           <div class="empty-state__title">Đang cập nhật thực đơn...</div>
           <div class="empty-state__desc">Hệ thống đang lấy thực đơn chính thức. Vui lòng chờ trong giây lát hoặc tải lại trang.</div>
+        </div>`;
+    }
+
+    function showMenuUnavailable() {
+      if (RESTAURANT) {
+        document.title = (RESTAURANT.name || 'Quán') + ' — ShipFee';
+        const nameEl = document.getElementById('restaurant-name');
+        if (nameEl) nameEl.textContent = RESTAURANT.name || 'Quán';
+        try { renderHeader(); } catch (e) {}
+      }
+      const container = document.getElementById('menu-content');
+      if (!container) return;
+      const dishHint = Array.isArray(RESTAURANT && RESTAURANT.dishNames) && RESTAURANT.dishNames.length
+        ? `<div class="empty-state__desc" style="margin-top:8px;opacity:.85;">Gợi ý món: ${
+            RESTAURANT.dishNames.slice(0, 6).map(n => SF.escapeHtml ? SF.escapeHtml(n) : n).join(', ')
+          }…</div>`
+        : '';
+      container.innerHTML = `
+        <div class="empty-state" style="padding:40px 20px;text-align:center;">
+          <div class="empty-state__icon"><i class="fa-solid fa-clipboard-list"></i></div>
+          <div class="empty-state__title">Chưa có thực đơn trên hệ thống</div>
+          <div class="empty-state__desc">Quán đã được ghi nhận nhưng thực đơn chi tiết chưa đồng bộ lên máy chủ. Vui lòng chọn quán khác hoặc thử lại sau khi hệ thống cập nhật.</div>
+          ${dishHint}
+          <button type="button" class="btn btn--primary" style="margin-top:16px;" onclick="location.reload()">Thử tải lại</button>
         </div>`;
     }
 

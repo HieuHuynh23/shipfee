@@ -2286,6 +2286,13 @@ function loadRestaurantsIntoMemory() {
   try {
     const data = dbHelper.read();
     if (Array.isArray(data)) {
+      let clearedScraping = 0;
+      for (const r of data) {
+        if (r && r._isScraping) {
+          delete r._isScraping;
+          clearedScraping += 1;
+        }
+      }
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
       cacheLoadedAt = Date.now();
@@ -2297,6 +2304,9 @@ function loadRestaurantsIntoMemory() {
       }
       const elapsed = Date.now() - startMs;
       console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory from chunks (${elapsed}ms, index: ${searchIndex.length} entries)`);
+      if (clearedScraping > 0) {
+        console.log(`[Cache] 🧹 Cleared stuck _isScraping flags on ${clearedScraping} restaurants (runtime-only; not persisted yet)`);
+      }
     }
   } catch (err) {
     console.error('[Cache] ❌ Error loading DB:', err.message);
@@ -5294,12 +5304,16 @@ app.get('/api/restaurants/:id', async (req, res) => {
         } else {
           console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase thật.`);
           responseRestaurant.menu = [];
-          // Keep honest flags — do not claim real without a real menu payload
-          if (!originallyHadRealMenu) {
-            responseRestaurant.hasRealMenu = false;
-            responseRestaurant.menuTemplateFallback = true;
+          // Claimed real in catalog but payload missing — be honest for UI (not endless "updating")
+          if (originallyHadRealMenu) {
+            console.warn(`[Details] ⚠️ "${responseRestaurant.name}" hasRealMenu=true nhưng không có menu body (disk/Supabase).`);
           }
-          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
+          responseRestaurant.hasRealMenu = false;
+          responseRestaurant.menuTemplateFallback = true;
+          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : (MENU_SCRAPE_ENABLED ? 'loading' : 'unavailable');
+          if (found) {
+            delete found._isScraping;
+          }
         }
       }
     } else {
