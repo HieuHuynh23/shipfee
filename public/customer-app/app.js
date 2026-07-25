@@ -17,7 +17,7 @@ const _API_BASE = defaultApiUrl;
 const INDEX_CACHE_KEY = 'shipfee_restaurants_index';
 const LEGACY_CACHE_KEY = 'shipfee_restaurants';
 const MENU_CACHE_PREFIX = 'shipfee_menu_';
-const MENU_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MENU_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes — aligned with server RAM menu bridge
 const INDEX_CACHE_MAX = 200;
 
 let MARKUP_RATE = 0.28;

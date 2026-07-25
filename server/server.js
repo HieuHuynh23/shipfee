@@ -1502,11 +1502,14 @@ function recomputeOrderPricingFromMenu(args) {
 
 async function loadMenuForPricing(restaurantId) {
   if (!restaurantId) return [];
+  const memHit = recallMenuFromMemory(restaurantId);
+  if (memHit && memHit.menu.length > 0) return memHit.menu;
   const mem = findRestaurantInCache(restaurantId);
   if (mem && Array.isArray(mem.menu) && mem.menu.length > 0) return mem.menu;
   const fileMenu = readRestaurantMenu(restaurantId);
   if (fileMenu && fileMenu.length > 0) {
     if (mem) mem.menu = fileMenu;
+    rememberMenuInMemory(restaurantId, fileMenu, { hasRealMenu: true });
     return fileMenu;
   }
   const hydrated = await hydrateOneMenuFromSupabase(restaurantId);
@@ -2217,9 +2220,54 @@ const geocodeCache = new Map();
 const nearbyListCache = new Map(); // key -> { at, data }
 const NEARBY_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
+// Bounded LRU menu body cache — chunks/boot catalog never embed full menus (OOM).
+// Bridges disk menus/ ↔ Supabase: first open hydrates once, later opens hit RAM.
+const menuMemoryCache = new Map(); // id -> { menu, at, menuUpdatedAt, hasRealMenu }
+const MENU_MEMORY_CACHE_MAX = Math.max(
+  50,
+  parseInt(process.env.MENU_MEMORY_CACHE_MAX || '180', 10) || 180
+);
+const MENU_MEMORY_CACHE_TTL_MS = Math.max(
+  60 * 1000,
+  parseInt(process.env.MENU_MEMORY_CACHE_TTL_MS || String(45 * 60 * 1000), 10) || 45 * 60 * 1000
+);
+let menuWarmInFlight = new Set();
+let menuWarmStats = { warmed: 0, lastAt: 0, lastBatch: 0 };
+
 // Puppeteer scrape kills free Render dynos — never enable on Render (crawl on VPS only)
 const IS_RENDER = !!process.env.RENDER;
 const MENU_SCRAPE_ENABLED = !IS_RENDER && process.env.ENABLE_MENU_SCRAPE !== 'false';
+
+function rememberMenuInMemory(restaurantId, menu, meta = {}) {
+  if (!restaurantId || !Array.isArray(menu) || menu.length === 0) return;
+  const id = String(restaurantId);
+  if (menuMemoryCache.has(id)) menuMemoryCache.delete(id);
+  menuMemoryCache.set(id, {
+    menu,
+    at: Date.now(),
+    menuUpdatedAt: meta.menuUpdatedAt || null,
+    hasRealMenu: meta.hasRealMenu === true
+  });
+  while (menuMemoryCache.size > MENU_MEMORY_CACHE_MAX) {
+    const oldest = menuMemoryCache.keys().next().value;
+    menuMemoryCache.delete(oldest);
+  }
+}
+
+function recallMenuFromMemory(restaurantId) {
+  if (!restaurantId) return null;
+  const id = String(restaurantId);
+  const hit = menuMemoryCache.get(id);
+  if (!hit || !Array.isArray(hit.menu) || hit.menu.length === 0) return null;
+  if (Date.now() - (hit.at || 0) > MENU_MEMORY_CACHE_TTL_MS) {
+    menuMemoryCache.delete(id);
+    return null;
+  }
+  // LRU touch
+  menuMemoryCache.delete(id);
+  menuMemoryCache.set(id, hit);
+  return hit;
+}
 
 function buildSearchIndex(restaurants) {
   return restaurants.map((r, idx) => ({
@@ -2238,6 +2286,13 @@ function loadRestaurantsIntoMemory() {
   try {
     const data = dbHelper.read();
     if (Array.isArray(data)) {
+      let clearedScraping = 0;
+      for (const r of data) {
+        if (r && r._isScraping) {
+          delete r._isScraping;
+          clearedScraping += 1;
+        }
+      }
       cachedRestaurants = data;
       searchIndex = buildSearchIndex(data);
       cacheLoadedAt = Date.now();
@@ -2249,6 +2304,9 @@ function loadRestaurantsIntoMemory() {
       }
       const elapsed = Date.now() - startMs;
       console.log(`[Cache] ✅ Loaded ${cachedRestaurants.length} restaurants into memory from chunks (${elapsed}ms, index: ${searchIndex.length} entries)`);
+      if (clearedScraping > 0) {
+        console.log(`[Cache] 🧹 Cleared stuck _isScraping flags on ${clearedScraping} restaurants (runtime-only; not persisted yet)`);
+      }
     }
   } catch (err) {
     console.error('[Cache] ❌ Error loading DB:', err.message);
@@ -2346,6 +2404,7 @@ loadRestaurantsIntoMemory();
 
 /**
  * Restore a single restaurant menu from Supabase (fast path for detail views).
+ * Writes disk + RAM cache so local JSON and Supabase reinforce each other.
  * Returns menu array or null.
  */
 async function hydrateOneMenuFromSupabase(restaurantId) {
@@ -2376,7 +2435,12 @@ async function hydrateOneMenuFromSupabase(restaurantId) {
       return null;
     }
 
-    writeRestaurantMenu(restaurantId, data.menu);
+    // Disk restore only — already sourced from Supabase, do not push back
+    writeRestaurantMenu(restaurantId, data.menu, { syncToSupabase: false });
+    rememberMenuInMemory(restaurantId, data.menu, {
+      hasRealMenu: quality.isReal === true,
+      menuUpdatedAt: data.updated_at || new Date().toISOString()
+    });
     const mem = cachedRestaurants.find(r => String(r.id) === String(restaurantId));
     if (mem) {
       applyMenuFlags(mem, data.menu);
@@ -2393,6 +2457,66 @@ async function hydrateOneMenuFromSupabase(restaurantId) {
     console.error(`[Menu Hydrate] Lỗi hydrateOne ${restaurantId}:`, err.message);
     return null;
   }
+}
+
+/**
+ * Background warm: pull menus from Supabase → disk/RAM for ids about to be viewed.
+ * Keeps concurrency low so Render free tier stays healthy.
+ */
+async function warmMenusForIds(ids, { concurrency = 2, limit = 10 } = {}) {
+  if (!supabase || !Array.isArray(ids) || ids.length === 0) return { warmed: 0 };
+  const unique = [];
+  for (const raw of ids) {
+    const id = String(raw || '');
+    if (!id || unique.includes(id)) continue;
+    if (recallMenuFromMemory(id)) continue;
+    if (menuWarmInFlight.has(id)) continue;
+    const fileMenu = readRestaurantMenu(id);
+    if (fileMenu && fileMenu.length > 0) {
+      rememberMenuInMemory(id, fileMenu, { hasRealMenu: true });
+      continue;
+    }
+    unique.push(id);
+    if (unique.length >= limit) break;
+  }
+  if (unique.length === 0) return { warmed: 0 };
+
+  let warmed = 0;
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(concurrency, unique.length) }, async () => {
+    while (cursor < unique.length) {
+      const id = unique[cursor++];
+      menuWarmInFlight.add(id);
+      try {
+        const menu = await hydrateOneMenuFromSupabase(id);
+        if (menu && menu.length > 0) warmed += 1;
+      } catch (_) {
+        /* ignore single warm failures */
+      } finally {
+        menuWarmInFlight.delete(id);
+      }
+    }
+  });
+  await Promise.all(workers);
+  menuWarmStats = { warmed: menuWarmStats.warmed + warmed, lastAt: Date.now(), lastBatch: warmed };
+  if (warmed > 0) {
+    console.log(`[Menu Warm] ✅ Prefetched ${warmed}/${unique.length} menus → disk+RAM`);
+  }
+  return { warmed, attempted: unique.length };
+}
+
+function scheduleMenuWarmForRestaurants(restaurants, opts = {}) {
+  if (!Array.isArray(restaurants) || restaurants.length === 0) return;
+  const ids = restaurants
+    .filter(r => r && r.id && r.hasRealMenu === true && !r.isClosed)
+    .map(r => r.id);
+  if (ids.length === 0) return;
+  setImmediate(() => {
+    warmMenusForIds(ids, {
+      concurrency: IS_RENDER ? 2 : 3,
+      limit: opts.limit != null ? opts.limit : (IS_RENDER ? 8 : 12)
+    }).catch(err => console.warn('[Menu Warm] failed:', err.message));
+  });
 }
 
 /**
@@ -2789,7 +2913,7 @@ function readRestaurantMenu(restaurantId) {
   return null;
 }
 
-function writeRestaurantMenu(restaurantId, menu) {
+function writeRestaurantMenu(restaurantId, menu, opts = {}) {
   // Chỉ cho phép ghi file menu nếu quán thực sự tồn tại trong database để tránh file dư thừa
   const exists = cachedRestaurants && cachedRestaurants.some(r => r && String(r.id) === String(restaurantId));
   if (!exists) {
@@ -2800,10 +2924,16 @@ function writeRestaurantMenu(restaurantId, menu) {
   const filePath = getMenuFilePath(restaurantId);
   try {
     fs.writeFileSync(filePath, JSON.stringify(menu || [], null, 2), 'utf8');
-    // Đồng bộ lên Supabase ở background (không await để tránh block luồng chính)
-    syncRestaurantToSupabase(restaurantId).catch(err => {
-      console.error('[Supabase Sync] Background error:', err.message);
+    rememberMenuInMemory(restaurantId, menu || [], {
+      hasRealMenu: Array.isArray(menu) && menu.length > 0,
+      menuUpdatedAt: new Date().toISOString()
     });
+    // Đồng bộ lên Supabase ở background — bỏ qua khi đang hydrate NGƯỢC từ Supabase
+    if (opts.syncToSupabase !== false) {
+      syncRestaurantToSupabase(restaurantId).catch(err => {
+        console.error('[Supabase Sync] Background error:', err.message);
+      });
+    }
     return true;
   } catch (err) {
     console.error(`[DB Menu] Lỗi ghi menu cho ${restaurantId}:`, err.message);
@@ -4188,6 +4318,8 @@ app.get('/api/restaurants', async (req, res) => {
     console.log(`[Search] ✅ Trả về ${cappedResults.length}/${processedResults.length} quán (cap ${SEARCH_RESULT_CAP}).`);
     // Tìm kiếm thời gian thực: không cache vì kết quả thay đổi theo từ khóa
     res.set('Cache-Control', 'no-cache, no-store');
+    // Prefetch menus for top matches so detail opens hit RAM/disk instead of Supabase
+    scheduleMenuWarmForRestaurants(cappedResults.slice(0, 12), { limit: 8 });
     return res.json({
       source: 'merged_search',
       data: cappedResults,
@@ -4234,6 +4366,8 @@ app.get('/api/restaurants', async (req, res) => {
     console.log(`[Response] ✅ Nearby page ${nearby.page}/${Math.ceil(nearby.total / nearby.limit) || 1}: ${nearby.data.length}/${nearby.total} quán in ${nearby.tookMs}ms (mở: ${totalOpen}, đóng: ${totalClosed})`);
 
     res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    // Warm first-page menus in background (Supabase → menus/ + RAM) before user taps a card
+    scheduleMenuWarmForRestaurants(nearby.data, { limit: IS_RENDER ? 8 : 12 });
     return res.json({
       source: 'local_cached',
       data: nearby.data,
@@ -5125,7 +5259,18 @@ app.get('/api/restaurants/:id', async (req, res) => {
 
     const originallyHadRealMenu = found.hasRealMenu === true;
 
-    // Tải menu từ tệp riêng nếu chưa có — ưu tiên Supabase hydrate trước scrape
+    // Tải menu: RAM LRU → file menus/ → Supabase hydrate (hai chiều hỗ trợ nhau)
+    if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
+      const memHit = recallMenuFromMemory(responseRestaurant.id);
+      if (memHit && memHit.menu.length > 0) {
+        responseRestaurant.menu = memHit.menu;
+        applyMenuFlags(responseRestaurant, memHit.menu);
+        if (memHit.menuUpdatedAt) responseRestaurant.menuUpdatedAt = memHit.menuUpdatedAt;
+        responseRestaurant.menuStatus = responseRestaurant.hasRealMenu ? 'ready' : 'fallback';
+        source = source + '+memory_menu';
+      }
+    }
+
     if (!responseRestaurant.menu || responseRestaurant.menu.length === 0) {
       const fileMenu = readRestaurantMenu(responseRestaurant.id);
       if (fileMenu && fileMenu.length > 0) {
@@ -5143,6 +5288,11 @@ app.get('/api/restaurants/:id', async (req, res) => {
           responseRestaurant.menuStatus = q.isReal ? 'ready' : 'fallback';
           if (found && q.isReal) applyMenuFlags(found, fileMenu);
         }
+        rememberMenuInMemory(responseRestaurant.id, fileMenu, {
+          hasRealMenu: responseRestaurant.hasRealMenu === true,
+          menuUpdatedAt: responseRestaurant.menuUpdatedAt
+        });
+        source = source + '+disk_menu';
       } else {
         // Fast path: restore this one restaurant from Supabase (deploy loses menus/)
         const hydrated = await hydrateOneMenuFromSupabase(responseRestaurant.id);
@@ -5154,17 +5304,25 @@ app.get('/api/restaurants/:id', async (req, res) => {
         } else {
           console.log(`[Details] ℹ️ Quán "${responseRestaurant.name}" chưa có menu local/Supabase thật.`);
           responseRestaurant.menu = [];
-          // Keep honest flags — do not claim real without a real menu payload
-          if (!originallyHadRealMenu) {
-            responseRestaurant.hasRealMenu = false;
-            responseRestaurant.menuTemplateFallback = true;
+          // Claimed real in catalog but payload missing — be honest for UI (not endless "updating")
+          if (originallyHadRealMenu) {
+            console.warn(`[Details] ⚠️ "${responseRestaurant.name}" hasRealMenu=true nhưng không có menu body (disk/Supabase).`);
           }
-          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : 'loading';
+          responseRestaurant.hasRealMenu = false;
+          responseRestaurant.menuTemplateFallback = true;
+          responseRestaurant.menuStatus = responseRestaurant.isClosed ? 'unavailable' : (MENU_SCRAPE_ENABLED ? 'loading' : 'unavailable');
+          if (found) {
+            delete found._isScraping;
+          }
         }
       }
     } else {
       // Menu already embedded — still classify so template payloads cannot look "real"
       applyMenuFlags(responseRestaurant, responseRestaurant.menu);
+      rememberMenuInMemory(responseRestaurant.id, responseRestaurant.menu, {
+        hasRealMenu: responseRestaurant.hasRealMenu === true,
+        menuUpdatedAt: responseRestaurant.menuUpdatedAt
+      });
     }
 
     // Phát hiện và tự động cập nhật nếu là menu thực tế kiểu cũ (chưa có options)
@@ -7849,21 +8007,25 @@ app.post('/api/admin/db/sync-to-supabase', authenticateAdmin, (req, res) => {
             } catch (e) {}
           }
 
-          upsertData.push({
+          // Không đẩy menu=[] — Render/git không có menus/ sẽ xoá JSONB trên Supabase
+          const row = {
             id: r.id,
             name: r.name,
             address: r.address || '',
-            lat: r.lat,
-            lon: r.lon,
+            lat: r.latitude ?? r.lat ?? null,
+            lon: r.longitude ?? r.lon ?? null,
             rating: r.rating || 4.5,
-            image_url: r.image_url || '',
+            image_url: r.img || r.image_url || '',
             is_closed: r.isClosed || false,
             closed_reason: r.closedReason || '',
             has_real_menu: r.hasRealMenu || false,
             dish_names: r.dishNames || [],
-            menu: menu, // Lưu gộp menu dạng jsonb để truy cập siêu tốc
             updated_at: new Date().toISOString()
-          });
+          };
+          if (Array.isArray(menu) && menu.length > 0) {
+            row.menu = menu;
+          }
+          upsertData.push(row);
         }
 
         const { error } = await supabase
@@ -8567,6 +8729,12 @@ app.get('/api/status', (req, res) => {
     cache:   cacheInfo,
     restaurantsInMemory: cachedRestaurants.length,
     nearbyCacheEntries: nearbyListCache.size,
+    menuMemoryCache: {
+      size: menuMemoryCache.size,
+      max: MENU_MEMORY_CACHE_MAX,
+      ttlMinutes: Math.round(MENU_MEMORY_CACHE_TTL_MS / 60000),
+      warm: menuWarmStats
+    },
     menuScrapeEnabled: MENU_SCRAPE_ENABLED,
     isRender: IS_RENDER,
     supabase: {
@@ -9031,6 +9199,36 @@ app.listen(PORT, () => {
   hydrateMenusFromSupabase().catch(err => {
     console.error('[Menu Hydrate] Boot restore failed:', err.message);
   });
+
+  // Render: gradual warm of a small open-menu set (Supabase → disk+RAM) after traffic settles.
+  // Full bulk hydrate vẫn tắt; warm theo nhu cầu list/detail + seed nhẹ lúc boot.
+  if (IS_RENDER && process.env.ENABLE_BOOT_MENU_WARM !== 'false') {
+    const bootWarmDelayMs = Math.max(
+      15000,
+      parseInt(process.env.BOOT_MENU_WARM_DELAY_MS || '45000', 10) || 45000
+    );
+    const bootWarmLimit = Math.max(
+      10,
+      parseInt(process.env.BOOT_MENU_WARM_LIMIT || '40', 10) || 40
+    );
+    setTimeout(() => {
+      const candidates = cachedRestaurants
+        .filter(r => r && r.hasRealMenu === true && !r.isClosed)
+        .filter(r => {
+          try { return !fs.existsSync(getMenuFilePath(r.id)); } catch (_) { return true; }
+        })
+        .slice(0, bootWarmLimit)
+        .map(r => r.id);
+      if (candidates.length === 0) {
+        console.log('[Menu Warm] Boot seed: không có quán thiếu file menu.');
+        return;
+      }
+      console.log(`[Menu Warm] Boot seed ${candidates.length} menus từ Supabase (limit=${bootWarmLimit})...`);
+      warmMenusForIds(candidates, { concurrency: 2, limit: bootWarmLimit })
+        .then(r => console.log('[Menu Warm] Boot seed done:', r))
+        .catch(err => console.warn('[Menu Warm] Boot seed failed:', err.message));
+    }, bootWarmDelayMs);
+  }
 
   // After boot settles: fix hasRealMenu flags from actual Supabase menu payloads.
   // Trên Render hoãn 120s để không giành CPU/RAM với những khách truy cập đầu tiên.
