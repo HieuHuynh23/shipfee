@@ -57,13 +57,15 @@ function getSupabaseClient(injected) {
 /**
  * Chuẩn hoá 1 dòng restaurant cho bảng Supabase `restaurants`.
  * Hỗ trợ cả field local (latitude/longitude/img) lẫn field cũ (lat/lon/image_url).
+ * @param {{ includeMenu?: boolean }} [opts] — false = không gửi cột menu (tránh ghi đè menu thật bằng []).
  */
-function buildRestaurantRow(restaurant, menu) {
+function buildRestaurantRow(restaurant, menu, opts = {}) {
+  const includeMenu = opts.includeMenu !== false;
   const menuArr = Array.isArray(menu) ? menu : [];
   const dishNames = Array.isArray(restaurant.dishNames) && restaurant.dishNames.length
     ? restaurant.dishNames
     : menuArr.map(m => m && m.name).filter(Boolean);
-  return {
+  const row = {
     id: restaurant.id,
     name: restaurant.name || '',
     address: restaurant.address || '',
@@ -75,26 +77,37 @@ function buildRestaurantRow(restaurant, menu) {
     closed_reason: restaurant.closedReason || '',
     has_real_menu: restaurant.hasRealMenu === true,
     dish_names: dishNames,
-    menu: menuArr,
     updated_at: new Date().toISOString()
   };
+  // Chỉ kèm menu khi có payload thật — upsert thiếu cột menu giữ nguyên JSONB trên Supabase
+  if (includeMenu && menuArr.length > 0) {
+    row.menu = menuArr;
+  }
+  return row;
 }
 
 /**
  * Upsert 1 quán + menu lên Supabase.
+ * Không bao giờ đẩy menu=[] lên quán hasRealMenu (tránh xoá menu đã hydrate trên cloud).
  * @param {object} restaurant
  * @param {Array} menu
- * @param {{ client?: object, hasRealMenu?: boolean }} [opts]
+ * @param {{ client?: object, hasRealMenu?: boolean, allowEmptyMenu?: boolean }} [opts]
  */
 async function upsertRestaurant(restaurant, menu, opts = {}) {
   const supabase = getSupabaseClient(opts.client);
   if (!supabase || !restaurant || !restaurant.id) return { ok: false, skipped: true };
-  const row = buildRestaurantRow(restaurant, menu);
+  const menuArr = Array.isArray(menu) ? menu : [];
+  const markedReal = opts.hasRealMenu === true || restaurant.hasRealMenu === true;
+  const includeMenu = menuArr.length > 0 || opts.allowEmptyMenu === true;
+  if (markedReal && menuArr.length === 0 && opts.allowEmptyMenu !== true) {
+    // Metadata-only sync — giữ menu hiện có trên Supabase
+  }
+  const row = buildRestaurantRow(restaurant, menuArr, { includeMenu });
   if (opts.hasRealMenu != null) row.has_real_menu = opts.hasRealMenu === true;
   try {
     const { error } = await supabase.from('restaurants').upsert(row, { onConflict: 'id' });
     if (error) return { ok: false, error: error.message };
-    return { ok: true };
+    return { ok: true, menuOmitted: !includeMenu };
   } catch (err) {
     return { ok: false, error: err.message };
   }

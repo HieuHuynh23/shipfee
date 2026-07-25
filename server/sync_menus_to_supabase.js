@@ -52,13 +52,27 @@ async function main() {
   let fail = 0;
   let withMenu = 0;
 
+  let metaOnly = 0;
+  let skippedEmptyReal = 0;
+
   for (let i = 0; i < list.length; i += BATCH) {
     const batch = list.slice(i, i + BATCH);
-    const rows = batch.map(r => {
+    const rows = [];
+    for (const r of batch) {
       const menu = readMenu(r.id);
-      if (menu.length > 0) withMenu += 1;
-      return supaSync.buildRestaurantRow(r, menu);
-    });
+      if (menu.length > 0) {
+        withMenu += 1;
+        rows.push(supaSync.buildRestaurantRow(r, menu, { includeMenu: true }));
+      } else if (r.hasRealMenu === true && ONLY_REAL) {
+        // Không đẩy menu=[] — sẽ xoá thực đơn đã có trên Supabase
+        skippedEmptyReal += 1;
+        rows.push(supaSync.buildRestaurantRow(r, [], { includeMenu: false }));
+        metaOnly += 1;
+      } else {
+        rows.push(supaSync.buildRestaurantRow(r, [], { includeMenu: false }));
+        metaOnly += 1;
+      }
+    }
 
     const res = await supaSync.upsertRestaurantsBatch(rows, { client: supabase });
     if (!res.ok) {
@@ -67,13 +81,13 @@ async function main() {
     } else {
       ok += batch.length;
       if (ok % 200 === 0 || ok === list.length) {
-        console.log(`… ${ok}/${list.length} ok (menus in batch files so far ~${withMenu})`);
+        console.log(`… ${ok}/${list.length} ok (menu files≈${withMenu}, meta-only≈${metaOnly})`);
       }
     }
     await new Promise(r => setTimeout(r, 250));
   }
 
-  console.log(`\nDONE ok=${ok} fail=${fail} rows_with_local_menu_file≈${withMenu}`);
+  console.log(`\nDONE ok=${ok} fail=${fail} with_menu_file≈${withMenu} meta_only≈${metaOnly} empty_real_guard≈${skippedEmptyReal}`);
 }
 
 main().catch(err => {
