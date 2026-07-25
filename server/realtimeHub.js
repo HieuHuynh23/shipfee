@@ -91,6 +91,35 @@ function publishOrderUpdate(order) {
   });
 }
 
+/**
+ * High-frequency GPS — không kèm full order. Customer/shipper apply trực tiếp lên marker.
+ */
+function publishLocationUpdate(orderId, loc, parties = {}) {
+  if (!orderId || !loc) return;
+  const lat = Number(loc.lat);
+  const lon = Number(loc.lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  const assigned = normalizePhoneDigits(parties.assignedShipperPhone || parties.shipperPhone);
+  const shipper = normalizePhoneDigits(parties.shipperPhone);
+  publish('location_updated', {
+    orderId: String(orderId),
+    lat,
+    lon,
+    at: Number(loc.at) || Date.now(),
+    accuracy: Number.isFinite(Number(loc.accuracy)) ? Number(loc.accuracy) : null
+  }, (meta) => {
+    if (!meta) return false;
+    if (meta.role === 'admin') return true;
+    if (meta.role === 'customer' && String(meta.orderId) === String(orderId)) return true;
+    if (meta.role === 'shipper') {
+      const phone = normalizePhoneDigits(meta.phone);
+      if (!phone) return false;
+      return (assigned && phone === assigned) || (shipper && phone === shipper);
+    }
+    return false;
+  });
+}
+
 function publishOpsTick(extra) {
   publish('ops_tick', { at: Date.now(), ...(extra || {}) }, (meta) => meta && meta.role === 'admin');
 }
@@ -122,6 +151,7 @@ module.exports = {
   removeClient,
   publish,
   publishOrderUpdate,
+  publishLocationUpdate,
   publishOpsTick,
   publishCallUpdate,
   clientCount

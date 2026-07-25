@@ -975,6 +975,29 @@
 
     let customerRealtime = null;
     let customerRealtimeActive = false;
+    let trackingRouteLine = null;
+    let trackingRouteToken = 0;
+    let lastCustomerRouteKey = '';
+
+    function applyLiveShipperLocation(lat, lon, at) {
+      if (!order) return;
+      const nLat = Number(lat);
+      const nLon = Number(lon);
+      if (!Number.isFinite(nLat) || !Number.isFinite(nLon)) return;
+      order.shipperLat = nLat;
+      order.shipperLon = nLon;
+      if (at) order.shipperGpsAt = at;
+      try {
+        const state = SF.getState();
+        if (state.activeOrder && String(state.activeOrder.id) === String(order.id)) {
+          state.activeOrder.shipperLat = nLat;
+          state.activeOrder.shipperLon = nLon;
+          SF.saveState(state);
+        }
+      } catch (_) {}
+      updateShipperLocationOnMap(order.status);
+      updateCustomerTrackingRoute(false);
+    }
 
     function openCustomerRealtime() {
       if (typeof EventSource === 'undefined' || !order || !order.id) return;
@@ -993,8 +1016,29 @@
           }
           console.log('[Realtime] Customer SSE connected');
         });
-        customerRealtime.addEventListener('order_updated', () => {
-          checkStatusOnce();
+        // GPS realtime — cập nhật marker ngay, không GET full order
+        customerRealtime.addEventListener('location_updated', (ev) => {
+          try {
+            const payload = JSON.parse(ev.data || '{}');
+            if (String(payload.orderId) !== String(order.id)) return;
+            applyLiveShipperLocation(payload.lat, payload.lon, payload.at);
+          } catch (_) {}
+        });
+        customerRealtime.addEventListener('order_updated', (ev) => {
+          // Chỉ sync full khi status/message đổi — GPS đã xử lý ở location_updated
+          try {
+            const payload = JSON.parse(ev.data || '{}');
+            const statusChanged = payload.status && payload.status !== order.status;
+            const msgLen = Array.isArray(payload.messages) ? payload.messages.length : 0;
+            const oldLen = Array.isArray(order.messages) ? order.messages.length : 0;
+            if (statusChanged || msgLen !== oldLen || payload.offerExpiresAt != null) {
+              checkStatusOnce();
+            } else if (payload.shipperLat != null && payload.shipperLon != null) {
+              applyLiveShipperLocation(payload.shipperLat, payload.shipperLon, payload.updatedAt);
+            }
+          } catch (_) {
+            checkStatusOnce();
+          }
         });
         customerRealtime.addEventListener('call_updated', () => {
           checkIncomingCall(order.id);
@@ -1262,12 +1306,79 @@
     function getOrderPointCoords() {
       const restaurant = (SF.RESTAURANTS || []).find(r => r.id === order.restaurantId);
       const rCoords = restaurant ? localGeocode(restaurant.address) : { lat: 10.0345, lon: 105.7876 };
+      const restLat = Number(order.restaurantLat);
+      const restLon = Number(order.restaurantLon);
+      const deliveryLat = Number(order.pinnedLat);
+      const deliveryLon = Number(order.pinnedLon);
       return {
-        restLat: Number(order.restaurantLat) || rCoords.lat,
-        restLon: Number(order.restaurantLon) || rCoords.lon,
-        deliveryLat: Number(order.pinnedLat) || 10.0345,
-        deliveryLon: Number(order.pinnedLon) || 105.7876
+        restLat: Number.isFinite(restLat) ? restLat : rCoords.lat,
+        restLon: Number.isFinite(restLon) ? restLon : rCoords.lon,
+        deliveryLat: Number.isFinite(deliveryLat) ? deliveryLat : null,
+        deliveryLon: Number.isFinite(deliveryLon) ? deliveryLon : null,
+        hasDeliveryPin: Number.isFinite(deliveryLat) && Number.isFinite(deliveryLon)
       };
+    }
+
+    function extractOsrmLatLngs(route) {
+      if (!route || !route.geometry) return null;
+      const coords = Array.isArray(route.geometry.coordinates)
+        ? route.geometry.coordinates
+        : (route.geometry.geojson && Array.isArray(route.geometry.geojson.coordinates)
+          ? route.geometry.geojson.coordinates
+          : null);
+      if (!coords || !coords.length) return null;
+      return coords.map((c) => [c[1], c[0]]);
+    }
+
+    async function updateCustomerTrackingRoute(force) {
+      if (!trackingMap || !window.L || !order) return;
+      const { restLat, restLon, deliveryLat, deliveryLon, hasDeliveryPin } = getOrderPointCoords();
+      const hasShip = hasRealShipperGps(order);
+      let fromLat = hasShip ? Number(order.shipperLat) : restLat;
+      let fromLon = hasShip ? Number(order.shipperLon) : restLon;
+      let toLat = restLat;
+      let toLon = restLon;
+      if (order.status === 'PURCHASED' || order.status === 'DELIVERED') {
+        if (!hasDeliveryPin) return;
+        toLat = deliveryLat;
+        toLon = deliveryLon;
+      } else if (order.status === 'ACCEPTED') {
+        toLat = restLat;
+        toLon = restLon;
+      } else if (order.status === 'PENDING') {
+        if (!hasDeliveryPin) return;
+        fromLat = restLat;
+        fromLon = restLon;
+        toLat = deliveryLat;
+        toLon = deliveryLon;
+      }
+      if (![fromLat, fromLon, toLat, toLon].every(Number.isFinite)) return;
+      const key = `${order.status}|${fromLat.toFixed(4)},${fromLon.toFixed(4)}>${toLat.toFixed(4)},${toLon.toFixed(4)}`;
+      if (!force && key === lastCustomerRouteKey) return;
+      lastCustomerRouteKey = key;
+      const token = ++trackingRouteToken;
+      if (!trackingRouteLine) {
+        trackingRouteLine = L.polyline([[fromLat, fromLon], [toLat, toLon]], {
+          color: '#6366F1',
+          weight: 4,
+          opacity: 0.85
+        }).addTo(trackingMap);
+      } else {
+        trackingRouteLine.setLatLngs([[fromLat, fromLon], [toLat, toLon]]);
+        if (!trackingMap.hasLayer(trackingRouteLine)) trackingRouteLine.addTo(trackingMap);
+      }
+      try {
+        const url =
+          `https://router.project-osrm.org/route/v1/driving/` +
+          `${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (token !== trackingRouteToken) return;
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+          const path = extractOsrmLatLngs(data.routes[0]);
+          if (path && path.length) trackingRouteLine.setLatLngs(path);
+        }
+      } catch (_) {}
     }
 
     function hasRealShipperGps(o) {
@@ -1375,14 +1486,16 @@
     async function initTrackingMap() {
       if (!order) return;
 
-      const { restLat, restLon, deliveryLat, deliveryLon } = getOrderPointCoords();
+      const { restLat, restLon, deliveryLat, deliveryLon, hasDeliveryPin } = getOrderPointCoords();
+      const viewLat = hasDeliveryPin ? (restLat + deliveryLat) / 2 : restLat;
+      const viewLon = hasDeliveryPin ? (restLon + deliveryLon) / 2 : restLon;
 
       try {
         if (!window.L && SF.loadLeaflet) await SF.loadLeaflet();
         if (!window.L) throw new Error('Leaflet unavailable');
 
         trackingMap = L.map('tracking-map', { preferCanvas: true }).setView(
-          [(restLat + deliveryLat) / 2, (restLon + deliveryLon) / 2],
+          [viewLat, viewLon],
           14
         );
 
@@ -1393,14 +1506,14 @@
         }).addTo(trackingMap);
 
         const restIcon = L.divIcon({
-          html: `<div style="background:#EF4444; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:16px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏪</div>`,
+          html: `<div style="background:#EF4444; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:14px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"><i class="fa-solid fa-store"></i></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16]
         });
 
         const destIcon = L.divIcon({
-          html: `<div style="background:#3B82F6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:16px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">🏠</div>`,
+          html: `<div style="background:#3B82F6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-size:14px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);"><i class="fa-solid fa-house"></i></div>`,
           className: '',
           iconSize: [32, 32],
           iconAnchor: [16, 16]
@@ -1416,15 +1529,21 @@
         restMarker = L.marker([restLat, restLon], { icon: restIcon })
           .addTo(trackingMap)
           .bindPopup(`<b>Quán ăn:</b> ${order.restaurantName || ''}`);
-        deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: destIcon })
-          .addTo(trackingMap)
-          .bindPopup(`<b>Địa chỉ nhận:</b> ${order.deliveryAddress || ''}`);
+        if (hasDeliveryPin) {
+          deliveryMarker = L.marker([deliveryLat, deliveryLon], { icon: destIcon })
+            .addTo(trackingMap)
+            .bindPopup(`<b>Địa chỉ nhận:</b> ${order.deliveryAddress || ''}`);
+        } else {
+          deliveryMarker = null;
+          setGpsHint(true, 'Đơn chưa có ghim GPS giao hàng — chỉ hiện vị trí quán.');
+        }
 
         // Marker tài xế chỉ hiện khi có GPS thật từ server
         shipperMarker = L.marker([restLat, restLon], { icon: shipIcon });
         setTimeout(() => {
           refreshTrackingMapSize();
           updateShipperLocationOnMap(order.status);
+          updateCustomerTrackingRoute(true);
         }, 80);
         window.addEventListener('resize', refreshTrackingMapSize);
       } catch (e) {
@@ -1470,6 +1589,7 @@
       } else if (status === 'DELIVERED') {
         setShipperPopup('<b>Shipper:</b> Đã giao hàng thành công!', 'gps-DELIVERED');
       }
+      updateCustomerTrackingRoute(false);
     }
 
     function renderOrderInfo() {

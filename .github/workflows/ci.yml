@@ -40,6 +40,7 @@ jobs:
           node --check orderPersist.js
           node --check dispatchEngine.js
           node --check shipperPresence.js
+          node --check tripProximity.js
           node --check routes/orders.js
           node --check routes/orderLifecycle.js
 

@@ -29,7 +29,13 @@ function registerOrderLifecycleRoutes(app, ctx) {
   PICKUP_PROXIMITY_KM,
   touchShipperPresence,
   isShipperGpsInServiceArea,
-  getClientIp
+  getClientIp,
+  tripProximity,
+  setOrderLiveGps,
+  getOrderLiveGps,
+  orderGpsLastPersistAt,
+  ORDER_GPS_PERSIST_MS,
+  readOrdersDatabase
   } = ctx;
 
 app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
@@ -188,54 +194,33 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
         return false;
       }
 
-      // Chặn hoàn thành / lấy hàng khi GPS chưa gần điểm đích
+      // GPS: body (mới) → live map tươi → từ chối stale order fields
       const cleanedAuth = cleanPhone(authPhone);
       const live = onlineShipperLocations.get(cleanedAuth);
       let sLat = Number.isFinite(bodyLat) ? bodyLat : NaN;
       let sLon = Number.isFinite(bodyLon) ? bodyLon : NaN;
+      let gpsAgeMs = 0;
       if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
         if (live && Number.isFinite(live.lat) && Number.isFinite(live.lon)) {
           sLat = live.lat;
           sLon = live.lon;
-        } else {
-          sLat = Number(orders[idx].shipperLat);
-          sLon = Number(orders[idx].shipperLon);
+          gpsAgeMs = Math.max(0, Date.now() - (live.lastSeen || 0));
         }
       }
 
-      if (status === 'DELIVERED') {
-        const destLat = Number(orders[idx].pinnedLat ?? orders[idx].deliveryLat);
-        const destLon = Number(orders[idx].pinnedLon ?? orders[idx].deliveryLon);
-        if (Number.isFinite(destLat) && Number.isFinite(destLon)) {
-          if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
-            transitionError = 'Cần GPS để hoàn thành đơn. Bật định vị và thử lại.';
-            return false;
-          }
-          const distKm = calcDistance(sLat, sLon, destLat, destLon);
-          if (distKm > DELIVERY_PROXIMITY_KM) {
-            transitionError =
-              `Bạn còn cách điểm giao khoảng ${Math.round(distKm * 1000)}m. ` +
-              `Hãy đến trong ${Math.round(DELIVERY_PROXIMITY_KM * 1000)}m rồi hoàn thành.`;
-            return false;
-          }
-        }
-      } else if (status === 'PURCHASED') {
-        const restExact = orders[idx].restaurantCoordsExact === true;
-        const restLat = Number(orders[idx].restaurantLat);
-        const restLon = Number(orders[idx].restaurantLon);
-        if (restExact && Number.isFinite(restLat) && Number.isFinite(restLon)) {
-          if (!Number.isFinite(sLat) || !Number.isFinite(sLon)) {
-            transitionError = 'Cần GPS để xác nhận lấy hàng. Bật định vị và thử lại.';
-            return false;
-          }
-          const distKm = calcDistance(sLat, sLon, restLat, restLon);
-          if (distKm > PICKUP_PROXIMITY_KM) {
-            transitionError =
-              `Bạn còn cách quán khoảng ${Math.round(distKm * 1000)}m. ` +
-              `Hãy đến trong ${Math.round(PICKUP_PROXIMITY_KM * 1000)}m rồi xác nhận lấy hàng.`;
-            return false;
-          }
-        }
+      const proximity = tripProximity && typeof tripProximity.assertTripProximity === 'function'
+        ? tripProximity.assertTripProximity({
+          status,
+          order: orders[idx],
+          lat: sLat,
+          lon: sLon,
+          gpsAgeMs,
+          calcDistance
+        })
+        : { ok: true };
+      if (!proximity.ok) {
+        transitionError = proximity.error || 'Chưa đủ gần điểm đích';
+        return false;
       }
 
       orders[idx].status = status;
@@ -259,6 +244,21 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
     }
 
     console.log(`[Order Server] 🔄 Cập nhật trạng thái đơn ${id} thành: ${status}`);
+    if (updatedOrder && Number.isFinite(Number(updatedOrder.shipperLat)) && Number.isFinite(Number(updatedOrder.shipperLon))) {
+      if (typeof setOrderLiveGps === 'function') {
+        setOrderLiveGps(id, updatedOrder.shipperLat, updatedOrder.shipperLon, cleanPhone(authPhone));
+      }
+      try {
+        realtimeHub.publishLocationUpdate(id, {
+          lat: updatedOrder.shipperLat,
+          lon: updatedOrder.shipperLon,
+          at: Date.now()
+        }, {
+          shipperPhone: updatedOrder.shipperPhone,
+          assignedShipperPhone: updatedOrder.assignedShipperPhone
+        });
+      } catch (_) {}
+    }
     scheduleUpsertOrder(updatedOrder, 'status');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
     res.json({ success: true, data: updatedOrder });
@@ -269,7 +269,7 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
 
 /**
  * POST /api/orders/:id/location
- * Shipper cập nhật tọa độ GPS thời gian thực (shipperLat, shipperLon) lên server
+ * GPS realtime: SSE location_updated ngay; persist JSON thưa (tránh ghi disk mỗi 3s).
  */
 app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
   try {
@@ -279,13 +279,13 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
     }
     const lat = Number(req.body?.lat);
     const lon = Number(req.body?.lon);
+    const accuracy = Number(req.body?.accuracy);
     const authPhone = cleanPhone(req.shipperPhone);
 
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return res.status(400).json({ error: 'Tọa độ không hợp lệ' });
     }
 
-    // Đơn đang giao: chỉ chặn nhảy GPS bất thường (không siết bán kính như lúc rảnh)
     const validated = validateShipperLocationUpdate(authPhone, lat, lon, { requireServiceArea: false });
     if (!validated.ok) {
       return res.status(400).json({
@@ -295,59 +295,89 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
       });
     }
 
-    let found = false;
-    let updatedOrder = null;
-    let forbidden = false;
-
-    await updateOrdersDatabase((orders) => {
-      const idx = orders.findIndex(o => o.id === id);
-      if (idx !== -1) {
-        found = true;
-        if (cleanPhone(orders[idx].shipperPhone) !== authPhone) {
-          forbidden = true;
-          return false;
-        }
-        orders[idx].shipperLat = lat;
-        orders[idx].shipperLon = lon;
-        updatedOrder = orders[idx];
-      } else {
-        return false;
-      }
-    });
-
-    if (!found) {
+    const ordersSnap = typeof readOrdersDatabase === 'function' ? readOrdersDatabase() : [];
+    const orderSnap = (ordersSnap || []).find(o => o && String(o.id) === String(id));
+    if (!orderSnap) {
       return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
-    if (forbidden) {
+    if (cleanPhone(orderSnap.shipperPhone) !== authPhone) {
       return res.status(403).json({ success: false, error: 'Bạn không phải tài xế của đơn này' });
     }
 
-    // Mirror into dispatch map only when still inside service area
-    if (isShipperGpsInServiceArea(lat, lon)) {
-      const nowMs = Date.now();
-      onlineShipperLocations.set(authPhone, {
+    const live = typeof setOrderLiveGps === 'function'
+      ? setOrderLiveGps(id, lat, lon, authPhone)
+      : { lat, lon, at: Date.now(), phone: authPhone };
+
+    // Dispatch presence map (kể cả ngoài service area khi đang giao — vẫn track)
+    const nowMs = Date.now();
+    onlineShipperLocations.set(authPhone, {
+      lat,
+      lon,
+      accuracy: Number.isFinite(accuracy) ? accuracy : null,
+      lastSeen: nowMs,
+      ip: getClientIp(req) || null
+    });
+    if (typeof touchShipperPresence === 'function') {
+      touchShipperPresence(authPhone, 'order-gps');
+    }
+
+    try {
+      realtimeHub.publishLocationUpdate(id, {
         lat,
         lon,
-        lastSeen: nowMs,
-        ip: getClientIp(req) || null
+        at: live.at,
+        accuracy: Number.isFinite(accuracy) ? accuracy : null
+      }, {
+        shipperPhone: orderSnap.shipperPhone,
+        assignedShipperPhone: orderSnap.assignedShipperPhone
       });
-      if (typeof touchShipperPresence === 'function') {
-        touchShipperPresence(authPhone, 'order-gps');
+    } catch (_) {}
+
+    // Persist thưa vào orders JSON (+ order_updated cho client chưa có location SSE)
+    const persistEvery = Number(ORDER_GPS_PERSIST_MS) || 15000;
+    const lastPersist = orderGpsLastPersistAt instanceof Map
+      ? (orderGpsLastPersistAt.get(String(id)) || 0)
+      : 0;
+    const shouldPersist = !lastPersist || (nowMs - lastPersist) >= persistEvery;
+    let updatedOrder = null;
+    if (shouldPersist) {
+      await updateOrdersDatabase((orders) => {
+        const idx = orders.findIndex(o => o.id === id);
+        if (idx === -1) return false;
+        if (cleanPhone(orders[idx].shipperPhone) !== authPhone) return false;
+        orders[idx].shipperLat = lat;
+        orders[idx].shipperLon = lon;
+        orders[idx].shipperGpsAt = nowMs;
+        updatedOrder = orders[idx];
+      });
+      if (orderGpsLastPersistAt instanceof Map) {
+        orderGpsLastPersistAt.set(String(id), nowMs);
       }
-      const shippersDb = readShippersDatabase();
-      const sIdx = shippersDb.findIndex(s => cleanPhone(s.phone) === authPhone);
-      if (sIdx !== -1) {
-        const prevAt = Number(shippersDb[sIdx].lastLocationAt) || 0;
-        if (!prevAt || (nowMs - prevAt) >= 20000) {
-          shippersDb[sIdx].lastLat = lat;
-          shippersDb[sIdx].lastLon = lon;
-          shippersDb[sIdx].lastLocationAt = nowMs;
-          writeShippersDatabase(shippersDb);
+      if (isShipperGpsInServiceArea(lat, lon)) {
+        const shippersDb = readShippersDatabase();
+        const sIdx = shippersDb.findIndex(s => cleanPhone(s.phone) === authPhone);
+        if (sIdx !== -1) {
+          const prevAt = Number(shippersDb[sIdx].lastLocationAt) || 0;
+          if (!prevAt || (nowMs - prevAt) >= 20000) {
+            shippersDb[sIdx].lastLat = lat;
+            shippersDb[sIdx].lastLon = lon;
+            shippersDb[sIdx].lastLocationAt = nowMs;
+            writeShippersDatabase(shippersDb);
+          }
         }
       }
     }
 
-    res.json({ success: true, data: updatedOrder });
+    res.json({
+      success: true,
+      data: updatedOrder || {
+        id,
+        shipperLat: lat,
+        shipperLon: lon,
+        shipperGpsAt: live.at
+      },
+      persisted: shouldPersist
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
