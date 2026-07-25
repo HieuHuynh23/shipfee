@@ -34,6 +34,7 @@ const orderPersist = require('./orderPersist');
 const orderStore = require('./orderStore');
 const dispatchEngine = require('./dispatchEngine');
 const shipperPresence = require('./shipperPresence');
+const tripProximity = require('./tripProximity');
 const { registerOrderRoutes } = require('./routes/orders');
 const { registerOrderLifecycleRoutes } = require('./routes/orderLifecycle');
 const { registerOrderCallRoutes } = require('./routes/orderCalls');
@@ -1020,8 +1021,29 @@ const OFFER_TTL_MS = dispatchEngine.CONFIG.OFFER_TTL_MS;
 const GPS_FRESH_MS = dispatchEngine.CONFIG.GPS_FRESH_MS;
 const GPS_STALE_OK_MS = dispatchEngine.CONFIG.GPS_STALE_OK_MS;
 /** Bán kính hoàn thành giao / lấy hàng (km) */
-const DELIVERY_PROXIMITY_KM = 0.35;
-const PICKUP_PROXIMITY_KM = 0.5;
+const DELIVERY_PROXIMITY_KM = tripProximity.CONFIG.DELIVERY_PROXIMITY_KM;
+const PICKUP_PROXIMITY_KM = tripProximity.CONFIG.PICKUP_PROXIMITY_KM;
+/** GPS realtime theo đơn — cập nhật marker không cần ghi JSON mỗi 3s */
+const orderLiveGps = new Map(); // orderId -> { lat, lon, at, phone }
+const orderGpsLastPersistAt = new Map();
+const ORDER_GPS_PERSIST_MS = 15000;
+
+function getOrderLiveGps(orderId) {
+  if (!orderId) return null;
+  return orderLiveGps.get(String(orderId)) || null;
+}
+
+function setOrderLiveGps(orderId, lat, lon, phone) {
+  const id = String(orderId);
+  const entry = {
+    lat: Number(lat),
+    lon: Number(lon),
+    at: Date.now(),
+    phone: phone || null
+  };
+  orderLiveGps.set(id, entry);
+  return entry;
+}
 
 function getDispatchCtx() {
   return {
@@ -5637,7 +5659,8 @@ registerOrderRoutes(app, {
   cleanPhone,
   scheduleOrdersRestaurantNavGpsAfterOffer,
   onlineShipperLocations,
-  touchShipperPresence
+  touchShipperPresence,
+  getOrderLiveGps
 });
 
 
@@ -5651,6 +5674,7 @@ registerOrderLifecycleRoutes(app, {
   getShipperActiveOrderCount,
   MAX_ACTIVE_ORDERS_PER_SHIPPER,
   updateOrdersDatabase,
+  readOrdersDatabase,
   scheduleUpsertOrder,
   telegramBot,
   supabase,
@@ -5669,7 +5693,12 @@ registerOrderLifecycleRoutes(app, {
   PICKUP_PROXIMITY_KM,
   touchShipperPresence,
   isShipperGpsInServiceArea,
-  getClientIp
+  getClientIp,
+  tripProximity,
+  setOrderLiveGps,
+  getOrderLiveGps,
+  orderGpsLastPersistAt,
+  ORDER_GPS_PERSIST_MS
 });
 
 // ── WebRTC VoIP CALL SIGNALING REGISTRY ───────────────────────────────────
@@ -6414,7 +6443,12 @@ app.get('/api/config', (req, res) => {
     minShipperEarning: pricingConfig.minShipperEarning,
     freeDistanceKm: pricingConfig.freeDistanceKm,
     multiItemDiscount: pricingConfig.multiItemDiscount,
-    realtime: true
+    realtime: true,
+    offerTtlMs: OFFER_TTL_MS,
+    deliveryProximityKm: DELIVERY_PROXIMITY_KM,
+    pickupProximityKm: PICKUP_PROXIMITY_KM,
+    pickupInexactProximityKm: tripProximity.CONFIG.PICKUP_INEXACT_PROXIMITY_KM,
+    freshGpsMs: tripProximity.CONFIG.FRESH_GPS_MS
   });
 });
 

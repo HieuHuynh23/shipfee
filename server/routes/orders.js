@@ -21,7 +21,8 @@ function registerOrderRoutes(app, ctx) {
     cleanPhone,
     scheduleOrdersRestaurantNavGpsAfterOffer,
     onlineShipperLocations,
-    touchShipperPresence
+    touchShipperPresence,
+    getOrderLiveGps
   } = ctx;
 
   /**
@@ -95,12 +96,20 @@ function registerOrderRoutes(app, ctx) {
       }
 
       const payload = { ...order };
-      const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
-      if (!hasGps && payload.shipperPhone) {
-        const liveLoc = onlineShipperLocations.get(cleanPhone(payload.shipperPhone));
-        if (liveLoc && Number.isFinite(liveLoc.lat) && Number.isFinite(liveLoc.lon)) {
-          payload.shipperLat = liveLoc.lat;
-          payload.shipperLon = liveLoc.lon;
+      // Ưu tiên GPS realtime in-memory → Map tài xế → field trên đơn
+      const liveOrderGps = typeof getOrderLiveGps === 'function' ? getOrderLiveGps(payload.id) : null;
+      if (liveOrderGps && Number.isFinite(liveOrderGps.lat) && Number.isFinite(liveOrderGps.lon)) {
+        payload.shipperLat = liveOrderGps.lat;
+        payload.shipperLon = liveOrderGps.lon;
+        payload.shipperGpsAt = liveOrderGps.at;
+      } else {
+        const hasGps = Number.isFinite(Number(payload.shipperLat)) && Number.isFinite(Number(payload.shipperLon));
+        if (!hasGps && payload.shipperPhone) {
+          const liveLoc = onlineShipperLocations.get(cleanPhone(payload.shipperPhone));
+          if (liveLoc && Number.isFinite(liveLoc.lat) && Number.isFinite(liveLoc.lon)) {
+            payload.shipperLat = liveLoc.lat;
+            payload.shipperLon = liveLoc.lon;
+          }
         }
       }
 
