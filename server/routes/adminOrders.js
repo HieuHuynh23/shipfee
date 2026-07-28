@@ -20,10 +20,13 @@ function registerAdminOrderRoutes(app, ctx) {
   findNearestAvailableShipper,
   addNotification,
   enrichOrdersWithShipperAvatar,
-  activeCalls
+  activeCalls,
+  isShipperBusy
   } = ctx;
 
-app.post('/api/admin/orders/:id/assign', authenticateAdmin, async (req, res) => {
+  const mutateOps = crm.requireAdminRole('admin', 'ops');
+
+app.post('/api/admin/orders/:id/assign', authenticateAdmin, mutateOps, async (req, res) => {
   try {
     const orderId = req.params.id;
     const { shipperPhone } = req.body;
@@ -84,7 +87,7 @@ app.post('/api/admin/orders/:id/assign', authenticateAdmin, async (req, res) => 
  * POST /api/admin/orders/:id/status
  * Admin cập nhật trạng thái đơn theo state machine
  */
-app.post('/api/admin/orders/:id/status', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/orders/:id/status', authenticateAdmin, mutateOps, async (req, res) => {
   try {
     const orderId = req.params.id;
     const { status } = req.body;
@@ -118,6 +121,7 @@ app.post('/api/admin/orders/:id/status', authenticateAdmin, async (req, res) => 
 
     scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
+    crm.logAdminAudit(req, 'order_status', { orderId, status });
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -128,7 +132,7 @@ app.post('/api/admin/orders/:id/status', authenticateAdmin, async (req, res) => 
  * POST /api/admin/orders/:id/cancel
  * Admin hủy đơn hàng
  */
-app.post('/api/admin/orders/:id/cancel', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/orders/:id/cancel', authenticateAdmin, mutateOps, async (req, res) => {
   try {
     const orderId = req.params.id;
     const reason = req.body?.reason || 'Admin hủy đơn';
@@ -168,7 +172,7 @@ app.post('/api/admin/orders/:id/cancel', authenticateAdmin, async (req, res) => 
  * POST /api/admin/orders/:id/reassign
  * Admin gán lại tài xế (PENDING hoặc ACCEPTED)
  */
-app.post('/api/admin/orders/:id/reassign', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/orders/:id/reassign', authenticateAdmin, mutateOps, async (req, res) => {
   try {
     const orderId = req.params.id;
     const { shipperPhone } = req.body;
@@ -184,7 +188,10 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, async (req, res) =
     if (matchedShipper.status !== 'ONLINE') {
       return res.status(400).json({ success: false, error: 'Tài xế không đang ONLINE!' });
     }
-    if (isShipperBusy(matchedShipper.phone, orderId)) {
+    const busyCheck = typeof isShipperBusy === 'function'
+      ? isShipperBusy(matchedShipper.phone, orderId)
+      : getShipperActiveOrderCount(matchedShipper.phone) >= MAX_ACTIVE_ORDERS_PER_SHIPPER;
+    if (busyCheck) {
       return res.status(400).json({ success: false, error: 'Tài xế đang có đơn chưa hoàn thành!' });
     }
 
@@ -214,6 +221,7 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, async (req, res) =
 
     scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
+    crm.logAdminAudit(req, 'order_reassign', { orderId, shipperPhone: matchedShipper.phone });
     console.log(`[Admin Reassign] 🔄 Đơn ${orderId} → ${matchedShipper.name}`);
     res.json({ success: true, data: updatedOrder });
   } catch (e) {

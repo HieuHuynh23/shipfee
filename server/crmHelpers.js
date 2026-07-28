@@ -10,6 +10,7 @@ const BLACKLIST_FILE = path.join(__dirname, 'customer-blacklist-local.json');
 const DISPUTES_FILE = path.join(__dirname, 'disputes-local.json');
 const SHIPPER_SUPPORT_FILE = path.join(__dirname, 'shipper-support-local.json');
 const COMMISSIONS_FILE = path.join(__dirname, 'restaurant-commissions-local.json');
+const CUSTOMER_CRM_FILE = path.join(__dirname, 'customer-crm-local.json');
 
 const SLA_NOTIFIED = new Map(); // orderId -> lastNotifiedAt
 
@@ -61,18 +62,27 @@ function canMutateOrders(role) {
   return role === 'admin' || role === 'ops';
 }
 
+function canMutateRestaurants(role) {
+  return role === 'admin' || role === 'ops';
+}
+
 function logAdminAudit(req, action, details = {}) {
   try {
     const logs = readJson(AUDIT_FILE, []);
+    const email = req.user?.email || 'unknown';
     logs.unshift({
       id: `audit-${Date.now()}-${Math.floor(Math.random() * 9999)}`,
       at: Date.now(),
-      adminEmail: req.user?.email || 'unknown',
+      adminEmail: email,
+      actorEmail: email,
       adminRole: req.adminRole || 'unknown',
+      role: req.adminRole || 'unknown',
       action,
-      details
+      details,
+      ip: req.ip || req.headers?.['x-forwarded-for'] || null,
+      userAgent: req.headers?.['user-agent'] || null
     });
-    if (logs.length > 500) logs.length = 500;
+    if (logs.length > 2000) logs.length = 2000;
     writeJson(AUDIT_FILE, logs);
   } catch (e) {
     console.warn('[Audit Log]', e.message);
@@ -80,7 +90,94 @@ function logAdminAudit(req, action, details = {}) {
 }
 
 function readAuditLog(limit = 100) {
-  return readJson(AUDIT_FILE, []).slice(0, limit);
+  return readJson(AUDIT_FILE, []).slice(0, Math.min(500, limit));
+}
+
+function queryAuditLog({ q, action, from, to, page = 1, limit = 50 } = {}) {
+  let logs = readJson(AUDIT_FILE, []);
+  if (action) {
+    const al = String(action).toLowerCase();
+    logs = logs.filter((e) => String(e.action || '').toLowerCase().includes(al));
+  }
+  if (from) {
+    const fromTs = new Date(from).getTime();
+    if (!isNaN(fromTs)) logs = logs.filter((e) => (e.at || 0) >= fromTs);
+  }
+  if (to) {
+    const toEnd = new Date(to);
+    if (!isNaN(toEnd.getTime())) {
+      toEnd.setHours(23, 59, 59, 999);
+      logs = logs.filter((e) => (e.at || 0) <= toEnd.getTime());
+    }
+  }
+  if (q) {
+    const ql = String(q).toLowerCase();
+    logs = logs.filter((e) => {
+      const blob = `${e.action || ''} ${e.adminEmail || ''} ${e.actorEmail || ''} ${JSON.stringify(e.details || {})}`.toLowerCase();
+      return blob.includes(ql);
+    });
+  }
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
+  const start = (pageNum - 1) * limitNum;
+  return {
+    data: logs.slice(start, start + limitNum),
+    total: logs.length,
+    page: pageNum,
+    limit: limitNum,
+    hasMore: start + limitNum < logs.length
+  };
+}
+
+function readCustomerCrmStore() {
+  return readJson(CUSTOMER_CRM_FILE, {});
+}
+
+function writeCustomerCrmStore(store) {
+  writeJson(CUSTOMER_CRM_FILE, store);
+}
+
+function getCustomerCrmProfile(phone) {
+  const p = cleanPhone(phone);
+  if (!p) return { phone: '', notes: [], tags: [], updatedAt: null };
+  const store = readCustomerCrmStore();
+  const row = store[p] || {};
+  return {
+    phone: p,
+    notes: Array.isArray(row.notes) ? row.notes : [],
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    updatedAt: row.updatedAt || null
+  };
+}
+
+function upsertCustomerCrmProfile(phone, { notes, tags, appendNote } = {}) {
+  const p = cleanPhone(phone);
+  if (!p) return null;
+  const store = readCustomerCrmStore();
+  const current = store[p] || { notes: [], tags: [] };
+  if (Array.isArray(notes)) current.notes = notes;
+  if (Array.isArray(tags)) current.tags = [...new Set(tags.map((t) => String(t).trim()).filter(Boolean))];
+  if (appendNote && String(appendNote).trim()) {
+    current.notes = current.notes || [];
+    current.notes.unshift({
+      id: `note-${Date.now()}`,
+      text: String(appendNote).trim(),
+      at: Date.now()
+    });
+    if (current.notes.length > 100) current.notes.length = 100;
+  }
+  current.updatedAt = Date.now();
+  store[p] = current;
+  writeCustomerCrmStore(store);
+  return getCustomerCrmProfile(p);
+}
+
+function buildCsv(headers, rows) {
+  const lines = [headers.join(',')];
+  for (const row of rows) {
+    lines.push(row.map(escapeCsvCell).join(','));
+  }
+  return '\uFEFF' + lines.join('\r\n');
 }
 
 function readPromos() {
@@ -348,21 +445,40 @@ function parseRangeDays(range) {
   return map[range] || 7;
 }
 
-function computeAnalytics(orders, shippers, range = '7d') {
-  const days = parseRangeDays(range);
+function resolveAnalyticsWindow(range = '7d', from, to) {
   const now = Date.now();
+  if (from || to) {
+    const start = from ? new Date(from).getTime() : now - 7 * 86400000;
+    let end = to ? new Date(to).getTime() : now;
+    if (to) {
+      const toEnd = new Date(to);
+      toEnd.setHours(23, 59, 59, 999);
+      end = toEnd.getTime();
+    }
+    const days = Math.max(1, Math.ceil((end - start) / 86400000));
+    return { start, end: end + 1, days, range: 'custom', previousStart: start - (end - start) };
+  }
+  const days = parseRangeDays(range);
   const start = now - days * 86400000;
-  const prevStart = start - days * 86400000;
+  return { start, end: now + 1, days, range, previousStart: start - days * 86400000 };
+}
 
-  const inRange = (o, from, to) => (o.createdAt || 0) >= from && (o.createdAt || 0) < to;
-  const current = orders.filter(o => inRange(o, start, now));
-  const previous = orders.filter(o => inRange(o, prevStart, start));
+function computeAnalytics(orders, shippers, range = '7d', from, to) {
+  const window = resolveAnalyticsWindow(range, from, to);
+  const { start, end, days, previousStart } = window;
+  const prevEnd = start;
+
+  const inRange = (o, fromTs, toTs) => (o.createdAt || 0) >= fromTs && (o.createdAt || 0) < toTs;
+  const current = orders.filter(o => inRange(o, start, end));
+  const previous = orders.filter(o => inRange(o, previousStart, prevEnd));
 
   const completed = current.filter(o => o.status === 'DELIVERED');
   const prevCompleted = previous.filter(o => o.status === 'DELIVERED');
   const revenue = completed.reduce((s, o) => s + (o.appTotal || 0), 0);
   const prevRevenue = prevCompleted.reduce((s, o) => s + (o.appTotal || 0), 0);
-  const cancelled = current.filter(o => o.status === 'CANCELLED').length;
+  const cancelledOrders = current.filter(o => o.status === 'CANCELLED');
+  const cancelled = cancelledOrders.length;
+  const shipperEarnings = completed.reduce((s, o) => s + (o.shipperEarning || 0), 0);
 
   const restMap = {};
   completed.forEach(o => {
@@ -388,14 +504,50 @@ function computeAnalytics(orders, shippers, range = '7d') {
     return Math.round(((cur - prev) / prev) * 100);
   };
 
+  const hourly = Array.from({ length: 24 }, (_, h) => ({ hour: h, orders: 0, revenue: 0 }));
+  completed.forEach(o => {
+    const h = new Date(o.createdAt || 0).getHours();
+    if (h >= 0 && h < 24) {
+      hourly[h].orders += 1;
+      hourly[h].revenue += o.appTotal || 0;
+    }
+  });
+
+  const cancelReasonMap = {};
+  cancelledOrders.forEach(o => {
+    const reason = String(o.cancelReason || 'Không rõ').trim() || 'Không rõ';
+    cancelReasonMap[reason] = (cancelReasonMap[reason] || 0) + 1;
+  });
+  const cancelReasons = Object.entries(cancelReasonMap)
+    .map(([reason, count]) => ({ reason, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 15);
+
+  // SLA breach counts by day (approx from timestamps on active→final states)
+  const slaByDay = {};
+  current.forEach(o => {
+    const dayKey = new Date(o.createdAt || 0).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    if (!slaByDay[dayKey]) slaByDay[dayKey] = { date: dayKey, breaches: 0, cancelled: 0 };
+    if (o.status === 'CANCELLED') slaByDay[dayKey].cancelled += 1;
+    // Heuristic: PENDING longer than 5m before accept, or ACCEPTED>25m before purchase
+    const acceptedAt = o.acceptedAt || 0;
+    const purchasedAt = o.purchasedAt || 0;
+    const createdAt = o.createdAt || 0;
+    if (acceptedAt && acceptedAt - createdAt > 5 * 60 * 1000) slaByDay[dayKey].breaches += 1;
+    else if (purchasedAt && acceptedAt && purchasedAt - acceptedAt > 25 * 60 * 1000) slaByDay[dayKey].breaches += 1;
+  });
+
   return {
-    range,
+    range: window.range,
+    from: from || null,
+    to: to || null,
     days,
     totalOrders: current.length,
     completedOrders: completed.length,
     cancelledOrders: cancelled,
     completionRate: current.length ? Math.round((completed.length / current.length) * 100) : 0,
     totalRevenue: revenue,
+    shipperEarnings,
     aov: completed.length ? Math.round(revenue / completed.length) : 0,
     wow: {
       orders: wow(current.length, previous.length),
@@ -404,12 +556,33 @@ function computeAnalytics(orders, shippers, range = '7d') {
     },
     topRestaurants,
     shipperStats,
-    daily: buildDailySeries(completed, days)
+    daily: buildDailySeries(completed, days, start, end),
+    hourly,
+    cancelReasons,
+    slaDaily: Object.values(slaByDay),
+    settlement: computeSettlementReport(orders, from || new Date(start).toISOString().slice(0, 10), to || new Date(end - 1).toISOString().slice(0, 10))
   };
 }
 
-function buildDailySeries(completedOrders, days) {
+function buildDailySeries(completedOrders, days, startTs, endTs) {
   const series = [];
+  if (startTs && endTs) {
+    const startDay = new Date(startTs);
+    startDay.setHours(0, 0, 0, 0);
+    const endDay = new Date(endTs - 1);
+    endDay.setHours(0, 0, 0, 0);
+    for (let t = startDay.getTime(); t <= endDay.getTime(); t += 86400000) {
+      const d = new Date(t);
+      const end = t + 86400000;
+      const dayOrders = completedOrders.filter(o => o.createdAt >= t && o.createdAt < end);
+      series.push({
+        date: d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+        orders: dayOrders.length,
+        revenue: dayOrders.reduce((s, o) => s + (o.appTotal || 0), 0)
+      });
+    }
+    return series;
+  }
   const today = new Date();
   for (let i = days - 1; i >= 0; i--) {
     const d = new Date(today);
@@ -545,8 +718,10 @@ module.exports = {
   canMutatePricing,
   canMutateShippers,
   canMutateOrders,
+  canMutateRestaurants,
   logAdminAudit,
   readAuditLog,
+  queryAuditLog,
   readPromos,
   writePromos,
   validatePromo,
@@ -571,11 +746,16 @@ module.exports = {
   writeCommissions,
   getRestaurantCommissionRate,
   parseRangeDays,
+  resolveAnalyticsWindow,
   computeAnalytics,
   computeSettlementReport,
   computeShipperPayouts,
   checkSlaAndNotify,
   notifyOrderCancelled,
   escapeCsvCell,
-  parseRangeDays
+  buildCsv,
+  readCustomerCrmStore,
+  writeCustomerCrmStore,
+  getCustomerCrmProfile,
+  upsertCustomerCrmProfile
 };

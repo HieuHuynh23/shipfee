@@ -39,6 +39,7 @@ const { registerOrderRoutes } = require('./routes/orders');
 const { registerOrderLifecycleRoutes } = require('./routes/orderLifecycle');
 const { registerOrderCallRoutes } = require('./routes/orderCalls');
 const { registerAdminOrderRoutes } = require('./routes/adminOrders');
+const { registerCrmProRoutes } = require('./routes/crmProRoutes');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -1523,7 +1524,7 @@ const ADMIN_SLA_PENDING_MS = 5 * 60 * 1000;
 const ADMIN_SLA_ACCEPTED_MS = 25 * 60 * 1000;
 const ADMIN_SLA_PURCHASED_MS = 35 * 60 * 1000;
 
-function filterAdminOrders(orders, { status, q, from, to } = {}) {
+function filterAdminOrders(orders, { status, q, from, to, shipperPhone, restaurantId, minTotal, slaOnly } = {}) {
   let list = Array.isArray(orders) ? [...orders] : [];
   if (status && status !== 'all') {
     list = list.filter(o => o.status === status);
@@ -1538,6 +1539,21 @@ function filterAdminOrders(orders, { status, q, from, to } = {}) {
       toEnd.setHours(23, 59, 59, 999);
       list = list.filter(o => (o.createdAt || 0) <= toEnd.getTime());
     }
+  }
+  if (shipperPhone) {
+    const sp = cleanPhone(shipperPhone);
+    list = list.filter(o => cleanPhone(o.shipperPhone) === sp || cleanPhone(o.assignedShipperPhone) === sp);
+  }
+  if (restaurantId) {
+    const rid = String(restaurantId);
+    list = list.filter(o => String(o.restaurantId || '') === rid);
+  }
+  if (minTotal != null && minTotal !== '') {
+    const min = Number(minTotal);
+    if (!isNaN(min)) list = list.filter(o => (o.appTotal || 0) >= min);
+  }
+  if (slaOnly === true || slaOnly === '1' || slaOnly === 'true') {
+    list = list.filter(o => !!getOrderSlaInfo(o));
   }
   if (q) {
     const ql = String(q).toLowerCase();
@@ -4966,7 +4982,8 @@ function enrichAdminRestaurantRow(r) {
 
 function getAdminRestaurantsList(options = {}) {
   const page = Math.max(1, parseInt(options.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(options.limit, 10) || 50));
+  const maxLimit = options.export ? 100000 : 100;
+  const limit = Math.min(maxLimit, Math.max(1, parseInt(options.limit, 10) || 50));
   const q = String(options.q || '').trim().toLowerCase();
   const tab = options.tab || 'all';
   const filterName = String(options.filterName || '').trim().toLowerCase();
@@ -5385,7 +5402,7 @@ app.get('/api/restaurants/:id', async (req, res) => {
  * POST /api/cache/clear
  * Xóa cache — chỉ admin
  */
-app.post('/api/cache/clear', authenticateAdmin, (req, res) => {
+app.post('/api/cache/clear', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   try {
     if (fs.existsSync(CACHE_FILE)) fs.unlinkSync(CACHE_FILE);
     console.log('[Cache] Đã xóa cache');
@@ -6917,7 +6934,7 @@ app.get('/api/admin/fleet', authenticateAdmin, (req, res) => {
  * POST /api/admin/shippers
  * Create a new shipper on local JSON + Supabase Auth
  */
-app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/shippers', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { name, phone, email, password, cccd } = req.body;
     if (!name || !phone) {
@@ -6991,6 +7008,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
     shippers.push(newShipper);
     writeShippersDatabase(shippers);
 
+    crm.logAdminAudit(req, 'shipper_create', { phone: cleanedPhone, name });
     res.json({ success: true, shipper: newShipper });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -7001,7 +7019,7 @@ app.post('/api/admin/shippers', authenticateAdmin, async (req, res) => {
  * PUT /api/admin/shippers/:oldPhone
  * Update an existing shipper on local JSON + Supabase Auth
  */
-app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => {
+app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { oldPhone } = req.params;
     const { name, phone, email, password, cccd, avatar } = req.body;
@@ -7165,7 +7183,7 @@ app.put('/api/admin/shippers/:oldPhone', authenticateAdmin, async (req, res) => 
  * DELETE /api/admin/shippers/:phone
  * Delete shipper from local JSON + Supabase Auth
  */
-app.delete('/api/admin/shippers/:phone', authenticateAdmin, async (req, res) => {
+app.delete('/api/admin/shippers/:phone', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { phone } = req.params;
     const cleanedPhone = phone.trim().replace(/\s+/g, '');
@@ -7201,7 +7219,7 @@ app.delete('/api/admin/shippers/:phone', authenticateAdmin, async (req, res) => 
  * POST /api/admin/shippers/:phone/approve
  * Manually approve a shipper by phone from CRM Admin
  */
-app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   const { phone } = req.params;
   const forceEmail = !!(req.body && (req.body.forceEmail || req.body.resendEmail));
   const shippersBefore = readShippersDatabase();
@@ -7248,7 +7266,7 @@ app.post('/api/admin/shippers/:phone/approve', authenticateAdmin, async (req, re
  * POST /api/admin/shippers/:phone/resend-approval-email
  * Gửi lại email / lấy link xác nhận cho tài xế đã duyệt (debug SMTP)
  */
-app.post('/api/admin/shippers/:phone/resend-approval-email', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/shippers/:phone/resend-approval-email', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { phone } = req.params;
     const result = await approveShipperAccount(phone, { forceEmail: true });
@@ -7276,7 +7294,7 @@ app.post('/api/admin/shippers/:phone/resend-approval-email', authenticateAdmin, 
  * POST /api/admin/shippers/:phone/reject
  * Từ chối và xóa tài xế chờ duyệt (mirror Telegram reject)
  */
-app.post('/api/admin/shippers/:phone/reject', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/shippers/:phone/reject', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   const { phone } = req.params;
   const success = await rejectShipperAccount(phone);
   if (success) {
@@ -7334,7 +7352,7 @@ app.get('/api/admin/restaurants', authenticateAdmin, (req, res) => {
  * PUT /api/admin/restaurants/:id
  * Update restaurant basic info
  */
-app.put('/api/admin/restaurants/:id', authenticateAdmin, async (req, res) => {
+app.put('/api/admin/restaurants/:id', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, address, category, isClosed } = req.body;
@@ -7379,7 +7397,7 @@ app.put('/api/admin/restaurants/:id', authenticateAdmin, async (req, res) => {
  * PUT /api/admin/restaurants/:id/menu
  * Update restaurant menu / prices
  */
-app.put('/api/admin/restaurants/:id/menu', authenticateAdmin, async (req, res) => {
+app.put('/api/admin/restaurants/:id/menu', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { id } = req.params;
     const { menu } = req.body;
@@ -7484,7 +7502,7 @@ app.get('/api/admin/restaurants/sync-status', authenticateAdmin, (req, res) => {
  * POST /api/admin/restaurants/sync-pause
  * Tạm dừng job đồng bộ hàng loạt (hoàn tất quán đang xử lý rồi dừng)
  */
-app.post('/api/admin/restaurants/sync-pause', authenticateAdmin, (req, res) => {
+app.post('/api/admin/restaurants/sync-pause', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   if (!bulkSyncJob?.running) {
     return res.json({ success: false, error: 'Không có tiến trình đồng bộ đang chạy.' });
   }
@@ -7504,7 +7522,7 @@ app.post('/api/admin/restaurants/sync-pause', authenticateAdmin, (req, res) => {
  * POST /api/admin/restaurants/sync-resume
  * Tiếp tục job đồng bộ đã tạm dừng
  */
-app.post('/api/admin/restaurants/sync-resume', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/restaurants/sync-resume', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     if (bulkSyncJob?.running) {
       return res.json({ success: false, error: 'Đồng bộ đang chạy.' });
@@ -7548,7 +7566,7 @@ app.post('/api/admin/restaurants/sync-resume', authenticateAdmin, async (req, re
  * Kích hoạt đồng bộ ShopeeFood và lưu ngay vào database
  * Body: { scope: 'all' | 'changed' }
  */
-app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/restaurants/sync-all', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     if (bulkSyncJob?.running) {
       return res.json({ success: false, error: 'Đồng bộ hàng loạt đang chạy. Dùng Tạm dừng nếu cần dừng.' });
@@ -7601,7 +7619,7 @@ app.post('/api/admin/restaurants/sync-all', authenticateAdmin, async (req, res) 
  * POST /api/admin/restaurants/:id/sync-gps
  * Đối chiếu GPS quán từ Foody (place:location meta) → lưu exact cho chỉ đường
  */
-app.post('/api/admin/restaurants/:id/sync-gps', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/restaurants/:id/sync-gps', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { id } = req.params;
     const found = findRestaurantById(id) || findRestaurantInCache(id);
@@ -7638,7 +7656,7 @@ app.post('/api/admin/restaurants/:id/sync-gps', authenticateAdmin, async (req, r
  * POST /api/admin/restaurants/:id/sync-price
  * Trigger manual ShopeeFood scraper for a restaurant (đồng bộ + lưu ngay)
  */
-app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { id } = req.params;
     const found = findRestaurantById(id);
@@ -7679,39 +7697,8 @@ app.post('/api/admin/restaurants/:id/sync-price', authenticateAdmin, async (req,
 });
 
 /**
- * GET /api/admin/customers
- * Extract customer list from orders
+ * GET /api/admin/customers — handled by registerCrmProRoutes (pagination + CRM fields)
  */
-app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
-  try {
-    const orders = await mergeOrdersFromSupabaseForRange(
-      readOrdersDatabase(),
-      ORDER_HISTORY_RETENTION_DAYS
-    );
-    const customerMap = new Map();
-    
-    orders.forEach(o => {
-      const phone = o.deliveryPhone || o.ordererPhone;
-      if (!phone) return;
-      if (!customerMap.has(phone)) {
-        customerMap.set(phone, {
-          name: o.deliveryName || '—',
-          phone,
-          address: o.deliveryAddress || '',
-          ordersCount: 0,
-          totalSpent: 0
-        });
-      }
-      const c = customerMap.get(phone);
-      c.ordersCount++;
-      c.totalSpent += (o.appTotal || 0);
-    });
-    
-    res.json({ success: true, data: Array.from(customerMap.values()) });
-  } catch (e) {
-    res.status(500).json({ success: false, error: e.message });
-  }
-});
 
 /**
  * GET /api/admin/orders
@@ -7719,13 +7706,16 @@ app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
  */
 app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
   try {
-    const { status, q, from, to, page = '1', limit = '50' } = req.query;
+    const { status, q, from, to, page = '1', limit = '50', shipperPhone, restaurantId, minTotal, slaOnly } = req.query;
     const orders = readOrdersDatabase();
-    const filtered = filterAdminOrders(orders, { status, q, from, to });
+    const filtered = filterAdminOrders(orders, { status, q, from, to, shipperPhone, restaurantId, minTotal, slaOnly });
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(200, Math.max(1, parseInt(limit, 10) || 50));
     const start = (pageNum - 1) * limitNum;
-    const slice = filtered.slice(start, start + limitNum);
+    const slice = filtered.slice(start, start + limitNum).map(o => ({
+      ...o,
+      sla: getOrderSlaInfo(o)
+    }));
 
     res.json({
       success: true,
@@ -7746,9 +7736,9 @@ app.get('/api/admin/orders', authenticateAdmin, (req, res) => {
  */
 app.get('/api/admin/orders/export', authenticateAdmin, (req, res) => {
   try {
-    const { status, q, from, to } = req.query;
+    const { status, q, from, to, shipperPhone, restaurantId, minTotal, slaOnly } = req.query;
     const orders = readOrdersDatabase();
-    const filtered = filterAdminOrders(orders, { status, q, from, to });
+    const filtered = filterAdminOrders(orders, { status, q, from, to, shipperPhone, restaurantId, minTotal, slaOnly });
     const headers = ['id', 'status', 'restaurantName', 'deliveryName', 'deliveryPhone', 'shipperName', 'shipperPhone', 'appTotal', 'storeTotal', 'shipperEarning', 'createdAt'];
     const rows = filtered.map(o => [
       o.id,
@@ -7878,7 +7868,7 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
  * Tạo đơn DELIVERED mẫu (isDemo:true) để test tab Hiệu suất / bottom sheet.
  * body: { phone?: string } — mặc định tài xế đầu tiên đã duyệt
  */
-app.post('/api/admin/demo/seed-orders', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/demo/seed-orders', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const shippers = readShippersDatabase();
     const wantPhone = demoOrders.cleanPhone(req.body?.phone || '');
@@ -7930,7 +7920,7 @@ app.post('/api/admin/demo/seed-orders', authenticateAdmin, async (req, res) => {
  * POST /api/admin/demo/clear-orders
  * Xóa toàn bộ đơn isDemo:true (giữ đơn thật). Chuẩn bị go-live.
  */
-app.post('/api/admin/demo/clear-orders', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/demo/clear-orders', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     let before = 0;
     let after = 0;
@@ -7975,7 +7965,7 @@ app.post('/api/admin/demo/clear-orders', authenticateAdmin, async (req, res) => 
  * POST /api/admin/db/sync-to-supabase
  * Đồng bộ hàng loạt toàn bộ quán ăn có menu thực tế lên Supabase (chạy background)
  */
-app.post('/api/admin/db/sync-to-supabase', authenticateAdmin, (req, res) => {
+app.post('/api/admin/db/sync-to-supabase', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   if (!supabase) {
     return res.status(500).json({ success: false, message: 'Supabase chưa được cấu hình trên server.' });
   }
@@ -8077,10 +8067,65 @@ registerAdminOrderRoutes(app, {
   findNearestAvailableShipper,
   addNotification,
   enrichOrdersWithShipperAvatar,
-  activeCalls
+  activeCalls,
+  isShipperBusy
 });
 
-app.post('/api/admin/restaurants/:id/toggle-status', authenticateAdmin, async (req, res) => {
+async function setRestaurantClosed(restId, isClosed) {
+  let updatedRestaurant = null;
+  await updateLocalDatabase((restaurants) => {
+    const idx = restaurants.findIndex(r => String(r.id) === String(restId));
+    if (idx === -1) return false;
+    restaurants[idx].isClosed = !!isClosed;
+    if (isClosed) {
+      restaurants[idx].closedAt = new Date().toISOString();
+      restaurants[idx].closedReason = 'Admin bulk đóng cửa';
+    } else {
+      delete restaurants[idx].closedAt;
+      delete restaurants[idx].closedReason;
+    }
+    restaurants[idx].updatedAt = Date.now();
+    updatedRestaurant = restaurants[idx];
+    return true;
+  });
+  if (!updatedRestaurant) throw new Error('Không tìm thấy quán ăn');
+  return updatedRestaurant;
+}
+
+registerCrmProRoutes(app, {
+  authenticateAdmin,
+  crm,
+  cleanPhone,
+  readShippersDatabase,
+  writeShippersDatabase,
+  readOrdersDatabase,
+  updateOrdersDatabase,
+  scheduleUpsertOrder,
+  mergeOrdersFromSupabaseForRange,
+  ORDER_HISTORY_RETENTION_DAYS,
+  filterAdminOrders,
+  getOrderSlaInfo,
+  getAdminRestaurantsList,
+  enrichAdminRestaurantRow,
+  normalizeImageUrl,
+  canTransitionOrderStatus,
+  getShipperActiveOrderCount,
+  MAX_ACTIVE_ORDERS_PER_SHIPPER,
+  approveShipperAccount,
+  rejectShipperAccount,
+  telegramBot,
+  addNotification,
+  runBulkRestaurantSync,
+  setRestaurantClosed,
+  triggerSyncMenuScrape: (id) => {
+    const source = cachedRestaurants.length > 0 ? cachedRestaurants : dbHelper.read();
+    const found = source.find(r => String(r.id) === String(id));
+    if (found) return triggerSyncMenuScrape(found);
+    throw new Error('Restaurant not found');
+  }
+});
+
+app.post('/api/admin/restaurants/:id/toggle-status', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const restId = req.params.id;
     const { status } = req.body;
@@ -8112,6 +8157,7 @@ app.post('/api/admin/restaurants/:id/toggle-status', authenticateAdmin, async (r
     }
 
     console.log(`[Admin Restaurant] 🏪 Admin đã đổi trạng thái quán "${updatedRestaurant.name}" sang ${status} (isClosed=${isClosed})`);
+    crm.logAdminAudit(req, 'restaurant_toggle_status', { id: restId, status, isClosed });
     res.json({ success: true, status, isClosed, data: updatedRestaurant });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -8122,7 +8168,7 @@ app.post('/api/admin/restaurants/:id/toggle-status', authenticateAdmin, async (r
  * POST /api/admin/restaurants/:id/menu/:itemId/toggle-availability
  * Bật/Tắt món ăn của quán (available true/false)
  */
-app.post('/api/admin/restaurants/:id/menu/:itemId/toggle-availability', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/restaurants/:id/menu/:itemId/toggle-availability', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const restId = req.params.id;
     const itemId = req.params.itemId;
@@ -8203,7 +8249,7 @@ app.get('/api/admin/crawl-queue', authenticateAdmin, (req, res) => {
  * POST /api/admin/menus/reconcile
  * Đối chiếu menu Supabase: promote scraped thật, demote template gắn nhầm real
  */
-app.post('/api/admin/menus/reconcile', authenticateAdmin, async (req, res) => {
+app.post('/api/admin/menus/reconcile', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const result = await reconcileMenuFlagsFromSupabase({
       maxPages: Math.min(400, parseInt(req.body?.maxPages, 10) || 250),
@@ -8244,10 +8290,11 @@ app.post('/api/promos/validate', (req, res) => {
 app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
   try {
     const range = req.query.range || '7d';
-    const days = crm.parseRangeDays(range);
+    const { from, to } = req.query;
+    const days = from || to ? 90 : crm.parseRangeDays(range);
     const orders = await mergeOrdersFromSupabaseForRange(readOrdersDatabase(), Math.max(days * 2, days));
     const shippers = readShippersDatabase();
-    res.json({ success: true, data: crm.computeAnalytics(orders, shippers, range) });
+    res.json({ success: true, data: crm.computeAnalytics(orders, shippers, range, from, to) });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -8255,8 +8302,9 @@ app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
 
 app.get('/api/admin/audit-log', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   try {
-    const limit = Math.min(200, parseInt(req.query.limit, 10) || 100);
-    res.json({ success: true, data: crm.readAuditLog(limit) });
+    const { q, action, from, to, page, limit } = req.query;
+    const result = crm.queryAuditLog({ q, action, from, to, page, limit });
+    res.json({ success: true, ...result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
