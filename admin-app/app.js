@@ -2848,6 +2848,19 @@ async function showOrderDetail(orderId) {
 
     ${opsHtml}
 
+    ${o.call && o.call.status ? `
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;" data-live-call-wrap>
+        <h4 class="mb-2"><i class="fa-solid fa-phone"></i> Cuộc gọi live</h4>
+        <div data-live-call>
+          <div class="text-sm">Trạng thái: <strong>${escapeHtml(o.call.status)}</strong></div>
+          <div class="text-xs text-muted">Người gọi: ${escapeHtml(o.call.caller || o.call.initiatedBy || '—')} · ${formatTime(o.call.timestamp || o.call.updatedAt)}</div>
+        </div>
+      </div>` : `
+      <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px; display:none;" data-live-call-wrap>
+        <h4 class="mb-2"><i class="fa-solid fa-phone"></i> Cuộc gọi live</h4>
+        <div data-live-call><div class="text-xs text-muted">Không có cuộc gọi đang diễn ra</div></div>
+      </div>`}
+
     ${o.shipperName ? `
       <div style="border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
         <h4 class="mb-4">Tài xế</h4>
@@ -2949,6 +2962,19 @@ function startOrderLivePoll(orderId) {
 
       if (typeof live.shipperLat === 'number' && typeof live.shipperLon === 'number') {
         updateOrderLiveShipper(live.shipperLat, live.shipperLon);
+      }
+
+      const callEl = document.querySelector('#order-modal-body [data-live-call]');
+      const callWrap = document.querySelector('#order-modal-body [data-live-call-wrap]');
+      if (callEl && callWrap) {
+        if (live.call && live.call.status) {
+          callWrap.style.display = '';
+          callEl.innerHTML = `
+            <div class="text-sm">Trạng thái: <strong>${escapeHtml(live.call.status)}</strong></div>
+            <div class="text-xs text-muted">Người gọi: ${escapeHtml(live.call.caller || live.call.initiatedBy || '—')} · ${formatTime(live.call.timestamp || live.call.updatedAt)}</div>`;
+        } else {
+          callEl.innerHTML = `<div class="text-xs text-muted">Không có cuộc gọi đang diễn ra</div>`;
+        }
       }
     } catch (e) {
       console.warn('order live poll', e);

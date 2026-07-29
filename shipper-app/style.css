@@ -717,6 +717,12 @@ input:checked + .slider:before {
   border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+.badge--danger {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
 /* ── BUTTONS ───────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

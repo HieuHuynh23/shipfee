@@ -35,8 +35,11 @@ function registerOrderLifecycleRoutes(app, ctx) {
   getOrderLiveGps,
   orderGpsLastPersistAt,
   ORDER_GPS_PERSIST_MS,
-  readOrdersDatabase
+  readOrdersDatabase,
+  crm,
+  addNotification
   } = ctx;
+  const telegramNotify = telegramBot;
 
 app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
   try {
@@ -148,8 +151,8 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
     }
 
     scheduleUpsertOrder(updatedOrder, 'accept');
-    if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
-    res.json({ success: true, data: updatedOrder });
+    if (telegramNotify) telegramNotify.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
+    res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false }) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -260,8 +263,8 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
       } catch (_) {}
     }
     scheduleUpsertOrder(updatedOrder, 'status');
-    if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
-    res.json({ success: true, data: updatedOrder });
+    if (telegramNotify) telegramNotify.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
+    res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false }) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -370,12 +373,14 @@ app.post('/api/orders/:id/location', authenticateShipper, async (req, res) => {
 
     res.json({
       success: true,
-      data: updatedOrder || {
-        id,
-        shipperLat: lat,
-        shipperLon: lon,
-        shipperGpsAt: live.at
-      },
+      data: updatedOrder
+        ? stripOrderSecrets(updatedOrder, { keepTrackingToken: false })
+        : {
+          id,
+          shipperLat: lat,
+          shipperLon: lon,
+          shipperGpsAt: live.at
+        },
       persisted: shouldPersist
     });
   } catch (e) {
@@ -480,8 +485,9 @@ app.post('/api/orders/:id/messages', async (req, res) => {
 
     if (authz.role === 'customer') sender = 'customer';
     else if (authz.role === 'shipper') sender = 'shipper';
-    else if (!sender || !['customer', 'shipper'].includes(sender)) {
-      return res.status(400).json({ error: 'sender phải là customer hoặc shipper' });
+    else if (authz.role === 'admin') sender = 'Admin';
+    else {
+      return res.status(403).json({ success: false, error: 'Không có quyền gửi tin nhắn trên đơn này' });
     }
 
     let updatedOrder = null;
@@ -502,6 +508,7 @@ app.post('/api/orders/:id/messages', async (req, res) => {
         }
         orders[idx].messages.push({
           sender,
+          role: authz.role,
           text,
           timestamp: Date.now()
         });
@@ -586,7 +593,207 @@ app.post('/api/orders/:id/decline', authenticateShipper, async (req, res) => {
       return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng hoặc đơn không ở trạng thái chờ nhận!' });
     }
 
-    res.json({ success: true, data: updatedOrder });
+    res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false }) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/orders/:id/disputes
+ * Khách xem khiếu nại gắn đơn (tracking token)
+ */
+app.get('/api/orders/:id/disputes', async (req, res) => {
+  try {
+    if (!crm || typeof crm.readDisputes !== 'function') {
+      return res.status(503).json({ success: false, error: 'Module khiếu nại chưa sẵn sàng' });
+    }
+    await softAuthenticateBearer(req);
+    const { id } = req.params;
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+    }
+    const ordersSnap = readOrdersDatabase();
+    const order = (ordersSnap || []).find(o => o && String(o.id) === String(id));
+    if (!order) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+
+    const authz = authorizeOrderAccess(req, order);
+    if (!authz.ok || authz.role === 'shipper') {
+      return res.status(authz.ok ? 403 : authz.status).json({
+        success: false,
+        error: authz.ok ? 'Chỉ khách hàng / admin xem khiếu nại đơn này' : authz.error
+      });
+    }
+
+    const list = (crm.readDisputes() || [])
+      .filter(d => d && String(d.orderId) === String(id))
+      .map((d) => ({
+        id: d.id,
+        orderId: d.orderId,
+        status: d.status,
+        reason: d.reason,
+        source: d.source || null,
+        messages: d.messages || [],
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt,
+        resolvedAt: d.resolvedAt || null
+      }));
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/disputes
+ * Khách tạo khiếu nại (tracking token)
+ */
+app.post('/api/orders/:id/disputes', async (req, res) => {
+  try {
+    if (!crm || typeof crm.readDisputes !== 'function') {
+      return res.status(503).json({ success: false, error: 'Module khiếu nại chưa sẵn sàng' });
+    }
+    await softAuthenticateBearer(req);
+    const { id } = req.params;
+    const reason = String(req.body?.reason || '').trim().slice(0, 500);
+    if (!reason) {
+      return res.status(400).json({ success: false, error: 'Vui lòng nhập lý do khiếu nại' });
+    }
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+    }
+    const ordersSnap = readOrdersDatabase();
+    const order = (ordersSnap || []).find(o => o && String(o.id) === String(id));
+    if (!order) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+
+    const authz = authorizeOrderAccess(req, order);
+    if (!authz.ok || authz.role !== 'customer') {
+      return res.status(authz.ok ? 403 : authz.status).json({
+        success: false,
+        error: authz.ok ? 'Chỉ khách hàng được tạo khiếu nại trên đơn này' : authz.error
+      });
+    }
+
+    const disputes = crm.readDisputes() || [];
+    const openExisting = disputes.find(d => d && String(d.orderId) === String(id) && d.status === 'open');
+    if (openExisting) {
+      return res.status(409).json({
+        success: false,
+        error: 'Đơn này đã có khiếu nại đang mở',
+        data: {
+          id: openExisting.id,
+          status: openExisting.status,
+          reason: openExisting.reason
+        }
+      });
+    }
+
+    const ticket = {
+      id: 'disp-' + Date.now() + '-' + Math.floor(1000 + Math.random() * 9000),
+      orderId: id,
+      status: 'open',
+      reason,
+      source: 'customer',
+      customerPhone: order.deliveryPhone || order.ordererPhone || null,
+      messages: [{
+        role: 'customer',
+        sender: 'customer',
+        text: reason,
+        createdAt: Date.now()
+      }],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+    disputes.unshift(ticket);
+    crm.writeDisputes(disputes);
+
+    await updateOrdersDatabase((orders) => {
+      const idx = orders.findIndex(o => o.id === id);
+      if (idx === -1) return false;
+      if (authz.mintToken && !orders[idx].trackingToken) {
+        orders[idx].trackingToken = generateTrackingToken();
+      }
+      orders[idx].messages = orders[idx].messages || [];
+      orders[idx].messages.push({
+        sender: 'customer',
+        role: 'customer',
+        text: `[Khiếu nại] ${reason}`,
+        timestamp: Date.now()
+      });
+      return true;
+    });
+
+    if (typeof addNotification === 'function') {
+      addNotification(
+        'dispute_open',
+        order.restaurantId || null,
+        order.restaurantName || '',
+        'Khiếu nại mới từ khách',
+        `Đơn ${id}: ${reason.slice(0, 120)}`
+      );
+    }
+    if (telegramNotify && typeof telegramNotify.sendDisputeNotification === 'function') {
+      telegramNotify.sendDisputeNotification(ticket).catch(e => console.error('Lỗi Telegram dispute:', e.message));
+    }
+
+    console.log(`[Order Server] ⚖️ Khách tạo khiếu nại ${ticket.id} cho đơn ${id}`);
+    res.json({ success: true, data: ticket });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/orders/:id/disputes/:disputeId/messages
+ * Khách trả lời trong ticket khiếu nại
+ */
+app.post('/api/orders/:id/disputes/:disputeId/messages', async (req, res) => {
+  try {
+    if (!crm || typeof crm.readDisputes !== 'function') {
+      return res.status(503).json({ success: false, error: 'Module khiếu nại chưa sẵn sàng' });
+    }
+    await softAuthenticateBearer(req);
+    const { id, disputeId } = req.params;
+    const text = String(req.body?.text || '').trim().slice(0, 1000);
+    if (!text) {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung tin nhắn' });
+    }
+    if (!(await ensureOrderInLocalCache(id))) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+    }
+    const ordersSnap = readOrdersDatabase();
+    const order = (ordersSnap || []).find(o => o && String(o.id) === String(id));
+    if (!order) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng' });
+
+    const authz = authorizeOrderAccess(req, order);
+    if (!authz.ok || authz.role !== 'customer') {
+      return res.status(authz.ok ? 403 : authz.status).json({
+        success: false,
+        error: authz.ok ? 'Chỉ khách hàng được trả lời khiếu nại này' : authz.error
+      });
+    }
+
+    const disputes = crm.readDisputes() || [];
+    const idx = disputes.findIndex(d => d && d.id === disputeId && String(d.orderId) === String(id));
+    if (idx === -1) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy ticket khiếu nại' });
+    }
+    if (disputes[idx].status === 'resolved') {
+      return res.status(400).json({ success: false, error: 'Ticket đã đóng — không thể gửi thêm' });
+    }
+
+    const msg = {
+      role: 'customer',
+      sender: 'customer',
+      text,
+      createdAt: Date.now()
+    };
+    disputes[idx].messages = disputes[idx].messages || [];
+    disputes[idx].messages.push(msg);
+    disputes[idx].updatedAt = Date.now();
+    crm.writeDisputes(disputes);
+
+    res.json({ success: true, data: disputes[idx] });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

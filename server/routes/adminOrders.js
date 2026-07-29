@@ -21,7 +21,8 @@ function registerAdminOrderRoutes(app, ctx) {
   addNotification,
   enrichOrdersWithShipperAvatar,
   activeCalls,
-  isShipperBusy
+  isShipperBusy,
+  realtimeHub
   } = ctx;
 
   const mutateOps = crm.requireAdminRole('admin', 'ops');
@@ -159,6 +160,11 @@ app.post('/api/admin/orders/:id/cancel', authenticateAdmin, mutateOps, async (re
 
     scheduleUpsertOrder(updatedOrder, 'admin');
     crm.notifyOrderCancelled(updatedOrder, addNotification);
+    try {
+      if (realtimeHub) {
+        realtimeHub.publishOrderUpdate(updatedOrder, { eventHint: 'cancelled' });
+      }
+    } catch (_) {}
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
     crm.logAdminAudit(req, 'order_cancel', { orderId, reason });
     console.log(`[Admin] ❌ Đã hủy đơn ${orderId}: ${reason}`);
@@ -197,6 +203,7 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, mutateOps, async (
 
     let updatedOrder = null;
     let errMsg = null;
+    let previousShipperPhone = null;
     await updateOrdersDatabase((orders) => {
       const idx = orders.findIndex(o => o.id === orderId);
       if (idx === -1) return false;
@@ -204,6 +211,7 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, mutateOps, async (
         errMsg = `Chỉ reassign được đơn PENDING/ACCEPTED (hiện tại: ${orders[idx].status})`;
         return false;
       }
+      previousShipperPhone = orders[idx].shipperPhone || orders[idx].assignedShipperPhone || null;
       orders[idx].status = 'ACCEPTED';
       orders[idx].shipperId = matchedShipper.id || 'local-shipper-id';
       orders[idx].shipperName = matchedShipper.name;
@@ -220,8 +228,25 @@ app.post('/api/admin/orders/:id/reassign', authenticateAdmin, mutateOps, async (
     if (!updatedOrder) return res.status(404).json({ success: false, error: 'Không tìm thấy đơn hàng!' });
 
     scheduleUpsertOrder(updatedOrder, 'admin');
+    // Báo tài xế cũ (auto-publish chỉ tới shipperPhone mới)
+    try {
+      if (
+        realtimeHub &&
+        previousShipperPhone &&
+        cleanPhone(previousShipperPhone) !== cleanPhone(matchedShipper.phone)
+      ) {
+        realtimeHub.publishOrderUpdate(updatedOrder, {
+          notifyAlsoPhones: [previousShipperPhone],
+          eventHint: 'reassigned_away'
+        });
+      }
+    } catch (_) {}
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
-    crm.logAdminAudit(req, 'order_reassign', { orderId, shipperPhone: matchedShipper.phone });
+    crm.logAdminAudit(req, 'order_reassign', {
+      orderId,
+      shipperPhone: matchedShipper.phone,
+      previousShipperPhone: previousShipperPhone || null
+    });
     console.log(`[Admin Reassign] 🔄 Đơn ${orderId} → ${matchedShipper.name}`);
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
@@ -250,7 +275,15 @@ app.get('/api/admin/orders/:id/live', authenticateAdmin, (req, res) => {
         messages: order.messages || [],
         shipperLat: order.shipperLat ?? null,
         shipperLon: order.shipperLon ?? null,
-        call: call ? { status: call.status, initiatedBy: call.initiatedBy, updatedAt: call.updatedAt } : null
+        call: call
+          ? {
+            status: call.status,
+            caller: call.caller || null,
+            initiatedBy: call.caller || null,
+            timestamp: call.timestamp || null,
+            updatedAt: call.timestamp || null
+          }
+          : null
       }
     });
   } catch (e) {

@@ -5875,7 +5875,9 @@ registerOrderLifecycleRoutes(app, {
   setOrderLiveGps,
   getOrderLiveGps,
   orderGpsLastPersistAt,
-  ORDER_GPS_PERSIST_MS
+  ORDER_GPS_PERSIST_MS,
+  crm,
+  addNotification
 });
 
 // ── WebRTC VoIP CALL SIGNALING REGISTRY ───────────────────────────────────
@@ -8068,7 +8070,8 @@ registerAdminOrderRoutes(app, {
   addNotification,
   enrichOrdersWithShipperAvatar,
   activeCalls,
-  isShipperBusy
+  isShipperBusy,
+  realtimeHub
 });
 
 async function setRestaurantClosed(restId, isClosed) {
@@ -8582,6 +8585,7 @@ app.post('/api/admin/disputes', authenticateAdmin, crm.requireAdminRole('admin',
       orderId,
       status: 'open',
       reason: reason || 'Khiếu nại từ admin',
+      source: 'admin',
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now()

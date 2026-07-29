@@ -433,6 +433,16 @@ function stopJwtRefreshLoop() {
   }
 }
 
+let lastOpsToastKey = '';
+let lastOpsToastAt = 0;
+function toastOrderOpsOnce(key, title, message, type = 'warning') {
+  const now = Date.now();
+  if (key && key === lastOpsToastKey && (now - lastOpsToastAt) < 8000) return;
+  lastOpsToastKey = key || '';
+  lastOpsToastAt = now;
+  showToast(title, message, type, 5000);
+}
+
 function openShipperRealtime() {
   if (!currentDriver || typeof EventSource === 'undefined') return;
   const token = getAuthItem(AUTH_JWT_KEY);
@@ -465,7 +475,23 @@ function openShipperRealtime() {
       // SSE còn sống = đã kết nối máy chủ — không chờ REST
       if (pollFailCount === 0) setConnectionStatus(true);
     });
-    shipperRealtime.addEventListener('order_updated', () => {
+    shipperRealtime.addEventListener('order_updated', (ev) => {
+      try {
+        const payload = JSON.parse(ev.data || '{}');
+        if (payload && payload.eventHint === 'reassigned_away') {
+          toastOrderOpsOnce(
+            `reassign:${payload.id}`,
+            'Đơn đã chuyển tài xế',
+            `Đơn ${payload.id || ''} đã được CRM gán cho tài xế khác.`
+          );
+        } else if (payload && payload.status === 'CANCELLED') {
+          toastOrderOpsOnce(
+            `cancel:${payload.id}`,
+            'Đơn đã bị hủy ❌',
+            payload.cancelReason || `Đơn ${payload.id || ''} đã bị hủy.`
+          );
+        }
+      } catch (_) {}
       if (shipperRealtimeDebounce) clearTimeout(shipperRealtimeDebounce);
       shipperRealtimeDebounce = setTimeout(() => {
         if (pollMode === 'active' && activeOrder) syncActiveOrderOnly();
@@ -1204,6 +1230,8 @@ async function syncAllData() {
       if (activeTabId === 'history' && !document.hidden) {
         renderHistoryAndStats();
       }
+
+      const prevActiveSnapshot = activeOrders.map(o => ({ id: o.id, status: o.status }));
       
       const activeDriverOrders = allOrders
         .filter(o => cleanPhone(o.shipperPhone) === cleanPhone(currentDriver.phone) && (o.status === 'ACCEPTED' || o.status === 'PURCHASED'))
@@ -1212,6 +1240,28 @@ async function syncAllData() {
           const tb = new Date(b.acceptedAt || b.updatedAt || b.createdAt || 0).getTime();
           return ta - tb;
         });
+
+      // CRM hủy / gán lại: đơn biến mất khỏi trip — báo rõ lý do (fallback nếu miss SSE)
+      const stillActiveIds = new Set(activeDriverOrders.map(o => o.id));
+      for (const prev of prevActiveSnapshot) {
+        if (stillActiveIds.has(prev.id)) continue;
+        const cancelled = allOrders.find(o => o.id === prev.id && o.status === 'CANCELLED');
+        if (cancelled) {
+          toastOrderOpsOnce(
+            `cancel:${prev.id}`,
+            'Đơn đã bị hủy ❌',
+            cancelled.cancelReason || `Đơn ${prev.id} đã bị hủy bởi hệ thống.`
+          );
+          continue;
+        }
+        const delivered = allOrders.find(o => o.id === prev.id && o.status === 'DELIVERED');
+        if (delivered) continue;
+        toastOrderOpsOnce(
+          `reassign:${prev.id}`,
+          'Đơn đã chuyển tài xế',
+          `Đơn ${prev.id} không còn thuộc về bạn (CRM gán lại).`
+        );
+      }
 
       const prevFocused = activeOrder;
       const { isFirstLoad, focusedChanged } = setActiveOrdersList(activeDriverOrders, { announceNew: true });
@@ -1996,7 +2046,8 @@ function getStatusBadgeClass(status) {
     PENDING: 'badge--warning',
     ACCEPTED: 'badge--primary',
     PURCHASED: 'badge--accent',
-    DELIVERED: 'badge--primary'
+    DELIVERED: 'badge--primary',
+    CANCELLED: 'badge--danger'
   };
   return map[status] || 'badge--primary';
 }

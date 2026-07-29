@@ -57,8 +57,17 @@ function normalizePhoneDigits(raw) {
   return digits;
 }
 
-function publishOrderUpdate(order) {
+/**
+ * @param {object} order
+ * @param {{ notifyAlsoPhones?: string[], eventHint?: string|null }} [opts]
+ *   notifyAlsoPhones — ví dụ tài xế cũ khi CRM reassign (không còn trên order.shipperPhone)
+ *   eventHint — gợi ý UI: 'reassigned_away' | 'cancelled' | null
+ */
+function publishOrderUpdate(order, opts = {}) {
   if (!order || !order.id) return;
+  const extraPhones = (opts.notifyAlsoPhones || [])
+    .map(normalizePhoneDigits)
+    .filter(Boolean);
   const slim = {
     id: order.id,
     status: order.status,
@@ -72,6 +81,8 @@ function publishOrderUpdate(order) {
     appTotal: order.appTotal,
     storeTotal: order.storeTotal,
     shipperEarning: order.shipperEarning,
+    cancelReason: order.cancelReason || null,
+    eventHint: opts.eventHint || null,
     messages: Array.isArray(order.messages) ? order.messages.slice(-20) : [],
     updatedAt: Date.now()
   };
@@ -85,7 +96,10 @@ function publishOrderUpdate(order) {
       const assigned = normalizePhoneDigits(order.assignedShipperPhone);
       const shipper = normalizePhoneDigits(order.shipperPhone);
       // Chỉ đẩy tới tài xế được đề xuất / đang giữ đơn — tránh mọi shipper sync ồ ạt
-      return (assigned && phone === assigned) || (shipper && phone === shipper);
+      if ((assigned && phone === assigned) || (shipper && phone === shipper)) return true;
+      // Reassign / revoke: vẫn báo tài xế cũ để UI toast + dọn trip
+      if (extraPhones.includes(phone)) return true;
+      return false;
     }
     return false;
   });
