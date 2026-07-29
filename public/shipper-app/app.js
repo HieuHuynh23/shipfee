@@ -554,6 +554,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadDriverInfo();
   loadStats();
   initApp();
+  initTripBottomSheet();
 
   // Sau khi shipper bấm link xác nhận email (CRM đã duyệt) → ?approved=1
   try {
@@ -1344,6 +1345,14 @@ function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   const content = document.getElementById(`tab-${tabId}`);
   if (content) content.classList.add('active');
+
+  const mainContent = document.querySelector('.content');
+  const tripLive = !!(activeOrder && activeOrders.length > 0 && tabId === 'trip');
+  if (mainContent) mainContent.classList.toggle('is-trip-live', tripLive);
+  const tabTrip = document.getElementById('tab-trip');
+  if (tabTrip && tabId !== 'trip') {
+    // Keep has-active-trip on tab for when we return, but content padding restores above
+  }
   
   if (tabId === 'orders') {
     // Không hiển thị bể chung — chỉ trạng thái chờ đề xuất / SOS
@@ -1631,14 +1640,154 @@ async function acceptOrder(orderId) {
 }
 
 // ── RENDER ACTIVE TRIP ──────────────────────────────────────────────────────
+function setTripLiveLayout(enabled) {
+  const tab = document.getElementById('tab-trip');
+  const content = document.querySelector('.content');
+  const emptyWrap = document.getElementById('trip-empty-wrap');
+  const tripContainer = document.getElementById('active-trip-container');
+  if (tab) tab.classList.toggle('has-active-trip', !!enabled);
+  if (content) content.classList.toggle('is-trip-live', !!enabled && activeTabId === 'trip');
+  if (emptyWrap) emptyWrap.style.display = enabled ? 'none' : '';
+  if (tripContainer) {
+    tripContainer.style.display = enabled ? 'block' : 'none';
+    tripContainer.setAttribute('aria-hidden', enabled ? 'false' : 'true');
+  }
+}
+
+function updateTripPeek(order) {
+  const titleEl = document.getElementById('trip-peek-title');
+  const subEl = document.getElementById('trip-peek-sub');
+  const earnEl = document.getElementById('trip-peek-earning');
+  if (!order) return;
+  if (order.status === 'PURCHASED') {
+    if (titleEl) titleEl.textContent = 'Giao hàng cho khách';
+    if (subEl) subEl.textContent = formatCustomerAddressDisplay(order);
+  } else {
+    if (titleEl) titleEl.textContent = 'Đến quán lấy hàng';
+    if (subEl) subEl.textContent = order.restaurantName || order.restaurantAddress || '—';
+  }
+  if (earnEl) earnEl.textContent = formatCurrency(order.shipperEarning);
+}
+
+function refreshTripMapSize() {
+  if (!tripMap) return;
+  try {
+    tripMap.invalidateSize({ animate: false });
+  } catch (e) { /* ignore */ }
+}
+
+let tripSheetExpanded = false;
+
+function setTripSheetExpanded(expanded) {
+  const sheet = document.getElementById('trip-sheet');
+  if (!sheet) return;
+  tripSheetExpanded = !!expanded;
+  sheet.classList.toggle('is-expanded', tripSheetExpanded);
+  sheet.setAttribute('aria-expanded', tripSheetExpanded ? 'true' : 'false');
+  setTimeout(refreshTripMapSize, 340);
+}
+
+function initTripBottomSheet() {
+  const sheet = document.getElementById('trip-sheet');
+  const handle = document.getElementById('trip-sheet-handle');
+  if (!sheet || !handle || handle.dataset.sheetBound === '1') return;
+  handle.dataset.sheetBound = '1';
+
+  let startY = 0;
+  let startX = 0;
+  let currentY = 0;
+  let dragging = false;
+  let startExpanded = false;
+
+  const onStart = (clientX, clientY) => {
+    dragging = true;
+    startY = clientY;
+    startX = clientX;
+    currentY = clientY;
+    startExpanded = tripSheetExpanded;
+    sheet.classList.add('is-dragging');
+  };
+
+  const onMove = (clientX, clientY, event) => {
+    if (!dragging) return;
+    currentY = clientY;
+    const dy = currentY - startY;
+    const dx = clientX - startX;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) return;
+    if (event && event.cancelable) event.preventDefault();
+
+    const sheetH = sheet.offsetHeight || window.innerHeight * 0.88;
+    const peek = parseFloat(getComputedStyle(sheet).getPropertyValue('--trip-sheet-peek')) || 248;
+    const collapsedOffset = Math.max(0, sheetH - peek);
+    const base = startExpanded ? 0 : collapsedOffset;
+    let next = base + dy;
+    next = Math.max(0, Math.min(collapsedOffset, next));
+    sheet.style.transform = `translate3d(0, ${next}px, 0)`;
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    dragging = false;
+    sheet.classList.remove('is-dragging');
+    sheet.style.transform = '';
+    const dy = currentY - startY;
+    if (Math.abs(dy) < 8) {
+      setTripSheetExpanded(!tripSheetExpanded);
+      return;
+    }
+    if (dy < -40) setTripSheetExpanded(true);
+    else if (dy > 40) setTripSheetExpanded(false);
+    else setTripSheetExpanded(startExpanded);
+  };
+
+  handle.addEventListener('touchstart', (e) => {
+    if (!e.touches || !e.touches[0]) return;
+    onStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  handle.addEventListener('touchmove', (e) => {
+    if (!e.touches || !e.touches[0]) return;
+    onMove(e.touches[0].clientX, e.touches[0].clientY, e);
+  }, { passive: false });
+  handle.addEventListener('touchend', onEnd);
+  handle.addEventListener('touchcancel', onEnd);
+
+  handle.addEventListener('mousedown', (e) => {
+    onStart(e.clientX, e.clientY);
+    const move = (ev) => onMove(ev.clientX, ev.clientY, ev);
+    const up = () => {
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      onEnd();
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  });
+}
+
+function recenterTripMap() {
+  mapFollowGps = true;
+  if (!tripMap) return;
+  if (Number.isFinite(lastGpsLat) && Number.isFinite(lastGpsLon)) {
+    tripMap.setView([lastGpsLat, lastGpsLon], Math.max(tripMap.getZoom() || 15, 15), { animate: true });
+  } else if (activeOrder) {
+    const ep = getTripPhaseEndpoints(activeOrder);
+    if (ep.shipLat != null && ep.shipLon != null) {
+      tripMap.setView([ep.shipLat, ep.shipLon], 15, { animate: true });
+    } else if (ep.fromLat != null && ep.fromLon != null) {
+      tripMap.setView([ep.fromLat, ep.fromLon], 15, { animate: true });
+    }
+  }
+  refreshTripMapSize();
+}
+
 function renderActiveTrip() {
   const emptyTrip = document.getElementById('no-active-trip');
-  const tripContainer = document.getElementById('active-trip-container');
   const switcher = document.getElementById('active-orders-switcher');
   
   if (!activeOrder || activeOrders.length === 0) {
-    emptyTrip.style.display = 'flex';
-    tripContainer.style.display = 'none';
+    if (emptyTrip) emptyTrip.style.display = 'flex';
+    setTripLiveLayout(false);
+    setTripSheetExpanded(false);
     if (switcher) {
       switcher.style.display = 'none';
       switcher.innerHTML = '';
@@ -1652,8 +1801,8 @@ function renderActiveTrip() {
     return;
   }
   
-  emptyTrip.style.display = 'none';
-  tripContainer.style.display = 'block';
+  if (emptyTrip) emptyTrip.style.display = 'none';
+  setTripLiveLayout(true);
 
   const countBadge = document.getElementById('active-orders-count');
   if (countBadge) {
@@ -1681,7 +1830,7 @@ function renderActiveTrip() {
   
   const statusBadge = document.getElementById('trip-order-status');
   statusBadge.textContent = activeOrder.status;
-  statusBadge.className = 'trip-card__status badge ' + getStatusBadgeClass(activeOrder.status);
+  statusBadge.className = 'trip-topbar__status badge ' + getStatusBadgeClass(activeOrder.status);
   
   document.getElementById('trip-restaurant-name').textContent = activeOrder.restaurantName;
   document.getElementById('trip-restaurant-address').textContent = activeOrder.restaurantAddress || '—';
@@ -1694,6 +1843,7 @@ function renderActiveTrip() {
   document.getElementById('trip-store-total').textContent = formatCurrency(activeOrder.storeTotal);
   document.getElementById('trip-app-total').textContent = formatCurrency(activeOrder.appTotal);
   document.getElementById('trip-earning').textContent = formatCurrency(activeOrder.shipperEarning);
+  updateTripPeek(activeOrder);
   
   // Render danh sách món ăn kèm ghi chú món cho active trip
   const tripItemsContainer = document.getElementById('trip-items-list');
@@ -1764,6 +1914,8 @@ function renderActiveTrip() {
 
   initTripMap();
   updateTripProximityHint();
+  setTimeout(refreshTripMapSize, 80);
+  setTimeout(refreshTripMapSize, 320);
 }
 
 /** Địa chỉ hiển thị cho khách — nếu chỉ là placeholder ghim thì kèm tọa độ pin */
@@ -2021,8 +2173,11 @@ async function initTripMap() {
     }
 
     setTimeout(() => {
-      if (tripMap) tripMap.invalidateSize();
+      if (tripMap) tripMap.invalidateSize({ animate: false });
     }, 150);
+    setTimeout(() => {
+      if (tripMap) tripMap.invalidateSize({ animate: false });
+    }, 400);
     updateTripProximityHint();
   } catch (err) {
     console.error('Lỗi vẽ bản đồ:', err);
@@ -2110,13 +2265,21 @@ function assertProximityForStatus(nextStatus) {
 
 function updateTripProximityHint() {
   const el = document.getElementById('trip-proximity-hint');
+  const liveEl = document.querySelector('.trip-live');
+  const syncPeek = () => {
+    if (!liveEl) return;
+    const hintVisible = !!(el && el.style.display !== 'none' && el.offsetHeight > 0);
+    liveEl.style.setProperty('--trip-sheet-peek', hintVisible ? '302px' : '248px');
+  };
   if (!el || !activeOrder) {
     if (el) el.style.display = 'none';
+    syncPeek();
     return;
   }
   const next = activeOrder.status === 'ACCEPTED' ? 'PURCHASED' : (activeOrder.status === 'PURCHASED' ? 'DELIVERED' : null);
   if (!next) {
     el.style.display = 'none';
+    syncPeek();
     return;
   }
   const live = getShipperLiveCoords();
@@ -2125,6 +2288,7 @@ function updateTripProximityHint() {
     el.style.display = 'block';
     el.textContent = !live ? 'Đang chờ GPS để xác nhận khoảng cách…' : `Chưa có tọa độ ${target ? target.label : 'đích'}`;
     el.className = 'trip-proximity-hint trip-proximity-hint--wait';
+    syncPeek();
     return;
   }
   const d = calculateDistance(live.lat, live.lon, target.lat, target.lon);
@@ -2140,6 +2304,7 @@ function updateTripProximityHint() {
   el.textContent = ok
     ? `Đã trong vùng ${target.label} (~${meters}m) — có thể vuốt xác nhận`
     : `Còn ~${meters}m tới ${target.label} (cần ≤${Math.round(limit * 1000)}m)`;
+  syncPeek();
 }
 
 async function advanceTripStatus() {
@@ -3707,6 +3872,7 @@ function showToast(title, message = '', type = 'info', duration = 3500) {
 window.loginDriver = loginDriver;
 window.toggleOnlineStatus = toggleOnlineStatus;
 window.switchTab = switchTab;
+window.recenterTripMap = recenterTripMap;
 window.acceptOrder = acceptOrder;
 window.advanceTripStatus = advanceTripStatus;
 window.openJobDetail = openJobDetail;
