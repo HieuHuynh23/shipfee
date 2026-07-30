@@ -277,13 +277,17 @@
             <span>Ưu đãi đặt nhiều món</span>
             <span id="bd-discount-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
           </div>
-          <div class="price-breakdown__row">
+          <div class="price-breakdown__row" id="bd-delivery-fee-row">
             <span>Phí giao hàng</span>
-            <span style="font-weight:600;color:var(--clr-success);">Miễn phí</span>
+            <span id="bd-delivery-fee-price" style="font-weight:600;color:var(--clr-text-primary);">—</span>
           </div>
           <div class="price-breakdown__row" id="bd-platform-fee-row">
             <span>Phí nền tảng</span>
-            <span id="bd-platform-fee-price" style="font-weight:600;color:var(--clr-success);">0đ</span>
+            <span id="bd-platform-fee-price" style="font-weight:600;color:var(--clr-text-primary);">—</span>
+          </div>
+          <div class="price-breakdown__row" id="bd-waiver-applied-row" style="display:none;">
+            <span id="bd-waiver-applied-label">Ưu đãi phí</span>
+            <span id="bd-waiver-applied-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
           </div>
           <div class="price-breakdown__row total">
             <span>Tổng thanh toán (COD)</span>
@@ -291,10 +295,10 @@
           </div>
         </div>
 
-        <!-- Nudge banner for small order fee -->
+        <!-- Nudge banner: exact VND remaining / savings -->
         <div id="checkout-min-fee-nudge" style="display:none; margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.15); border-radius: var(--radius-md); font-size: 12px; color: #b91c1c; align-items: center; gap: 8px;">
           <i class="fa-solid fa-circle-exclamation" style="font-size: 14px; flex-shrink: 0;"></i>
-          <span style="flex:1; line-height: 1.4;">Đơn hàng nhỏ chưa đạt giá trị tối thiểu. <a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm 1 món nữa</a> để được <strong>MIỄN PHÍ</strong> phí nền tảng!</span>
+          <span style="flex:1; line-height: 1.4;" id="checkout-fee-nudge-text"></span>
         </div>
       </div>
 
@@ -471,27 +475,22 @@
         const item = restaurant.menu.find(m => m.id === itemId);
         if (!item) return;
 
-        let toppingsApp = 0;
+        let toppingsStore = 0;
         let selectedOptions = [];
         if (optionsStr) {
           try {
             selectedOptions = JSON.parse(optionsStr);
             selectedOptions.forEach(opt => {
-              toppingsApp += SF.calcToppingAppPrice
-                ? SF.calcToppingAppPrice(opt.price)
-                : Math.round((opt.price * 1.28) / 100) * 100;
+              toppingsStore += Number(opt.price) || 0;
             });
           } catch (e) {}
         }
 
-        const itemTotalApp = (item.appPrice + toppingsApp) * qty;
-        const fmtTopping = (price) => SF.calcToppingAppPrice
-          ? SF.calcToppingAppPrice(price)
-          : Math.round((price * 1.28) / 100) * 100;
+        const itemTotalStore = ((Number(item.inStorePrice) || 0) + toppingsStore) * qty;
 
         const optionsHtml = selectedOptions.length > 0
           ? `<div style="font-size: 11px; color: var(--clr-text-muted); margin-top: 2px; font-weight: 500;">
-              Lựa chọn: ${selectedOptions.map(o => `${SF.escapeHtml(o.name)} (${o.price > 0 ? '+' + SF.formatCurrency(fmtTopping(o.price)) : 'Miễn phí'})`).join(', ')}
+              Lựa chọn: ${selectedOptions.map(o => `${SF.escapeHtml(o.name)} (${o.price > 0 ? '+' + SF.formatCurrency(o.price) : 'Miễn phí'})`).join(', ')}
              </div>`
           : '';
 
@@ -516,7 +515,7 @@
             </div>
           </div>
           <div style="display:flex; align-items:center; gap:var(--space-md); flex-shrink:0;">
-            <div class="order-item-row__price">${SF.formatCurrency(itemTotalApp)}</div>
+            <div class="order-item-row__price">${SF.formatCurrency(itemTotalStore)}</div>
             <button class="order-item-row__delete-btn" data-delete-key="${safeCartKey}" title="Xóa món">
               <i class="fa-regular fa-trash-can"></i>
             </button>
@@ -589,9 +588,9 @@
     }
 
     function renderPriceBreakdown(totals) {
-      const subtotal = (totals.appTotal || 0) + (totals.discountValue || 0) - (totals.minServiceFee || 0);
-      document.getElementById('bd-app-price').textContent = SF.formatCurrency(subtotal);
-      
+      const foodTotal = totals.storeTotal || 0;
+      document.getElementById('bd-app-price').textContent = SF.formatCurrency(foodTotal);
+
       const discountRow = document.getElementById('bd-discount-row');
       const discountVal = document.getElementById('bd-discount-price');
       if (totals.discountValue > 0) {
@@ -600,30 +599,81 @@
       } else {
         discountRow.style.display = 'none';
       }
-      
-      const platformFeeVal = document.getElementById('bd-platform-fee-price');
-      const minFeeNudge = document.getElementById('checkout-min-fee-nudge');
-      const backLink = document.getElementById('nudge-back-link');
 
-      if (totals.minServiceFee > 0) {
-        if (platformFeeVal) {
-          platformFeeVal.textContent = SF.formatCurrency(totals.minServiceFee);
-          platformFeeVal.style.color = 'var(--clr-text-primary)';
+      const deliveryEl = document.getElementById('bd-delivery-fee-price');
+      const platformEl = document.getElementById('bd-platform-fee-price');
+      const deliveryFee = totals.deliveryFee || 0;
+      const platformFee = totals.platformFee || 0;
+
+      if (deliveryEl) {
+        if (deliveryFee <= 0) {
+          deliveryEl.textContent = 'Miễn phí';
+          deliveryEl.style.color = 'var(--clr-success)';
+        } else {
+          deliveryEl.textContent = SF.formatCurrency(deliveryFee);
+          deliveryEl.style.color = 'var(--clr-text-primary)';
         }
+      }
+      if (platformEl) {
+        if (platformFee <= 0) {
+          platformEl.textContent = 'Miễn phí';
+          platformEl.style.color = 'var(--clr-success)';
+        } else {
+          platformEl.textContent = SF.formatCurrency(platformFee);
+          platformEl.style.color = 'var(--clr-text-primary)';
+        }
+      }
+
+      const waivedTotal = (totals.platformWaivedAmount || 0) + (totals.deliveryHalfAmount || 0);
+      const waiverRow = document.getElementById('bd-waiver-applied-row');
+      if (waiverRow) {
+        if (waivedTotal > 0) {
+          waiverRow.style.display = 'flex';
+          document.getElementById('bd-waiver-applied-price').textContent =
+            '-' + SF.formatCurrency(waivedTotal);
+        } else {
+          waiverRow.style.display = 'none';
+        }
+      }
+
+      const minFeeNudge = document.getElementById('checkout-min-fee-nudge');
+      const nudgeText = document.getElementById('checkout-fee-nudge-text');
+      const hint = totals.feeWaiverHint;
+      if (hint && hint.saveAmount > 0 && (hint.amountShort > 0 || hint.itemsShort > 0)) {
+        const feeLabel = hint.target === 'delivery' ? 'phí giao hàng' : 'phí nền tảng';
+        const parts = [];
+        if (hint.amountShort > 0) {
+          parts.push(`Đặt thêm <strong>${SF.formatCurrency(hint.amountShort)}</strong>`);
+        }
+        if (hint.itemsShort > 0) {
+          parts.push(`thêm <strong>${hint.itemsShort} món</strong>`);
+        }
+        const how = parts.join(' (hoặc ');
+        const howClose = parts.length > 1 ? ')' : '';
+        nudgeText.innerHTML =
+          `${how}${howClose} để giảm <strong>${SF.formatCurrency(hint.saveAmount)}</strong> ${feeLabel}.` +
+          ` <a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a>`;
         minFeeNudge.style.display = 'flex';
+        const backLink = document.getElementById('nudge-back-link');
+        if (backLink) {
+          const cart = SF.getCart();
+          backLink.onclick = () => SF.navigate('restaurant.html', { id: cart.restaurantId });
+        }
+      } else if (totals.minServiceFee > 0 && (!hint || !hint.saveAmount)) {
+        nudgeText.innerHTML =
+          `Đơn nhỏ: đang thu thêm <strong>${SF.formatCurrency(totals.minServiceFee)}</strong> để tài xế nhận tối thiểu 15.000đ/đơn. ` +
+          `<a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a> để giảm phí.`;
+        minFeeNudge.style.display = 'flex';
+        const backLink = document.getElementById('nudge-back-link');
         if (backLink) {
           const cart = SF.getCart();
           backLink.onclick = () => SF.navigate('restaurant.html', { id: cart.restaurantId });
         }
       } else {
-        if (platformFeeVal) {
-          platformFeeVal.textContent = '0đ';
-          platformFeeVal.style.color = 'var(--clr-success)';
-        }
         minFeeNudge.style.display = 'none';
       }
-      
-      document.getElementById('bd-total').textContent     = SF.formatCurrency(totals.appTotal);
+
+      document.getElementById('bd-total').textContent = SF.formatCurrency(totals.appTotal);
       document.getElementById('sticky-total').textContent = SF.formatCurrency(totals.appTotal);
     }
 

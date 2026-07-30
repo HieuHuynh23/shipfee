@@ -2,7 +2,8 @@
 
 /**
  * ShipFee pricing engine — pure functions (server-authoritative).
- * Matches PRICING.md: markup, distance surcharge, multi-item discount, min earning floor.
+ * Menu = in-store price; fees at checkout (60% platform / 40% delivery display).
+ * Shipper: min floor + 70% of surplus above floor.
  */
 
 function round100(value) {
@@ -66,6 +67,92 @@ function resolveToppingsFromMenu(menuItem, selectedOptions) {
   return { toppingsInStore, resolved };
 }
 
+function splitFeePool(feePool, platformShare) {
+  const share = Number(platformShare);
+  const platformFee = round100(feePool * (Number.isFinite(share) ? share : 0.6));
+  const deliveryFee = Math.max(0, feePool - platformFee);
+  return { platformFee, deliveryFee };
+}
+
+function computeShipperEarning(feePool, minShipperEarning, surplusShare) {
+  const minE = Number(minShipperEarning ?? 15000);
+  const share = Number(surplusShare ?? 0.7);
+  if (feePool <= minE) return Math.max(0, feePool);
+  const surplus = feePool - minE;
+  return minE + round100(surplus * share);
+}
+
+function buildFeeWaiverHint({
+  storeTotal,
+  itemCount,
+  feePool,
+  platformFee,
+  deliveryFee,
+  minShipperEarning,
+  cfg,
+  platformWaived,
+  deliveryHalfApplied,
+  surchargePerItem,
+  markupRate
+}) {
+  const waiveStore = Number(cfg.waivePlatformMinStoreTotal ?? 79000);
+  const waiveItems = Number(cfg.waivePlatformMinItems ?? 3);
+  const halfStore = Number(cfg.halfDeliveryMinStoreTotal ?? 120000);
+  const halfItems = Number(cfg.halfDeliveryMinItems ?? 3);
+  const markup = Number(markupRate ?? cfg.markupRate ?? 0.28);
+  const surcharge = Number(surchargePerItem || 0);
+
+  // Ước tính số tiền giảm THỰC TẾ nếu đạt ngưỡng (không dùng maxSavable hiện tại — đơn nhỏ đang = 0)
+  function estimateWaiveSave(targetStore, targetItems, kind) {
+    const simStore = Math.max(storeTotal, targetStore);
+    const simItems = Math.max(itemCount, targetItems);
+    let simFee = round100(simStore * markup) + surcharge * simItems;
+    if (simFee < minShipperEarning) simFee = minShipperEarning;
+    const split = splitFeePool(simFee, Number(cfg.platformFeeShare ?? 0.6));
+    if (kind === 'platform') {
+      return Math.min(split.platformFee, Math.max(0, simFee - minShipperEarning));
+    }
+    const half = round100(split.deliveryFee * 0.5);
+    return Math.min(half, Math.max(0, simFee - minShipperEarning));
+  }
+
+  if (!platformWaived && storeTotal < waiveStore && itemCount < waiveItems) {
+    const amountShort = Math.max(0, waiveStore - storeTotal);
+    const itemsShort = Math.max(0, waiveItems - itemCount);
+    const saveAmount = estimateWaiveSave(waiveStore, waiveItems, 'platform');
+    if ((amountShort > 0 || itemsShort > 0) && saveAmount > 0) {
+      return {
+        target: 'platform',
+        amountShort,
+        itemsShort,
+        currentFee: platformFee,
+        saveAmount,
+        thresholdStoreTotal: waiveStore,
+        thresholdItems: waiveItems
+      };
+    }
+  }
+
+  if (!deliveryHalfApplied && storeTotal < halfStore && itemCount < halfItems) {
+    const amountShort = Math.max(0, halfStore - storeTotal);
+    const itemsShort = Math.max(0, halfItems - itemCount);
+    const saveAmount = estimateWaiveSave(halfStore, halfItems, 'delivery');
+    if ((amountShort > 0 || itemsShort > 0) && saveAmount > 0) {
+      return {
+        target: 'delivery',
+        amountShort,
+        itemsShort,
+        currentFee: deliveryFee,
+        saveAmount,
+        thresholdStoreTotal: halfStore,
+        thresholdItems: halfItems
+      };
+    }
+  }
+
+  return null;
+}
+
 /**
  * @param {object} params
  * @param {Array} params.clientItems
@@ -88,6 +175,12 @@ function recomputeOrderPricingFromMenu({
   const markupRate = Number(cfg.markupRate ?? 0.28);
   const multiItemDiscount = Number(cfg.multiItemDiscount ?? 0.15);
   const minShipperEarning = Number(cfg.minShipperEarning ?? 15000);
+  const platformShare = Number(cfg.platformFeeShare ?? 0.6);
+  const surplusShare = Number(cfg.shipperSurplusShare ?? 0.7);
+  const waivePlatformMinItems = Number(cfg.waivePlatformMinItems ?? 3);
+  const waivePlatformMinStoreTotal = Number(cfg.waivePlatformMinStoreTotal ?? 79000);
+  const halfDeliveryMinItems = Number(cfg.halfDeliveryMinItems ?? 3);
+  const halfDeliveryMinStoreTotal = Number(cfg.halfDeliveryMinStoreTotal ?? 120000);
 
   if (!Array.isArray(clientItems) || clientItems.length === 0) {
     return { error: 'Đơn hàng không có món' };
@@ -122,10 +215,8 @@ function recomputeOrderPricingFromMenu({
     if (toppingResult.error) return { error: toppingResult.error };
 
     const inStoreUnit = inStoreBase + toppingResult.toppingsInStore;
-    const appUnit =
-      calcAppPrice(inStoreBase, markupRate) +
-      calcAppPrice(toppingResult.toppingsInStore, markupRate) +
-      surchargePerItem;
+    // Food line = store price only (fees are separate at checkout)
+    const appUnit = inStoreUnit;
 
     for (let i = 0; i < qty; i++) {
       lineUnits.push({
@@ -144,11 +235,10 @@ function recomputeOrderPricingFromMenu({
   }
 
   let storeTotal = 0;
-  let appTotalRaw = 0;
   lineUnits.forEach((u) => {
     storeTotal += u.inStorePrice;
-    appTotalRaw += u.appPrice;
   });
+  const itemCount = lineUnits.length;
 
   const mergedMap = new Map();
   lineUnits.forEach((u) => {
@@ -170,37 +260,230 @@ function recomputeOrderPricingFromMenu({
   });
   const pricedItems = Array.from(mergedMap.values());
 
+  const distanceSurchargeTotal = surchargePerItem * itemCount;
+  const markupFee = round100(storeTotal * markupRate);
+  let feePoolRaw = markupFee + distanceSurchargeTotal;
+
   let discountValue = 0;
-  if (lineUnits.length > 1) {
-    const perExtra = Math.max(2000, round100(surchargePerItem * multiItemDiscount));
-    discountValue = perExtra * (lineUnits.length - 1);
-  }
-
-  const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
-  let minServiceFee = 0;
-  let appTotal = appTotalRaw;
-
-  if (shipperEarningBeforeDiscount >= minShipperEarning) {
-    discountValue = Math.min(
-      discountValue,
-      shipperEarningBeforeDiscount - minShipperEarning
+  if (itemCount > 1) {
+    const avgUnit = storeTotal / itemCount;
+    const perExtra = Math.max(
+      2000,
+      round100(surchargePerItem * multiItemDiscount + avgUnit * 0.03)
     );
-    appTotal = Math.max(0, appTotalRaw - discountValue);
-  } else {
-    discountValue = 0;
-    minServiceFee = round100(minShipperEarning - shipperEarningBeforeDiscount);
-    appTotal = appTotalRaw + minServiceFee;
+    discountValue = perExtra * (itemCount - 1);
+    discountValue = Math.min(discountValue, Math.max(0, feePoolRaw - minShipperEarning));
   }
+
+  let feePool = Math.max(0, feePoolRaw - discountValue);
+  let minServiceFee = 0;
+  if (feePool < minShipperEarning) {
+    minServiceFee = round100(minShipperEarning - feePool);
+    feePool = minShipperEarning;
+  }
+
+  let { platformFee, deliveryFee } = splitFeePool(feePool, platformShare);
+
+  const canWaivePlatform =
+    storeTotal >= waivePlatformMinStoreTotal || itemCount >= waivePlatformMinItems;
+  const canHalfDelivery =
+    storeTotal >= halfDeliveryMinStoreTotal || itemCount >= halfDeliveryMinItems;
+
+  let platformWaivedAmount = 0;
+  let deliveryHalfAmount = 0;
+  let platformWaived = false;
+  let deliveryHalfApplied = false;
+
+  if (canWaivePlatform && platformFee > 0) {
+    const maxWaive = Math.max(0, feePool - minShipperEarning);
+    platformWaivedAmount = Math.min(platformFee, maxWaive);
+    if (platformWaivedAmount > 0) {
+      feePool -= platformWaivedAmount;
+      platformWaived = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, platformShare));
+    }
+  }
+
+  if (canHalfDelivery && deliveryFee > 0) {
+    const half = round100(deliveryFee * 0.5);
+    const maxWaive = Math.max(0, feePool - minShipperEarning);
+    deliveryHalfAmount = Math.min(half, maxWaive);
+    if (deliveryHalfAmount > 0) {
+      feePool -= deliveryHalfAmount;
+      deliveryHalfApplied = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, platformShare));
+    }
+  }
+
+  const shipperEarning = computeShipperEarning(feePool, minShipperEarning, surplusShare);
+  const platformKeep = Math.max(0, feePool - shipperEarning);
+  const appTotal = storeTotal + feePool;
+
+  const feeWaiverHint = buildFeeWaiverHint({
+    storeTotal,
+    itemCount,
+    feePool,
+    platformFee,
+    deliveryFee,
+    minShipperEarning,
+    cfg,
+    platformWaived,
+    deliveryHalfApplied,
+    surchargePerItem,
+    markupRate
+  });
 
   return {
     items: pricedItems,
     storeTotal,
     appTotal,
-    shipperEarning: Math.max(0, appTotal - storeTotal),
+    feePool,
+    platformFee,
+    deliveryFee,
+    platformKeep,
+    shipperEarning,
     discountValue,
     minServiceFee,
+    platformWaivedAmount,
+    deliveryHalfAmount,
+    platformWaived,
+    deliveryHalfApplied,
     surchargePerItem,
-    itemCount: lineUnits.length
+    itemCount,
+    feeWaiverHint
+  };
+}
+
+/** Client-side mirror: totals from cart lines already priced at in-store. */
+function computeCartFeeTotals({
+  storeTotal,
+  itemCount,
+  surchargePerItem,
+  cfg
+}) {
+  const markupRate = Number(cfg.markupRate ?? 0.28);
+  const multiItemDiscount = Number(cfg.multiItemDiscount ?? 0.15);
+  const minShipperEarning = Number(cfg.minShipperEarning ?? 15000);
+  const platformShare = Number(cfg.platformFeeShare ?? 0.6);
+  const surplusShare = Number(cfg.shipperSurplusShare ?? 0.7);
+  const waivePlatformMinItems = Number(cfg.waivePlatformMinItems ?? 3);
+  const waivePlatformMinStoreTotal = Number(cfg.waivePlatformMinStoreTotal ?? 79000);
+  const halfDeliveryMinItems = Number(cfg.halfDeliveryMinItems ?? 3);
+  const halfDeliveryMinStoreTotal = Number(cfg.halfDeliveryMinStoreTotal ?? 120000);
+
+  if (!itemCount || storeTotal <= 0) {
+    return {
+      storeTotal: 0,
+      appTotal: 0,
+      feePool: 0,
+      platformFee: 0,
+      deliveryFee: 0,
+      shipperEarning: 0,
+      discountValue: 0,
+      minServiceFee: 0,
+      platformWaivedAmount: 0,
+      deliveryHalfAmount: 0,
+      platformWaived: false,
+      deliveryHalfApplied: false,
+      itemCount: 0,
+      feeWaiverHint: null
+    };
+  }
+
+  const distanceSurchargeTotal = (Number(surchargePerItem) || 0) * itemCount;
+  const markupFee = round100(storeTotal * markupRate);
+  let feePoolRaw = markupFee + distanceSurchargeTotal;
+
+  let discountValue = 0;
+  if (itemCount > 1) {
+    const avgUnit = storeTotal / itemCount;
+    const perExtra = Math.max(
+      2000,
+      round100((Number(surchargePerItem) || 0) * multiItemDiscount + avgUnit * 0.03)
+    );
+    discountValue = perExtra * (itemCount - 1);
+    discountValue = Math.min(discountValue, Math.max(0, feePoolRaw - minShipperEarning));
+  }
+
+  let feePool = Math.max(0, feePoolRaw - discountValue);
+  let minServiceFee = 0;
+  if (feePool < minShipperEarning) {
+    minServiceFee = round100(minShipperEarning - feePool);
+    feePool = minShipperEarning;
+  }
+
+  let { platformFee, deliveryFee } = splitFeePool(feePool, platformShare);
+
+  const canWaivePlatform =
+    storeTotal >= waivePlatformMinStoreTotal || itemCount >= waivePlatformMinItems;
+  const canHalfDelivery =
+    storeTotal >= halfDeliveryMinStoreTotal || itemCount >= halfDeliveryMinItems;
+
+  let platformWaivedAmount = 0;
+  let deliveryHalfAmount = 0;
+  let platformWaived = false;
+  let deliveryHalfApplied = false;
+
+  if (canWaivePlatform && platformFee > 0) {
+    const maxWaive = Math.max(0, feePool - minShipperEarning);
+    platformWaivedAmount = Math.min(platformFee, maxWaive);
+    if (platformWaivedAmount > 0) {
+      feePool -= platformWaivedAmount;
+      platformWaived = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, platformShare));
+    }
+  }
+
+  if (canHalfDelivery && deliveryFee > 0) {
+    const half = round100(deliveryFee * 0.5);
+    const maxWaive = Math.max(0, feePool - minShipperEarning);
+    deliveryHalfAmount = Math.min(half, maxWaive);
+    if (deliveryHalfAmount > 0) {
+      feePool -= deliveryHalfAmount;
+      deliveryHalfApplied = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, platformShare));
+    }
+  }
+
+  const shipperEarning = computeShipperEarning(feePool, minShipperEarning, surplusShare);
+  const appTotal = storeTotal + feePool;
+
+  const feeWaiverHint = buildFeeWaiverHint({
+    storeTotal,
+    itemCount,
+    feePool,
+    platformFee,
+    deliveryFee,
+    minShipperEarning,
+    cfg: {
+      waivePlatformMinStoreTotal,
+      waivePlatformMinItems,
+      halfDeliveryMinStoreTotal,
+      halfDeliveryMinItems,
+      platformFeeShare: platformShare,
+      markupRate
+    },
+    platformWaived,
+    deliveryHalfApplied,
+    surchargePerItem: Number(surchargePerItem) || 0,
+    markupRate
+  });
+
+  return {
+    storeTotal,
+    appTotal,
+    feePool,
+    platformFee,
+    deliveryFee,
+    shipperEarning,
+    discountValue,
+    minServiceFee,
+    platformWaivedAmount,
+    deliveryHalfAmount,
+    platformWaived,
+    deliveryHalfApplied,
+    itemCount,
+    feeWaiverHint
   };
 }
 
@@ -209,5 +492,8 @@ module.exports = {
   calcAppPrice,
   haversineKm,
   computeDistanceSurchargePerItem,
-  recomputeOrderPricingFromMenu
+  splitFeePool,
+  computeShipperEarning,
+  recomputeOrderPricingFromMenu,
+  computeCartFeeTotals
 };
