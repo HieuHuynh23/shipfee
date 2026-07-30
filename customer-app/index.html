@@ -446,7 +446,7 @@
       <!-- Hint for dragging pin -->
       <div class="address-map-hint">
         <i class="fa-solid fa-circle-info"></i>
-        <span id="address-map-hint-text"><strong>Gợi ý:</strong> Kéo thả ghim đỏ trên bản đồ đến đúng vị trí nhà bạn để Shipper giao hàng chính xác nhất!</span>
+        <span id="address-map-hint-text"><strong>Gợi ý:</strong> Tọa độ giao hàng lấy theo ghim đỏ (GPS hoặc kéo tay). Sửa chữ địa chỉ bên dưới chỉ để shipper đọc — không đổi vị trí ghim.</span>
       </div>
 
       <!-- Leaflet map container for dragging pin — hiện sẵn để máy tính kéo ghim khi không có GPS -->
@@ -458,7 +458,7 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="modal-address-input">Địa chỉ nhận hàng</label>
+        <label class="form-label" for="modal-address-input">Địa chỉ nhận hàng <span style="font-weight:400;color:var(--clr-text-secondary);font-size:0.85em;">(chữ cho shipper — vị trí theo ghim)</span></label>
         <input type="text" id="modal-address-input" class="form-input"
           placeholder="Số nhà, tên đường, phường/quận..."
           autocomplete="street-address"
@@ -562,13 +562,15 @@
                                    el.classList.contains('anim-delay-4') ? '0.4s' : '0s';
       });
 
-      // Map input syncer (debounced to avoid pan-on-every-keystroke jank)
+      // Map input syncer: chỉ ước lượng bản đồ khi CHƯA có ghim GPS/kéo.
+      // Sau GPS hoặc kéo ghim, sửa chữ địa chỉ KHÔNG được ghi đè tọa độ chính xác.
       const modalAddrInput = document.getElementById('modal-address-input');
       if (modalAddrInput) {
         const syncMapFromAddress = SF.debounce((addr) => {
           const overlay = document.getElementById('address-overlay');
           if (!overlay || !overlay.classList.contains('active')) return;
-          if (addr && !addr.includes('GPS') && !addr.includes('Ghim Bản Đồ') && !addr.includes('Ghim')) {
+          if (pinCoordsTrusted) return;
+          if (addr && !/GPS|Ghim|Vị trí đã|Đang lấy địa chỉ/i.test(addr)) {
             const resolved = localGeocode(addr);
             showMapAt(resolved.lat, resolved.lon, false);
           }
@@ -1322,6 +1324,8 @@
 
     // ── ADDRESS MODAL ──
     let tempGpsCoords = null;
+    /** true khi tọa độ đến từ GPS hoặc kéo ghim — không cho ô chữ địa chỉ ghi đè. */
+    let pinCoordsTrusted = false;
 
     function localGeocode(address) {
       const text = (address || '').toLowerCase();
@@ -1394,23 +1398,44 @@
         if (type === 'self') {
           if (groupOrdererPhone) groupOrdererPhone.style.display = 'none';
           
-          if (addrLabel) addrLabel.innerHTML = 'Địa chỉ giao hàng <span style="color:#ef4444;">*</span>';
+          if (addrLabel) {
+            addrLabel.innerHTML = 'Địa chỉ giao hàng <span style="color:#ef4444;">*</span> <span style="font-weight:400;color:var(--clr-text-secondary);font-size:0.85em;">(chữ cho shipper — vị trí theo ghim)</span>';
+          }
           if (nameLabel) nameLabel.innerHTML = 'Tên người nhận <span style="color:#ef4444;">*</span>';
           if (phoneLabel) phoneLabel.innerHTML = 'Số điện thoại nhận hàng <span style="color:#ef4444;">*</span>';
           
           addrInput.placeholder = "Số nhà, tên đường, phường/quận...";
           nameInput.placeholder = "Nhập tên đầy đủ";
           phoneInput.placeholder = "0xxx xxx xxx";
+
+          const hintSelf = document.getElementById('address-map-hint-text');
+          if (hintSelf) {
+            hintSelf.innerHTML = '<strong>Gợi ý:</strong> Tọa độ giao hàng lấy theo ghim đỏ (GPS hoặc kéo tay). Sửa chữ địa chỉ bên dưới chỉ để shipper đọc — không đổi vị trí ghim.';
+          }
+          // Nếu đã có ghim GPS/kéo trong phiên này thì giữ khóa
+          if (tempGpsCoords) {
+            const isDefault = tempGpsCoords.lat === 10.0345 && tempGpsCoords.lon === 105.7876;
+            if (!isDefault) pinCoordsTrusted = true;
+          }
         } else if (type === 'relative') {
           if (groupOrdererPhone) groupOrdererPhone.style.display = 'block';
+          // Địa chỉ người thân khác vị trí GPS của người đặt → cho phép ước lượng lại từ chữ
+          pinCoordsTrusted = false;
           
-          if (addrLabel) addrLabel.innerHTML = 'Địa chỉ người thân chính xác <span style="color:#ef4444;">*</span>';
+          if (addrLabel) {
+            addrLabel.innerHTML = 'Địa chỉ người thân <span style="color:#ef4444;">*</span> <span style="font-weight:400;color:var(--clr-text-secondary);font-size:0.85em;">(kéo ghim đúng nhà người thân)</span>';
+          }
           if (nameLabel) nameLabel.innerHTML = 'Tên người thân nhận hàng <span style="color:#ef4444;">*</span>';
           if (phoneLabel) phoneLabel.innerHTML = 'Số điện thoại người thân <span style="color:#ef4444;">*</span>';
           
           addrInput.placeholder = "Nhập số nhà, tên đường, phường/quận người thân...";
           nameInput.placeholder = "Nhập tên đầy đủ người thân";
           phoneInput.placeholder = "Nhập số điện thoại người thân chính xác";
+
+          const hintEl = document.getElementById('address-map-hint-text');
+          if (hintEl) {
+            hintEl.innerHTML = '<strong>Người thân:</strong> Nhập địa chỉ chữ rồi kéo ghim đỏ đúng nhà người nhận — đừng dùng GPS vị trí của bạn.';
+          }
         }
       }
     }
@@ -1452,6 +1477,7 @@
         mapMarker.on('dragend', async function () {
           const position = mapMarker.getLatLng();
           tempGpsCoords = { lat: position.lat, lon: position.lng };
+          pinCoordsTrusted = true;
           
           const pinBadge = document.getElementById('map-pin-badge');
           if (pinBadge) {
@@ -1471,7 +1497,7 @@
           }
           SF.showToast(
             '📍 Đã ghim vị trí',
-            `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)} — kéo ghim nếu cần chỉnh thêm.`,
+            `Tọa độ: ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)} — sửa chữ địa chỉ không đổi ghim; kéo ghim nếu cần chỉnh thêm.`,
             'info'
           );
         });
@@ -1547,13 +1573,15 @@
       }
       const hintEl = document.getElementById('address-map-hint-text');
       if (hintEl && isDesktop) {
-        hintEl.innerHTML = '<strong>Mẹo trên máy tính:</strong> Di chuyển ghim đỏ trên bản đồ hoặc nhập số nhà, tên đường bên dưới để chọn điểm giao hàng nhanh chóng.';
+        hintEl.innerHTML = '<strong>Mẹo trên máy tính:</strong> Tọa độ theo ghim đỏ (kéo tay hoặc GPS). Sửa ô địa chỉ chỉ để shipper đọc — không đổi vị trí ghim.';
       }
 
       // Initialize map location based on saved values or default to Ninh Kieu
       const currentLat = state.userLat || 10.0345;
       const currentLon = state.userLon || 105.7876;
       tempGpsCoords = { lat: currentLat, lon: currentLon };
+      const isDefaultCenter = (currentLat === 10.0345 && currentLon === 105.7876);
+      pinCoordsTrusted = !!(state.userLat && state.userLon && !isDefaultCenter);
 
       document.getElementById('address-overlay').classList.add('active');
       if (SF.lockBodyScroll) SF.lockBodyScroll();
@@ -1564,7 +1592,7 @@
 
       // Set badge if coordinates exist and are not default Ninh Kieu
       const pinBadge = document.getElementById('map-pin-badge');
-      if (pinBadge && (state.userLat && state.userLon && (state.userLat !== 10.0345 || state.userLon !== 105.7876))) {
+      if (pinBadge && pinCoordsTrusted) {
         pinBadge.style.display = 'flex';
         pinBadge.innerHTML = `<i class="fa-solid fa-circle-check"></i> Đã ghim vị trí chính xác: ${currentLat.toFixed(5)}, ${currentLon.toFixed(5)}!`;
       } else if (pinBadge) {
@@ -1623,13 +1651,14 @@
           const accText = acc != null ? ` (±${acc}m)` : '';
           SF.showToast(
             '📍 Đã định vị chính xác',
-            (loc.coarse ? 'Đã lấy vị trí (độ lệch còn lớn)' : 'Đã lấy vị trí từ trình duyệt') + accText + '. Kéo ghim nếu cần chỉnh.',
+            (loc.coarse ? 'Đã lấy vị trí (độ lệch còn lớn)' : 'Đã lấy vị trí từ trình duyệt') + accText + '. Có thể sửa chữ địa chỉ; muốn chỉnh vị trí thì kéo ghim.',
             loc.coarse || (acc != null && acc > 100) ? 'warning' : 'success',
             4500
           );
         }
 
         tempGpsCoords = { lat: finalLat, lon: finalLon };
+        pinCoordsTrusted = true;
 
         // Điền địa chỉ chữ từ tọa độ (không chỉ hiện lat/lon)
         const addrInput = document.getElementById('modal-address-input');
