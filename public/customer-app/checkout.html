@@ -401,8 +401,8 @@
     </div>
   </div>
 
-  <script src="restaurants-data.js?v=20260730c"></script>
-  <script src="app.js?v=20260730c"></script>
+  <script src="restaurants-data.js?v=20260730d"></script>
+  <script src="app.js?v=20260730d"></script>
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
@@ -636,6 +636,9 @@
         if (SF.ensureCartRestaurant) {
           await SF.ensureCartRestaurant(cart.restaurantId);
         }
+        if (SF.backfillCartLinesFromRestaurant) {
+          SF.backfillCartLinesFromRestaurant(cart.restaurantId);
+        }
 
         cartTotals = SF.getCartTotal();
 
@@ -708,35 +711,30 @@
     function renderOrderItems(cart, state) {
       const restaurant = (SF.getRestaurantById && SF.getRestaurantById(cart.restaurantId))
         || (SF.RESTAURANTS || []).find(r => String(r.id) === String(cart.restaurantId));
-      if (!restaurant) return;
 
       const nameEl = document.getElementById('restaurant-name-label');
-      if (nameEl) nameEl.textContent = restaurant.name || '—';
+      if (nameEl) {
+        nameEl.textContent = (restaurant && restaurant.name) || cart.restaurantName || '—';
+      }
 
       const listEl = document.getElementById('order-items-list');
       if (!listEl) return;
       listEl.innerHTML = '';
 
-      const menu = Array.isArray(restaurant.menu) ? restaurant.menu : [];
-      Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
-        if (qty <= 0) return;
-        const [itemId, optionsStr] = cartKey.split('::');
-        const item = menu.find(m => m.id === itemId);
-        if (!item) return;
+      const entries = Object.entries(cart.items || {}).filter(([, qty]) => qty > 0);
+      if (!entries.length) {
+        listEl.innerHTML = '<p class="text-sm" style="color:var(--clr-text-muted);padding:8px 0;">Giỏ hàng trống.</p>';
+        return;
+      }
 
-        let toppingsStore = 0;
-        let selectedOptions = [];
-        if (optionsStr) {
-          try {
-            selectedOptions = JSON.parse(optionsStr);
-            selectedOptions.forEach(opt => {
-              toppingsStore += Number(opt.price) || 0;
-            });
-          } catch (e) {}
-        }
+      entries.forEach(([cartKey, qty]) => {
+        const line = SF.resolveCartLine
+          ? SF.resolveCartLine(cart, cartKey, restaurant)
+          : null;
+        if (!line) return;
 
-        const itemTotalStore = ((Number(item.inStorePrice) || 0) + toppingsStore) * qty;
-
+        const selectedOptions = line.selectedOptions || [];
+        const itemTotalStore = line.unitStore * qty;
         const optionsHtml = selectedOptions.length > 0
           ? `<div style="font-size: 11px; color: var(--clr-text-muted); margin-top: 2px; font-weight: 500;">
               Lựa chọn: ${selectedOptions.map(o => `${SF.escapeHtml(o.name)} (${o.price > 0 ? '+' + SF.formatCurrency(o.price) : 'Miễn phí'})`).join(', ')}
@@ -748,9 +746,9 @@
         const row = document.createElement('div');
         row.className = 'order-item-row';
         row.innerHTML = `
-          <img src="${SF.escapeHtml(item.img || '')}" alt="${SF.escapeHtml(item.name)}" class="order-item-row__img">
+          <img src="${SF.escapeHtml(line.img || '')}" alt="${SF.escapeHtml(line.name)}" class="order-item-row__img">
           <div style="flex:1;min-width:0;">
-            <div class="order-item-row__name">${SF.escapeHtml(item.name)}</div>
+            <div class="order-item-row__name">${SF.escapeHtml(line.name)}</div>
             ${optionsHtml}
             <div class="order-item-row__qty">x${qty}</div>
             <div style="margin-top: 8px; max-width: 95%;">
@@ -779,6 +777,10 @@
         }
         listEl.appendChild(row);
       });
+
+      if (!listEl.children.length) {
+        listEl.innerHTML = '<p class="text-sm" style="color:var(--clr-text-muted);padding:8px 0;">Không khớp được món với thực đơn. Thêm lại món từ trang quán.</p>';
+      }
     }
 
     function renderAddress(state) {

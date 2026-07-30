@@ -221,15 +221,17 @@ function saveMenuCache(restaurant) {
   }
 }
 
-function loadMenuCache(id) {
+function loadMenuCache(id, { allowStale = true } = {}) {
   try {
     const raw = localStorage.getItem(menuCacheKey(id));
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.menu)) return null;
-    if (Date.now() - (parsed.savedAt || 0) > MENU_CACHE_TTL_MS) {
-      localStorage.removeItem(menuCacheKey(id));
-      return null;
+    if (!parsed || !Array.isArray(parsed.menu) || parsed.menu.length === 0) return null;
+    const age = Date.now() - (parsed.savedAt || 0);
+    if (age > MENU_CACHE_TTL_MS) {
+      // Giữ cache cũ cho checkout — không xóa; chỉ đánh dấu stale
+      parsed._stale = true;
+      if (!allowStale) return null;
     }
     return parsed;
   } catch (e) {
@@ -341,11 +343,8 @@ async function ensureCartRestaurant(restaurantId, opts = {}) {
   if (!id) return null;
 
   let local = getRestaurantById(id);
-  const needFetch = !local
-    || !Array.isArray(local.menu)
-    || local.menu.length === 0
-    || opts.force === true;
-
+  const localMenuLen = local && Array.isArray(local.menu) ? local.menu.length : 0;
+  const needFetch = !local || localMenuLen === 0 || opts.force === true;
   if (!needFetch) return local;
 
   try {
@@ -355,14 +354,23 @@ async function ensureCartRestaurant(restaurantId, opts = {}) {
     const qs = (Number.isFinite(lat) && Number.isFinite(lon))
       ? `?lat=${lat}&lon=${lon}`
       : '';
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 12000) : null;
     const res = await fetch(`${_API_BASE}/api/restaurants/${encodeURIComponent(id)}${qs}`, {
-      signal: AbortSignal.timeout(12000)
+      signal: controller ? controller.signal : undefined
     });
+    if (timer) clearTimeout(timer);
     if (!res.ok) return local;
     const json = await res.json();
     const data = json && (json.data || json.restaurant || json);
     if (!data || !data.id) return local;
-    return upsertRestaurant(data) || getRestaurantById(id) || local;
+
+    // Không ghi đè menu local/cache bằng mảng rỗng từ API
+    if ((!Array.isArray(data.menu) || data.menu.length === 0) && localMenuLen > 0) {
+      data.menu = local.menu;
+    }
+    const next = upsertRestaurant(data) || getRestaurantById(id) || local;
+    return next;
   } catch (e) {
     console.warn('[ensureCartRestaurant]', e.message || e);
     return local;
@@ -413,7 +421,7 @@ function getState() {
 
 function getDefaultState() {
   return {
-    cart: { restaurantId: null, items: {}, itemNotes: {} },
+    cart: { restaurantId: null, items: {}, itemNotes: {}, lines: {}, restaurantName: '', surchargePerItem: 0 },
     activeOrder: null,
     orderHistory: [],
     favorites: [],
@@ -436,8 +444,13 @@ function getDefaultState() {
 function normalizeState(state) {
   if (!state || typeof state !== 'object') return getDefaultState();
   if (!state.cart || typeof state.cart !== 'object') {
-    state.cart = { restaurantId: null, items: {}, itemNotes: {} };
+    state.cart = { restaurantId: null, items: {}, itemNotes: {}, lines: {}, restaurantName: '', surchargePerItem: 0 };
   }
+  if (!state.cart.items || typeof state.cart.items !== 'object') state.cart.items = {};
+  if (!state.cart.itemNotes || typeof state.cart.itemNotes !== 'object') state.cart.itemNotes = {};
+  if (!state.cart.lines || typeof state.cart.lines !== 'object') state.cart.lines = {};
+  if (state.cart.restaurantName == null) state.cart.restaurantName = '';
+  if (typeof state.cart.surchargePerItem !== 'number') state.cart.surchargePerItem = 0;
   if (!Array.isArray(state.orderHistory)) state.orderHistory = [];
   if (!Array.isArray(state.favorites)) state.favorites = [];
   if (!Array.isArray(state.savedAddresses)) state.savedAddresses = [];
@@ -937,6 +950,76 @@ function reorderFromHistory(order) {
 /* Cart helpers */
 function getCart() { return getState().cart; }
 
+function resolveCartLine(cart, cartKey, restaurant) {
+  const [itemId, optionsStr] = String(cartKey).split('::');
+  const menu = restaurant && Array.isArray(restaurant.menu) ? restaurant.menu : [];
+  const menuItem = menu.find((m) => String(m.id) === String(itemId));
+  const snap = cart.lines && cart.lines[cartKey];
+
+  let selectedOptions = [];
+  if (optionsStr) {
+    try { selectedOptions = JSON.parse(optionsStr); } catch (e) { selectedOptions = []; }
+  } else if (snap && Array.isArray(snap.selectedOptions)) {
+    selectedOptions = snap.selectedOptions;
+  }
+
+  let toppingsInStore = 0;
+  selectedOptions.forEach((opt) => { toppingsInStore += Number(opt.price) || 0; });
+
+  const inStorePrice = menuItem
+    ? (Number(menuItem.inStorePrice) || 0)
+    : (snap ? (Number(snap.inStorePrice) || 0) : 0);
+  const name = (menuItem && menuItem.name) || (snap && snap.name) || 'Món đã chọn';
+  const img = (menuItem && menuItem.img) || (snap && snap.img) || '';
+
+  if (!menuItem && !snap && inStorePrice <= 0) return null;
+
+  return {
+    itemId,
+    name,
+    img,
+    inStorePrice,
+    selectedOptions,
+    unitStore: inStorePrice + toppingsInStore,
+    fromSnapshot: !menuItem && !!snap
+  };
+}
+
+/** Bổ sung cart.lines từ menu (giỏ cũ trước khi có snapshot). */
+function backfillCartLinesFromRestaurant(restaurantId) {
+  const state = getState();
+  const cart = state.cart;
+  if (!cart || !cart.items) return cart;
+  const restaurant = getRestaurantById(restaurantId || cart.restaurantId);
+  if (!cart.lines) cart.lines = {};
+  let changed = false;
+  if (restaurant) {
+    if (!cart.restaurantName) {
+      cart.restaurantName = restaurant.name || '';
+      changed = true;
+    }
+    if (!cart.surchargePerItem && typeof restaurant.distanceSurchargePerItem === 'number') {
+      cart.surchargePerItem = restaurant.distanceSurchargePerItem;
+      changed = true;
+    }
+  }
+  Object.keys(cart.items).forEach((cartKey) => {
+    if (cart.lines[cartKey] && cart.lines[cartKey].inStorePrice > 0) return;
+    const line = resolveCartLine(cart, cartKey, restaurant);
+    if (!line || !(line.inStorePrice > 0 || line.unitStore > 0)) return;
+    cart.lines[cartKey] = {
+      id: line.itemId,
+      name: line.name,
+      inStorePrice: line.inStorePrice,
+      img: line.img || '',
+      selectedOptions: line.selectedOptions || []
+    };
+    changed = true;
+  });
+  if (changed) saveState(state);
+  return state.cart;
+}
+
 function getCartTotal() {
   const cart = getCart();
   const empty = {
@@ -945,37 +1028,29 @@ function getCartTotal() {
     platformWaivedAmount: 0, deliveryHalfAmount: 0, platformWaived: false,
     deliveryHalfApplied: false, feeWaiverHint: null
   };
-  const restaurant = getRestaurantById(cart.restaurantId);
-  if (!restaurant || !Array.isArray(restaurant.menu)) return empty;
+  if (!cart || !cart.restaurantId || !cart.items || !Object.keys(cart.items).length) return empty;
 
+  const restaurant = getRestaurantById(cart.restaurantId);
   let storeTotal = 0;
   let itemCount = 0;
   const unitPrices = [];
+
   Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
-    const [itemId, optionsStr] = cartKey.split('::');
-    const item = restaurant.menu.find(m => m.id === itemId);
-    if (item && qty > 0) {
-      let toppingsInStore = 0;
-      if (optionsStr) {
-        try {
-          JSON.parse(optionsStr).forEach(opt => { toppingsInStore += Number(opt.price) || 0; });
-        } catch (e) {}
-      }
-      const unitStore = (Number(item.inStorePrice) || 0) + toppingsInStore;
-      storeTotal += unitStore * qty;
-      itemCount += qty;
-      for (let i = 0; i < qty; i++) unitPrices.push(unitStore);
-    }
+    if (!(qty > 0)) return;
+    const line = resolveCartLine(cart, cartKey, restaurant);
+    if (!line) return;
+    storeTotal += line.unitStore * qty;
+    itemCount += qty;
+    for (let i = 0; i < qty; i++) unitPrices.push(line.unitStore);
   });
 
   if (itemCount <= 0) return empty;
 
-  const surchargePerItem = restaurant.distanceSurchargePerItem || 0;
+  const surchargePerItem = (restaurant && restaurant.distanceSurchargePerItem) || cart.surchargePerItem || 0;
   let feePoolRaw = round100(storeTotal * MARKUP_RATE) + surchargePerItem * itemCount;
 
   let discountValue = 0;
   if (itemCount > 1) {
-    // 15% giá quán mỗi món từ món thứ 2 (bỏ món đắt nhất); tối thiểu 2k/món; clamp sàn ship
     const sorted = unitPrices.slice().sort((a, b) => b - a);
     for (let i = 1; i < sorted.length; i++) {
       discountValue += Math.max(2000, round100(sorted[i] * MULTI_ITEM_DISCOUNT));
@@ -1037,17 +1112,38 @@ function getCartTotal() {
 function addToCart(restaurantId, itemId, selectedOptions) {
   const state = getState();
   if (state.cart.restaurantId && state.cart.restaurantId !== restaurantId) {
-    // Different restaurant — clear old cart
-    state.cart = { restaurantId, items: {} };
+    state.cart = { restaurantId, items: {}, itemNotes: {}, lines: {}, restaurantName: '', surchargePerItem: 0 };
   }
   state.cart.restaurantId = restaurantId;
-  
+  if (!state.cart.lines) state.cart.lines = {};
+  if (!state.cart.itemNotes) state.cart.itemNotes = {};
+
+  const restaurant = getRestaurantById(restaurantId);
+  if (restaurant) {
+    state.cart.restaurantName = restaurant.name || state.cart.restaurantName || '';
+    if (typeof restaurant.distanceSurchargePerItem === 'number') {
+      state.cart.surchargePerItem = restaurant.distanceSurchargePerItem;
+    }
+  }
+
   const optionsKey = selectedOptions && selectedOptions.length > 0
     ? `::${JSON.stringify(selectedOptions)}`
     : '';
   const cartKey = `${itemId}${optionsKey}`;
+  const menuItem = restaurant && Array.isArray(restaurant.menu)
+    ? restaurant.menu.find((m) => String(m.id) === String(itemId))
+    : null;
 
   state.cart.items[cartKey] = (state.cart.items[cartKey] || 0) + 1;
+  state.cart.lines[cartKey] = {
+    id: itemId,
+    name: (menuItem && menuItem.name) || (state.cart.lines[cartKey] && state.cart.lines[cartKey].name) || 'Món đã chọn',
+    inStorePrice: menuItem
+      ? (Number(menuItem.inStorePrice) || 0)
+      : (Number(state.cart.lines[cartKey] && state.cart.lines[cartKey].inStorePrice) || 0),
+    img: (menuItem && menuItem.img) || (state.cart.lines[cartKey] && state.cart.lines[cartKey].img) || '',
+    selectedOptions: Array.isArray(selectedOptions) ? selectedOptions : []
+  };
   saveState(state);
 }
 
@@ -1080,11 +1176,17 @@ function removeFromCart(itemId, selectedOptions) {
   if (!hasItems) {
     state.cart.restaurantId = null;
     state.cart.itemNotes = {};
+    state.cart.lines = {};
+    state.cart.restaurantName = '';
+    state.cart.surchargePerItem = 0;
   } else {
-    // Dọn dẹp ghi chú của các món không còn trong items
     state.cart.itemNotes = state.cart.itemNotes || {};
+    state.cart.lines = state.cart.lines || {};
     Object.keys(state.cart.itemNotes).forEach(k => {
       if (!state.cart.items[k]) delete state.cart.itemNotes[k];
+    });
+    Object.keys(state.cart.lines).forEach(k => {
+      if (!state.cart.items[k]) delete state.cart.lines[k];
     });
   }
   saveState(state);
@@ -1092,23 +1194,28 @@ function removeFromCart(itemId, selectedOptions) {
 
 function clearCart() {
   const state = getState();
-  state.cart = { restaurantId: null, items: {}, itemNotes: {} };
+  state.cart = { restaurantId: null, items: {}, itemNotes: {}, lines: {}, restaurantName: '', surchargePerItem: 0 };
   saveState(state);
 }
 
 function removeItemFromCart(itemId) {
   const state = getState();
   delete state.cart.items[itemId];
+  if (state.cart.lines) delete state.cart.lines[itemId];
   const keys = Object.keys(state.cart.items).filter(k => k === itemId || k.startsWith(itemId + '::'));
   keys.forEach(k => {
     delete state.cart.items[k];
     if (state.cart.itemNotes) delete state.cart.itemNotes[k];
+    if (state.cart.lines) delete state.cart.lines[k];
   });
 
   const hasItems = Object.keys(state.cart.items).length > 0;
   if (!hasItems) {
     state.cart.restaurantId = null;
     state.cart.itemNotes = {};
+    state.cart.lines = {};
+    state.cart.restaurantName = '';
+    state.cart.surchargePerItem = 0;
   }
   saveState(state);
 }
@@ -1126,32 +1233,24 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
   await ensureCartRestaurant(cart.restaurantId);
   const totals = getCartTotal();
   const restaurant = getRestaurantById(cart.restaurantId);
-  if (!restaurant) {
+  if (!restaurant && !(cart.lines && Object.keys(cart.lines).length)) {
     throw new Error('Không tìm thấy quán trong giỏ hàng. Vui lòng thử lại.');
   }
 
   const items = [];
-  Object.entries(cart.items).forEach(([cartKey, qty]) => {
-    const [itemId, optionsStr] = cartKey.split('::');
-    const item = (restaurant.menu || []).find(m => m.id === itemId);
-    if (item && qty > 0) {
-      let selectedOptions = [];
-      if (optionsStr) {
-        try {
-          selectedOptions = JSON.parse(optionsStr);
-        } catch (e) {}
-      }
-
-      items.push({
-        id: itemId,
-        realItemId: itemId,
-        name: item.name,
-        quantity: qty,
-        qty,
-        note: (cart.itemNotes && cart.itemNotes[cartKey]) || '',
-        selectedOptions
-      });
-    }
+  Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
+    if (!(qty > 0)) return;
+    const line = resolveCartLine(cart, cartKey, restaurant);
+    if (!line) return;
+    items.push({
+      id: line.itemId,
+      realItemId: line.itemId,
+      name: line.name,
+      quantity: qty,
+      qty,
+      note: (cart.itemNotes && cart.itemNotes[cartKey]) || '',
+      selectedOptions: line.selectedOptions || []
+    });
   });
 
   if (items.length === 0) {
@@ -1164,12 +1263,12 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
 
   const orderPayload = {
     restaurantId: cart.restaurantId,
-    restaurantName: restaurant.name,
-    restaurantAddress: restaurant.address || '',
-    restaurantLat: (typeof restaurant.latitude === 'number' ? restaurant.latitude : null)
-      ?? (typeof restaurant.lat === 'number' ? restaurant.lat : null),
-    restaurantLon: (typeof restaurant.longitude === 'number' ? restaurant.longitude : null)
-      ?? (typeof restaurant.lon === 'number' ? restaurant.lon : null),
+    restaurantName: (restaurant && restaurant.name) || cart.restaurantName || 'Quán ăn',
+    restaurantAddress: (restaurant && restaurant.address) || '',
+    restaurantLat: (restaurant && typeof restaurant.latitude === 'number' ? restaurant.latitude : null)
+      ?? (restaurant && typeof restaurant.lat === 'number' ? restaurant.lat : null),
+    restaurantLon: (restaurant && typeof restaurant.longitude === 'number' ? restaurant.longitude : null)
+      ?? (restaurant && typeof restaurant.lon === 'number' ? restaurant.lon : null),
     items,
     storeTotal: totals.storeTotal,
     appTotal: totals.appTotal,
@@ -1881,6 +1980,8 @@ window.SF = {
   upsertRestaurant,
   getRestaurantById,
   ensureCartRestaurant,
+  resolveCartLine,
+  backfillCartLinesFromRestaurant,
   get MARKUP_RATE() { return MARKUP_RATE; },
   calcToppingAppPrice,
   escapeHtml,
