@@ -17,7 +17,7 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260730logo">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css?v=2.8">
+  <link rel="stylesheet" href="style.css?v=2.9">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
 </head>
@@ -51,24 +51,64 @@
       </div>
     </section>
 
-    <div class="login-sheet" id="login-sheet" hidden>
-      <div class="login-sheet__title">Đăng nhập bằng SĐT</div>
-      <p class="login-sheet__note">ShipFee không gửi SMS. Mã xác thực sẽ hiện ngay trên màn hình sau khi bạn bấm <strong>Lấy mã</strong>.</p>
-      <div class="form-row">
-        <input type="tel" class="form-input" id="login-phone" placeholder="Số điện thoại" inputmode="tel" autocomplete="tel">
-        <button type="button" class="btn btn--sm btn--primary" id="btn-send-otp">Lấy mã</button>
+    <div class="login-cta" id="login-cta">
+      <p class="login-cta__text">Đăng nhập để đồng bộ đơn hàng, ưu đãi và địa chỉ đã lưu.</p>
+      <button type="button" class="btn btn--primary login-cta__btn" id="btn-open-login">
+        Đăng nhập
+      </button>
+    </div>
+
+    <div class="auth-overlay" id="auth-overlay" hidden aria-hidden="true">
+      <button type="button" class="auth-overlay__backdrop" id="auth-backdrop" aria-label="Đóng"></button>
+      <div class="auth-sheet" id="auth-sheet" role="dialog" aria-modal="true" aria-labelledby="auth-sheet-title">
+        <div class="auth-sheet__handle" aria-hidden="true"></div>
+        <div class="auth-sheet__header">
+          <button type="button" class="auth-sheet__close" id="btn-close-auth" aria-label="Đóng">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <h2 class="auth-sheet__title" id="auth-sheet-title">Đăng nhập</h2>
+          <div class="auth-sheet__steps" aria-hidden="true">
+            <span class="auth-sheet__dot is-active" data-dot="phone"></span>
+            <span class="auth-sheet__dot" data-dot="otp"></span>
+          </div>
+        </div>
+
+        <div class="auth-step is-active" data-step="phone" id="auth-step-phone">
+          <p class="auth-step__lead">Mã hiện ngay trên app — không cần SMS.</p>
+          <label class="auth-field">
+            <span class="auth-field__label">Số điện thoại</span>
+            <input type="tel" class="auth-field__input" id="login-phone" placeholder="09xx xxx xxx" inputmode="tel" autocomplete="tel" maxlength="15">
+          </label>
+          <button type="button" class="btn btn--primary auth-step__cta" id="btn-send-otp">Tiếp tục</button>
+          <p class="auth-step__hint" id="login-hint-phone"></p>
+        </div>
+
+        <div class="auth-step" data-step="otp" id="auth-step-otp" hidden>
+          <div class="auth-phone-row">
+            <span>Mã gửi tới <strong id="auth-phone-mask">—</strong></span>
+            <button type="button" class="auth-link" id="btn-change-phone">Đổi</button>
+          </div>
+          <div class="otp-inline" id="otp-inline-box">
+            <div class="otp-inline__label">Mã xác thực của bạn</div>
+            <div class="otp-inline__code" id="otp-inline-code">------</div>
+            <div class="otp-inline__hint">Có hiệu lực 5 phút · chỉ trên thiết bị này</div>
+          </div>
+          <div class="otp-cells" id="otp-cells" role="group" aria-label="Nhập mã 6 số">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Số 1" data-i="0">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Số 2" data-i="1">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Số 3" data-i="2">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Số 4" data-i="3">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Số 5" data-i="4">
+            <input class="otp-cell" type="text" inputmode="numeric" maxlength="1" aria-label="Số 6" data-i="5">
+          </div>
+          <div class="auth-resend">
+            <span id="otp-countdown">Gửi lại sau 60s</span>
+            <button type="button" class="auth-link" id="btn-resend-otp" hidden>Gửi lại mã</button>
+          </div>
+          <button type="button" class="btn btn--outline auth-step__cta" id="btn-verify-otp">Xác nhận</button>
+          <p class="auth-step__hint" id="login-hint-otp"></p>
+        </div>
       </div>
-      <div class="otp-inline" id="otp-inline-box" hidden>
-        <div class="otp-inline__label">Mã xác thực của bạn</div>
-        <div class="otp-inline__code" id="otp-inline-code">------</div>
-        <div class="otp-inline__hint">Có hiệu lực 5 phút · chỉ dùng trên thiết bị này</div>
-      </div>
-      <div class="form-row">
-        <input type="text" class="form-input" id="login-otp" placeholder="Nhập mã 6 số" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
-        <button type="button" class="btn btn--sm btn--outline" id="btn-verify-otp">Xác nhận</button>
-      </div>
-      <input type="text" class="form-input" id="login-name" placeholder="Tên (tuỳ chọn)" style="width:100%;margin-bottom:8px;">
-      <div class="login-sheet__hint" id="login-hint"></div>
     </div>
 
     <div class="account-tabs" role="tablist">
@@ -203,10 +243,195 @@
         document.getElementById('account-meta').textContent = phone
           ? phone + (state.deliveryAddress ? ' · ' + state.deliveryAddress : '')
           : 'Nhập địa chỉ giao hàng trên trang chủ để đồng bộ lịch sử';
-        const loginSheet = document.getElementById('login-sheet');
-        if (loginSheet) loginSheet.hidden = loggedIn;
+        const loginCta = document.getElementById('login-cta');
+        if (loginCta) loginCta.hidden = loggedIn;
+        if (loggedIn) closeAuthSheet();
         const logoutRow = document.getElementById('logout-row');
         if (logoutRow) logoutRow.hidden = !loggedIn;
+      }
+
+      // ── Auth bottom sheet (progressive: phone → otp) ─────────────────────
+      let authStep = 'phone';
+      let authPhone = '';
+      let otpBusy = false;
+      let resendTimer = null;
+      let resendLeft = 0;
+
+      function maskPhone(phone) {
+        const d = String(phone || '').replace(/\D/g, '');
+        if (d.length < 7) return phone || '—';
+        return d.slice(0, 3) + '····' + d.slice(-3);
+      }
+
+      function setAuthStep(step) {
+        authStep = step;
+        const phoneStep = document.getElementById('auth-step-phone');
+        const otpStep = document.getElementById('auth-step-otp');
+        const title = document.getElementById('auth-sheet-title');
+        if (phoneStep) {
+          phoneStep.hidden = step !== 'phone';
+          phoneStep.classList.toggle('is-active', step === 'phone');
+        }
+        if (otpStep) {
+          otpStep.hidden = step !== 'otp';
+          otpStep.classList.toggle('is-active', step === 'otp');
+        }
+        document.querySelectorAll('.auth-sheet__dot').forEach((dot) => {
+          dot.classList.toggle('is-active', dot.dataset.dot === step);
+        });
+        if (title) title.textContent = step === 'otp' ? 'Nhập mã xác thực' : 'Đăng nhập';
+      }
+
+      function openAuthSheet(step) {
+        const overlay = document.getElementById('auth-overlay');
+        if (!overlay) return;
+        overlay.hidden = false;
+        overlay.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('auth-open');
+        setAuthStep(step || 'phone');
+        requestAnimationFrame(() => overlay.classList.add('is-open'));
+        if ((step || 'phone') === 'phone') {
+          setTimeout(() => document.getElementById('login-phone')?.focus(), 220);
+        } else {
+          setTimeout(() => document.querySelector('.otp-cell')?.focus(), 220);
+        }
+      }
+
+      function closeAuthSheet() {
+        const overlay = document.getElementById('auth-overlay');
+        if (!overlay || overlay.hidden) return;
+        overlay.classList.remove('is-open');
+        document.body.classList.remove('auth-open');
+        overlay.setAttribute('aria-hidden', 'true');
+        setTimeout(() => {
+          if (!overlay.classList.contains('is-open')) overlay.hidden = true;
+        }, 280);
+      }
+
+      function clearOtpCells() {
+        document.querySelectorAll('.otp-cell').forEach((el) => { el.value = ''; });
+      }
+
+      function getOtpCode() {
+        return Array.from(document.querySelectorAll('.otp-cell'))
+          .map((el) => el.value.replace(/\D/g, ''))
+          .join('')
+          .slice(0, 6);
+      }
+
+      function fillOtpCells(code) {
+        const digits = String(code || '').replace(/\D/g, '').slice(0, 6).split('');
+        const cells = document.querySelectorAll('.otp-cell');
+        cells.forEach((el, i) => { el.value = digits[i] || ''; });
+        if (digits.length < 6) cells[digits.length]?.focus();
+      }
+
+      function startResendCooldown(sec) {
+        resendLeft = sec;
+        const cd = document.getElementById('otp-countdown');
+        const btn = document.getElementById('btn-resend-otp');
+        if (btn) btn.hidden = true;
+        if (cd) cd.hidden = false;
+        if (resendTimer) clearInterval(resendTimer);
+        const tick = () => {
+          if (cd) cd.textContent = resendLeft > 0 ? `Gửi lại sau ${resendLeft}s` : '';
+          if (resendLeft <= 0) {
+            clearInterval(resendTimer);
+            resendTimer = null;
+            if (cd) cd.hidden = true;
+            if (btn) btn.hidden = false;
+            return;
+          }
+          resendLeft -= 1;
+        };
+        tick();
+        resendTimer = setInterval(tick, 1000);
+      }
+
+      async function requestOtpAndGo(phone) {
+        const hintPhone = document.getElementById('login-hint-phone');
+        const hintOtp = document.getElementById('login-hint-otp');
+        const btn = document.getElementById('btn-send-otp');
+        if (!phone) {
+          SF.showToast('Thiếu SĐT', 'Nhập số điện thoại để tiếp tục.', 'warning');
+          return;
+        }
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang lấy mã…'; }
+        try {
+          const data = await SF.requestCustomerOtp(phone);
+          const code = data?.code || data?.demoCode || '';
+          authPhone = phone;
+          const maskEl = document.getElementById('auth-phone-mask');
+          if (maskEl) maskEl.textContent = maskPhone(phone);
+          const codeEl = document.getElementById('otp-inline-code');
+          if (codeEl) codeEl.textContent = code || '------';
+          clearOtpCells();
+          if (hintPhone) hintPhone.textContent = '';
+          if (hintOtp) hintOtp.textContent = 'Nhập đúng 6 số hiện ở trên.';
+          setAuthStep('otp');
+          startResendCooldown(60);
+          setTimeout(() => document.querySelector('.otp-cell')?.focus(), 120);
+        } catch (e) {
+          if (hintPhone) hintPhone.textContent = e.message || 'Không lấy được mã';
+          SF.showToast('Lỗi', e.message || 'Thử lại sau.', 'error');
+        } finally {
+          if (btn) { btn.disabled = false; btn.textContent = 'Tiếp tục'; }
+        }
+      }
+
+      async function verifyOtpCode() {
+        if (otpBusy) return;
+        const phone = authPhone || document.getElementById('login-phone')?.value?.trim();
+        const code = getOtpCode();
+        const hintOtp = document.getElementById('login-hint-otp');
+        if (!phone || code.length !== 6) {
+          SF.showToast('Thiếu mã', 'Nhập đủ 6 số xác thực.', 'warning');
+          return;
+        }
+        otpBusy = true;
+        const btn = document.getElementById('btn-verify-otp');
+        if (btn) { btn.disabled = true; btn.textContent = 'Đang xác nhận…'; }
+        try {
+          await SF.verifyCustomerOtp(phone, code, '');
+          SF.showToast('Đăng nhập thành công', 'Chào mừng bạn quay lại ShipFee!', 'success');
+          closeAuthSheet();
+          setAuthStep('phone');
+          clearOtpCells();
+          renderProfile();
+          loadOrders();
+          renderOffers();
+        } catch (e) {
+          if (hintOtp) hintOtp.textContent = e.message || 'Mã không đúng, thử lại.';
+          SF.showToast('OTP sai', e.message || 'Thử lại.', 'error');
+          clearOtpCells();
+          document.querySelector('.otp-cell')?.focus();
+        } finally {
+          otpBusy = false;
+          if (btn) { btn.disabled = false; btn.textContent = 'Xác nhận'; }
+        }
+      }
+
+      function bindOtpCells() {
+        const cells = Array.from(document.querySelectorAll('.otp-cell'));
+        cells.forEach((cell, idx) => {
+          cell.addEventListener('input', (e) => {
+            const v = e.target.value.replace(/\D/g, '').slice(-1);
+            e.target.value = v;
+            if (v && idx < cells.length - 1) cells[idx + 1].focus();
+            if (getOtpCode().length === 6) verifyOtpCode();
+          });
+          cell.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+              cells[idx - 1].focus();
+            }
+          });
+          cell.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const text = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+            fillOtpCells(text);
+            if (getOtpCode().length === 6) verifyOtpCode();
+          });
+        });
       }
 
       function formatOrderWhen(ts) {
@@ -431,53 +656,33 @@
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
       });
 
+      document.getElementById('btn-open-login')?.addEventListener('click', () => openAuthSheet('phone'));
+      document.getElementById('btn-close-auth')?.addEventListener('click', () => closeAuthSheet());
+      document.getElementById('auth-backdrop')?.addEventListener('click', () => closeAuthSheet());
+      document.getElementById('btn-change-phone')?.addEventListener('click', () => {
+        setAuthStep('phone');
+        clearOtpCells();
+        setTimeout(() => document.getElementById('login-phone')?.focus(), 80);
+      });
+
       document.getElementById('btn-send-otp')?.addEventListener('click', async () => {
         const phone = document.getElementById('login-phone')?.value?.trim();
-        const hint = document.getElementById('login-hint');
-        const box = document.getElementById('otp-inline-box');
-        const codeEl = document.getElementById('otp-inline-code');
-        const otpInput = document.getElementById('login-otp');
-        if (!phone) {
-          SF.showToast('Thiếu SĐT', 'Nhập số điện thoại để lấy mã xác thực.', 'warning');
-          return;
-        }
-        try {
-          const data = await SF.requestCustomerOtp(phone);
-          const code = data?.code || data?.demoCode || '';
-          if (code && codeEl && box) {
-            codeEl.textContent = code;
-            box.hidden = false;
-          }
-          if (code && otpInput) {
-            otpInput.value = code;
-            otpInput.focus();
-          }
-          if (hint) hint.textContent = data?.message || 'Nhập mã hiện trên màn hình để đăng nhập.';
-          SF.showToast('Mã xác thực', code ? `Mã của bạn: ${code}` : 'Đã tạo mã trên màn hình.', 'success');
-        } catch (e) {
-          if (hint) hint.textContent = e.message || 'Không lấy được mã';
-          SF.showToast('Lỗi', e.message || 'Thử lại sau.', 'error');
+        await requestOtpAndGo(phone);
+      });
+      document.getElementById('login-phone')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('btn-send-otp')?.click();
         }
       });
 
-      document.getElementById('btn-verify-otp')?.addEventListener('click', async () => {
-        const phone = document.getElementById('login-phone')?.value?.trim();
-        const code = document.getElementById('login-otp')?.value?.trim();
-        const name = document.getElementById('login-name')?.value?.trim();
-        if (!phone || !code) {
-          SF.showToast('Thiếu thông tin', 'Nhập SĐT và mã OTP.', 'warning');
-          return;
-        }
-        try {
-          await SF.verifyCustomerOtp(phone, code, name);
-          SF.showToast('Đăng nhập thành công', 'Chào mừng bạn quay lại ShipFee!', 'success');
-          renderProfile();
-          loadOrders();
-          renderOffers();
-        } catch (e) {
-          SF.showToast('OTP sai', e.message || 'Thử lại.', 'error');
-        }
+      document.getElementById('btn-resend-otp')?.addEventListener('click', async () => {
+        const phone = authPhone || document.getElementById('login-phone')?.value?.trim();
+        await requestOtpAndGo(phone);
       });
+
+      document.getElementById('btn-verify-otp')?.addEventListener('click', () => verifyOtpCode());
+      bindOtpCells();
 
       document.getElementById('btn-save-current-addr')?.addEventListener('click', () => {
         const state = SF.getState();
@@ -521,14 +726,13 @@
       SF.applyTheme();
       const paramTab = SF.getParam('tab');
       const initialTab = VALID_TABS.includes(paramTab) ? paramTab : 'orders';
-      if (paramTab === 'login') {
-        const sheet = document.getElementById('login-sheet');
-        if (sheet) sheet.hidden = false;
-      }
       switchTab(initialTab === 'login' ? 'settings' : initialTab);
       renderProfile();
       renderFavorites();
       loadOrders();
+      if (paramTab === 'login' && !SF.isCustomerLoggedIn()) {
+        openAuthSheet('phone');
+      }
     })();
   </script>
 </body>
