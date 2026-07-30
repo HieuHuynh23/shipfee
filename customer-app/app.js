@@ -333,6 +333,42 @@ function getRestaurantById(id) {
   return hydrateRestaurantFromCaches(base);
 }
 
+/**
+ * Checkout / place-order: đảm bảo có menu quán (fetch API nếu cache hết hoặc thiếu).
+ */
+async function ensureCartRestaurant(restaurantId, opts = {}) {
+  const id = restaurantId != null ? String(restaurantId) : '';
+  if (!id) return null;
+
+  let local = getRestaurantById(id);
+  const needFetch = !local
+    || !Array.isArray(local.menu)
+    || local.menu.length === 0
+    || opts.force === true;
+
+  if (!needFetch) return local;
+
+  try {
+    const state = getState();
+    const lat = Number(state.userLat);
+    const lon = Number(state.userLon);
+    const qs = (Number.isFinite(lat) && Number.isFinite(lon))
+      ? `?lat=${lat}&lon=${lon}`
+      : '';
+    const res = await fetch(`${_API_BASE}/api/restaurants/${encodeURIComponent(id)}${qs}`, {
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!res.ok) return local;
+    const json = await res.json();
+    const data = json && (json.data || json.restaurant || json);
+    if (!data || !data.id) return local;
+    return upsertRestaurant(data) || getRestaurantById(id) || local;
+  } catch (e) {
+    console.warn('[ensureCartRestaurant]', e.message || e);
+    return local;
+  }
+}
+
 async function loadPricingConfig() {
   try {
     const res = await fetch(`${_API_BASE}/api/config`, { signal: AbortSignal.timeout(5000) });
@@ -1087,6 +1123,7 @@ function updateCartItemNote(cartKey, note) {
 async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode, loyaltyPointsRedeem, paymentMethod) {
   const state = getState();
   const cart   = state.cart;
+  await ensureCartRestaurant(cart.restaurantId);
   const totals = getCartTotal();
   const restaurant = getRestaurantById(cart.restaurantId);
   if (!restaurant) {
@@ -1843,6 +1880,7 @@ window.SF = {
   setRestaurants,
   upsertRestaurant,
   getRestaurantById,
+  ensureCartRestaurant,
   get MARKUP_RATE() { return MARKUP_RATE; },
   calcToppingAppPrice,
   escapeHtml,

@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.9.1">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <!-- Leaflet loaded on-demand (mobile perf) -->
@@ -401,8 +401,8 @@
     </div>
   </div>
 
-  <script src="restaurants-data.js"></script>
-  <script src="app.js"></script>
+  <script src="restaurants-data.js?v=20260730c"></script>
+  <script src="app.js?v=20260730c"></script>
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
@@ -614,15 +614,43 @@
 
         const state = SF.getState();
         const cart  = SF.getCart();
-        cartTotals  = SF.getCartTotal();
 
-        // Validate cart
-        if (cartTotals.itemCount === 0) {
-          SF.navigate('./');
+        if (!cart || !cart.restaurantId) {
+          SF.showToast('Giỏ hàng trống', 'Quay lại chọn món.', 'warning');
+          setTimeout(() => SF.navigate('./'), 1000);
           return;
         }
 
-        // Validate address
+        // Hiển thị địa chỉ ngay (không để trang trắng dấu —)
+        if (state.deliveryAddress) {
+          renderAddress(state);
+          renderSavedAddressChips(state);
+        }
+
+        const listEl = document.getElementById('order-items-list');
+        if (listEl) {
+          listEl.innerHTML = '<p class="text-sm" style="color:var(--clr-text-muted);padding:8px 0;">Đang tải đơn hàng…</p>';
+        }
+
+        // Khôi phục menu quán từ API nếu cache local hết / thiếu
+        if (SF.ensureCartRestaurant) {
+          await SF.ensureCartRestaurant(cart.restaurantId);
+        }
+
+        cartTotals = SF.getCartTotal();
+
+        if (!cartTotals || cartTotals.itemCount === 0) {
+          if (listEl) {
+            listEl.innerHTML = '<p class="text-sm" style="color:var(--clr-text-muted);padding:8px 0;">Không tải được món trong giỏ. Thử mở lại quán và thêm món.</p>';
+          }
+          SF.showToast('Giỏ hàng không hợp lệ', 'Menu quán chưa sẵn sàng. Quay lại quán để thêm món.', 'warning');
+          setTimeout(() => {
+            if (cart.restaurantId) SF.navigate('restaurant.html', { id: String(cart.restaurantId) });
+            else SF.navigate('./');
+          }, 1500);
+          return;
+        }
+
         if (!state.deliveryAddress) {
           SF.showToast('Cần địa chỉ', 'Vui lòng nhập địa chỉ giao hàng.', 'warning');
           setTimeout(() => SF.navigate('./'), 1200);
