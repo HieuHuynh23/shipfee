@@ -193,7 +193,8 @@ function recomputeOrderPricingFromMenu({
   restLon,
   pinLat,
   pinLon,
-  cfg
+  cfg,
+  skipMultiItemDiscount = false
 }) {
   const markupRate = Number(cfg.markupRate ?? 0.28);
   const multiItemDiscount = Number(cfg.multiItemDiscount ?? 0.15);
@@ -288,7 +289,7 @@ function recomputeOrderPricingFromMenu({
   let feePoolRaw = markupFee + distanceSurchargeTotal;
 
   let discountValue = 0;
-  if (itemCount > 1) {
+  if (itemCount > 1 && !skipMultiItemDiscount) {
     discountValue = computeMultiItemDiscount(
       lineUnits.map((u) => u.inStorePrice),
       multiItemDiscount,

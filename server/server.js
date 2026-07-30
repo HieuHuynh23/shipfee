@@ -5791,6 +5791,31 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
     }
 
     if (promoCodeToApply) {
+      // Có mã promo → tắt ưu đãi nhiều món để nhường room giảm cho mã (vẫn giữ sàn ship 15k)
+      const pricedForPromo = recomputeOrderPricingFromMenu({
+        clientItems: Array.isArray(orderData.items) ? orderData.items : [],
+        menu,
+        restLat,
+        restLon,
+        pinLat,
+        pinLon,
+        skipMultiItemDiscount: true
+      });
+      if (!pricedForPromo.error) {
+        newOrder.storeTotal = pricedForPromo.storeTotal;
+        newOrder.appTotal = pricedForPromo.appTotal;
+        newOrder.feePool = pricedForPromo.feePool;
+        newOrder.platformFee = pricedForPromo.platformFee;
+        newOrder.deliveryFee = pricedForPromo.deliveryFee;
+        newOrder.platformKeep = pricedForPromo.platformKeep;
+        newOrder.shipperEarning = pricedForPromo.shipperEarning;
+        newOrder.discountValue = 0;
+        newOrder.minServiceFee = pricedForPromo.minServiceFee;
+        newOrder.platformWaivedAmount = pricedForPromo.platformWaivedAmount || 0;
+        newOrder.deliveryHalfAmount = pricedForPromo.deliveryHalfAmount || 0;
+        newOrder.multiItemDiscountSkipped = true;
+      }
+
       const promoResult = crm.validatePromo(promoCodeToApply, newOrder.appTotal, {
         hasPreviousOrders,
         deliveryFee: newOrder.deliveryFee || 0,
@@ -5804,13 +5829,28 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
           console.warn(`[Promo] Bỏ mã "${orderData.promoCode}": ${promoResult.error}`);
           newOrder.promoSkipReason = promoResult.error;
         }
+        // Khôi phục giá có ưu đãi nhiều món nếu mã không dùng được
+        if (newOrder.multiItemDiscountSkipped) {
+          newOrder.storeTotal = priced.storeTotal;
+          newOrder.appTotal = priced.appTotal;
+          newOrder.feePool = priced.feePool;
+          newOrder.platformFee = priced.platformFee;
+          newOrder.deliveryFee = priced.deliveryFee;
+          newOrder.platformKeep = priced.platformKeep;
+          newOrder.shipperEarning = priced.shipperEarning;
+          newOrder.discountValue = priced.discountValue;
+          newOrder.minServiceFee = priced.minServiceFee;
+          newOrder.platformWaivedAmount = priced.platformWaivedAmount || 0;
+          newOrder.deliveryHalfAmount = priced.deliveryHalfAmount || 0;
+          delete newOrder.multiItemDiscountSkipped;
+        }
       } else {
         newOrder.promoCode = promoResult.promo.code;
         const minApp = newOrder.storeTotal + (pricingConfig.minShipperEarning || 15000);
         const maxDiscount = Math.max(0, newOrder.appTotal - minApp);
         const appliedPromo = Math.min(promoResult.discount, maxDiscount);
         newOrder.promoDiscount = appliedPromo;
-        newOrder.discountValue = (newOrder.discountValue || 0) + appliedPromo;
+        newOrder.discountValue = appliedPromo;
         newOrder.appTotal = Math.max(minApp, newOrder.appTotal - appliedPromo);
         const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
         newOrder.feePool = feeLeft;

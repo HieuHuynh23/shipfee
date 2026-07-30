@@ -1025,13 +1025,15 @@ function backfillCartLinesFromRestaurant(restaurantId) {
   return state.cart;
 }
 
-function getCartTotal() {
+function getCartTotal(opts = {}) {
+  const skipMultiItemDiscount = opts.skipMultiItemDiscount === true;
   const cart = getCart();
   const empty = {
     storeTotal: 0, appTotal: 0, feePool: 0, platformFee: 0, deliveryFee: 0,
     shipperEarning: 0, itemCount: 0, discountValue: 0, minServiceFee: 0,
     platformWaivedAmount: 0, deliveryHalfAmount: 0, platformWaived: false,
-    deliveryHalfApplied: false, feeWaiverHint: null
+    deliveryHalfApplied: false, feeWaiverHint: null,
+    multiItemDiscountSkipped: false
   };
   if (!cart || !cart.restaurantId || !cart.items || !Object.keys(cart.items).length) return empty;
 
@@ -1055,7 +1057,7 @@ function getCartTotal() {
   let feePoolRaw = round100(storeTotal * MARKUP_RATE) + surchargePerItem * itemCount;
 
   let discountValue = 0;
-  if (itemCount > 1) {
+  if (itemCount > 1 && !skipMultiItemDiscount) {
     const sorted = unitPrices.slice().sort((a, b) => b - a);
     for (let i = 1; i < sorted.length; i++) {
       discountValue += Math.max(2000, round100(sorted[i] * MULTI_ITEM_DISCOUNT));
@@ -1108,9 +1110,12 @@ function getCartTotal() {
     deliveryHalfAmount,
     platformWaived,
     deliveryHalfApplied,
-    feeWaiverHint: buildFeeWaiverHint(
-      storeTotal, itemCount, feePool, platformFee, deliveryFee, platformWaived, deliveryHalfApplied, surchargePerItem
-    )
+    multiItemDiscountSkipped: skipMultiItemDiscount,
+    feeWaiverHint: skipMultiItemDiscount
+      ? null
+      : buildFeeWaiverHint(
+        storeTotal, itemCount, feePool, platformFee, deliveryFee, platformWaived, deliveryHalfApplied, surchargePerItem
+      )
   };
 }
 

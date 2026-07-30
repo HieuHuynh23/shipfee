@@ -401,7 +401,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260731c"></script>
+  <script src="app.js?v=20260731d"></script>
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
@@ -433,11 +433,16 @@
       return Object.values(items).reduce((s, qty) => s + (Number(qty) || 0), 0);
     }
 
+    function checkoutTotals() {
+      return SF.getCartTotal({ skipMultiItemDiscount: !!appliedPromoCode });
+    }
+
     function refreshCheckoutUi() {
       try {
         const state = SF.getState();
         const cart = SF.getCart();
-        const totals = SF.getCartTotal();
+        // Có mã promo → tắt ưu đãi nhiều món để nhường room giảm giá
+        const totals = checkoutTotals();
         if (totals && Number(totals.storeTotal) > 0) cartTotals = totals;
         else if (!cartTotals) cartTotals = totals;
         paintCheckout(state, cart, cartTotals || totals);
@@ -528,7 +533,7 @@
         if (hintEl) {
           if (res.data.hasPreviousOrders) {
             hintEl.style.display = 'block';
-            hintEl.textContent = 'Bạn là khách quen: hệ thống tự giảm thêm ~10% tổng đơn (giữ sàn tài xế 15k).';
+            hintEl.textContent = 'Bạn là khách quen: hệ thống tự giảm thêm ~10% tổng đơn khi đặt lại.';
           } else if (res.data.suggestedCode) {
             hintEl.style.display = 'block';
             hintEl.innerHTML = `Đơn đầu: có thể dùng <strong>${SF.escapeHtml(res.data.suggestedCode)}</strong> — hoặc để trống, hệ thống tự áp khi đặt.`;
@@ -554,9 +559,9 @@
         msgEl.textContent = 'Đang kiểm tra mã…';
       }
       try {
-        // Luôn lấy totals MỚI — không ghi đè cartTotals bằng bản rỗng (tránh mất giá/địa chỉ trên UI)
         const state = SF.getState();
-        const totals = SF.getCartTotal();
+        // Tính giá KHÔNG có ưu đãi nhiều món — mã promo thay thế ưu đãi đó
+        const totals = SF.getCartTotal({ skipMultiItemDiscount: true });
         if (totals && Number(totals.storeTotal) > 0) cartTotals = totals;
         const phone = (state.ordererPhone || state.deliveryPhone || SF.getCustomerPhone?.() || '').replace(/\s+/g, '');
         const itemCount = cartItemCount(state, totals);
@@ -579,7 +584,7 @@
           clearAppliedPromo(res.error || 'Mã không hợp lệ');
           return;
         }
-        const fresh = SF.getCartTotal();
+        const fresh = SF.getCartTotal({ skipMultiItemDiscount: true });
         const useTotals = (fresh && Number(fresh.storeTotal) > 0) ? fresh : totals;
         cartTotals = useTotals;
         const preview = clampPromoPreview(res.data && res.data.discount, useTotals);
@@ -590,15 +595,17 @@
           if (preview <= 0) {
             msgEl.style.color = 'var(--clr-warning, #d97706)';
             msgEl.textContent =
-              `Mã hợp lệ (−${SF.formatCurrency(raw)}) nhưng đơn này đã sát sàn tài xế 15.000đ nên chưa trừ thêm được. Thêm món rồi áp lại.`;
+              `Mã hợp lệ (−${SF.formatCurrency(raw)}) nhưng đơn này chưa đủ điều kiện giảm thêm. Thêm món rồi áp lại.`;
             appliedPromoCode = null;
             appliedPromoDiscount = 0;
           } else if (preview < raw) {
             msgEl.style.color = 'var(--clr-success, #16a34a)';
-            msgEl.textContent = `Đã áp dụng: giảm ${SF.formatCurrency(preview)} (giữ sàn tài xế 15.000đ)`;
+            msgEl.textContent =
+              `Đã áp dụng: giảm ${SF.formatCurrency(preview)}. Ưu đãi nhiều món tạm tắt khi dùng mã.`;
           } else {
             msgEl.style.color = 'var(--clr-success, #16a34a)';
-            msgEl.textContent = `Đã áp dụng: giảm ${SF.formatCurrency(preview)}`;
+            msgEl.textContent =
+              `Đã áp dụng: giảm ${SF.formatCurrency(preview)}. Ưu đãi nhiều món tạm tắt khi dùng mã.`;
           }
         }
         refreshCheckoutUi();
@@ -973,7 +980,7 @@
       const discountRow = document.getElementById('bd-discount-row');
       const discountVal = document.getElementById('bd-discount-price');
       if (discountRow && discountVal) {
-        if (totals.discountValue > 0) {
+        if (totals.discountValue > 0 && !appliedPromoCode) {
           discountRow.style.display = 'flex';
           discountVal.textContent = '-' + SF.formatCurrency(totals.discountValue);
         } else {
@@ -1146,7 +1153,7 @@
     function deleteItem(itemId) {
       SF.removeItemFromCart(itemId);
       const cart = SF.getCart();
-      cartTotals = SF.getCartTotal();
+      cartTotals = checkoutTotals();
 
       if (cartTotals.itemCount === 0) {
         SF.showToast('Giỏ hàng trống', 'Bạn đã xóa hết món ăn. Đang quay lại trang chủ...', 'warning');
@@ -1155,8 +1162,7 @@
       }
 
       const state = SF.getState();
-      renderOrderItems(cart, state);
-      renderPriceBreakdown(cartTotals);
+      paintCheckout(state, cart, cartTotals);
       SF.showToast('Đã xóa món', 'Món ăn đã được xóa khỏi giỏ hàng.', 'info');
     }
 
