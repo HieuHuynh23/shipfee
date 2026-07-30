@@ -2264,7 +2264,7 @@ function initPwaInstallPrompt() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-30logo', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-31checkout', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});
