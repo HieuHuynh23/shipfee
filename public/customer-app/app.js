@@ -1900,12 +1900,34 @@ window.SF = {
 };
 
 /* --------------------------------------------------------------------------
-   Mobile Zoom Prevention (lightweight — avoid non-passive touch handlers
-   that jank scroll on iOS Safari). Prefer CSS touch-action: manipulation.
+   Mobile Zoom Prevention — PWA-style lock (pinch + ctrl-wheel + iOS gesture)
    -------------------------------------------------------------------------- */
-document.addEventListener('gesturestart', function (event) {
-  event.preventDefault();
-}, { passive: false });
+(function lockPageZoom() {
+  const block = (event) => {
+    event.preventDefault();
+  };
+  document.addEventListener('gesturestart', block, { passive: false });
+  document.addEventListener('gesturechange', block, { passive: false });
+  document.addEventListener('gestureend', block, { passive: false });
+  document.addEventListener('wheel', (event) => {
+    if (event.ctrlKey) event.preventDefault();
+  }, { passive: false });
+  document.addEventListener('touchmove', (event) => {
+    if (event.touches && event.touches.length > 1) event.preventDefault();
+  }, { passive: false });
+  // Double-tap zoom fallback (iOS): ignore rapid second tap on non-inputs
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (event) => {
+    const now = Date.now();
+    if (now - lastTouchEnd <= 300) {
+      const tag = (event.target && event.target.tagName) || '';
+      if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+        event.preventDefault();
+      }
+    }
+    lastTouchEnd = now;
+  }, { passive: false });
+})();
 
 /* --------------------------------------------------------------------------
    PWA — register service worker + install prompt (Android / iOS)
