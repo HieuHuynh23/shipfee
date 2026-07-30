@@ -214,6 +214,10 @@ function generateCRMReportMessage() {
           { text: '🗺️ Fleet', callback_data: 'crm_fleet' }
         ],
         [
+          { text: '🎟 Promo ON/OFF', callback_data: 'crm_promos' },
+          { text: '⭐ Ngày đôi', callback_data: 'crm_promos:f:dbl' }
+        ],
+        [
           { text: '🏠 Dashboard', url: crmLink('dashboard') },
           { text: '📦 Orders', url: crmLink('orders') }
         ],
@@ -237,6 +241,108 @@ function generateCRMReportMessage() {
     console.error('[Telegram Report Error]:', e.message);
     return { text: '❌ Lỗi hệ thống khi trích xuất dữ liệu báo cáo!', keyboard: { inline_keyboard: [] } };
   }
+}
+
+function formatPromoValue(pkg) {
+  const promo = pkg.promo || {};
+  if (promo.type === 'percent') {
+    const cap = promo.maxDiscount ? ` (max ${Number(promo.maxDiscount).toLocaleString('vi-VN')}đ)` : '';
+    return `${promo.value}%${cap}`;
+  }
+  if (promo.type === 'free_ship') return 'Free ship';
+  return `${Number(promo.value || 0).toLocaleString('vi-VN')}đ`;
+}
+
+/**
+ * Inline keyboard bật/tắt mã khuyến mãi (đồng bộ Growth packages).
+ * callback: crm_promos | crm_promos:p:N | crm_promos:f:on|off|dbl|all | promo_tog:CODE
+ */
+function generatePromosControlMessage(opts = {}) {
+  try {
+    const growth = require('./growthPackages');
+    const page = Math.max(1, parseInt(opts.page, 10) || 1);
+    const filter = String(opts.filter || 'all').toLowerCase();
+    const brief = growth.listPromoPackagesBrief({ page, limit: 8, filter });
+    const now = brief.now || growth.vietnamNowParts();
+    const filterLabel = {
+      all: 'Tất cả',
+      on: 'Đang Bật',
+      off: 'Đang Tắt',
+      dbl: 'Ngày đôi'
+    }[filter] || filter;
+
+    let text =
+      `🎟 *PROMO — BẬT / TẮT*\n` +
+      `📅 ${now.day}/${now.month} ${String(now.hour).padStart(2, '0')}h` +
+      (now.isDoubleDay ? ` · ⭐ *Ngày đôi*` : '') +
+      `\n🟢 Đang bật: *${brief.enabledCount}* · Lọc: *${filterLabel}* · Trang *${brief.page}*\n\n` +
+      `Chạm nút để bật/tắt. App khách chỉ hiện mã *ON*.\n` +
+      `🔗 [CRM Settings](${crmLink('settings')})\n`;
+
+    if (!brief.packages.length) {
+      text += `\n_Không có mã trong bộ lọc này._`;
+    } else {
+      text += `\n`;
+      brief.packages.forEach((pkg, i) => {
+        const on = pkg.enabled === true;
+        const star = pkg.highlight || pkg.promo?.doubleDay ? '⭐ ' : '';
+        text += `${i + 1}. ${star}\`${pkg.promoCode}\` ${formatPromoValue(pkg)} — ${on ? '🟢 ON' : '⚪ OFF'}\n`;
+      });
+    }
+
+    const keyboard = { inline_keyboard: [] };
+    brief.packages.forEach((pkg) => {
+      const on = pkg.enabled === true;
+      const code = String(pkg.promoCode || '').toUpperCase();
+      keyboard.inline_keyboard.push([{
+        text: `${on ? '🟢 Tắt' : '🔴 Bật'} ${code}`,
+        callback_data: `promo_tog:${code}:${brief.page}:${filter}`
+      }]);
+    });
+
+    keyboard.inline_keyboard.push([
+      { text: filter === 'all' ? '• Tất cả' : 'Tất cả', callback_data: 'crm_promos:f:all' },
+      { text: filter === 'on' ? '• Đang Bật' : 'Đang Bật', callback_data: 'crm_promos:f:on' },
+      { text: filter === 'dbl' ? '• Ngày đôi' : 'Ngày đôi', callback_data: 'crm_promos:f:dbl' }
+    ]);
+
+    const nav = [];
+    if (brief.page > 1) {
+      nav.push({ text: '← Trước', callback_data: `crm_promos:p:${brief.page - 1}:f:${filter}` });
+    }
+    nav.push({ text: '🔄', callback_data: `crm_promos:p:${brief.page}:f:${filter}` });
+    if (brief.page * brief.limit < brief.total) {
+      nav.push({ text: 'Sau →', callback_data: `crm_promos:p:${brief.page + 1}:f:${filter}` });
+    }
+    keyboard.inline_keyboard.push(nav);
+    keyboard.inline_keyboard.push([{ text: '⬅️ Menu CRM', callback_data: 'crm_main_menu' }]);
+
+    return { text, keyboard, meta: brief };
+  } catch (e) {
+    console.error('[Telegram Promos Error]:', e.message);
+    return {
+      text: `❌ Lỗi tải promo: ${e.message}`,
+      keyboard: { inline_keyboard: [[{ text: '⬅️ Menu', callback_data: 'crm_main_menu' }]] }
+    };
+  }
+}
+
+function parsePromosCallback(data) {
+  // crm_promos | crm_promos:f:on | crm_promos:p:2 | crm_promos:p:2:f:dbl
+  if (data === 'crm_promos') return { page: 1, filter: 'all' };
+  const parts = String(data).split(':');
+  let page = 1;
+  let filter = 'all';
+  for (let i = 1; i < parts.length; i++) {
+    if (parts[i] === 'p' && parts[i + 1]) {
+      page = parseInt(parts[i + 1], 10) || 1;
+      i += 1;
+    } else if (parts[i] === 'f' && parts[i + 1]) {
+      filter = parts[i + 1];
+      i += 1;
+    }
+  }
+  return { page, filter };
 }
 
 function generateOpsBoardMessage() {
@@ -1504,6 +1610,7 @@ async function processUpdates(updates) {
                 '`/analytics` — Snapshot hôm nay\n' +
                 '`/notifications` — Thông báo CRM\n' +
                 '`/disputes` — Khiếu nại mở\n' +
+                '`/promo` — Bật/tắt mã KM (inline)\n' +
                 '`/orders` — Đơn chờ\n' +
                 '`/support` — Hỗ trợ tài xế\n' +
                 '`/customer <SĐT>` — Tra cứu khách\n' +
@@ -1516,6 +1623,39 @@ async function processUpdates(updates) {
           } else if (text === '/ops' || text === '/live') {
             const ops = generateOpsBoardMessage();
             await tgPost('sendMessage', { chat_id: chatId, text: ops.text, parse_mode: 'Markdown', reply_markup: ops.keyboard });
+          } else if (text === '/promo' || text === '/promos' || text === '/km') {
+            const promosMsg = generatePromosControlMessage({ page: 1, filter: 'all' });
+            await tgPost('sendMessage', { chat_id: chatId, text: promosMsg.text, parse_mode: 'Markdown', reply_markup: promosMsg.keyboard });
+          } else if (text.startsWith('/promo ') || text.startsWith('/km ')) {
+            const raw = String(msg.text || '').trim().replace(/^\/(promo|km)\s+/i, '');
+            const parts = raw.split(/\s+/);
+            const code = String(parts[0] || '').toUpperCase();
+            const action = String(parts[1] || 'toggle').toLowerCase();
+            try {
+              const growth = require('./growthPackages');
+              const { packages } = growth.loadPackages();
+              const pkg = packages.find(
+                (p) => p.kind === 'promo' && String(p.promoCode || '').toUpperCase() === code
+              );
+              let nextOn;
+              if (action === 'on' || action === 'bat' || action === '1') nextOn = true;
+              else if (action === 'off' || action === 'tat' || action === '0') nextOn = false;
+              else nextOn = !(pkg && pkg.enabled === true);
+              const result = growth.setEnabledByPromoCode(code, nextOn);
+              if (result.error) {
+                await tgPost('sendMessage', { chat_id: chatId, text: `❌ ${result.error}` });
+              } else {
+                const promosMsg = generatePromosControlMessage({ page: 1, filter: 'on' });
+                await tgPost('sendMessage', {
+                  chat_id: chatId,
+                  text: `${nextOn ? '🟢 Đã BẬT' : '⚪ Đã TẮT'} \`${code}\`\n\n${promosMsg.text}`,
+                  parse_mode: 'Markdown',
+                  reply_markup: promosMsg.keyboard
+                });
+              }
+            } catch (e) {
+              await tgPost('sendMessage', { chat_id: chatId, text: `❌ ${e.message}` });
+            }
           } else if (text === '/fleet') {
             const fleet = generateFleetSnapshotMessage();
             await tgPost('sendMessage', { chat_id: chatId, text: fleet.text, parse_mode: 'Markdown', reply_markup: fleet.keyboard });
@@ -1734,6 +1874,37 @@ async function processUpdates(updates) {
             const disputes = generateDisputesListMessage();
             await answer('Khiếu nại!');
             await edit(disputes.text, disputes.keyboard);
+          } else if (data === 'crm_promos' || data.startsWith('crm_promos:')) {
+            const opts = parsePromosCallback(data);
+            const promosMsg = generatePromosControlMessage(opts);
+            await answer('Promo!');
+            await edit(promosMsg.text, promosMsg.keyboard);
+          } else if (data.startsWith('promo_tog:')) {
+            const bits = data.split(':');
+            const code = String(bits[1] || '').trim().toUpperCase();
+            const stayPage = parseInt(bits[2], 10) || 1;
+            const stayFilter = bits[3] || 'all';
+            try {
+              const growth = require('./growthPackages');
+              const { packages } = growth.loadPackages();
+              const pkg = packages.find(
+                (p) => p.kind === 'promo' && String(p.promoCode || '').toUpperCase() === code
+              );
+              const nextOn = !(pkg && pkg.enabled === true);
+              const result = growth.setEnabledByPromoCode(code, nextOn);
+              if (result.error) {
+                await answer(result.error, { show_alert: true });
+                continue;
+              }
+              await answer(nextOn ? `Đã BẬT ${code}` : `Đã TẮT ${code}`);
+              const promosMsg = generatePromosControlMessage({
+                page: stayPage,
+                filter: stayFilter
+              });
+              await edit(promosMsg.text, promosMsg.keyboard);
+            } catch (e) {
+              await answer(e.message || 'Lỗi toggle!', { show_alert: true });
+            }
           } else if (data.startsWith('dispute_view:')) {
             const disputeId = data.slice('dispute_view:'.length);
             const disputes = deps.readDisputes ? deps.readDisputes() : [];

@@ -8697,10 +8697,25 @@ app.post('/api/admin/promos', authenticateAdmin, crm.requireAdminRole('admin', '
 app.put('/api/admin/promos/:code', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), (req, res) => {
   try {
     const code = String(req.params.code).trim().toUpperCase();
+    const body = req.body || {};
+
+    // Prefer growth package sync when toggling active (keeps CRM Growth + app in sync)
+    if (body.active !== undefined) {
+      try {
+        const growthPackages = require('./growthPackages');
+        const synced = growthPackages.setEnabledByPromoCode(code, !!body.active);
+        if (synced && !synced.error) {
+          crm.logAdminAudit(req, 'promo_toggle', { code, active: !!body.active, via: 'growth' });
+          const promos = crm.readPromos();
+          const promo = promos.find((p) => p.code === code);
+          return res.json({ success: true, data: promo || synced.package || synced.promo });
+        }
+      } catch (_) {}
+    }
+
     const promos = crm.readPromos();
     const idx = promos.findIndex(p => p.code === code);
     if (idx === -1) return res.status(404).json({ success: false, error: 'Không tìm thấy mã' });
-    const body = req.body || {};
     ['type', 'value', 'minOrder', 'maxUses', 'maxDiscount', 'active'].forEach(k => {
       if (body[k] !== undefined) promos[idx][k] = body[k];
     });

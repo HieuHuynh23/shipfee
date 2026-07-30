@@ -494,20 +494,48 @@ async function loadPromosPanel() {
     const res = await apiFetch('/api/admin/promos');
     const list = res.data || [];
     el.innerHTML = `
+      <p class="text-sm text-muted mb-3">Bật/Tắt đồng bộ với <strong>Gói chiến lược (Growth)</strong> và app khách. Mã Off không hiện / không áp được.</p>
       ${canMutate() ? `<div class="flex gap-2 mb-4" style="flex-wrap:wrap;">
         <input class="form-input" id="new-promo-code" placeholder="Mã (SHIPFEE10)" style="width:140px;">
         <select class="form-input" id="new-promo-type" style="width:auto;"><option value="percent">%</option><option value="fixed">Cố định</option><option value="free_ship">Free ship</option></select>
         <input class="form-input" id="new-promo-value" type="number" placeholder="Giá trị" style="width:100px;">
         <button class="btn btn--primary btn--sm" onclick="createPromo()">Thêm</button>
       </div>` : ''}
-      <table class="data-table"><thead><tr><th>Mã</th><th>Loại</th><th>Giá trị</th><th>Đã dùng</th><th>Trạng thái</th></tr></thead>
-      <tbody>${list.map(p => `
-        <tr><td class="mono">${escapeHtml(p.code)}</td><td>${p.type}</td><td class="mono">${p.value}</td><td>${p.usedCount || 0}${p.maxUses ? '/' + p.maxUses : ''}</td>
-        <td>${p.active !== false ? 'Active' : 'Off'}</td></tr>`).join('') || '<tr><td colspan="5" class="text-muted">Chưa có mã</td></tr>'}
+      <table class="data-table"><thead><tr><th>Mã</th><th>Loại</th><th>Giá trị</th><th>Đã dùng</th><th>Trạng thái</th><th></th></tr></thead>
+      <tbody>${list.map(p => {
+        const on = p.active !== false;
+        return `
+        <tr>
+          <td class="mono">${escapeHtml(p.code)}</td>
+          <td>${escapeHtml(p.type)}</td>
+          <td class="mono">${p.value}</td>
+          <td>${p.usedCount || 0}${p.maxUses ? '/' + p.maxUses : ''}</td>
+          <td>${on
+            ? '<span style="color:var(--success,#22c55e);font-weight:700;">ON</span>'
+            : '<span class="text-muted">OFF</span>'}</td>
+          <td>${canMutate()
+            ? `<button class="btn btn--sm ${on ? 'btn--secondary' : 'btn--primary'}" onclick="togglePromo('${escapeHtml(p.code)}', ${!on})">${on ? 'Tắt' : 'Bật'}</button>`
+            : ''}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="6" class="text-muted">Chưa có mã</td></tr>'}
       </tbody></table>`;
   } catch (e) {
     el.innerHTML = `<p class="text-muted text-sm">${escapeHtml(e.message)}</p>`;
   }
+}
+
+async function togglePromo(code, enable) {
+  try {
+    const res = await apiFetch(`/api/admin/promos/${encodeURIComponent(code)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ active: !!enable })
+    });
+    if (res.success) {
+      showToast(enable ? `Đã bật ${code}` : `Đã tắt ${code}`, 'success');
+      loadPromosPanel();
+      loadGrowthPackagesPanel();
+    } else showToast(res.error || 'Lỗi', 'error');
+  } catch (e) { showToast(e.message || 'Lỗi', 'error'); }
 }
 
 async function createPromo() {
@@ -794,6 +822,7 @@ window.filterShipperSupport = filterShipperSupport;
 window.replyShipperSupport = replyShipperSupport;
 window.resolveShipperSupport = resolveShipperSupport;
 window.createPromo = createPromo;
+window.togglePromo = togglePromo;
 window.toggleGrowthPackage = toggleGrowthPackage;
 window.seedGrowthPackages = seedGrowthPackages;
 window.loadGrowthPackagesPanel = loadGrowthPackagesPanel;

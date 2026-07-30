@@ -786,6 +786,56 @@ function updatePackage(id, patch) {
   return { ok: true, package: data.packages[idx] };
 }
 
+/** Bật/tắt theo mã promo — đồng bộ growth package + promos-local */
+function setEnabledByPromoCode(code, enabled) {
+  const want = String(code || '').trim().toUpperCase();
+  if (!want) return { error: 'Thiếu mã' };
+  const data = loadPackages();
+  const pkg = data.packages.find(
+    (p) => p.kind === 'promo' && String(p.promoCode || '').toUpperCase() === want
+  );
+  if (pkg) {
+    return updatePackage(pkg.id, { enabled: !!enabled });
+  }
+  // Mã thủ công (không thuộc catalog growth) — chỉ sửa promos-local
+  const promos = readPromosList();
+  const idx = promos.findIndex((p) => String(p.code || '').toUpperCase() === want);
+  if (idx === -1) return { error: 'Không tìm thấy mã' };
+  promos[idx].active = !!enabled;
+  writePromosList(promos);
+  return { ok: true, package: null, promo: promos[idx] };
+}
+
+function listPromoPackagesBrief({ page = 1, limit = 8, filter = 'all' } = {}) {
+  const data = loadPackages();
+  let list = (data.packages || []).filter((p) => p.kind === 'promo' && p.promoCode);
+  const f = String(filter || 'all').toLowerCase();
+  if (f === 'on') list = list.filter((p) => p.enabled === true);
+  if (f === 'off') list = list.filter((p) => p.enabled !== true);
+  if (f === 'dbl' || f === 'double') {
+    list = list.filter((p) => p.promo?.doubleDay === true || p.highlight === true);
+  }
+  list.sort((a, b) => {
+    const ha = a.highlight || a.promo?.doubleDay ? 0 : 1;
+    const hb = b.highlight || b.promo?.doubleDay ? 0 : 1;
+    if (ha !== hb) return ha - hb;
+    if ((a.enabled === true) !== (b.enabled === true)) return a.enabled === true ? -1 : 1;
+    return (a.priority || 100) - (b.priority || 100);
+  });
+  const p = Math.max(1, parseInt(page, 10) || 1);
+  const lim = Math.min(12, Math.max(4, parseInt(limit, 10) || 8));
+  const start = (p - 1) * lim;
+  return {
+    total: list.length,
+    page: p,
+    limit: lim,
+    filter: f,
+    enabledCount: (data.packages || []).filter((x) => x.kind === 'promo' && x.enabled === true).length,
+    packages: list.slice(start, start + lim),
+    now: vietnamNowParts()
+  };
+}
+
 function rebuildCatalogPreserveEnabled() {
   const raw = readJson(PACKAGES_FILE, { packages: [] });
   const byId = new Map((raw.packages || []).map((p) => [p.id, p]));
@@ -820,6 +870,8 @@ module.exports = {
   getSuggestedFirstOrderCode,
   listPackagesForAdmin,
   updatePackage,
+  setEnabledByPromoCode,
+  listPromoPackagesBrief,
   rebuildCatalogPreserveEnabled,
   isPromoTimeValid,
   isPackagePromoEnabled,
