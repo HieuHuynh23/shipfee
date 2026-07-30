@@ -1152,7 +1152,7 @@
           <div class="food-item__name">${esc(item.name)}</div>
           <div class="food-item__desc">${esc(item.desc || '')}</div>
           <div class="food-item__price-row">
-            <span class="food-item__price">${SF.formatCurrency(item.appPrice)}</span>
+            <span class="food-item__price">${SF.formatCurrency(item.inStorePrice != null ? item.inStorePrice : item.appPrice)}</span>
             ${!isAvailable ? `<span class="out-of-stock-badge"><i class="fa-solid fa-circle-minus"></i> Tạm hết</span>` : ''}
           </div>
         </div>
@@ -1197,10 +1197,8 @@
           const rowEl = document.createElement('label');
           rowEl.className = 'topping-item-row';
           
-          const optAppPrice = SF.calcToppingAppPrice
-            ? SF.calcToppingAppPrice(opt.price)
-            : Math.round((opt.price * 1.28) / 100) * 100;
-          const priceText = opt.price > 0 ? `+${SF.formatCurrency(optAppPrice)}` : 'Miễn phí';
+          const optStorePrice = Number(opt.price) || 0;
+          const priceText = optStorePrice > 0 ? `+${SF.formatCurrency(optStorePrice)}` : 'Miễn phí';
           
           const inputId = `opt-${groupIdx}-${optIdx}`;
           const isChecked = (inputType === 'radio' && isRequired && optIdx === 0) ? 'checked' : '';
@@ -1250,13 +1248,13 @@
     function updateToppingModalPrice() {
       if (!CURRENT_TOPPING_ITEM) return;
       
-      let totalPrice = CURRENT_TOPPING_ITEM.appPrice;
+      let totalPrice = Number(CURRENT_TOPPING_ITEM.inStorePrice != null
+        ? CURRENT_TOPPING_ITEM.inStorePrice
+        : CURRENT_TOPPING_ITEM.appPrice) || 0;
       const selected = getSelectedToppings();
       
       selected.forEach(opt => {
-        totalPrice += SF.calcToppingAppPrice
-          ? SF.calcToppingAppPrice(opt.price)
-          : Math.round((opt.price * 1.28) / 100) * 100;
+        totalPrice += Number(opt.price) || 0;
       });
       
       document.getElementById('topping-total-price').textContent = SF.formatCurrency(totalPrice);

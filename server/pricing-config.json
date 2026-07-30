@@ -5,6 +5,13 @@
   "surchargeCoefficient": 7000,
   "minShipperEarning": 15000,
   "multiItemDiscount": 0.15,
+  "platformFeeShare": 0.6,
+  "deliveryFeeShare": 0.4,
+  "shipperSurplusShare": 0.7,
+  "waivePlatformMinItems": 3,
+  "waivePlatformMinStoreTotal": 79000,
+  "halfDeliveryMinItems": 3,
+  "halfDeliveryMinStoreTotal": 120000,
   "telegramConfig": {
     "enableNewShipperAlert": true,
     "enableNewOrderAlert": true,

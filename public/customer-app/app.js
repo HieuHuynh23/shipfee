@@ -24,13 +24,77 @@ let MARKUP_RATE = 0.28;
 let MIN_SHIPPER_EARNING = 15000;
 let MULTI_ITEM_DISCOUNT = 0.15;
 let FREE_DISTANCE_KM = 1.5;
+let PLATFORM_FEE_SHARE = 0.6;
+let SHIPPER_SURPLUS_SHARE = 0.7;
+let WAIVE_PLATFORM_MIN_ITEMS = 3;
+let WAIVE_PLATFORM_MIN_STORE = 79000;
+let HALF_DELIVERY_MIN_ITEMS = 3;
+let HALF_DELIVERY_MIN_STORE = 120000;
 
 function round100(n) {
-  return Math.round(Number(n) / 100) * 100;
+  return Math.round((Number(n) || 0) / 100) * 100;
 }
 
+/** Topping / menu lines use store price (fees are separate at checkout). */
 function calcToppingAppPrice(price) {
-  return round100((Number(price) || 0) * (1 + MARKUP_RATE));
+  return Number(price) || 0;
+}
+
+function splitFeePool(feePool, platformShare) {
+  const platformFee = round100(feePool * (platformShare || 0.6));
+  return { platformFee, deliveryFee: Math.max(0, feePool - platformFee) };
+}
+
+function computeShipperEarning(feePool, minE, surplusShare) {
+  const minShip = minE || 15000;
+  if (feePool <= minShip) return Math.max(0, feePool);
+  return minShip + round100((feePool - minShip) * (surplusShare || 0.7));
+}
+
+function buildFeeWaiverHint(storeTotal, itemCount, feePool, platformFee, deliveryFee, platformWaived, deliveryHalfApplied, surchargePerItem) {
+  const surcharge = Number(surchargePerItem) || 0;
+
+  function estimateWaiveSave(targetStore, targetItems, kind) {
+    const simStore = Math.max(storeTotal, targetStore);
+    const simItems = Math.max(itemCount, targetItems);
+    let simFee = round100(simStore * MARKUP_RATE) + surcharge * simItems;
+    if (simFee < MIN_SHIPPER_EARNING) simFee = MIN_SHIPPER_EARNING;
+    const split = splitFeePool(simFee, PLATFORM_FEE_SHARE);
+    if (kind === 'platform') {
+      return Math.min(split.platformFee, Math.max(0, simFee - MIN_SHIPPER_EARNING));
+    }
+    return Math.min(round100(split.deliveryFee * 0.5), Math.max(0, simFee - MIN_SHIPPER_EARNING));
+  }
+
+  if (!platformWaived && storeTotal < WAIVE_PLATFORM_MIN_STORE && itemCount < WAIVE_PLATFORM_MIN_ITEMS) {
+    const saveAmount = estimateWaiveSave(WAIVE_PLATFORM_MIN_STORE, WAIVE_PLATFORM_MIN_ITEMS, 'platform');
+    if (saveAmount > 0) {
+      return {
+        target: 'platform',
+        amountShort: Math.max(0, WAIVE_PLATFORM_MIN_STORE - storeTotal),
+        itemsShort: Math.max(0, WAIVE_PLATFORM_MIN_ITEMS - itemCount),
+        currentFee: platformFee,
+        saveAmount,
+        thresholdStoreTotal: WAIVE_PLATFORM_MIN_STORE,
+        thresholdItems: WAIVE_PLATFORM_MIN_ITEMS
+      };
+    }
+  }
+  if (!deliveryHalfApplied && storeTotal < HALF_DELIVERY_MIN_STORE && itemCount < HALF_DELIVERY_MIN_ITEMS) {
+    const saveAmount = estimateWaiveSave(HALF_DELIVERY_MIN_STORE, HALF_DELIVERY_MIN_ITEMS, 'delivery');
+    if (saveAmount > 0) {
+      return {
+        target: 'delivery',
+        amountShort: Math.max(0, HALF_DELIVERY_MIN_STORE - storeTotal),
+        itemsShort: Math.max(0, HALF_DELIVERY_MIN_ITEMS - itemCount),
+        currentFee: deliveryFee,
+        saveAmount,
+        thresholdStoreTotal: HALF_DELIVERY_MIN_STORE,
+        thresholdItems: HALF_DELIVERY_MIN_ITEMS
+      };
+    }
+  }
+  return null;
 }
 
 function escapeHtml(str) {
@@ -50,7 +114,7 @@ function normalizeMenuItem(m) {
     name: String(m.name),
     desc: String(m.desc || ''),
     inStorePrice: typeof m.inStorePrice === 'number' ? m.inStorePrice : 30000,
-    appPrice: typeof m.appPrice === 'number' ? m.appPrice : 39000,
+    appPrice: typeof m.appPrice === 'number' ? m.appPrice : (typeof m.inStorePrice === 'number' ? m.inStorePrice : 30000),
     img: String(m.img || ''),
     category: String(m.category || 'Thực đơn')
   };
@@ -286,6 +350,12 @@ async function loadPricingConfig() {
     if (typeof json.freeDistanceKm === 'number' && json.freeDistanceKm >= 0) {
       FREE_DISTANCE_KM = json.freeDistanceKm;
     }
+    if (typeof json.platformFeeShare === 'number') PLATFORM_FEE_SHARE = json.platformFeeShare;
+    if (typeof json.shipperSurplusShare === 'number') SHIPPER_SURPLUS_SHARE = json.shipperSurplusShare;
+    if (typeof json.waivePlatformMinItems === 'number') WAIVE_PLATFORM_MIN_ITEMS = json.waivePlatformMinItems;
+    if (typeof json.waivePlatformMinStoreTotal === 'number') WAIVE_PLATFORM_MIN_STORE = json.waivePlatformMinStoreTotal;
+    if (typeof json.halfDeliveryMinItems === 'number') HALF_DELIVERY_MIN_ITEMS = json.halfDeliveryMinItems;
+    if (typeof json.halfDeliveryMinStoreTotal === 'number') HALF_DELIVERY_MIN_STORE = json.halfDeliveryMinStoreTotal;
   } catch (e) {}
 }
 
@@ -327,92 +397,93 @@ function getCart() { return getState().cart; }
 
 function getCartTotal() {
   const cart = getCart();
+  const empty = {
+    storeTotal: 0, appTotal: 0, feePool: 0, platformFee: 0, deliveryFee: 0,
+    shipperEarning: 0, itemCount: 0, discountValue: 0, minServiceFee: 0,
+    platformWaivedAmount: 0, deliveryHalfAmount: 0, platformWaived: false,
+    deliveryHalfApplied: false, feeWaiverHint: null
+  };
   const restaurant = getRestaurantById(cart.restaurantId);
-  if (!restaurant || !Array.isArray(restaurant.menu)) {
-    return { storeTotal: 0, appTotal: 0, shipperEarning: 0, itemCount: 0, discountValue: 0, minServiceFee: 0 };
-  }
+  if (!restaurant || !Array.isArray(restaurant.menu)) return empty;
 
-  let storeTotal = 0, appTotalRaw = 0, itemCount = 0;
-  Object.entries(cart.items).forEach(([cartKey, qty]) => {
+  let storeTotal = 0;
+  let itemCount = 0;
+  Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
     const [itemId, optionsStr] = cartKey.split('::');
     const item = restaurant.menu.find(m => m.id === itemId);
     if (item && qty > 0) {
       let toppingsInStore = 0;
-      let toppingsApp = 0;
       if (optionsStr) {
         try {
-          const selected = JSON.parse(optionsStr);
-          selected.forEach(opt => {
-            toppingsInStore += opt.price;
-            toppingsApp += calcToppingAppPrice(opt.price);
-          });
+          JSON.parse(optionsStr).forEach(opt => { toppingsInStore += Number(opt.price) || 0; });
         } catch (e) {}
       }
-      storeTotal += (item.inStorePrice + toppingsInStore) * qty;
-      appTotalRaw += (item.appPrice + toppingsApp) * qty;
-      itemCount  += qty;
+      storeTotal += ((Number(item.inStorePrice) || 0) + toppingsInStore) * qty;
+      itemCount += qty;
     }
   });
+
+  if (itemCount <= 0) return empty;
 
   const surchargePerItem = restaurant.distanceSurchargePerItem || 0;
-  const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
+  let feePoolRaw = round100(storeTotal * MARKUP_RATE) + surchargePerItem * itemCount;
 
-  // Calculate dynamic multi-item discount:
   let discountValue = 0;
-  
-  const itemsList = [];
-  Object.entries(cart.items).forEach(([cartKey, qty]) => {
-    if (qty <= 0) return;
-    const [itemId, optionsStr] = cartKey.split('::');
-    const item = restaurant.menu.find(m => m.id === itemId);
-    if (item) {
-      let toppingsInStore = 0;
-      let toppingsApp = 0;
-      if (optionsStr) {
-        try {
-          const selected = JSON.parse(optionsStr);
-          selected.forEach(opt => {
-            toppingsInStore += opt.price;
-            toppingsApp += calcToppingAppPrice(opt.price);
-          });
-        } catch (e) {}
-      }
-      for (let i = 0; i < qty; i++) {
-        itemsList.push({
-          cartKey,
-          inStorePrice: item.inStorePrice + toppingsInStore,
-          appPrice: item.appPrice + toppingsApp
-        });
-      }
-    }
-  });
-
-  if (itemsList.length > 1) {
-    // PRICING.md: món 2+ giảm max(2000đ, 15% phụ thu km) mỗi món
-    itemsList.sort((a, b) => b.appPrice - a.appPrice);
-    const perExtra = Math.max(2000, round100(surchargePerItem * MULTI_ITEM_DISCOUNT));
-    discountValue = perExtra * (itemsList.length - 1);
+  if (itemCount > 1) {
+    const avgUnit = storeTotal / itemCount;
+    const perExtra = Math.max(2000, round100(surchargePerItem * MULTI_ITEM_DISCOUNT + avgUnit * 0.03));
+    discountValue = Math.min(perExtra * (itemCount - 1), Math.max(0, feePoolRaw - MIN_SHIPPER_EARNING));
   }
 
+  let feePool = Math.max(0, feePoolRaw - discountValue);
   let minServiceFee = 0;
-  let appTotal = appTotalRaw;
+  if (feePool < MIN_SHIPPER_EARNING) {
+    minServiceFee = round100(MIN_SHIPPER_EARNING - feePool);
+    feePool = MIN_SHIPPER_EARNING;
+  }
 
-  // Cân đối giảm giá đa món và phí hỗ trợ shipper đơn nhỏ
-  if (itemCount > 0) {
-    if (shipperEarningBeforeDiscount >= MIN_SHIPPER_EARNING) {
-      minServiceFee = 0;
-      discountValue = Math.min(discountValue, shipperEarningBeforeDiscount - MIN_SHIPPER_EARNING);
-      appTotal = Math.max(0, appTotalRaw - discountValue);
-    } else {
-      discountValue = 0;
-      minServiceFee = round100(MIN_SHIPPER_EARNING - shipperEarningBeforeDiscount);
-      appTotal = appTotalRaw + minServiceFee;
+  let { platformFee, deliveryFee } = splitFeePool(feePool, PLATFORM_FEE_SHARE);
+  let platformWaivedAmount = 0;
+  let deliveryHalfAmount = 0;
+  let platformWaived = false;
+  let deliveryHalfApplied = false;
+
+  if ((storeTotal >= WAIVE_PLATFORM_MIN_STORE || itemCount >= WAIVE_PLATFORM_MIN_ITEMS) && platformFee > 0) {
+    platformWaivedAmount = Math.min(platformFee, Math.max(0, feePool - MIN_SHIPPER_EARNING));
+    if (platformWaivedAmount > 0) {
+      feePool -= platformWaivedAmount;
+      platformWaived = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, PLATFORM_FEE_SHARE));
     }
   }
 
-  const shipperEarning = appTotal - storeTotal;
+  if ((storeTotal >= HALF_DELIVERY_MIN_STORE || itemCount >= HALF_DELIVERY_MIN_ITEMS) && deliveryFee > 0) {
+    deliveryHalfAmount = Math.min(round100(deliveryFee * 0.5), Math.max(0, feePool - MIN_SHIPPER_EARNING));
+    if (deliveryHalfAmount > 0) {
+      feePool -= deliveryHalfAmount;
+      deliveryHalfApplied = true;
+      ({ platformFee, deliveryFee } = splitFeePool(feePool, PLATFORM_FEE_SHARE));
+    }
+  }
 
-  return { storeTotal, appTotal, shipperEarning, itemCount, discountValue, minServiceFee };
+  return {
+    storeTotal,
+    appTotal: storeTotal + feePool,
+    feePool,
+    platformFee,
+    deliveryFee,
+    shipperEarning: computeShipperEarning(feePool, MIN_SHIPPER_EARNING, SHIPPER_SURPLUS_SHARE),
+    itemCount,
+    discountValue,
+    minServiceFee,
+    platformWaivedAmount,
+    deliveryHalfAmount,
+    platformWaived,
+    deliveryHalfApplied,
+    feeWaiverHint: buildFeeWaiverHint(
+      storeTotal, itemCount, feePool, platformFee, deliveryFee, platformWaived, deliveryHalfApplied, surchargePerItem
+    )
+  };
 }
 
 function addToCart(restaurantId, itemId, selectedOptions) {

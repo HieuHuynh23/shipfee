@@ -1336,12 +1336,19 @@ async function authenticateAdmin(req, res, next) {
 const PRICING_CONFIG_FILE = path.join(__dirname, 'pricing-config.json');
 
 let pricingConfig = {
-  markupRate: 0.28,           // 28% markup trên giá gốc
+  markupRate: 0.28,           // 28% trên storeTotal → feePool (không nhồi vào menu)
   secondOrderDiscountRate: 0.10, // 10% giảm giá cho đơn hàng thứ 2+
   freeDistanceKm: 1.5,        // Miễn phụ thu dưới 1.5km
   surchargeCoefficient: 7000, // Hệ số đường cong sqrt
-  minShipperEarning: 15000,   // Sàn thu nhập shipper/đơn (đ)
-  multiItemDiscount: 0.15     // 15% giảm surcharge cho món 2+
+  minShipperEarning: 15000,   // Sàn tối thiểu shipper/đơn (đ)
+  multiItemDiscount: 0.15,    // Cơ sở ưu đãi phí món 2+
+  platformFeeShare: 0.60,     // Hiển thị phí nền tảng
+  deliveryFeeShare: 0.40,     // Hiển thị phí giao hàng
+  shipperSurplusShare: 0.70,  // Shipper nhận 70% phần dư trên sàn
+  waivePlatformMinItems: 3,
+  waivePlatformMinStoreTotal: 79000,
+  halfDeliveryMinItems: 3,
+  halfDeliveryMinStoreTotal: 120000
 };
 
 function loadPricingConfig() {
@@ -3523,13 +3530,13 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
   const userLon = parseFloat(lon);
   
   if (isNaN(userLat) || isNaN(userLon)) {
-    // Không có tọa độ → chỉ áp dụng markup 28% cơ sở, không có surcharge
+    // Menu = giá thật tại quán; phụ thu km tính ở checkout
     const cloned = {
       ...restaurant,
       distanceSurchargePerItem: 0,
       menu: (restaurant.menu || []).map(item => ({
         ...item,
-        appPrice: calcAppPrice(item.inStorePrice)
+        appPrice: Number(item.inStorePrice) || 0
       }))
     };
     return cloned;
@@ -3557,18 +3564,15 @@ function applyDistanceMarkupToMenu(restaurant, lat, lon) {
     distance: distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`,
     time: `${12 + Math.round(distKm * 5)}-${20 + Math.round(distKm * 5)} phút`,
     distanceSurchargePerItem: extraMarkupPerItem,
-    menu: (restaurant.menu || []).map(item => {
-      // Giá app = markup 28% cơ sở + distance surcharge
-      const baseAppPrice = calcAppPrice(item.inStorePrice);
-      return {
-        ...item,
-        appPrice: baseAppPrice + extraMarkupPerItem
-      };
-    })
+    menu: (restaurant.menu || []).map(item => ({
+      ...item,
+      // PRICING 1.3: menu hiện giá quán; phí gom ở checkout
+      appPrice: Number(item.inStorePrice) || 0
+    }))
   };
 
   if (extraMarkupPerItem > 0) {
-    console.log(`[Dynamic Pricing] "${restaurant.name}" cách ${distKm.toFixed(2)} km. Markup 28%: +${PRICING_CONFIG.MARKUP_RATE * 100}% | Surcharge: +${extraMarkupPerItem.toLocaleString('vi-VN')}đ/món`);
+    console.log(`[Dynamic Pricing] "${restaurant.name}" cách ${distKm.toFixed(2)} km. Surcharge checkout: +${extraMarkupPerItem.toLocaleString('vi-VN')}đ/món`);
   }
   return clonedRestaurant;
 }
@@ -5664,9 +5668,15 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       })),
       storeTotal: priced.storeTotal,
       appTotal: priced.appTotal,
+      feePool: priced.feePool,
+      platformFee: priced.platformFee,
+      deliveryFee: priced.deliveryFee,
+      platformKeep: priced.platformKeep,
       shipperEarning: priced.shipperEarning,
       discountValue: priced.discountValue,
       minServiceFee: priced.minServiceFee,
+      platformWaivedAmount: priced.platformWaivedAmount || 0,
+      deliveryHalfAmount: priced.deliveryHalfAmount || 0,
       surchargePerItem: priced.surchargePerItem,
       promoCode: null,
       promoDiscount: 0,
@@ -5722,10 +5732,25 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       if (hasPreviousOrders && pricingConfig.secondOrderDiscountRate > 0) {
         const discountPercent = pricingConfig.secondOrderDiscountRate;
         const subtotal = newOrder.appTotal;
-        const discountVal = round100(subtotal * discountPercent);
-        newOrder.discountValue = discountVal;
-        newOrder.appTotal = Math.max(0, subtotal - discountVal);
-        console.log(`[Pricing Config] Khách hàng ${cleanedOrdererPhone} được áp dụng giảm giá đơn thứ 2+ (${discountPercent * 100}%): Giảm ${discountVal}đ. Tổng mới: ${newOrder.appTotal}đ`);
+        const rawDiscount = round100(subtotal * discountPercent);
+        // Không được kéo feePool (appTotal - storeTotal) dưới sàn shipper
+        const minApp = newOrder.storeTotal + (pricingConfig.minShipperEarning || 15000);
+        const maxDiscount = Math.max(0, subtotal - minApp);
+        const discountVal = Math.min(rawDiscount, maxDiscount);
+        newOrder.discountValue = (newOrder.discountValue || 0) + discountVal;
+        newOrder.appTotal = Math.max(minApp, subtotal - discountVal);
+        const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
+        newOrder.feePool = feeLeft;
+        newOrder.shipperEarning = pricingEngine.computeShipperEarning(
+          feeLeft,
+          pricingConfig.minShipperEarning,
+          pricingConfig.shipperSurplusShare
+        );
+        const split = pricingEngine.splitFeePool(feeLeft, pricingConfig.platformFeeShare);
+        newOrder.platformFee = split.platformFee;
+        newOrder.deliveryFee = split.deliveryFee;
+        newOrder.platformKeep = Math.max(0, feeLeft - newOrder.shipperEarning);
+        console.log(`[Pricing Config] Khách ${cleanedOrdererPhone} đơn 2+ (−${discountPercent * 100}%): Giảm ${discountVal}đ → ${newOrder.appTotal}đ | ship ${newOrder.shipperEarning}đ`);
       }
     }
 
@@ -5736,9 +5761,23 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       }
       newOrder.promoCode = promoResult.promo.code;
       newOrder.promoDiscount = promoResult.discount;
-      newOrder.discountValue = (newOrder.discountValue || 0) + promoResult.discount;
-      newOrder.appTotal = Math.max(0, newOrder.appTotal - promoResult.discount);
-      newOrder.shipperEarning = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
+      const minApp = newOrder.storeTotal + (pricingConfig.minShipperEarning || 15000);
+      const maxDiscount = Math.max(0, newOrder.appTotal - minApp);
+      const appliedPromo = Math.min(promoResult.discount, maxDiscount);
+      newOrder.promoDiscount = appliedPromo;
+      newOrder.discountValue = (newOrder.discountValue || 0) + appliedPromo;
+      newOrder.appTotal = Math.max(minApp, newOrder.appTotal - appliedPromo);
+      const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
+      newOrder.feePool = feeLeft;
+      newOrder.shipperEarning = pricingEngine.computeShipperEarning(
+        feeLeft,
+        pricingConfig.minShipperEarning,
+        pricingConfig.shipperSurplusShare
+      );
+      const split = pricingEngine.splitFeePool(feeLeft, pricingConfig.platformFeeShare);
+      newOrder.platformFee = split.platformFee;
+      newOrder.deliveryFee = split.deliveryFee;
+      newOrder.platformKeep = Math.max(0, feeLeft - newOrder.shipperEarning);
       crm.incrementPromoUse(promoResult.promo.code);
     }
 
@@ -6647,6 +6686,13 @@ app.get('/api/config', (req, res) => {
     minShipperEarning: pricingConfig.minShipperEarning,
     freeDistanceKm: pricingConfig.freeDistanceKm,
     multiItemDiscount: pricingConfig.multiItemDiscount,
+    platformFeeShare: pricingConfig.platformFeeShare,
+    deliveryFeeShare: pricingConfig.deliveryFeeShare,
+    shipperSurplusShare: pricingConfig.shipperSurplusShare,
+    waivePlatformMinItems: pricingConfig.waivePlatformMinItems,
+    waivePlatformMinStoreTotal: pricingConfig.waivePlatformMinStoreTotal,
+    halfDeliveryMinItems: pricingConfig.halfDeliveryMinItems,
+    halfDeliveryMinStoreTotal: pricingConfig.halfDeliveryMinStoreTotal,
     realtime: true,
     offerTtlMs: OFFER_TTL_MS,
     deliveryProximityKm: DELIVERY_PROXIMITY_KM,
@@ -7906,6 +7952,13 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
       surchargeCoefficient,
       minShipperEarning,
       multiItemDiscount,
+      platformFeeShare,
+      deliveryFeeShare,
+      shipperSurplusShare,
+      waivePlatformMinItems,
+      waivePlatformMinStoreTotal,
+      halfDeliveryMinItems,
+      halfDeliveryMinStoreTotal,
       telegramConfig
     } = req.body;
     
@@ -7927,6 +7980,13 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
     if (typeof multiItemDiscount === 'number') {
       pricingConfig.multiItemDiscount = multiItemDiscount;
     }
+    if (typeof platformFeeShare === 'number') pricingConfig.platformFeeShare = platformFeeShare;
+    if (typeof deliveryFeeShare === 'number') pricingConfig.deliveryFeeShare = deliveryFeeShare;
+    if (typeof shipperSurplusShare === 'number') pricingConfig.shipperSurplusShare = shipperSurplusShare;
+    if (typeof waivePlatformMinItems === 'number') pricingConfig.waivePlatformMinItems = waivePlatformMinItems;
+    if (typeof waivePlatformMinStoreTotal === 'number') pricingConfig.waivePlatformMinStoreTotal = waivePlatformMinStoreTotal;
+    if (typeof halfDeliveryMinItems === 'number') pricingConfig.halfDeliveryMinItems = halfDeliveryMinItems;
+    if (typeof halfDeliveryMinStoreTotal === 'number') pricingConfig.halfDeliveryMinStoreTotal = halfDeliveryMinStoreTotal;
     if (telegramConfig && typeof telegramConfig === 'object') {
       pricingConfig.telegramConfig = {
         ...(pricingConfig.telegramConfig || {}),
@@ -9165,7 +9225,7 @@ function runSweepIteration() {
               const newInStore = scrapedItem.inStorePrice;
               if (oldInStore !== newInStore) {
                 localItem.inStorePrice = newInStore;
-                localItem.appPrice = round100(newInStore * (1 + PRICING_CONFIG.MARKUP_RATE));
+                localItem.appPrice = Number(newInStore) || 0;
                 priceUpdatedCount++;
               }
             }

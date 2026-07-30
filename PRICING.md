@@ -1,129 +1,122 @@
 ﻿# Hệ Thống Tính Giá ShipFee — Tài Liệu Thiết Kế (Chính thức)
 
-Tài liệu này mô tả chi tiết cách hệ thống ShipFee tự động tính toán giá bán ứng dụng (`appPrice`), phụ thu khoảng cách, sàn thu nhập của shipper và các chương trình ưu đãi tự động.
+Tài liệu mô tả cách ShipFee tính giá món, phí checkout (60/40), sàn thu nhập shipper và ưu đãi khuyến khích đặt thêm / đặt lại.
+
+**Nguyên tắc:** Menu = **giá thật tại quán** (giống chuỗi đối tác ShopeeFood). Phí chỉ hiện ở checkout — không nhồi markup vào thẻ món.
 
 ---
 
-## 1. Các Cấu Hình Hệ Thống (Config Constants)
+## 1. Cấu Hình Hệ Thống
 
-Các tham số này được định nghĩa tập trung ở backend (`server.js`) và có thể mở rộng thành trang Admin Panel để điều chỉnh thời gian thực trong tương lai:
-
-*   **MARKUP_RATE**: `0.28` (Cộng 28% cố định trên giá gốc tại quán `inStorePrice`).
-*   **FREE_DISTANCE_KM**: `1.5` (Miễn phí phụ thu khoảng cách cho khách hàng trong bán kính dưới 1.5 km).
-*   **SURCHARGE_COEFFICIENT**: `7000` (Hệ số tính phụ thu khoảng cách dựa trên hàm căn bậc hai).
-*   **MIN_SHIPPER_EARNING**: `15000` (Thu nhập tối thiểu của tài xế nhận được trên mỗi đơn hàng là 15.000đ).
-*   **MULTI_ITEM_DISCOUNT**: `0.15` (Ưu đãi mua nhiều: giảm 15% phụ thu khoảng cách cho món thứ 2 trở đi trong giỏ hàng, tối thiểu giảm 2.000đ cho mỗi món thêm).
-*   **SECOND_ORDER_DISCOUNT_RATE**: `0.10` (Khách đã có ≥1 đơn trước đó: giảm thêm **10%** trên `appTotal` sau multi-item / phí đơn nhỏ — áp dụng khi tạo đơn, theo `ordererPhone`).
-
----
-
-## 2. Công Thức Tính Giá
-
-### A. Giá Món Ăn Trên Menu (App Price)
-Giá món hiển thị cho khách hàng khi xem thực đơn của một quán cách khách hàng $d$ km:
-
-$$\text{appPrice} = \text{round100}(\text{inStorePrice} \times 1.28) + \text{distanceSurcharge}$$
-
-Trong đó, toàn bộ số tiền đều được làm tròn đến **100đ gần nhất**.
-
-### B. Phụ Thu Khoảng Cách (Distance Surcharge)
-Khoảng cách $d$ được tính theo công thức Haversine đường chim bay giữa tọa độ ghim của khách hàng và quán ăn, sau đó lộ trình thực tế được dẫn đường bằng OSRM API. Phụ thu được tính như sau:
-
-*   Nếu $d \le 1.5 \text{ km}$:
-    $$\text{distanceSurcharge} = 0đ$$
-*   Nếu $d > 1.5 \text{ km}$:
-    $$\text{distanceSurcharge} = \text{round100}(7000 \times \sqrt{d - 1.5})$$
-
-### C. Ưu Đãi Đặt Nhiều Món
-Khi khách hàng đặt nhiều món ăn trong cùng một đơn hàng, hệ thống tự động áp dụng ưu đãi giảm giá mà không cần nhập mã code:
-
-*   Nếu tổng số lượng món ăn trong giỏ hàng $N \ge 2$:
-    $$\text{discountValue} = (N - 1) \times \max(2000, \text{round100}(\text{distanceSurchargePerItem} \times 0.15))$$
-*   Có nghĩa là mỗi món ăn thêm từ món thứ 2 trở đi luôn được **giảm tối thiểu 2.000đ** (ngay cả khi giao gần dưới 1.5 km và phụ thu bằng 0đ). Điều này đảm bảo dòng giảm giá luôn được hiển thị trên trang thanh toán khi khách đặt từ 2 món trở lên.
-*   Giá trị giảm giá này được trừ trực tiếp vào tổng tiền thanh toán của khách hàng, tạo trải nghiệm mua sắm tự nhiên, kích thích đặt nhiều món.
-
-### D. Sàn Thu Nhập Shipper & Phí Đơn Hàng Nhỏ
-Để đảm bảo mỗi chuyến giao hàng shipper luôn thu về tối thiểu **15.000đ** (bảo vệ thu nhập tài xế):
-
-*   Hệ thống tính thu nhập ban đầu của shipper:
-    $$\text{shipperEarning}_{\text{raw}} = \text{appTotal} - \text{storeTotal} - \text{discountValue}$$
-*   Nếu $\text{shipperEarning}_{\text{raw}} < 15.000đ$:
-    Hệ thống tự động thu thêm một khoản **"Phí đơn hàng nhỏ" (Small Order Fee)** để bù đắp chênh lệch:
-    $$\text{minServiceFee} = 15.000đ - \text{shipperEarning}_{\text{raw}}$$
-    Khoản phí này được cộng vào tổng tiền thanh toán (`appTotal`) hiển thị tại checkout, đồng thời hiển thị thông báo gợi ý: *"Thêm 1 món nữa để MIỄN phí đơn hàng nhỏ này!"*.
-
-### E. Ưu Đãi Đơn Thứ 2+ (Returning Customer)
-Khi số điện thoại người đặt (`ordererPhone`) đã từng có đơn trên hệ thống:
-
-*   Áp dụng sau khi đã tính markup, phụ thu, multi-item và sàn shipper:
-    $$\text{appTotal}_{\text{final}} = \text{round100}(\text{appTotal} \times (1 - 0.10))$$
-*   Đồng thời điều chỉnh `shipperEarning` tương ứng phần giảm (giữ công thức hiện tại trên server).
-*   Có thể tắt/đổi tỷ lệ qua Admin Pricing Config (`secondOrderDiscountRate`).
+| Key | Mặc định | Ý nghĩa |
+|---|---|---|
+| `markupRate` | `0.28` | 28% trên `storeTotal` → góp vào **feePool** (không hiện trên menu) |
+| `freeDistanceKm` | `1.5` | Dưới 1.5 km: không phụ thu khoảng cách |
+| `surchargeCoefficient` | `7000` | Phụ thu/món khi `d > 1.5`: `round100(7000 × √(d−1.5))` |
+| `minShipperEarning` | `15000` | **Sàn tối thiểu** shipper/đơn (không phải mức cố định mọi đơn) |
+| `shipperSurplusShare` | `0.70` | Shipper nhận **70% phần dư** trên sàn |
+| `platformFeeShare` | `0.60` | Hiển thị: 60% feePool = phí nền tảng |
+| `deliveryFeeShare` | `0.40` | Hiển thị: 40% feePool = phí giao hàng |
+| `multiItemDiscount` | `0.15` | Cơ sở ưu đãi phí từ món thứ 2 |
+| `waivePlatformMinStoreTotal` | `79000` | Đủ tiền món → giảm/miễn phí nền tảng (clamp sàn) |
+| `waivePlatformMinItems` | `3` | Hoặc đủ số món → giảm/miễn phí nền tảng |
+| `halfDeliveryMinStoreTotal` | `120000` | Đủ tiền → giảm 50% phí giao (clamp sàn) |
+| `halfDeliveryMinItems` | `3` | Hoặc đủ món → giảm 50% phí giao |
+| `secondOrderDiscountRate` | `0.10` | Khách quay lại (cùng `ordererPhone`): giảm 10% trên `appTotal`, vẫn clamp ship ≥ 15k |
 
 ---
 
-## 3. Bảng Giá Tham Chiếu (Ví dụ)
+## 2. Công Thức
 
-Bảng dưới đây minh họa giá món trên ứng dụng tùy thuộc vào giá gốc và khoảng cách giao hàng:
+### A. Giá món trên menu
+$$\text{giá hiển thị} = \text{inStorePrice}$$
+(Không cộng 28% vào thẻ món.)
 
-| Giá gốc tại quán | Giá App cơ bản (28%) | Tại chỗ ($\le 1.5$ km) | Khoảng cách 3.0 km (+8.600đ) | Khoảng cách 5.0 km (+13.100đ) | Khoảng cách 10 km (+20.400đ) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **20.000đ** | 25.600đ | 25.600đ | 34.200đ | 38.700đ | 46.000đ |
-| **35.000đ** | 44.800đ | 44.800đ | 53.400đ | 57.900đ | 65.200đ |
-| **50.000đ** | 64.000đ | 64.000đ | 72.600đ | 77.100đ | 84.400đ |
+### B. Phí gom ở checkout (`feePool`)
+$$\text{feePoolRaw} = \text{round100}(\text{storeTotal} \times 0.28) + \text{surchargePerItem} \times N$$
 
----
+### C. Ưu đãi từ món thứ 2 (trừ trên phí)
+$$(N-1) \times \max\big(2000,\ \text{round100}(\text{surchargePerItem}\times 0.15 + \text{avgUnit}\times 0.03)\big)$$
+Không được kéo `feePool` dưới 15.000đ.
 
-## 4. Các Ví Dụ Thực Tế
+### D. Sàn shipper (top-up)
+Nếu `feePool < 15.000` → cộng top-up đến đúng 15.000đ (khách thấy trong phí).
 
-### Ví dụ 1: Khách đặt 1 bát Phở giá gốc 35.000đ, khoảng cách 3.0 km
-*   **Giá gốc tại quán**: 35.000đ
-*   **Giá App cơ bản (28% markup)**: $35.000 \times 1.28 = 44.800đ$
-*   **Phụ thu khoảng cách**: $7000 \times \sqrt{3.0 - 1.5} = 7000 \times 1.2247 = 8.573đ \rightarrow$ làm tròn thành **8.600đ**.
-*   **Giá món trên App hiển thị**: $44.800đ + 8.600đ = 53.400đ$.
-*   **Đơn hàng 1 món nên không có ưu đãi đặt nhiều**: $\text{discountValue} = 0đ$.
-*   **Thu nhập shipper thô**: $53.400đ - 35.000đ = 18.400đ$.
-*   **Kiểm tra sàn shipper**: $18.400đ \ge 15.000đ \rightarrow$ Đạt yêu cầu. Không thu thêm phí đơn nhỏ.
-*   **Khách trả**: **53.400đ** | **Shipper nhận**: **18.400đ** (đã bao gồm phụ thu khoảng cách).
+### E. Miễn / giảm phí theo ngưỡng
+- Đủ **79.000đ món** hoặc **≥3 món** → giảm phí nền tảng (tối đa phần dư trên 15k).
+- Đủ **120.000đ món** hoặc **≥3 món** → giảm thêm 50% phí giao (cùng clamp).
+- `saveAmount` trên banner = số tiền khách **thật sự** bớt sau clamp.
 
-### Ví dụ 2: Khách đặt 1 ly Trà sữa giá gốc 20.000đ, khoảng cách 1.0 km
-*   **Giá gốc tại quán**: 20.000đ
-*   **Giá App cơ bản (28% markup)**: $20.000 \times 1.28 = 25.600đ$
-*   **Phụ thu khoảng cách**: $0đ$ (khoảng cách dưới 1.5 km).
-*   **Giá món trên App hiển thị**: $25.600đ$.
-*   **Thu nhập shipper thô**: $25.600đ - 20.000đ = 5.600đ$.
-*   **Kiểm tra sàn shipper**: $5.600đ < 15.000đ \rightarrow$ Chưa đạt sàn!
-*   **Phí đơn hàng nhỏ cần thu**: $15.000đ - 5.600đ = 9.400đ$.
-*   **Khách trả**: $25.600đ + 9.400đ = 35.000đ$.
-*   **Shipper nhận**: **15.000đ** (đảm bảo sàn tối thiểu).
-*   *Giao diện checkout sẽ hiện:* Phí đơn hàng nhỏ là 9.400đ. Nhắc nhở: *"Thêm 1 món để miễn phí này!"*.
+### F. Hiển thị 60/40
+$$\text{platformFee} = \text{round100}(\text{feePool} \times 0.60),\quad \text{deliveryFee} = \text{feePool} - \text{platformFee}$$
 
-### Ví dụ 3: Khách đặt 2 bát Phở giá gốc 35.000đ/bát, khoảng cách 3.0 km
-*   **Giá gốc tại quán**: $35.000 \times 2 = 70.000đ$.
-*   **Giá App món 1 (đầy đủ)**: $44.800đ + 8.600đ = 53.400đ$.
-*   **Giá App món 2 (chưa giảm)**: $44.800đ + 8.600đ = 53.400đ$.
-*   **Ưu đãi đặt nhiều (giảm 15% phụ thu món 2, tối thiểu 2.000đ)**: $(2 - 1) \times \max(2000, \text{round100}(8.600 \times 0.15)) = 2.000đ$.
-*   **Tổng cộng appTotal**: $(53.400 \times 2) - 2.000 = 104.800đ$.
-*   **Thu nhập shipper thực tế**: $104.800đ - 70.000đ = 34.800đ \ge 15.000đ$ (Đạt sàn).
-*   **Khách trả**: **104.800đ** | **Shipper nhận**: **34.800đ**.
+### G. Chi trả shipper (hưởng lợi, không kẹt sàn)
+$$
+\text{shipperEarning} =
+\begin{cases}
+15.000 & \text{nếu feePool} = 15.000 \\
+15.000 + \text{round100}(0.70 \times (\text{feePool} - 15.000)) & \text{nếu feePool} > 15.000
+\end{cases}
+$$
+Nền tảng giữ phần còn lại của `feePool`.
 
-### Ví dụ 4: Khách đặt 2 bát Phở giá gốc 35.000đ/bát, khoảng cách 1.0 km (Giao gần dưới 1.5 km)
-*   **Giá gốc tại quán**: $35.000 \times 2 = 70.000đ$.
-*   **Giá App món 1 (markup 28%, không surcharge)**: $44.800đ$.
-*   **Giá App món 2**: $44.800đ$.
-*   **Ưu đãi đặt nhiều (tối thiểu 2.000đ cho mỗi món thêm từ món thứ 2)**: $1 \times 2.000đ = 2.000đ$.
-*   **Tổng cộng appTotal**: $(44.800 \times 2) - 2.000 = 87.600đ$.
-*   **Thu nhập shipper thực tế**: $87.600đ - 70.000đ = 17.600đ \ge 15.000đ$ (Đạt sàn).
-*   **Khách trả**: **87.600đ** | **Shipper nhận**: **17.600đ**.
+### H. Tổng khách trả
+$$\text{appTotal} = \text{storeTotal} + \text{feePool}$$
 
 ---
 
-## 5. Nhật Ký Thay Đổi (Changelog)
+## 3. Ví dụ cụ thể
 
-*   **Phiên bản 1.2 (Hiện tại)**:
-    *   Nâng mức markup cơ sở lên cố định **28%** (thay vì random 25% - 35%) nhằm ổn định trải nghiệm giá.
-    *   Hạ ngưỡng miễn phụ thu khoảng cách xuống **1.5 km** (trước đây là 2.0 km) nhằm tăng độ phủ thu nhập.
-    *   Áp dụng **sàn thu nhập tài xế 15.000đ** qua hình thức phí đơn hàng nhỏ động.
-    *   Thay đổi ưu đãi mua nhiều thành **giảm 15%** phụ thu khoảng cách cho món thứ 2+ (trước đây là 20%).
-    *   Làm tròn toàn bộ số tiền thanh toán đến **100đ** (trước đây làm tròn 1.000đ).
-    *   Document **ưu đãi đơn thứ 2+** (`secondOrderDiscountRate` = 10% trên `appTotal`) — khớp server + Admin Pricing Config.
+### Ví dụ A — Đơn nhỏ (1 trà sữa 20k, 1 km)
+| | |
+|---|---|
+| Món | 20.000đ |
+| feePool thô | 5.600 → top-up → **15.000** |
+| Phí nền tảng / giao (60/40) | 9.000 / 6.000 |
+| Khách trả | **35.000đ** |
+| Shipper | **15.000đ** (đúng sàn) |
+
+Slogan mẫu: `Đặt thêm 59.000đ nữa để giảm …đ phí nền tảng.`
+
+### Ví dụ B — 2 burger 35k (như Shopee, ~1.4 km)
+| | |
+|---|---|
+| Món | 70.000đ (menu hiện 35k/món — khớp Shopee) |
+| feePool thô | 19.600 − ưu đãi món 2 ≈ **17.600** |
+| Phí nền tảng / giao | ~10.600 / ~7.000 |
+| Khách trả | **~87.600đ** (Shopee không voucher ~88k) |
+| Shipper | 15.000 + 70%×2.600 ≈ **16.800đ** (> sàn) |
+
+### Ví dụ C — Đơn lớn / xa
+`storeTotal` và phụ thu km lớn → `feePool` lớn → shipper tăng theo (ví dụ pool 40k → ship ~32.500đ).
+
+---
+
+## 4. Slogan checkout (số tiền chính xác)
+
+Engine trả `feeWaiverHint`: `amountShort`, `itemsShort`, `currentFee`, `saveAmount`.
+
+Mẫu:
+- `Đặt thêm 44.000đ nữa để giảm 9.000đ phí nền tảng.`
+- `Thêm 1 món (hoặc đặt thêm 44.000đ) để giảm 9.000đ phí nền tảng.`
+- Nếu clamp: `Ưu đãi đã áp dụng: giảm 2.600đ phí nền tảng (tài xế vẫn nhận tối thiểu 15.000đ/đơn).`
+
+Không ghi “Miễn phí giao hàng” cứng khi vẫn đang thu phí.
+
+---
+
+## 5. Chiến lược thu hút & đặt lại
+
+| Giai đoạn | Cách | Bảo vệ ship |
+|---|---|---|
+| Khách mới | Giá món = giá quán; phí 60/40 minh bạch | Không copy voucher 50–90% Shopee |
+| Tăng món/đơn | Banner thiếu **Xđ** / giảm **Yđ**; ưu đãi từ món 2 | Clamp feePool ≥ 15k |
+| Đơn 2+ | `secondOrderDiscountRate` 10% + loyalty điểm | Sau giảm: tính lại ship = 15k + 70% dư trên fee còn lại |
+| Thương hiệu | Không “Free ship” giả; khoe giá thật + tài xế đủ sống và tăng theo đơn | — |
+
+---
+
+## 6. Changelog
+
+*   **1.3 (Hiện tại)**: Menu = inStore; feePool checkout tách 60/40; shipper = sàn 15k + 70% phần dư; slogan số tiền; ngưỡng miễn phí nền tảng 79k / ≥3 món; giảm 50% phí giao 120k / ≥3 món; bỏ nhồi markup + Free ship giả trên UI.
+*   **1.2**: Markup 28% trên món; Free ship hiển thị; sàn 15k qua phí đơn nhỏ; ưu đãi món 2+; đơn 2+ giảm 10%.
