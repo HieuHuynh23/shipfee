@@ -12,8 +12,8 @@ function registerCustomerPortalRoutes(app, ctx) {
     ORDER_HISTORY_RETENTION_DAYS,
     cleanPhone
   } = ctx;
-  const portal = require('./customerPortal');
-  const customerOps = require('./customerOps');
+  const portal = require('../customerPortal');
+  const customerOps = require('../customerOps');
 
   app.post('/api/customer/otp/request', rateLimitAuth, async (req, res) => {
     try {
@@ -113,7 +113,7 @@ function registerCustomerPortalRoutes(app, ctx) {
       } catch (_) {}
       let promos = [];
       try {
-        promos = require('./crmHelpers').readPromos();
+        promos = require('../crmHelpers').readPromos();
       } catch (_) {}
       const offers = portal.buildPersonalizedOffers(phone, { orders, loyalty, promos });
       res.json({ success: true, data: offers });

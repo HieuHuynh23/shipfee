@@ -8046,10 +8046,9 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
       shipperSurplusShare,
       waivePlatformMinItems,
       waivePlatformMinStoreTotal,
-    halfDeliveryMinItems,
-    halfDeliveryMinStoreTotal,
-    shipperSurplusShare,
-    telegramConfig
+      halfDeliveryMinItems,
+      halfDeliveryMinStoreTotal,
+      telegramConfig
     } = req.body;
     
     if (typeof markupRate === 'number') {
