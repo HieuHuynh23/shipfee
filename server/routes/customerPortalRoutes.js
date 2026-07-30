@@ -24,9 +24,10 @@ function registerCustomerPortalRoutes(app, ctx) {
         data: {
           phone: result.phone,
           expiresInSec: result.expiresInSec,
-          delivery: result.delivery,
+          delivery: result.delivery || 'inline',
           message: result.message,
-          demoCode: result.demoCode
+          code: result.code || result.demoCode,
+          demoCode: result.demoCode || result.code
         }
       });
     } catch (e) {

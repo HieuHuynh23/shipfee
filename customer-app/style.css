@@ -2883,8 +2883,47 @@ html[data-theme="dark"] .order-hist-status.is-cancelled { background: rgba(239,6
 .login-sheet__title {
   font-size: 14px;
   font-weight: 800;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: var(--clr-text-primary);
+}
+
+.login-sheet__note {
+  margin: 0 0 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--clr-text-secondary);
+}
+
+.otp-inline {
+  margin: 0 0 12px;
+  padding: 14px 12px;
+  border-radius: var(--radius-lg);
+  background: var(--clr-primary-light, #FEF2F2);
+  border: 1px dashed rgba(239, 68, 68, 0.35);
+  text-align: center;
+}
+
+.otp-inline__label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--clr-text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.otp-inline__code {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  color: var(--clr-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.otp-inline__hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--clr-text-muted);
 }
 
 .login-sheet .form-row {

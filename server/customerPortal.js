@@ -121,51 +121,29 @@ function hashOtp(code) {
 }
 
 async function deliverOtp(phone, code) {
-  const webhook = process.env.CUSTOMER_OTP_WEBHOOK_URL || process.env.CSAT_WEBHOOK_URL || '';
-  let delivered = false;
-  let channel = 'none';
-
-  if (webhook) {
-    try {
-      await axios.post(
-        webhook,
-        { type: 'customer_otp', phone, code, message: `ShipFee OTP: ${code}` },
-        { timeout: 8000 }
-      );
-      delivered = true;
-      channel = 'webhook';
-    } catch (e) {
-      console.warn('[CustomerPortal] OTP webhook failed:', e.message);
-    }
-  }
+  // Nền tảng miễn phí: không có SMS. OTP luôn trả về client (inline).
+  // Telegram admin chỉ là bản sao tùy chọn để đối soát — không thay thế hiển thị trên app.
+  let channel = 'inline';
 
   const tgToken = process.env.TELEGRAM_BOT_TOKEN;
   const tgChat = process.env.TELEGRAM_CHAT_ID;
-  if (tgToken && tgChat) {
+  if (tgToken && tgChat && process.env.CUSTOMER_OTP_TELEGRAM !== '0') {
     try {
       await axios.post(
         `https://api.telegram.org/bot${tgToken}/sendMessage`,
         {
           chat_id: tgChat,
-          text: `🔐 OTP khách ${phone}: ${code}\nHết hạn sau 5 phút.`
+          text: `🔐 OTP khách ${phone}: ${code}\n(Hiện trên app khách — không gửi SMS)\nHết hạn sau 5 phút.`
         },
         { timeout: 8000 }
       );
-      delivered = true;
-      channel = channel === 'webhook' ? 'webhook+telegram' : 'telegram';
+      channel = 'inline+telegram';
     } catch (e) {
       console.warn('[CustomerPortal] OTP telegram failed:', e.message);
     }
   }
 
-  const forceInline = process.env.CUSTOMER_OTP_INLINE === '1';
-  const allowInline =
-    forceInline ||
-    !delivered ||
-    process.env.NODE_ENV !== 'production' ||
-    process.env.CUSTOMER_OTP_INLINE !== '0';
-
-  return { delivered, channel, inline: allowInline };
+  return { delivered: true, channel, inline: true };
 }
 
 function requestOtp(phoneRaw) {
@@ -189,10 +167,10 @@ function requestOtp(phoneRaw) {
     phone,
     expiresInSec: Math.floor(OTP_TTL_MS / 1000),
     delivery: delivery.channel,
-    demoCode: delivery.inline ? code : undefined,
-    message: delivery.inline
-      ? 'Mã xác thực đã tạo. Dùng mã bên dưới để đăng nhập (hoặc mã gửi Telegram/SMS nếu có).'
-      : 'Mã xác thực đã gửi. Vui lòng kiểm tra tin nhắn / liên hệ hỗ trợ nếu chưa nhận.'
+    // Luôn trả mã trên response — không phụ thuộc SMS webhook
+    code,
+    demoCode: code,
+    message: 'Nhập mã xác thực hiện trên màn hình. Mã có hiệu lực 5 phút.'
   }));
 }
 

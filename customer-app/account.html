@@ -53,12 +53,18 @@
 
     <div class="login-sheet" id="login-sheet" hidden>
       <div class="login-sheet__title">Đăng nhập bằng SĐT</div>
+      <p class="login-sheet__note">ShipFee không gửi SMS. Mã xác thực sẽ hiện ngay trên màn hình sau khi bạn bấm <strong>Lấy mã</strong>.</p>
       <div class="form-row">
         <input type="tel" class="form-input" id="login-phone" placeholder="Số điện thoại" inputmode="tel" autocomplete="tel">
-        <button type="button" class="btn btn--sm btn--primary" id="btn-send-otp">Gửi OTP</button>
+        <button type="button" class="btn btn--sm btn--primary" id="btn-send-otp">Lấy mã</button>
+      </div>
+      <div class="otp-inline" id="otp-inline-box" hidden>
+        <div class="otp-inline__label">Mã xác thực của bạn</div>
+        <div class="otp-inline__code" id="otp-inline-code">------</div>
+        <div class="otp-inline__hint">Có hiệu lực 5 phút · chỉ dùng trên thiết bị này</div>
       </div>
       <div class="form-row">
-        <input type="text" class="form-input" id="login-otp" placeholder="Mã OTP" inputmode="numeric" autocomplete="one-time-code">
+        <input type="text" class="form-input" id="login-otp" placeholder="Nhập mã 6 số" inputmode="numeric" autocomplete="one-time-code" maxlength="6">
         <button type="button" class="btn btn--sm btn--outline" id="btn-verify-otp">Xác nhận</button>
       </div>
       <input type="text" class="form-input" id="login-name" placeholder="Tên (tuỳ chọn)" style="width:100%;margin-bottom:8px;">
@@ -428,19 +434,29 @@
       document.getElementById('btn-send-otp')?.addEventListener('click', async () => {
         const phone = document.getElementById('login-phone')?.value?.trim();
         const hint = document.getElementById('login-hint');
+        const box = document.getElementById('otp-inline-box');
+        const codeEl = document.getElementById('otp-inline-code');
+        const otpInput = document.getElementById('login-otp');
         if (!phone) {
-          SF.showToast('Thiếu SĐT', 'Nhập số điện thoại để nhận OTP.', 'warning');
+          SF.showToast('Thiếu SĐT', 'Nhập số điện thoại để lấy mã xác thực.', 'warning');
           return;
         }
         try {
           const data = await SF.requestCustomerOtp(phone);
-          let msg = 'Đã gửi OTP. Kiểm tra tin nhắn.';
-          if (data && data.demoCode) msg += ` Mã demo: ${data.demoCode}`;
-          if (hint) hint.textContent = msg;
-          SF.showToast('Đã gửi OTP', data?.demoCode ? `Mã demo: ${data.demoCode}` : 'Kiểm tra tin nhắn.', 'success');
+          const code = data?.code || data?.demoCode || '';
+          if (code && codeEl && box) {
+            codeEl.textContent = code;
+            box.hidden = false;
+          }
+          if (code && otpInput) {
+            otpInput.value = code;
+            otpInput.focus();
+          }
+          if (hint) hint.textContent = data?.message || 'Nhập mã hiện trên màn hình để đăng nhập.';
+          SF.showToast('Mã xác thực', code ? `Mã của bạn: ${code}` : 'Đã tạo mã trên màn hình.', 'success');
         } catch (e) {
-          if (hint) hint.textContent = e.message || 'Không gửi được OTP';
-          SF.showToast('Lỗi OTP', e.message || 'Thử lại sau.', 'error');
+          if (hint) hint.textContent = e.message || 'Không lấy được mã';
+          SF.showToast('Lỗi', e.message || 'Thử lại sau.', 'error');
         }
       });
 
