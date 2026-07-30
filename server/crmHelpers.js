@@ -194,8 +194,15 @@ function writePromos(list) {
 function validatePromo(code, subtotal, opts = {}) {
   if (!code) return { valid: false, error: 'Thiếu mã giảm giá' };
   const promos = readPromos();
-  const promo = promos.find(p => p.code.toUpperCase() === String(code).trim().toUpperCase() && p.active !== false);
-  if (!promo) return { valid: false, error: 'Mã không tồn tại hoặc đã hết hạn' };
+  const want = String(code).trim().toUpperCase();
+  const anyPromo = promos.find(p => p.code.toUpperCase() === want);
+  const promo = promos.find(p => p.code.toUpperCase() === want && p.active !== false);
+  if (!promo) {
+    if (anyPromo && anyPromo.active === false) {
+      return { valid: false, error: 'Mã đang tạm tắt trong chiến dịch. Chọn mã khác hoặc bỏ trống để đặt.' };
+    }
+    return { valid: false, error: 'Mã không tồn tại hoặc đã hết hạn' };
+  }
   if (promo.expiresAt && Date.now() > promo.expiresAt) {
     return { valid: false, error: 'Mã đã hết hạn' };
   }
