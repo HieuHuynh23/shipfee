@@ -5869,7 +5869,7 @@ function ensurePwaInstallUi() {
   banner.setAttribute('role', 'dialog');
   banner.setAttribute('aria-label', 'Cài đặt ứng dụng ShipFee Tài Xế');
   banner.innerHTML = `
-    <img class="pwa-install__icon" src="icons/icon-192.png" width="44" height="44" alt="">
+    <img class="pwa-install__icon" src="icons/icon-192.png?v=20260730logo" width="44" height="44" alt="">
     <div class="pwa-install__body">
       <div class="pwa-install__title">Cài app Tài Xế</div>
       <div class="pwa-install__sub">Nhận đơn nhanh, mở fullscreen như app</div>
@@ -6015,7 +6015,7 @@ function initPwaInstallPrompt() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=3.1', window.location.href).href;
+    const swUrl = new URL('sw.js?v=3.2', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

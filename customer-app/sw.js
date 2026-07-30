@@ -1,6 +1,6 @@
-/* ShipFee customer PWA — v2026-07-23a
+/* ShipFee customer PWA — v2026-07-30logo
    Minimal SW for installability + install prompt UX. */
-const SW_VERSION = 'shipfee-customer-2026-07-23a';
+const SW_VERSION = 'shipfee-customer-2026-07-30logo';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

@@ -1403,7 +1403,7 @@ function ensurePwaInstallUi() {
   banner.setAttribute('role', 'dialog');
   banner.setAttribute('aria-label', 'Cài đặt ứng dụng SHIPFEE');
   banner.innerHTML = `
-    <img class="pwa-install__icon" src="icons/icon-192.png" width="44" height="44" alt="">
+    <img class="pwa-install__icon" src="icons/icon-192.png?v=20260730logo" width="44" height="44" alt="">
     <div class="pwa-install__body">
       <div class="pwa-install__title">Cài SHIPFEE vào máy</div>
       <div class="pwa-install__sub">Mở nhanh như app, không cần App Store</div>
@@ -1551,7 +1551,7 @@ function initPwaInstallPrompt() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-23a', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-30logo', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});
