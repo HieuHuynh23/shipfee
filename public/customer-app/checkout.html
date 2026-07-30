@@ -607,45 +607,50 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-      SF.applyTheme();
-      SF.initNavScroll();
-      if (SF.loadPricingConfig) SF.loadPricingConfig();
-
-      const state = SF.getState();
-      const cart  = SF.getCart();
-      cartTotals  = SF.getCartTotal();
-
-      // Validate cart
-      if (cartTotals.itemCount === 0) {
-        SF.navigate('./');
-        return;
-      }
-
-      // Validate address
-      if (!state.deliveryAddress) {
-        SF.showToast('Cần địa chỉ', 'Vui lòng nhập địa chỉ giao hàng.', 'warning');
-        setTimeout(() => SF.navigate('./'), 1200);
-        return;
-      }
-
-      document.getElementById('pay-cod')?.addEventListener('click', () => selectPaymentMethod('COD'));
-      document.getElementById('pay-bank')?.addEventListener('click', () => selectPaymentMethod('BANK_TRANSFER'));
-
       try {
-        paymentConfig = await SF.fetchPaymentConfig();
-      } catch (_) {
-        paymentConfig = null;
+        SF.applyTheme();
+        SF.initNavScroll();
+        if (SF.loadPricingConfig) SF.loadPricingConfig();
+
+        const state = SF.getState();
+        const cart  = SF.getCart();
+        cartTotals  = SF.getCartTotal();
+
+        // Validate cart
+        if (cartTotals.itemCount === 0) {
+          SF.navigate('./');
+          return;
+        }
+
+        // Validate address
+        if (!state.deliveryAddress) {
+          SF.showToast('Cần địa chỉ', 'Vui lòng nhập địa chỉ giao hàng.', 'warning');
+          setTimeout(() => SF.navigate('./'), 1200);
+          return;
+        }
+
+        document.getElementById('pay-cod')?.addEventListener('click', () => selectPaymentMethod('COD'));
+        document.getElementById('pay-bank')?.addEventListener('click', () => selectPaymentMethod('BANK_TRANSFER'));
+
+        try {
+          paymentConfig = await SF.fetchPaymentConfig();
+        } catch (_) {
+          paymentConfig = null;
+        }
+
+        if (!state.paymentMethod) SF.setPaymentMethod('COD');
+        updatePaymentLabels();
+
+        renderOrderItems(cart, state);
+        renderAddress(state);
+        renderSavedAddressChips(state);
+        renderPriceBreakdown(cartTotals);
+        loadLoyaltyBalance(state);
+        loadGrowthOffers(state);
+      } catch (err) {
+        console.error('Checkout init error:', err);
+        SF.showToast('Lỗi tải đơn', 'Không hiển thị được checkout. Thử mở lại từ giỏ hàng.', 'error');
       }
-
-      if (!state.paymentMethod) SF.setPaymentMethod('COD');
-      updatePaymentLabels();
-
-      renderOrderItems(cart, state);
-      renderAddress(state);
-      renderSavedAddressChips(state);
-      renderPriceBreakdown(cartTotals);
-      loadLoyaltyBalance(state);
-      loadGrowthOffers(state);
     });
 
     async function loadLoyaltyBalance(state) {
@@ -673,18 +678,22 @@
     }
 
     function renderOrderItems(cart, state) {
-      const restaurant = SF.RESTAURANTS.find(r => r.id === cart.restaurantId);
+      const restaurant = (SF.getRestaurantById && SF.getRestaurantById(cart.restaurantId))
+        || (SF.RESTAURANTS || []).find(r => String(r.id) === String(cart.restaurantId));
       if (!restaurant) return;
 
-      document.getElementById('restaurant-name-label').textContent = restaurant.name;
+      const nameEl = document.getElementById('restaurant-name-label');
+      if (nameEl) nameEl.textContent = restaurant.name || '—';
 
       const listEl = document.getElementById('order-items-list');
+      if (!listEl) return;
       listEl.innerHTML = '';
 
-      Object.entries(cart.items).forEach(([cartKey, qty]) => {
+      const menu = Array.isArray(restaurant.menu) ? restaurant.menu : [];
+      Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
         if (qty <= 0) return;
         const [itemId, optionsStr] = cartKey.split('::');
-        const item = restaurant.menu.find(m => m.id === itemId);
+        const item = menu.find(m => m.id === itemId);
         if (!item) return;
 
         let toppingsStore = 0;
@@ -805,16 +814,20 @@
     }
 
     function renderPriceBreakdown(totals) {
+      if (!totals) return;
       const foodTotal = totals.storeTotal || 0;
-      document.getElementById('bd-app-price').textContent = SF.formatCurrency(foodTotal);
+      const appPriceEl = document.getElementById('bd-app-price');
+      if (appPriceEl) appPriceEl.textContent = SF.formatCurrency(foodTotal);
 
       const discountRow = document.getElementById('bd-discount-row');
       const discountVal = document.getElementById('bd-discount-price');
-      if (totals.discountValue > 0) {
-        discountRow.style.display = 'flex';
-        discountVal.textContent = '-' + SF.formatCurrency(totals.discountValue);
-      } else {
-        discountRow.style.display = 'none';
+      if (discountRow && discountVal) {
+        if (totals.discountValue > 0) {
+          discountRow.style.display = 'flex';
+          discountVal.textContent = '-' + SF.formatCurrency(totals.discountValue);
+        } else {
+          discountRow.style.display = 'none';
+        }
       }
 
       const deliveryEl = document.getElementById('bd-delivery-fee-price');
@@ -846,8 +859,8 @@
       if (waiverRow) {
         if (waivedTotal > 0) {
           waiverRow.style.display = 'flex';
-          document.getElementById('bd-waiver-applied-price').textContent =
-            '-' + SF.formatCurrency(waivedTotal);
+          const wPrice = document.getElementById('bd-waiver-applied-price');
+          if (wPrice) wPrice.textContent = '-' + SF.formatCurrency(waivedTotal);
         } else {
           waiverRow.style.display = 'none';
         }
@@ -876,42 +889,46 @@
       const minFeeNudge = document.getElementById('checkout-min-fee-nudge');
       const nudgeText = document.getElementById('checkout-fee-nudge-text');
       const hint = totals.feeWaiverHint;
-      if (hint && hint.saveAmount > 0 && (hint.amountShort > 0 || hint.itemsShort > 0)) {
-        const feeLabel = hint.target === 'delivery' ? 'phí giao hàng' : 'phí nền tảng';
-        const parts = [];
-        if (hint.amountShort > 0) {
-          parts.push(`Đặt thêm <strong>${SF.formatCurrency(hint.amountShort)}</strong>`);
+      if (minFeeNudge && nudgeText) {
+        if (hint && hint.saveAmount > 0 && (hint.amountShort > 0 || hint.itemsShort > 0)) {
+          const feeLabel = hint.target === 'delivery' ? 'phí giao hàng' : 'phí nền tảng';
+          const parts = [];
+          if (hint.amountShort > 0) {
+            parts.push(`Đặt thêm <strong>${SF.formatCurrency(hint.amountShort)}</strong>`);
+          }
+          if (hint.itemsShort > 0) {
+            parts.push(`thêm <strong>${hint.itemsShort} món</strong>`);
+          }
+          const how = parts.join(' (hoặc ');
+          const howClose = parts.length > 1 ? ')' : '';
+          nudgeText.innerHTML =
+            `${how}${howClose} để giảm <strong>${SF.formatCurrency(hint.saveAmount)}</strong> ${feeLabel}.` +
+            ` <a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a>`;
+          minFeeNudge.style.display = 'flex';
+          const backLink = document.getElementById('nudge-back-link');
+          if (backLink) {
+            const c = SF.getCart();
+            backLink.onclick = () => SF.navigate('restaurant.html', { id: c.restaurantId });
+          }
+        } else if (totals.minServiceFee > 0 && (!hint || !hint.saveAmount)) {
+          nudgeText.innerHTML =
+            `Đơn nhỏ: đang thu thêm <strong>${SF.formatCurrency(totals.minServiceFee)}</strong> để tài xế nhận tối thiểu 15.000đ/đơn. ` +
+            `<a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a> để giảm phí.`;
+          minFeeNudge.style.display = 'flex';
+          const backLink = document.getElementById('nudge-back-link');
+          if (backLink) {
+            const c = SF.getCart();
+            backLink.onclick = () => SF.navigate('restaurant.html', { id: c.restaurantId });
+          }
+        } else {
+          minFeeNudge.style.display = 'none';
         }
-        if (hint.itemsShort > 0) {
-          parts.push(`thêm <strong>${hint.itemsShort} món</strong>`);
-        }
-        const how = parts.join(' (hoặc ');
-        const howClose = parts.length > 1 ? ')' : '';
-        nudgeText.innerHTML =
-          `${how}${howClose} để giảm <strong>${SF.formatCurrency(hint.saveAmount)}</strong> ${feeLabel}.` +
-          ` <a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a>`;
-        minFeeNudge.style.display = 'flex';
-        const backLink = document.getElementById('nudge-back-link');
-        if (backLink) {
-          const cart = SF.getCart();
-          backLink.onclick = () => SF.navigate('restaurant.html', { id: cart.restaurantId });
-        }
-      } else if (totals.minServiceFee > 0 && (!hint || !hint.saveAmount)) {
-        nudgeText.innerHTML =
-          `Đơn nhỏ: đang thu thêm <strong>${SF.formatCurrency(totals.minServiceFee)}</strong> để tài xế nhận tối thiểu 15.000đ/đơn. ` +
-          `<a href="javascript:void(0)" id="nudge-back-link" style="color: var(--clr-primary); font-weight: 700; text-decoration: underline;">Thêm món</a> để giảm phí.`;
-        minFeeNudge.style.display = 'flex';
-        const backLink = document.getElementById('nudge-back-link');
-        if (backLink) {
-          const cart = SF.getCart();
-          backLink.onclick = () => SF.navigate('restaurant.html', { id: cart.restaurantId });
-        }
-      } else {
-        minFeeNudge.style.display = 'none';
       }
 
-      document.getElementById('bd-total').textContent = SF.formatCurrency(payTotal);
-      document.getElementById('sticky-total').textContent = SF.formatCurrency(payTotal);
+      const bdTotal = document.getElementById('bd-total');
+      const stickyTotal = document.getElementById('sticky-total');
+      if (bdTotal) bdTotal.textContent = SF.formatCurrency(payTotal);
+      if (stickyTotal) stickyTotal.textContent = SF.formatCurrency(payTotal);
     }
 
     async function placeOrder() {
