@@ -1,6 +1,6 @@
-/* ShipFee customer PWA — v2026-07-30retention
+/* ShipFee customer PWA — v2026-07-31promo
    Installability + Web Push notifications. */
-const SW_VERSION = 'shipfee-customer-2026-07-30retention';
+const SW_VERSION = 'shipfee-customer-2026-07-31promo';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
