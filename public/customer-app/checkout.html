@@ -299,6 +299,10 @@
             <span id="bd-waiver-applied-label">Ưu đãi phí</span>
             <span id="bd-waiver-applied-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
           </div>
+          <div class="price-breakdown__row" id="bd-promo-row" style="display:none;">
+            <span id="bd-promo-label">Mã giảm giá</span>
+            <span id="bd-promo-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
+          </div>
           <div class="price-breakdown__row total">
             <span id="bd-total-label">Tổng thanh toán (COD)</span>
             <span id="bd-total" class="text-primary">—</span>
@@ -402,7 +406,27 @@
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
+    let appliedPromoDiscount = 0;
     let growthOffersData = null;
+    const MIN_SHIPPER_EARNING = 15000;
+
+    function clampPromoPreview(rawDiscount, totals) {
+      const t = totals || SF.getCartTotal();
+      const minApp = (Number(t.storeTotal) || 0) + MIN_SHIPPER_EARNING;
+      const maxDiscount = Math.max(0, (Number(t.appTotal) || 0) - minApp);
+      return Math.min(Math.max(0, Number(rawDiscount) || 0), maxDiscount);
+    }
+
+    function clearAppliedPromo(msg) {
+      appliedPromoCode = null;
+      appliedPromoDiscount = 0;
+      const msgEl = document.getElementById('promo-code-msg');
+      if (msgEl && msg !== undefined) {
+        msgEl.style.color = 'var(--clr-text-muted)';
+        msgEl.textContent = msg || '';
+      }
+      renderPriceBreakdown(cartTotals || SF.getCartTotal());
+    }
 
     async function loadGrowthOffers(state) {
       const listEl = document.getElementById('growth-offers-list');
@@ -463,9 +487,13 @@
     async function applyPromoCode() {
       const code = document.getElementById('promo-code-input')?.value?.trim();
       const msgEl = document.getElementById('promo-code-msg');
-      if (!code) { if (msgEl) msgEl.textContent = ''; appliedPromoCode = null; return; }
+      if (!code) {
+        clearAppliedPromo('');
+        return;
+      }
       try {
         const totals = SF.getCartTotal();
+        cartTotals = totals;
         const state = SF.getState();
         const phone = (state.ordererPhone || state.deliveryPhone || '').replace(/\s+/g, '');
         const res = await fetch(`${SF.API_BASE}/api/promos/validate`, {
@@ -476,18 +504,35 @@
             subtotal: totals.appTotal,
             phone,
             deliveryFee: totals.deliveryFee || 0,
-            itemCount: totals.itemCount || (SF.getState()?.cart || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0)
+            itemCount: totals.itemCount || (state.cart || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0)
           })
         }).then(r => r.json());
         if (!res.success) {
-          appliedPromoCode = null;
-          if (msgEl) msgEl.textContent = res.error || 'Mã không hợp lệ';
+          clearAppliedPromo(res.error || 'Mã không hợp lệ');
           return;
         }
-        appliedPromoCode = code;
-        if (msgEl) msgEl.textContent = `Giảm ${SF.formatCurrency(res.data.discount)} — áp dụng khi đặt hàng`;
+        const preview = clampPromoPreview(res.data.discount, totals);
+        appliedPromoCode = String(res.data.code || code).toUpperCase();
+        appliedPromoDiscount = preview;
+        if (msgEl) {
+          const raw = Number(res.data.discount) || 0;
+          if (preview <= 0) {
+            msgEl.style.color = 'var(--clr-warning, #d97706)';
+            msgEl.textContent =
+              `Mã hợp lệ (−${SF.formatCurrency(raw)}) nhưng đơn này đã sát sàn tài xế 15.000đ nên chưa trừ thêm được. Thêm món rồi áp lại.`;
+            appliedPromoCode = null;
+            appliedPromoDiscount = 0;
+          } else if (preview < raw) {
+            msgEl.style.color = 'var(--clr-success, #16a34a)';
+            msgEl.textContent = `Đã áp dụng: giảm ${SF.formatCurrency(preview)} (giữ sàn tài xế 15.000đ)`;
+          } else {
+            msgEl.style.color = 'var(--clr-success, #16a34a)';
+            msgEl.textContent = `Đã áp dụng: giảm ${SF.formatCurrency(preview)}`;
+          }
+        }
+        renderPriceBreakdown(totals);
       } catch (e) {
-        if (msgEl) msgEl.textContent = 'Không kiểm tra được mã';
+        clearAppliedPromo('Không kiểm tra được mã');
       }
     }
 
@@ -808,6 +853,26 @@
         }
       }
 
+      const promoPreview = clampPromoPreview(appliedPromoDiscount, totals);
+      appliedPromoDiscount = promoPreview;
+      const promoRow = document.getElementById('bd-promo-row');
+      const promoLabel = document.getElementById('bd-promo-label');
+      const promoPrice = document.getElementById('bd-promo-price');
+      if (promoRow) {
+        if (promoPreview > 0 && appliedPromoCode) {
+          promoRow.style.display = 'flex';
+          if (promoLabel) promoLabel.textContent = `Mã ${appliedPromoCode}`;
+          if (promoPrice) promoPrice.textContent = '-' + SF.formatCurrency(promoPreview);
+        } else {
+          promoRow.style.display = 'none';
+        }
+      }
+
+      const payTotal = Math.max(
+        (Number(totals.storeTotal) || 0) + MIN_SHIPPER_EARNING,
+        (Number(totals.appTotal) || 0) - promoPreview
+      );
+
       const minFeeNudge = document.getElementById('checkout-min-fee-nudge');
       const nudgeText = document.getElementById('checkout-fee-nudge-text');
       const hint = totals.feeWaiverHint;
@@ -845,8 +910,8 @@
         minFeeNudge.style.display = 'none';
       }
 
-      document.getElementById('bd-total').textContent = SF.formatCurrency(totals.appTotal);
-      document.getElementById('sticky-total').textContent = SF.formatCurrency(totals.appTotal);
+      document.getElementById('bd-total').textContent = SF.formatCurrency(payTotal);
+      document.getElementById('sticky-total').textContent = SF.formatCurrency(payTotal);
     }
 
     async function placeOrder() {
