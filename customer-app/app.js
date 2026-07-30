@@ -354,7 +354,6 @@ function getCartTotal() {
     }
   });
 
-  const surchargePerItem = restaurant.distanceSurchargePerItem || 0;
   const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;
 
   // Calculate dynamic multi-item discount:
@@ -388,10 +387,12 @@ function getCartTotal() {
   });
 
   if (itemsList.length > 1) {
-    // PRICING.md: món 2+ giảm max(2000đ, 15% phụ thu km) mỗi món
+    // Món đắt nhất giữ giá đủ; món 2+ giảm MULTI_ITEM_DISCOUNT trên appPrice (tối thiểu 2.000đ)
     itemsList.sort((a, b) => b.appPrice - a.appPrice);
-    const perExtra = Math.max(2000, round100(surchargePerItem * MULTI_ITEM_DISCOUNT));
-    discountValue = perExtra * (itemsList.length - 1);
+    for (let i = 1; i < itemsList.length; i++) {
+      const pctOff = round100(itemsList[i].appPrice * MULTI_ITEM_DISCOUNT);
+      discountValue += Math.max(2000, pctOff);
+    }
   }
 
   let minServiceFee = 0;

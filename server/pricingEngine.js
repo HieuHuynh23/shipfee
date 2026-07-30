@@ -2,7 +2,7 @@
 
 /**
  * ShipFee pricing engine — pure functions (server-authoritative).
- * Matches PRICING.md: markup, distance surcharge, multi-item discount, min earning floor.
+ * Matches PRICING.md: markup, distance surcharge, 15% off items 2+, min earning floor.
  */
 
 function round100(value) {
@@ -170,10 +170,15 @@ function recomputeOrderPricingFromMenu({
   });
   const pricedItems = Array.from(mergedMap.values());
 
+  // Ưu đãi món 2+: giữ món đắt nhất giá đủ; mỗi món còn lại giảm multiItemDiscount
+  // trên appPrice (tối thiểu 2.000đ/món) — khớp UI "giảm 15% từ món thứ 2".
   let discountValue = 0;
   if (lineUnits.length > 1) {
-    const perExtra = Math.max(2000, round100(surchargePerItem * multiItemDiscount));
-    discountValue = perExtra * (lineUnits.length - 1);
+    const sorted = [...lineUnits].sort((a, b) => b.appPrice - a.appPrice);
+    for (let i = 1; i < sorted.length; i++) {
+      const pctOff = round100(sorted[i].appPrice * multiItemDiscount);
+      discountValue += Math.max(2000, pctOff);
+    }
   }
 
   const shipperEarningBeforeDiscount = appTotalRaw - storeTotal;

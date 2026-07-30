@@ -3235,7 +3235,7 @@ function renderSettings() {
           <input type="number" class="form-input" id="settings-min-earning" min="0" value="15000">
         </div>
         <div class="form-group">
-          <label class="form-label">Giảm phụ thu món 2+ (%)</label>
+          <label class="form-label">Giảm giá món 2+ (% appPrice)</label>
           <input type="number" class="form-input" id="settings-multi-discount" min="0" max="100" value="15">
         </div>
         <button class="btn btn--primary btn--sm" onclick="savePricingSettings()">

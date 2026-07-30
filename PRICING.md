@@ -12,7 +12,7 @@ Các tham số này được định nghĩa tập trung ở backend (`server.js`
 *   **FREE_DISTANCE_KM**: `1.5` (Miễn phí phụ thu khoảng cách cho khách hàng trong bán kính dưới 1.5 km).
 *   **SURCHARGE_COEFFICIENT**: `7000` (Hệ số tính phụ thu khoảng cách dựa trên hàm căn bậc hai).
 *   **MIN_SHIPPER_EARNING**: `15000` (Thu nhập tối thiểu của tài xế nhận được trên mỗi đơn hàng là 15.000đ).
-*   **MULTI_ITEM_DISCOUNT**: `0.15` (Ưu đãi mua nhiều: giảm 15% phụ thu khoảng cách cho món thứ 2 trở đi trong giỏ hàng, tối thiểu giảm 2.000đ cho mỗi món thêm).
+*   **MULTI_ITEM_DISCOUNT**: `0.15` (Ưu đãi mua nhiều: giảm **15% giá app** của mỗi món từ món thứ 2 trở đi — món đắt nhất giữ giá đủ; tối thiểu giảm 2.000đ cho mỗi món thêm).
 *   **SECOND_ORDER_DISCOUNT_RATE**: `0.10` (Khách đã có ≥1 đơn trước đó: giảm thêm **10%** trên `appTotal` sau multi-item / phí đơn nhỏ — áp dụng khi tạo đơn, theo `ordererPhone`).
 
 ---
@@ -37,10 +37,12 @@ Khoảng cách $d$ được tính theo công thức Haversine đường chim bay
 ### C. Ưu Đãi Đặt Nhiều Món
 Khi khách hàng đặt nhiều món ăn trong cùng một đơn hàng, hệ thống tự động áp dụng ưu đãi giảm giá mà không cần nhập mã code:
 
-*   Nếu tổng số lượng món ăn trong giỏ hàng $N \ge 2$:
-    $$\text{discountValue} = (N - 1) \times \max(2000, \text{round100}(\text{distanceSurchargePerItem} \times 0.15))$$
-*   Có nghĩa là mỗi món ăn thêm từ món thứ 2 trở đi luôn được **giảm tối thiểu 2.000đ** (ngay cả khi giao gần dưới 1.5 km và phụ thu bằng 0đ). Điều này đảm bảo dòng giảm giá luôn được hiển thị trên trang thanh toán khi khách đặt từ 2 món trở lên.
-*   Giá trị giảm giá này được trừ trực tiếp vào tổng tiền thanh toán của khách hàng, tạo trải nghiệm mua sắm tự nhiên, kích thích đặt nhiều món.
+*   Sắp xếp các đơn vị món theo `appPrice` giảm dần; **món đắt nhất** là món chính (không giảm).
+*   Nếu tổng số lượng món ăn trong giỏ hàng $N \ge 2$, với mỗi món $i = 2..N$:
+    $$\text{discount}_i = \max\bigl(2000,\ \text{round100}(\text{appPrice}_i \times 0.15)\bigr)$$
+    $$\text{discountValue} = \sum_{i=2}^{N} \text{discount}_i$$
+*   Mỗi món thêm từ món thứ 2 trở đi được **giảm 15% giá app** (tối thiểu 2.000đ/món), khớp thông điệp UI trên trang quán.
+*   Giá trị giảm giá này được trừ trực tiếp vào tổng tiền thanh toán của khách hàng; vẫn bị giới hạn bởi sàn thu nhập shipper (mục D).
 
 ### D. Sàn Thu Nhập Shipper & Phí Đơn Hàng Nhỏ
 Để đảm bảo mỗi chuyến giao hàng shipper luôn thu về tối thiểu **15.000đ** (bảo vệ thu nhập tài xế):
@@ -102,28 +104,30 @@ Bảng dưới đây minh họa giá món trên ứng dụng tùy thuộc vào g
 *   **Giá gốc tại quán**: $35.000 \times 2 = 70.000đ$.
 *   **Giá App món 1 (đầy đủ)**: $44.800đ + 8.600đ = 53.400đ$.
 *   **Giá App món 2 (chưa giảm)**: $44.800đ + 8.600đ = 53.400đ$.
-*   **Ưu đãi đặt nhiều (giảm 15% phụ thu món 2, tối thiểu 2.000đ)**: $(2 - 1) \times \max(2000, \text{round100}(8.600 \times 0.15)) = 2.000đ$.
-*   **Tổng cộng appTotal**: $(53.400 \times 2) - 2.000 = 104.800đ$.
-*   **Thu nhập shipper thực tế**: $104.800đ - 70.000đ = 34.800đ \ge 15.000đ$ (Đạt sàn).
-*   **Khách trả**: **104.800đ** | **Shipper nhận**: **34.800đ**.
+*   **Ưu đãi đặt nhiều (giảm 15% giá app món 2)**: $\max(2000, \text{round100}(53.400 \times 0.15)) = 8.000đ$.
+*   **Tổng cộng appTotal**: $(53.400 \times 2) - 8.000 = 98.800đ$.
+*   **Thu nhập shipper thực tế**: $98.800đ - 70.000đ = 28.800đ \ge 15.000đ$ (Đạt sàn).
+*   **Khách trả**: **98.800đ** | **Shipper nhận**: **28.800đ**.
 
 ### Ví dụ 4: Khách đặt 2 bát Phở giá gốc 35.000đ/bát, khoảng cách 1.0 km (Giao gần dưới 1.5 km)
 *   **Giá gốc tại quán**: $35.000 \times 2 = 70.000đ$.
 *   **Giá App món 1 (markup 28%, không surcharge)**: $44.800đ$.
 *   **Giá App món 2**: $44.800đ$.
-*   **Ưu đãi đặt nhiều (tối thiểu 2.000đ cho mỗi món thêm từ món thứ 2)**: $1 \times 2.000đ = 2.000đ$.
-*   **Tổng cộng appTotal**: $(44.800 \times 2) - 2.000 = 87.600đ$.
-*   **Thu nhập shipper thực tế**: $87.600đ - 70.000đ = 17.600đ \ge 15.000đ$ (Đạt sàn).
-*   **Khách trả**: **87.600đ** | **Shipper nhận**: **17.600đ**.
+*   **Ưu đãi đặt nhiều (giảm 15% giá app món 2)**: $\max(2000, \text{round100}(44.800 \times 0.15)) = 6.700đ$.
+*   **Tổng cộng appTotal**: $(44.800 \times 2) - 6.700 = 82.900đ$.
+*   **Thu nhập shipper thực tế**: $82.900đ - 70.000đ = 12.900đ$ — dưới sàn 15.000đ nên hệ thống **cắt giảm giá** còn $19.600 - 15.000 = 4.600đ$ (giữ sàn shipper).
+*   **Khách trả**: $(44.800 \times 2) - 4.600 = $ **85.000đ** | **Shipper nhận**: **15.000đ**.
 
 ---
 
 ## 5. Nhật Ký Thay Đổi (Changelog)
 
-*   **Phiên bản 1.2 (Hiện tại)**:
+*   **Phiên bản 1.3 (Hiện tại)**:
+    *   Sửa ưu đãi đặt nhiều món: **giảm 15% `appPrice`** của mỗi món từ món thứ 2 (món đắt nhất giữ giá đủ), tối thiểu 2.000đ/món — trước đây nhầm chỉ giảm 15% phụ thu km (thường chỉ còn 2.000đ).
+    *   Ưu đãi đơn thứ 2+ **cộng dồn** với multi-item (không ghi đè `discountValue`) và cập nhật lại `shipperEarning`.
+*   **Phiên bản 1.2**:
     *   Nâng mức markup cơ sở lên cố định **28%** (thay vì random 25% - 35%) nhằm ổn định trải nghiệm giá.
     *   Hạ ngưỡng miễn phụ thu khoảng cách xuống **1.5 km** (trước đây là 2.0 km) nhằm tăng độ phủ thu nhập.
     *   Áp dụng **sàn thu nhập tài xế 15.000đ** qua hình thức phí đơn hàng nhỏ động.
-    *   Thay đổi ưu đãi mua nhiều thành **giảm 15%** phụ thu khoảng cách cho món thứ 2+ (trước đây là 20%).
     *   Làm tròn toàn bộ số tiền thanh toán đến **100đ** (trước đây làm tròn 1.000đ).
     *   Document **ưu đãi đơn thứ 2+** (`secondOrderDiscountRate` = 10% trên `appTotal`) — khớp server + Admin Pricing Config.

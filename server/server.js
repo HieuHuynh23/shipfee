@@ -1339,7 +1339,7 @@ let pricingConfig = {
   freeDistanceKm: 1.5,        // Miễn phụ thu dưới 1.5km
   surchargeCoefficient: 7000, // Hệ số đường cong sqrt
   minShipperEarning: 15000,   // Sàn thu nhập shipper/đơn (đ)
-  multiItemDiscount: 0.15     // 15% giảm surcharge cho món 2+
+  multiItemDiscount: 0.15     // 15% giảm giá appPrice cho món 2+ (tối thiểu 2.000đ/món)
 };
 
 function loadPricingConfig() {
@@ -5706,17 +5706,19 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
     const orders = readOrdersDatabase();
     const cleanedOrdererPhone = newOrder.ordererPhone.trim().replace(/\s+/g, '');
     if (cleanedOrdererPhone) {
-      const hasPreviousOrders = orders.some(o => 
-        o.ordererPhone.trim().replace(/\s+/g, '') === cleanedOrdererPhone &&
-        o.id !== newOrder.id
-      );
+      const hasPreviousOrders = orders.some(o => {
+        const prevPhone = String(o.ordererPhone || '').trim().replace(/\s+/g, '');
+        return prevPhone === cleanedOrdererPhone && o.id !== newOrder.id;
+      });
 
       if (hasPreviousOrders && pricingConfig.secondOrderDiscountRate > 0) {
         const discountPercent = pricingConfig.secondOrderDiscountRate;
         const subtotal = newOrder.appTotal;
         const discountVal = round100(subtotal * discountPercent);
-        newOrder.discountValue = discountVal;
+        // Cộng dồn với ưu đãi đặt nhiều món — không ghi đè discountValue
+        newOrder.discountValue = (newOrder.discountValue || 0) + discountVal;
         newOrder.appTotal = Math.max(0, subtotal - discountVal);
+        newOrder.shipperEarning = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
         console.log(`[Pricing Config] Khách hàng ${cleanedOrdererPhone} được áp dụng giảm giá đơn thứ 2+ (${discountPercent * 100}%): Giảm ${discountVal}đ. Tổng mới: ${newOrder.appTotal}đ`);
       }
     }
