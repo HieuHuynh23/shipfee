@@ -1946,7 +1946,8 @@ function renderActiveTrip() {
   const clientName = activeOrder.isRelative ? `👤 ${activeOrder.deliveryName} (Người thân)` : activeOrder.deliveryName || 'Khách hàng';
   document.getElementById('trip-customer-name').textContent = clientName;
   document.getElementById('trip-customer-address').textContent = formatCustomerAddressDisplay(activeOrder);
-  document.getElementById('trip-customer-phone').textContent = `SĐT: ${activeOrder.deliveryPhone || '—'}`;
+  const custPhone = String(activeOrder.deliveryPhone || activeOrder.ordererPhone || '').replace(/\s+/g, '');
+  document.getElementById('trip-customer-phone').textContent = custPhone ? `SĐT: ${custPhone}` : 'SĐT: —';
   
   document.getElementById('trip-store-total').textContent = formatCurrency(activeOrder.storeTotal);
   document.getElementById('trip-app-total').textContent = formatCurrency(activeOrder.appTotal);
@@ -4703,11 +4704,12 @@ function makeDirectCall() {
       lockBodyScroll();
     }
   } else {
-    if (!activeOrder.deliveryPhone) {
+    const phone = String(activeOrder.deliveryPhone || activeOrder.ordererPhone || '').replace(/\s+/g, '');
+    if (!phone) {
       showToast('Lỗi', 'Không tìm thấy số điện thoại khách hàng.', 'error');
       return;
     }
-    window.location.href = `tel:${activeOrder.deliveryPhone}`;
+    window.location.href = `tel:${phone}`;
   }
 }
 window.makeDirectCall = makeDirectCall;
@@ -6015,7 +6017,7 @@ function initPwaInstallPrompt() {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const swUrl = new URL('sw.js?v=3.2', window.location.href).href;
+    const swUrl = new URL('sw.js?v=3.3', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       if (reg && typeof reg.update === 'function') reg.update().catch(() => {});
     }).catch(() => {});

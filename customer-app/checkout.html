@@ -401,7 +401,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=20260731a"></script>
+  <script src="app.js?v=20260731b"></script>
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
@@ -637,10 +637,18 @@
         SF.initNavScroll();
         if (SF.loadPricingConfig) SF.loadPricingConfig();
 
-        setCheckoutStatus('Đang tải đơn hàng…', false);
-
         let state = SF.getState();
         let cart = SF.getCart();
+
+        // Điền SĐT từ tài khoản đăng nhập nếu thiếu
+        try {
+          const profilePhone = SF.getCustomerPhone && SF.getCustomerPhone();
+          if (profilePhone && !state.deliveryPhone) {
+            state.deliveryPhone = profilePhone;
+            SF.saveState(state);
+            state = SF.getState();
+          }
+        } catch (_) {}
 
         if (!cart || !cart.restaurantId || !cart.items || !Object.keys(cart.items).length) {
           setCheckoutStatus('Giỏ hàng trống. Quay lại chọn món.', true);
@@ -649,48 +657,53 @@
           return;
         }
 
-        // Địa chỉ: vẽ ngay nếu có; thiếu thì vẫn tiếp tục hiện món/giá
-        if (state.deliveryAddress) {
-          try { renderAddress(state); renderSavedAddressChips(state); } catch (_) {}
-        } else {
-          const nameEl = document.getElementById('addr-name');
-          const addrEl = document.getElementById('addr-address');
-          if (nameEl) nameEl.textContent = 'Chưa có địa chỉ giao hàng';
-          if (addrEl) addrEl.textContent = 'Bấm Thay đổi để nhập địa chỉ trên trang chủ';
-        }
-
-        try {
-          if (SF.ensureCartRestaurant) await SF.ensureCartRestaurant(cart.restaurantId);
-        } catch (e) {
-          console.warn('ensureCartRestaurant', e);
-        }
-
-        // QUAN TRỌNG: đọc lại cart sau async — object cũ không có lines mới ghi
-        state = SF.getState();
-        cart = SF.getCart();
-
-        try {
-          if (SF.backfillCartLinesFromRestaurant) SF.backfillCartLinesFromRestaurant(cart.restaurantId);
-          state = SF.getState();
-          cart = SF.getCart();
-        } catch (e) {
-          console.warn('backfillCartLines', e);
-        }
-
+        // VẼ NGAY — không chờ API (tránh kẹt "—" khi mạng chậm / Render cold start)
         cartTotals = SF.getCartTotal();
+        paintCheckout(state, cart, cartTotals);
+        if (!cartTotals || !(cartTotals.itemCount > 0)) {
+          setCheckoutStatus('Đang tải thực đơn để tính giá…', false);
+        }
 
         document.getElementById('pay-cod')?.addEventListener('click', () => selectPaymentMethod('COD'));
         document.getElementById('pay-bank')?.addEventListener('click', () => selectPaymentMethod('BANK_TRANSFER'));
-
-        try {
-          paymentConfig = await SF.fetchPaymentConfig();
-        } catch (_) {
-          paymentConfig = null;
-        }
-
         if (!state.paymentMethod) SF.setPaymentMethod('COD');
+        try { updatePaymentLabels(); } catch (_) {}
 
-        if (!cartTotals || cartTotals.itemCount === 0) {
+        // Hydrate menu + payment config song song (không chặn UI)
+        const hydratePromise = (async () => {
+          try {
+            if (SF.ensureCartRestaurant) await SF.ensureCartRestaurant(cart.restaurantId);
+          } catch (e) {
+            console.warn('ensureCartRestaurant', e);
+          }
+          try {
+            if (SF.backfillCartLinesFromRestaurant) SF.backfillCartLinesFromRestaurant(cart.restaurantId);
+          } catch (e) {
+            console.warn('backfillCartLines', e);
+          }
+          state = SF.getState();
+          cart = SF.getCart();
+          cartTotals = SF.getCartTotal();
+          paintCheckout(state, cart, cartTotals);
+          return cartTotals;
+        })();
+
+        const payPromise = (async () => {
+          try {
+            paymentConfig = await SF.fetchPaymentConfig();
+          } catch (_) {
+            paymentConfig = null;
+          }
+          try { updatePaymentLabels(); } catch (_) {}
+        })();
+
+        await Promise.all([hydratePromise, payPromise]);
+
+        state = SF.getState();
+        cart = SF.getCart();
+        cartTotals = SF.getCartTotal();
+
+        if (!cartTotals || cartTotals.itemCount === 0 || !(cartTotals.storeTotal > 0)) {
           paintCheckout(state, cart, cartTotals);
           setCheckoutStatus(
             'Không tính được món trong giỏ (thiếu menu/cache). Hãy mở lại quán và thêm món, rồi vào checkout.',
@@ -707,8 +720,8 @@
 
         paintCheckout(state, cart, cartTotals);
 
-        if (!state.deliveryAddress) {
-          SF.showToast('Cần địa chỉ', 'Nhập địa chỉ giao hàng trước khi đặt.', 'warning');
+        if (!state.deliveryAddress || !state.deliveryPhone) {
+          SF.showToast('Cần địa chỉ & SĐT', 'Nhập địa chỉ và số điện thoại trước khi đặt.', 'warning');
         }
 
         loadLoyaltyBalance(state);

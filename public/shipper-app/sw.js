@@ -1,5 +1,5 @@
-/* ShipFee Tài Xế PWA — SW v3.2 (logo refresh) */
-const SW_VERSION = 'shipfee-tx-v3.2';
+/* ShipFee Tài Xế PWA — SW v3.3 (customer phone fallback) */
+const SW_VERSION = 'shipfee-tx-v3.3';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

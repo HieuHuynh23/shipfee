@@ -685,7 +685,12 @@ async function fetchCustomerSuggestions() {
 
 async function fetchPaymentConfig() {
   try {
-    const res = await fetch(`${_API_BASE}/api/config/payment`);
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), 6000) : null;
+    const res = await fetch(`${_API_BASE}/api/config/payment`, {
+      signal: controller ? controller.signal : undefined
+    });
+    if (timer) clearTimeout(timer);
     const result = await res.json();
     return result.success ? result.data : null;
   } catch {
@@ -1230,6 +1235,28 @@ function updateCartItemNote(cartKey, note) {
 async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode, loyaltyPointsRedeem, paymentMethod) {
   const state = getState();
   const cart   = state.cart;
+  const phoneRegex = /^0[35789]\d{8}$/;
+  let deliveryPhone = String(phone || state.deliveryPhone || '').replace(/\s+/g, '');
+  let orderer = String(ordererPhone || state.ordererPhone || '').replace(/\s+/g, '');
+  if (!phoneRegex.test(deliveryPhone)) {
+    deliveryPhone = getCustomerPhone() || '';
+  }
+  if (!phoneRegex.test(deliveryPhone)) {
+    throw new Error('Thiếu số điện thoại nhận hàng. Vui lòng cập nhật địa chỉ trước khi đặt.');
+  }
+  if (!String(name || state.deliveryName || '').trim()) {
+    throw new Error('Thiếu tên người nhận. Vui lòng cập nhật địa chỉ trước khi đặt.');
+  }
+  if (!String(address || state.deliveryAddress || '').trim()) {
+    throw new Error('Thiếu địa chỉ giao hàng.');
+  }
+  // Đồng bộ lại state để checkout / tracking luôn có SĐT
+  state.deliveryPhone = deliveryPhone;
+  if (orderer && phoneRegex.test(orderer)) state.ordererPhone = orderer;
+  if (!state.deliveryName) state.deliveryName = String(name || '').trim();
+  if (!state.deliveryAddress) state.deliveryAddress = String(address || '').trim();
+  saveState(state);
+
   await ensureCartRestaurant(cart.restaurantId);
   const totals = getCartTotal();
   const restaurant = getRestaurantById(cart.restaurantId);
@@ -1275,10 +1302,10 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     shipperEarning: totals.shipperEarning,
     discountValue: totals.discountValue || 0,
     minServiceFee: totals.minServiceFee || 0,
-    deliveryAddress: address,
-    deliveryName: name,
-    deliveryPhone: phone,
-    ordererPhone: ordererPhone || '',
+    deliveryAddress: address || state.deliveryAddress,
+    deliveryName: name || state.deliveryName,
+    deliveryPhone,
+    ordererPhone: (orderer && phoneRegex.test(orderer)) ? orderer : (state.ordererPhone || ''),
     pinnedLat: (typeof pinnedLat === 'number' && Number.isFinite(pinnedLat))
       ? pinnedLat
       : ((typeof state.userLat === 'number' && Number.isFinite(state.userLat)) ? state.userLat : null),
@@ -1420,8 +1447,9 @@ function getParam(key) {
    Utility Functions
    -------------------------------------------------------------------------- */
 function formatCurrency(amount) {
-  if (typeof amount !== 'number') return '0đ';
-  return amount.toLocaleString('vi-VN') + 'đ';
+  const n = typeof amount === 'number' ? amount : Number(amount);
+  if (!Number.isFinite(n)) return '0đ';
+  return n.toLocaleString('vi-VN') + 'đ';
 }
 
 function formatTime(ts) {
@@ -2264,7 +2292,7 @@ function initPwaInstallPrompt() {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     // Bust SW URL so phones discard stale cached tracking/HTML builds
-    const swUrl = new URL('sw.js?v=2026-07-31checkout', window.location.href).href;
+    const swUrl = new URL('sw.js?v=2026-07-31paint', window.location.href).href;
     navigator.serviceWorker.register(swUrl).then((reg) => {
       try { reg.update(); } catch (_) {}
     }).catch(() => {});

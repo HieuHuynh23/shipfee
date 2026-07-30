@@ -5577,6 +5577,22 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       return res.status(400).json({ error: 'Đơn hàng không hợp lệ' });
     }
 
+    const phoneOk = (p) => /^0[35789]\d{8}$/.test(String(p || '').replace(/\s+/g, ''));
+    if (!phoneOk(orderData.deliveryPhone)) {
+      // Fallback: dùng SĐT người đặt nếu đơn thiếu SĐT nhận
+      if (phoneOk(orderData.ordererPhone)) {
+        orderData.deliveryPhone = String(orderData.ordererPhone).replace(/\s+/g, '');
+      } else {
+        return res.status(400).json({ error: 'Thiếu hoặc sai số điện thoại nhận hàng (10 số, đầu 03/05/07/08/09)' });
+      }
+    }
+    if (!(orderData.deliveryName || '').toString().trim()) {
+      return res.status(400).json({ error: 'Thiếu tên người nhận hàng' });
+    }
+    if (!(orderData.deliveryAddress || '').toString().trim()) {
+      return res.status(400).json({ error: 'Thiếu địa chỉ giao hàng' });
+    }
+
     const orderId = 'SPF-' + crypto.randomBytes(4).toString('hex').toUpperCase();
     const trackingToken = generateTrackingToken();
 
