@@ -5777,7 +5777,10 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
     if (promoCodeToApply) {
       const promoResult = crm.validatePromo(promoCodeToApply, newOrder.appTotal, {
         hasPreviousOrders,
-        deliveryFee: newOrder.deliveryFee || 0
+        deliveryFee: newOrder.deliveryFee || 0,
+        itemCount: Array.isArray(newOrder.items)
+          ? newOrder.items.reduce((s, it) => s + (Number(it.quantity) || 1), 0)
+          : 0
       });
       if (!promoResult.valid) {
         // Auto-welcome thất bại thì bỏ qua; mã khách nhập thì báo lỗi
@@ -8500,7 +8503,7 @@ app.post('/api/admin/menus/reconcile', authenticateAdmin, crm.requireAdminRole('
  */
 app.post('/api/promos/validate', (req, res) => {
   try {
-    const { code, subtotal, phone, deliveryFee } = req.body || {};
+    const { code, subtotal, phone, deliveryFee, itemCount } = req.body || {};
     let hasPreviousOrders = false;
     const cleaned = String(phone || '').trim().replace(/\s+/g, '');
     if (cleaned) {
@@ -8511,7 +8514,8 @@ app.post('/api/promos/validate', (req, res) => {
     }
     const result = crm.validatePromo(code, Number(subtotal) || 0, {
       hasPreviousOrders,
-      deliveryFee: Number(deliveryFee) || 0
+      deliveryFee: Number(deliveryFee) || 0,
+      itemCount: Number(itemCount) || 0
     });
     if (!result.valid) {
       return res.status(400).json({ success: false, error: result.error });
@@ -8565,7 +8569,28 @@ app.get('/api/growth-offers', (req, res) => {
 app.get('/api/admin/growth-packages', authenticateAdmin, (req, res) => {
   try {
     const growthPackages = require('./growthPackages');
-    res.json({ success: true, data: growthPackages.listPackagesForAdmin() });
+    res.json({
+      success: true,
+      data: growthPackages.listPackagesForAdmin({
+        q: req.query.q,
+        kind: req.query.kind,
+        stage: req.query.stage,
+        enabled: req.query.enabled,
+        page: req.query.page,
+        limit: req.query.limit
+      })
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/growth-packages/rebuild', authenticateAdmin, crm.requireAdminRole('admin'), (req, res) => {
+  try {
+    const growthPackages = require('./growthPackages');
+    const result = growthPackages.rebuildCatalogPreserveEnabled();
+    crm.logAdminAudit(req, 'growth_packages_rebuild', result);
+    res.json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

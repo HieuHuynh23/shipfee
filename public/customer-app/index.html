@@ -333,7 +333,7 @@
         <span class="benefit-strip__dot"></span>
         <span class="benefit-strip__item"><i class="fa-solid fa-tags"></i> Món 2− giảm 15%</span>
         <span class="benefit-strip__dot"></span>
-        <span class="benefit-strip__item"><i class="fa-solid fa-gift"></i> Đơn đầu −15k</span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-motorcycle"></i> Giao nhanh</span>
       </div>
     </section>
 
@@ -572,8 +572,11 @@
         const qs = phone ? `?phone=${encodeURIComponent(phone)}` : '';
         const res = await fetch(`${SF.API_BASE}/api/growth-offers${qs}`).then(r => r.json());
         if (!res.success || !Array.isArray(res.data?.offers)) return;
-        const top = res.data.offers.filter(o => o.kind === 'promo' || o.id === 'multi_item_15' || o.id === 'welcome_first').slice(0, 3);
-        if (!top.length) return;
+        const top = (res.data.offers || []).filter(o => o.kind === 'promo' && o.code).slice(0, 3);
+        if (!top.length) {
+          el.innerHTML = '';
+          return;
+        }
         el.innerHTML = top.map(o => `
           <div style="border:1px solid var(--clr-border);border-radius:12px;padding:10px 12px;background:rgba(249,115,22,0.04);">
             <div style="font-size:12px;font-weight:800;">${SF.escapeHtml(o.name)}</div>

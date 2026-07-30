@@ -205,6 +205,9 @@ function validatePromo(code, subtotal, opts = {}) {
   if (promo.minOrder && subtotal < promo.minOrder) {
     return { valid: false, error: `Đơn tối thiểu ${promo.minOrder.toLocaleString('vi-VN')}đ` };
   }
+  if (promo.minItems != null && Number(opts.itemCount || 0) < Number(promo.minItems)) {
+    return { valid: false, error: `Cần ít nhất ${promo.minItems} món` };
+  }
   if (promo.firstOrderOnly === true && opts.hasPreviousOrders === true) {
     return { valid: false, error: 'Mã chỉ dành cho đơn đầu tiên' };
   }
@@ -235,9 +238,12 @@ function validatePromo(code, subtotal, opts = {}) {
     }
   }
 
-  // Time / weekday windows (Asia/Ho_Chi_Minh)
+  // Growth package CRM gate + time windows (Asia/Ho_Chi_Minh)
   try {
     const growth = require('./growthPackages');
+    if (!growth.isPackagePromoEnabled(promo.code)) {
+      return { valid: false, error: 'Mã chưa được mở trong chiến dịch (CRM tắt)' };
+    }
     if (!growth.isPromoTimeValid(promo)) {
       return { valid: false, error: 'Mã không áp dụng trong khung giờ / ngày này' };
     }

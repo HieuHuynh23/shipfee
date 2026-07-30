@@ -417,7 +417,13 @@
           return;
         }
         growthOffersData = res.data;
-        const offers = res.data.offers || [];
+        const offers = (res.data.offers || []).filter(o => o.kind === 'promo' && o.code);
+        const card = document.getElementById('growth-offers-card');
+        if (!offers.length) {
+          if (card) card.style.display = 'none';
+          return;
+        }
+        if (card) card.style.display = '';
         listEl.innerHTML = offers.slice(0, 6).map(o => {
           const canTap = o.actionable && o.code;
           return `<button type="button" class="growth-offer-chip" data-code="${SF.escapeHtml(o.code || '')}"
@@ -426,7 +432,7 @@
             <div style="font-size:11px;color:var(--clr-text-muted);margin-top:2px;line-height:1.4;">${SF.escapeHtml(o.copy || '')}</div>
             ${canTap ? `<div style="font-size:11px;font-weight:700;color:var(--clr-primary);margin-top:4px;">Chạm để dùng mã ${SF.escapeHtml(o.code)}</div>` : ''}
           </button>`;
-        }).join('') || '<p class="text-xs" style="color:var(--clr-text-muted);">Chưa có ưu đãi hiển thị.</p>';
+        }).join('');
 
         listEl.querySelectorAll('.growth-offer-chip[data-code]').forEach(btn => {
           const code = btn.getAttribute('data-code');
@@ -469,7 +475,8 @@
             code,
             subtotal: totals.appTotal,
             phone,
-            deliveryFee: totals.deliveryFee || 0
+            deliveryFee: totals.deliveryFee || 0,
+            itemCount: totals.itemCount || (SF.getState()?.cart || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0)
           })
         }).then(r => r.json());
         if (!res.success) {

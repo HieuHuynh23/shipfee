@@ -118,26 +118,43 @@ Không ghi “Miễn phí giao hàng” cứng khi vẫn đang thu phí.
 
 ## 5. Chiến lược thu hút & đặt lại (Growth packages)
 
-Gói quản lý tại CRM → Settings → Growth, file `server/growth-packages.json`, API `/api/growth-offers`.
+Catalog **~100 gói** tại CRM → Settings → Growth (`server/growth-packages.json`), API `/api/growth-offers`.
+Mã promo **chỉ hiện app khách khi CRM Bật** (`enabled === true`). Engine/loyalty chạy nền.
 
-| Gói | Mục tiêu | Cách | Mã / Engine |
-|---|---|---|---|
-| Chào khách mới | Acquisition | Giảm 15k đơn đầu (auto hoặc mã) | `WELCOME15` |
-| Món thứ 2+ | AOV | Giảm 15% giá quán mỗi món từ món 2 | Engine `multiItemDiscount` |
-| Khách quay lại | Retention | Giảm 10% tổng đơn thứ 2+ | Engine `secondOrderDiscountRate` |
-| Phí nền tảng | AOV | Đủ 79k hoặc ≥3 món | Engine waive platform |
-| 50% phí giao | AOV | Đủ 120k hoặc ≥3 món | Engine half delivery |
-| Deal trưa | Peak | Giảm 10k đơn ≥50k (10h–14h) | `TRUA10` |
-| Deal tối | Peak | Giảm 12k đơn ≥60k (17h–21h) | `TOI12` |
-| Cuối tuần | AOV | Giảm 20k đơn ≥100k (CN & T7) | `CUOITUAN20` |
-| Loyalty | Retention | Tích điểm khi giao xong | customerOps |
+### Đặc biệt — Ngày đôi (1/1 … 12/12)
 
-Mọi giảm giá **clamp** `feePool ≥ 15.000đ` (sàn shipper). CRM có thể bật/tắt từng gói và seed promo.
+Khi `ngày === tháng` (Asia/Ho_Chi_Minh):
+
+| Mã | Giảm | Điều kiện |
+|---|---|---|
+| `NGAYDOI` | 25.000đ | Đơn từ 79k — mega flash mọi ngày đôi |
+| `DOI15` | 15% (max 30k) | Đơn từ 50k |
+| `DOI01`…`DOI12` | 11k…22k | Chỉ đúng tháng đó (vd `DOI07` chỉ 7/7) |
+
+CRM highlight ngày đôi; bật trước 1–2 ngày. Không nhầm với `NGAY11`/`NGAY22` (ngày số đẹp hàng tháng).
+
+### Nhóm gói chính
+
+| Nhóm | Mục tiêu | Ví dụ mã / Engine |
+|---|---|---|
+| Engine | AOV / retention nền | món 2+, quay lại 10%, waive 79k, half delivery 120k |
+| Welcome | Acquisition | `WELCOME10/15/20`, `MOI10`, `CHAO12` |
+| Quay lại | Retention | `QUAYLAI10/15`, `BANCU12`, `RETURN8`, `LOYAL18` |
+| Theo thứ | Peak theo ngày | `THU2`…`THUCN` |
+| Khung giờ | Peak | `SANG8`, `TRUA10`, `TOI12`, `KHUYA15`… |
+| Mốc AOV | Tăng giá trị đơn | `AOV40`…`AOV200` |
+| Ngày lương / số đẹp | Calendar | `LUONG1`, `LUONG15`, `NGAY11`, `NGAY22` |
+| Flash / % | Campaign | `FLASH5`…`FLASH25`, `PCT5`…`PCT20` |
+| Nudge | Thêm món / niche | `THEM2`, `THEM3`, `COMBO79`, `FREESHIPF`… |
+| Cuối tuần | AOV | `CUOITUAN15`, `CUOITUAN20` |
+
+Mọi giảm giá **clamp** `feePool ≥ 15.000đ` (sàn shipper). Nút **Rebuild 100 gói** / **Đồng bộ mã** trong CRM.
 
 ---
 
 ## 6. Changelog
 
+*   **1.3.3**: Catalog ~100 gói chiến lược + **Ngày đôi** (`NGAYDOI`, `DOI15`, `DOI01`–`DOI12`); CRM lọc/phân trang; mã mặc định OFF.
 *   **1.3.2**: Growth packages (CRM + app khách) — WELCOME15, deal trưa/tối/cuối tuần, UI ưu đãi checkout/home.
 *   **1.3.1**: Sửa ưu đãi món 2+ — giảm **15% giá quán**/món.
 *   **1.3**: Menu = inStore; feePool checkout tách 60/40; shipper = sàn 15k + 70% phần dư.

@@ -384,37 +384,83 @@ async function loadGrowthSettingsPanels() {
 async function loadGrowthPackagesPanel() {
   const el = document.getElementById('growth-packages-panel-body');
   if (!el) return;
+  const q = document.getElementById('growth-pkg-q')?.value || '';
+  const kind = document.getElementById('growth-pkg-kind')?.value || '';
+  const enabled = document.getElementById('growth-pkg-enabled')?.value || '';
+  const page = Number(document.getElementById('growth-pkg-page')?.value || 1);
   try {
-    const res = await apiFetch('/api/admin/growth-packages');
-    const list = (res.data && res.data.packages) || [];
+    const qs = new URLSearchParams({
+      q, kind, enabled, page: String(page), limit: '40'
+    });
+    const res = await apiFetch(`/api/admin/growth-packages?${qs}`);
+    const d = res.data || {};
+    const list = d.packages || [];
     const stageLabel = { acquisition: 'Thu hút', aov: 'Tăng món', retention: 'Quay lại' };
+    const now = d.now || {};
     el.innerHTML = `
-      <p class="text-sm text-muted mb-4">Gói chiến lược giai đoạn đầu — bật/tắt để đẩy mã & copy ra app khách. Seed lại mã: 
-        ${canMutate() ? `<button class="btn btn--secondary btn--sm" onclick="seedGrowthPackages()">Seed promo</button>` : ''}
+      <p class="text-sm text-muted mb-3">
+        <strong>Mã chỉ hiện app khách khi Bật.</strong>
+        Catalog: <span class="mono">${d.catalogSize || list.length}</span> gói ·
+        Đang bật: <span class="mono">${d.enabledCount || 0}</span> ·
+        ${now.isDoubleDay ? `<span style="color:#f59e0b;font-weight:800;">Hôm nay là Ngày đôi ${now.day}/${now.month}</span>` : `Hôm nay ${now.day}/${now.month} (chưa phải ngày đôi)`}
       </p>
+      <div class="flex gap-2 mb-4" style="flex-wrap:wrap;align-items:center;">
+        <input class="form-input" id="growth-pkg-q" placeholder="Tìm tên/mã…" value="${escapeHtml(q)}" style="width:160px;" onkeydown="if(event.key==='Enter')loadGrowthPackagesPanel()">
+        <select class="form-input" id="growth-pkg-kind" style="width:auto;" onchange="loadGrowthPackagesPanel()">
+          <option value="">Tất cả loại</option>
+          <option value="promo" ${kind==='promo'?'selected':''}>Mã promo</option>
+          <option value="engine" ${kind==='engine'?'selected':''}>Engine</option>
+          <option value="loyalty" ${kind==='loyalty'?'selected':''}>Loyalty</option>
+        </select>
+        <select class="form-input" id="growth-pkg-enabled" style="width:auto;" onchange="loadGrowthPackagesPanel()">
+          <option value="">Bật/Tắt</option>
+          <option value="true" ${enabled==='true'?'selected':''}>Đang Bật</option>
+          <option value="false" ${enabled==='false'?'selected':''}>Đang Tắt</option>
+        </select>
+        <button class="btn btn--secondary btn--sm" onclick="document.getElementById('growth-pkg-page').value=1;loadGrowthPackagesPanel()">Lọc</button>
+        ${canMutate() ? `<button class="btn btn--secondary btn--sm" onclick="seedGrowthPackages()">Đồng bộ mã</button>
+        <button class="btn btn--secondary btn--sm" onclick="rebuildGrowthCatalog()">Rebuild 100 gói</button>` : ''}
+        <input type="hidden" id="growth-pkg-page" value="${page}">
+      </div>
+      <div class="text-xs text-muted mb-2">Trang ${d.page || 1} · Hiện ${list.length}/${d.total || 0} (sau lọc)</div>
       <table class="data-table"><thead><tr>
         <th>Gói</th><th>Giai đoạn</th><th>Loại</th><th>Mã / Engine</th><th>Trạng thái</th><th></th>
       </tr></thead>
       <tbody>${list.map(p => `
-        <tr>
+        <tr style="${p.highlight || p.promo?.doubleDay ? 'background:rgba(245,158,11,0.08);' : ''}">
           <td>
-            <div style="font-weight:600;">${escapeHtml(p.name)}</div>
+            <div style="font-weight:600;">${p.highlight || p.promo?.doubleDay ? '⭐ ' : ''}${escapeHtml(p.name)}</div>
             <div class="text-xs text-muted">${escapeHtml(p.customerCopy || '')}</div>
           </td>
           <td>${stageLabel[p.stage] || p.stage || '—'}</td>
           <td class="mono text-xs">${escapeHtml(p.kind)}</td>
           <td class="mono text-xs">${escapeHtml(p.promoCode || p.engineKey || p.kind)}</td>
-          <td>${p.enabled !== false
+          <td>${p.enabled === true
             ? '<span style="color:var(--success,#22c55e);font-weight:700;">ON</span>'
             : '<span class="text-muted">OFF</span>'}</td>
           <td>${canMutate()
-            ? `<button class="btn btn--sm ${p.enabled !== false ? 'btn--secondary' : 'btn--primary'}" onclick="toggleGrowthPackage('${escapeHtml(p.id)}', ${p.enabled === false})">${p.enabled !== false ? 'Tắt' : 'Bật'}</button>`
+            ? `<button class="btn btn--sm ${p.enabled === true ? 'btn--secondary' : 'btn--primary'}" onclick="toggleGrowthPackage('${escapeHtml(p.id)}', ${p.enabled !== true})">${p.enabled === true ? 'Tắt' : 'Bật'}</button>`
             : ''}</td>
-        </tr>`).join('') || '<tr><td colspan="6" class="text-muted">Chưa có gói</td></tr>'}
-      </tbody></table>`;
+        </tr>`).join('') || '<tr><td colspan="6" class="text-muted">Không có gói khớp bộ lọc</td></tr>'}
+      </tbody></table>
+      <div class="flex gap-2 mt-3">
+        <button class="btn btn--secondary btn--sm" ${page<=1?'disabled':''} onclick="document.getElementById('growth-pkg-page').value=${page-1};loadGrowthPackagesPanel()">← Trước</button>
+        <button class="btn btn--secondary btn--sm" onclick="document.getElementById('growth-pkg-page').value=${page+1};loadGrowthPackagesPanel()">Sau →</button>
+      </div>`;
   } catch (e) {
     el.innerHTML = `<p class="text-muted text-sm">${escapeHtml(e.message)}</p>`;
   }
+}
+
+async function rebuildGrowthCatalog() {
+  try {
+    const res = await apiFetch('/api/admin/growth-packages/rebuild', { method: 'POST', body: '{}' });
+    if (res.success) {
+      showToast(`Đã rebuild · ${res.data?.totalPackages || 100} gói`, 'success');
+      loadGrowthPackagesPanel();
+      loadPromosPanel();
+    } else showToast(res.error || 'Lỗi', 'error');
+  } catch (e) { showToast(e.message || 'Lỗi', 'error'); }
 }
 
 async function toggleGrowthPackage(id, enable) {
@@ -750,6 +796,8 @@ window.resolveShipperSupport = resolveShipperSupport;
 window.createPromo = createPromo;
 window.toggleGrowthPackage = toggleGrowthPackage;
 window.seedGrowthPackages = seedGrowthPackages;
+window.loadGrowthPackagesPanel = loadGrowthPackagesPanel;
+window.rebuildGrowthCatalog = rebuildGrowthCatalog;
 window.createZone = createZone;
 window.deleteZone = deleteZone;
 window.addBlacklist = addBlacklist;
