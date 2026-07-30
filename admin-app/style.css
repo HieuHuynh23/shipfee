@@ -166,6 +166,15 @@ h4 { font-size: 14px; font-weight: 600; }
   box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
 }
 
+.sidebar__brand-full {
+  height: 28px;
+  width: auto;
+  max-width: 170px;
+  display: block;
+  object-fit: contain;
+  flex-shrink: 1;
+}
+
 .sidebar__brand-text {
   font-size: 18px;
   font-weight: 800;
@@ -900,6 +909,15 @@ h4 { font-size: 14px; font-weight: 600; }
   margin: 0 auto 16px;
   object-fit: contain;
   box-shadow: 0 8px 24px rgba(249, 115, 22, 0.3);
+}
+
+.login-brand__full {
+  height: 56px;
+  width: auto;
+  max-width: min(100%, 280px);
+  display: block;
+  margin: 0 auto 16px;
+  object-fit: contain;
 }
 
 .login-brand h2 {
