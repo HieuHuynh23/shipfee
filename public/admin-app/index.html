@@ -13,6 +13,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 </head>
 <body>
 
@@ -89,6 +90,10 @@
           <span class="sidebar__link-icon"><i class="fa-solid fa-map-location-dot"></i></span>
           Fleet Map
           <span class="sidebar__link-badge sidebar__link-badge--alert hidden" id="nav-sla-badge">0</span>
+        </a>
+        <a class="sidebar__link" data-page="heatmap" onclick="navigateTo('heatmap')">
+          <span class="sidebar__link-icon"><i class="fa-solid fa-fire"></i></span>
+          Heatmap KH
         </a>
         <a class="sidebar__link" data-page="customers" onclick="navigateTo('customers')">
           <span class="sidebar__link-icon"><i class="fa-solid fa-users"></i></span>
@@ -310,6 +315,6 @@
   </script>
   <script src="app.js?v=2.9"></script>
   <script src="crmWave23.js?v=3.1"></script>
-  <script src="crmPro.js?v=1.0"></script>
+  <script src="crmPro.js?v=1.2"></script>
 </body>
 </html>

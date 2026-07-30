@@ -1518,6 +1518,63 @@ function renderPendingOrders(orders) {
 // ── JOB DETAIL OVERLAY ──────────────────────────────────────────────────────
 let activeJobId = null;
 
+function appendCrmHintsToContainer(container, order) {
+  if (!container || !order) return;
+  if (order.deliveryHint && String(order.deliveryHint).trim()) {
+    const el = document.createElement('div');
+    el.style.cssText = 'margin-top:10px;padding:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;';
+    el.innerHTML = `
+      <span style="color:var(--clr-primary,#10b981);font-weight:700;font-size:12px;display:flex;align-items:center;gap:4px;">
+        <i class="fa-solid fa-location-dot"></i> Gợi ý giao hàng (CRM)
+      </span>
+      <div style="font-size:12px;margin-top:4px;font-weight:600;line-height:1.4;">${escapeHtml(order.deliveryHint)}</div>`;
+    container.appendChild(el);
+  }
+  const notes = Array.isArray(order.shipperNotes) ? order.shipperNotes : [];
+  notes.forEach((n) => {
+    if (!n || !n.text) return;
+    const el = document.createElement('div');
+    el.style.cssText = 'margin-top:8px;padding:8px 10px;background:rgba(59,130,246,0.08);border-left:3px solid #3b82f6;border-radius:0 8px 8px 0;';
+    el.innerHTML = `
+      <span style="color:#2563eb;font-weight:700;font-size:11px;">Ghi chú nội bộ cho tài xế</span>
+      <div style="font-size:12px;margin-top:2px;line-height:1.4;">${escapeHtml(n.text)}</div>`;
+    container.appendChild(el);
+  });
+  if (order.customerLoyalty && order.customerLoyalty.tier && order.customerLoyalty.tier !== 'member') {
+    const el = document.createElement('div');
+    el.style.cssText = 'margin-top:8px;font-size:11px;color:var(--clr-text-muted,#94a3b8);';
+    el.textContent = `Khách ${order.customerLoyalty.tier.toUpperCase()} · ${order.customerLoyalty.points || 0} điểm`;
+    container.appendChild(el);
+  }
+}
+
+async function blacklistActiveCustomer() {
+  if (!activeOrder) return;
+  const customerPhone = (activeOrder.deliveryPhone || activeOrder.ordererPhone || '').replace(/\s+/g, '');
+  if (!customerPhone) {
+    showToast('Thiếu SĐT', 'Không có số điện thoại khách để chặn.', 'warning');
+    return;
+  }
+  if (!confirm(`Không nhận đơn từ khách ${customerPhone} nữa?\n(Chỉ ảnh hưởng tài khoản của bạn)`)) return;
+  const reason = prompt('Lý do (tuỳ chọn):', 'Khách khó giao') || 'Shipper tự chặn';
+  try {
+    const res = await apiFetchAuth(`${API_BASE}/api/shippers/blacklist-customer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ customerPhone, reason })
+    }, 10000);
+    const json = await safeJson(res);
+    if (res.ok && json && json.success) {
+      showToast('Đã chặn', 'Bạn sẽ không được gán đơn của khách này nữa.', 'success');
+    } else {
+      showToast('Lỗi', (json && json.error) || 'Không chặn được', 'error');
+    }
+  } catch (e) {
+    showToast('Lỗi', e.message || 'Không chặn được', 'error');
+  }
+}
+window.blacklistActiveCustomer = blacklistActiveCustomer;
+
 function openJobDetail(orderId) {
   const order = pendingOrders.find(o => o.id === orderId);
   if (!order) return;
@@ -1575,6 +1632,7 @@ function openJobDetail(orderId) {
       `;
       itemsContainer.appendChild(generalNoteEl);
     }
+    appendCrmHintsToContainer(itemsContainer, order);
   }
 
   // Khớp an toàn với noteBox cũ nếu vẫn tồn tại trong HTML
@@ -1938,6 +1996,20 @@ function renderActiveTrip() {
         <div style="color: #78350f; font-size: 12px; margin-top: 4px; font-weight: 600; line-height: 1.4;">${activeOrder.note}</div>
       `;
       tripItemsContainer.appendChild(generalNoteEl);
+    }
+    appendCrmHintsToContainer(tripItemsContainer, activeOrder);
+    // Nút chặn khách (blacklist chỉ TX này)
+    const blBtnId = 'trip-blacklist-customer-btn';
+    let blBtn = document.getElementById(blBtnId);
+    if (!blBtn) {
+      blBtn = document.createElement('button');
+      blBtn.id = blBtnId;
+      blBtn.type = 'button';
+      blBtn.className = 'btn btn--ghost';
+      blBtn.style.cssText = 'margin-top:10px;width:100%;font-size:12px;color:#f87171;border:1px solid rgba(248,113,113,0.35);';
+      blBtn.innerHTML = '<i class="fa-solid fa-user-slash"></i> Không nhận khách này nữa';
+      blBtn.onclick = () => blacklistActiveCustomer();
+      tripItemsContainer.appendChild(blBtn);
     }
   }
 
@@ -2677,8 +2749,12 @@ function handleTargetedOffer(offer, opts = {}) {
     const noteBox = document.getElementById('offer-note-box');
     const noteText = document.getElementById('offer-note-text');
     if (noteBox && noteText) {
-      if (offer.note && offer.note.trim()) {
-        noteText.textContent = offer.note;
+      const parts = [];
+      if (offer.note && offer.note.trim()) parts.push(offer.note.trim());
+      if (offer.deliveryHint && offer.deliveryHint.trim()) parts.push('📍 ' + offer.deliveryHint.trim());
+      (offer.shipperNotes || []).forEach(n => { if (n && n.text) parts.push('💬 ' + n.text); });
+      if (parts.length) {
+        noteText.textContent = parts.join('\n');
         noteBox.style.display = 'block';
       } else {
         noteText.textContent = '—';

@@ -8,7 +8,7 @@
   window.__crmPro = { density: localStorage.getItem('shipfee_crm_density') || 'comfortable' };
   window.__ordersExtra = window.__ordersExtra || { shipperPhone: '', restaurantId: '', minTotal: '', slaOnly: false };
   window.__shippersPage = { page: 1, limit: 50, total: 0, q: '', status: 'all', sort: 'name', selected: new Set() };
-  window.__customersPage = { page: 1, limit: 50, total: 0, q: '', segment: '', sort: 'spent' };
+  window.__customersPage = { page: 1, limit: 50, total: 0, q: '', segment: '', sort: 'spent', shipperPhone: '' };
   window.__analyticsTab = 'sales';
   window.__settingsTab = 'pricing';
   window.__orderSelected = new Set();
@@ -631,6 +631,14 @@
   // ── Customers CRM ────────────────────────────────────────────────────────
   renderCustomers = async function () {
     const body = document.getElementById('main-body');
+    const shipperOpts = (cachedShippers || []).map(s =>
+      `<option value="${escapeHtml(s.phone)}" ${window.__customersPage.shipperPhone === s.phone ? 'selected' : ''}>${escapeHtml(s.name || s.phone)} (${escapeHtml(s.phone)})</option>`
+    ).join('');
+    const filterBanner = window.__customersPage.shipperPhone
+      ? `<div class="card mb-4" style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <span class="text-sm"><i class="fa-solid fa-motorcycle" style="color:var(--emerald-500);margin-right:8px;"></i>Đang xem khách của tài xế <strong class="mono">${escapeHtml(window.__customersPage.shipperPhone)}</strong></span>
+          <button class="btn btn--ghost btn--sm" onclick="clearCustomerShipperFilter()">Bỏ lọc</button>
+        </div>` : '';
     body.innerHTML = `
       <div class="page-section-header">
         <h2>Khách hàng CRM</h2>
@@ -638,17 +646,31 @@
           <button class="btn btn--secondary btn--sm" onclick="exportCustomersCsv()"><i class="fa-solid fa-file-csv"></i> Export</button>
         </div>
       </div>
+      ${filterBanner}
       <div class="toolbar">
-        <div class="form-search" style="width:260px;">
+        <div class="form-search" style="width:240px;">
           <span class="form-search__icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-          <input type="text" class="form-input" id="customer-search-pro" placeholder="Tìm khách..." onkeyup="debounceCustomersLoad()">
+          <input type="text" class="form-input" id="customer-search-pro" placeholder="Tìm khách..." value="${escapeHtml(window.__customersPage.q || '')}" onkeyup="debounceCustomersLoad()">
         </div>
+        <select class="form-input" id="customer-shipper-filter" style="width:auto;min-width:200px;" onchange="setCustomerShipperFilter(this.value)">
+          <option value="">Tất cả tài xế</option>
+          ${shipperOpts}
+        </select>
+        <select class="form-input" id="customer-sort-pro" style="width:auto;" onchange="__customersPage.sort=this.value;__customersPage.page=1;loadCustomersPage()">
+          <option value="spent" ${window.__customersPage.sort === 'spent' ? 'selected' : ''}>Chi tiêu</option>
+          <option value="orders" ${window.__customersPage.sort === 'orders' ? 'selected' : ''}>Số đơn</option>
+          <option value="recent" ${window.__customersPage.sort === 'recent' ? 'selected' : ''}>Gần đây</option>
+          <option value="rating" ${window.__customersPage.sort === 'rating' ? 'selected' : ''}>Rating</option>
+          <option value="name" ${window.__customersPage.sort === 'name' ? 'selected' : ''}>Tên</option>
+        </select>
         <div class="tabs" style="margin:0;">
-          <button class="tab active" data-seg="" onclick="setCustomerSegment(this,'')">Tất cả</button>
-          <button class="tab" data-seg="vip" onclick="setCustomerSegment(this,'vip')">VIP</button>
-          <button class="tab" data-seg="new" onclick="setCustomerSegment(this,'new')">Mới</button>
-          <button class="tab" data-seg="inactive" onclick="setCustomerSegment(this,'inactive')">Inactive</button>
-          <button class="tab" data-seg="blacklisted" onclick="setCustomerSegment(this,'blacklisted')">Blacklist</button>
+          <button class="tab ${!window.__customersPage.segment ? 'active' : ''}" data-seg="" onclick="setCustomerSegment(this,'')">Tất cả</button>
+          <button class="tab ${window.__customersPage.segment === 'vip' ? 'active' : ''}" data-seg="vip" onclick="setCustomerSegment(this,'vip')">VIP</button>
+          <button class="tab ${window.__customersPage.segment === 'repeat' ? 'active' : ''}" data-seg="repeat" onclick="setCustomerSegment(this,'repeat')">Quay lại</button>
+          <button class="tab ${window.__customersPage.segment === 'new' ? 'active' : ''}" data-seg="new" onclick="setCustomerSegment(this,'new')">Mới</button>
+          <button class="tab ${window.__customersPage.segment === 'inactive' ? 'active' : ''}" data-seg="inactive" onclick="setCustomerSegment(this,'inactive')">Inactive</button>
+          <button class="tab ${window.__customersPage.segment === 'rated' ? 'active' : ''}" data-seg="rated" onclick="setCustomerSegment(this,'rated')">Có rating</button>
+          <button class="tab ${window.__customersPage.segment === 'blacklisted' ? 'active' : ''}" data-seg="blacklisted" onclick="setCustomerSegment(this,'blacklisted')">Blacklist</button>
         </div>
       </div>
       <div class="data-table-wrapper">
@@ -656,6 +678,23 @@
         <div id="customers-table-body"></div>
         <div class="pagination" id="customers-pagination"></div>
       </div>`;
+    if (!(cachedShippers || []).length) {
+      apiFetch('/api/admin/shippers?limit=200').then(res => {
+        if (res?.data) {
+          cachedShippers = res.data;
+          const sel = document.getElementById('customer-shipper-filter');
+          if (sel && sel.options.length <= 1) {
+            res.data.forEach(s => {
+              const opt = document.createElement('option');
+              opt.value = s.phone;
+              opt.textContent = `${s.name || s.phone} (${s.phone})`;
+              if (window.__customersPage.shipperPhone === s.phone) opt.selected = true;
+              sel.appendChild(opt);
+            });
+          }
+        }
+      }).catch(() => {});
+    }
     loadCustomersPage();
   };
 
@@ -671,34 +710,58 @@
     window.__customersPage.page = 1;
     loadCustomersPage();
   };
+  window.setCustomerShipperFilter = function (phone) {
+    window.__customersPage.shipperPhone = phone || '';
+    window.__customersPage.page = 1;
+    renderCustomers();
+  };
+  window.clearCustomerShipperFilter = function () {
+    window.__customersPage.shipperPhone = '';
+    renderCustomers();
+  };
+  window.openCustomersForShipper = function (phone) {
+    window.__customersPage.shipperPhone = phone || '';
+    window.__customersPage.page = 1;
+    window.__customersPage.segment = '';
+    navigateTo('customers');
+  };
 
   window.loadCustomersPage = async function () {
     const el = document.getElementById('customers-table-body');
     if (!el) return;
     const st = window.__customersPage;
-    st.q = document.getElementById('customer-search-pro')?.value || '';
+    st.q = document.getElementById('customer-search-pro')?.value || st.q || '';
+    st.sort = document.getElementById('customer-sort-pro')?.value || st.sort || 'spent';
     el.innerHTML = `<div class="empty-state" style="padding:24px;">Đang tải...</div>`;
     try {
       const params = new URLSearchParams({ page: st.page, limit: st.limit, sort: st.sort });
       if (st.q) params.set('q', st.q);
       if (st.segment) params.set('segment', st.segment);
+      if (st.shipperPhone) params.set('shipperPhone', st.shipperPhone);
       const res = await apiFetch(`/api/admin/customers?${params}`);
       const list = res.data || [];
       cachedCustomers = list;
       st.total = res.total || 0;
       document.getElementById('customer-table-count').textContent = st.total;
       if (!list.length) {
-        el.innerHTML = `<div class="empty-state" style="padding:32px;">Không có khách hàng</div>`;
+        el.innerHTML = `<div class="empty-state" style="padding:32px;">Không có khách hàng${st.shipperPhone ? ' cho tài xế này' : ''}</div>`;
         return;
       }
+      const showShipperCol = !st.shipperPhone;
       el.innerHTML = `<table class="data-table sticky-head"><thead><tr>
-        <th>Khách</th><th>SĐT</th><th>Tags</th><th>Đơn</th><th>LTV</th><th></th>
+        <th>Khách</th><th>SĐT</th><th>Tags</th>
+        ${showShipperCol ? '<th>Tài xế chính</th>' : '<th>Với TX này</th>'}
+        <th>Đơn</th><th>Rating</th><th>LTV</th><th></th>
       </tr></thead><tbody>${list.map(c => `
         <tr style="cursor:pointer;" onclick="showCustomerDetailPro('${escapeHtml(c.phone)}')">
-          <td class="text-sm fw-700">${escapeHtml(c.name || '—')}${c.blacklisted ? ' <span class="badge badge--danger">BL</span>' : ''}</td>
+          <td class="text-sm fw-700">${escapeHtml(c.name || '—')}${c.blacklisted ? ' <span class="badge badge--danger">BL</span>' : ''}${c.isRepeat ? ' <span class="tag-chip">Quay lại</span>' : ''}</td>
           <td class="mono text-sm">${escapeHtml(c.phone)}</td>
           <td class="text-xs">${(c.tags || []).map(t => `<span class="tag-chip">${escapeHtml(t)}</span>`).join(' ') || '—'}</td>
-          <td class="mono">${c.ordersCount || 0}</td>
+          <td class="text-xs">${showShipperCol
+            ? (c.topShipper ? `${escapeHtml(c.topShipper.name)}<br><span class="mono text-muted">${escapeHtml(c.topShipper.phone)} · ${c.topShipper.orders} đơn</span>` : '—')
+            : `<span class="mono">${c.ordersCount || 0}</span> đơn`}</td>
+          <td class="mono">${c.ordersCount || 0}${c.deliveredCount != null ? ` <span class="text-muted text-xs">(${c.deliveredCount} HT)</span>` : ''}</td>
+          <td class="mono text-xs">${c.avgRating != null ? `★ ${c.avgRating}` : '—'}</td>
           <td class="mono text-accent">${formatCurrency(c.totalSpent || 0)}</td>
           <td><button class="btn btn--ghost btn--sm" onclick="event.stopPropagation();showCustomerDetailPro('${escapeHtml(c.phone)}')">Profile</button></td>
         </tr>`).join('')}</tbody></table>`;
@@ -717,13 +780,17 @@
     const params = new URLSearchParams();
     if (st.q) params.set('q', st.q);
     if (st.segment) params.set('segment', st.segment);
+    if (st.shipperPhone) params.set('shipperPhone', st.shipperPhone);
     downloadCsvUrl(`/api/admin/customers/export?${params}`);
   };
 
   window.showCustomerDetailPro = async function (phone) {
     if (!phone) return;
     try {
-      const res = await apiFetch(`/api/admin/customers/${encodeURIComponent(phone)}`);
+      const params = new URLSearchParams();
+      if (window.__customersPage.shipperPhone) params.set('shipperPhone', window.__customersPage.shipperPhone);
+      const qs = params.toString() ? `?${params}` : '';
+      const res = await apiFetch(`/api/admin/customers/${encodeURIComponent(phone)}${qs}`);
       if (!res.success) throw new Error(res.error || 'Không tìm thấy');
       const c = res.data;
       document.getElementById('customer-modal-title').textContent = c.name || phone;
@@ -732,11 +799,34 @@
           <div class="text-sm fw-700">${escapeHtml(c.name || '—')}</div>
           <div class="mono text-sm text-muted">${escapeHtml(phone)}</div>
           <div class="text-sm text-muted mt-2">${escapeHtml(c.address || '—')}</div>
-          <div class="flex gap-4 mt-4">
+          ${c.filteredByShipper ? `<div class="text-xs mt-2" style="color:var(--emerald-400);">Đang lọc theo tài xế ${escapeHtml(c.filteredByShipper)}</div>` : ''}
+          <div class="flex gap-4 mt-4" style="flex-wrap:wrap;">
             <div><span class="text-muted text-xs">Đơn</span><div class="mono fw-700">${c.ordersCount}</div></div>
+            <div><span class="text-muted text-xs">Hoàn thành</span><div class="mono fw-700">${c.deliveredCount ?? '—'}</div></div>
             <div><span class="text-muted text-xs">LTV</span><div class="mono fw-700 text-accent">${formatCurrency(c.ltv || c.totalSpent)}</div></div>
+            <div><span class="text-muted text-xs">Rating</span><div class="mono fw-700">${c.avgRating != null ? `★ ${c.avgRating}` : '—'} <span class="text-muted text-xs">(${c.ratingCount || 0})</span></div></div>
+            <div><span class="text-muted text-xs">Loyalty</span><div class="mono fw-700">${c.loyalty ? `${c.loyalty.points}đ · ${c.loyalty.tier}` : '—'}</div></div>
             <div><span class="text-muted text-xs">Blacklist</span><div class="fw-700">${c.blacklisted ? 'Có' : 'Không'}</div></div>
           </div>
+        </div>
+        ${c.loyalty ? `<div class="card mb-4" style="padding:12px 16px;">
+          <div class="flex justify-between items-center">
+            <div><strong>Loyalty</strong> <span class="tag-chip">${escapeHtml(c.loyalty.tier)}</span>
+              <div class="mono text-sm mt-1">${c.loyalty.points} điểm · ${c.loyalty.ordersCount} đơn tích lũy</div></div>
+            ${canMutate() ? `<button class="btn btn--secondary btn--sm" onclick="redeemLoyaltyPrompt('${escapeHtml(phone)}')">Đổi điểm</button>` : ''}
+          </div>
+        </div>` : ''}
+        ${canMutate() ? `<div class="mb-4 flex gap-2" style="flex-wrap:wrap;">
+          <select class="form-input" id="cust-bl-shipper" style="width:auto;min-width:180px;">
+            <option value="">Chặn theo tài xế…</option>
+            ${(cachedShippers || []).map(s => `<option value="${escapeHtml(s.phone)}">${escapeHtml(s.name)} (${escapeHtml(s.phone)})</option>`).join('')}
+          </select>
+          <button class="btn btn--danger btn--sm" onclick="addShipperCustomerBlacklist('${escapeHtml(phone)}')">Chặn TX↔KH</button>
+        </div>` : ''}
+        <div class="mb-4">
+          <label class="form-label">Gợi ý giao hàng (shipper thấy)</label>
+          <input class="form-input" id="cust-hint-input" placeholder="VD: cổng sau, gọi trước 5 phút..." value="${escapeHtml(c.deliveryHint || '')}" ${canMutate() ? '' : 'disabled'}>
+          ${canMutate() ? `<button class="btn btn--secondary btn--sm mt-2" onclick="saveCustomerDeliveryHint('${escapeHtml(phone)}')">Lưu gợi ý</button>` : ''}
         </div>
         <div class="mb-4">
           <label class="form-label">Tags (phẩy tách)</label>
@@ -745,21 +835,42 @@
         </div>
         <div class="mb-4">
           <label class="form-label">Ghi chú mới</label>
-          ${canMutate() ? `<div class="flex gap-2"><input class="form-input" id="cust-note-input" placeholder="Thêm ghi chú..."><button class="btn btn--primary btn--sm" onclick="appendCustomerNote('${escapeHtml(phone)}')">Thêm</button></div>` : ''}
+          ${canMutate() ? `<div class="flex gap-2" style="flex-wrap:wrap;">
+            <input class="form-input" id="cust-note-input" placeholder="Thêm ghi chú..." style="flex:1;min-width:160px;">
+            <select class="form-input" id="cust-note-visibility" style="width:auto;">
+              <option value="admin">Nội bộ admin</option>
+              <option value="shipper">Hiện cho shipper</option>
+            </select>
+            <button class="btn btn--primary btn--sm" onclick="appendCustomerNote('${escapeHtml(phone)}')">Thêm</button>
+          </div>` : ''}
           <div class="mt-4">${(c.notes || []).map(n => `
-            <div class="note-item"><div class="text-sm">${escapeHtml(n.text)}</div><div class="text-xs text-muted">${n.at ? new Date(n.at).toLocaleString('vi-VN') : ''}</div></div>`).join('') || '<p class="text-muted text-sm">Chưa có ghi chú</p>'}
+            <div class="note-item"><div class="text-sm">${escapeHtml(n.text)} ${n.visibility === 'shipper' ? '<span class="tag-chip">shipper</span>' : ''}</div><div class="text-xs text-muted">${n.at ? new Date(n.at).toLocaleString('vi-VN') : ''}</div></div>`).join('') || '<p class="text-muted text-sm">Chưa có ghi chú</p>'}
           </div>
+        </div>
+        <h4 class="mb-2">Tài xế đã phục vụ</h4>
+        <div class="data-table-wrapper mb-4" style="max-height:180px;overflow:auto;">
+          <table class="data-table"><thead><tr><th>Tài xế</th><th>Đơn</th><th>HT</th><th>Rating</th><th></th></tr></thead>
+          <tbody>${(c.servingShippers || []).map(s => `
+            <tr>
+              <td class="text-sm">${escapeHtml(s.name)}<br><span class="mono text-xs text-muted">${escapeHtml(s.phone)}</span></td>
+              <td class="mono">${s.orders}</td>
+              <td class="mono">${s.delivered}</td>
+              <td class="mono text-xs">${s.avgRating != null ? `★ ${s.avgRating}` : '—'}</td>
+              <td><button class="btn btn--ghost btn--sm" onclick="openCustomersForShipper('${escapeHtml(s.phone)}');closeModal('customer-modal')">Khách TX</button></td>
+            </tr>`).join('') || '<tr><td colspan="5" class="text-muted">Chưa có tài xế</td></tr>'}
+          </tbody></table>
         </div>
         <h4 class="mb-2">Lịch sử đơn</h4>
         <div class="data-table-wrapper" style="max-height:240px;overflow:auto;">
-          <table class="data-table"><thead><tr><th>Mã</th><th>TT</th><th>Tổng</th><th>Ngày</th></tr></thead>
+          <table class="data-table"><thead><tr><th>Mã</th><th>TX</th><th>TT</th><th>Tổng</th><th>Ngày</th></tr></thead>
           <tbody>${(c.orders || []).map(o => `
             <tr style="cursor:pointer;" onclick="closeModal('customer-modal');showOrderDetail('${escapeHtml(o.id)}')">
               <td class="mono text-xs">${escapeHtml(o.id)}</td>
+              <td class="text-xs">${escapeHtml(o.shipperName || '—')}</td>
               <td><span class="badge ${statusBadgeClass(o.status)}">${statusLabel(o.status)}</span></td>
               <td class="mono text-xs">${formatCurrency(o.appTotal)}</td>
               <td class="text-xs">${o.createdAt ? new Date(o.createdAt).toLocaleString('vi-VN') : ''}</td>
-            </tr>`).join('') || '<tr><td colspan="4" class="text-muted">Không có đơn</td></tr>'}
+            </tr>`).join('') || '<tr><td colspan="5" class="text-muted">Không có đơn</td></tr>'}
           </tbody></table>
         </div>
         ${canMutate() && !c.blacklisted ? `<div class="mt-4"><button class="btn btn--danger btn--sm" onclick="blacklistCustomerFromModal('${escapeHtml(phone)}')"><i class="fa-solid fa-ban"></i> Chặn khách</button></div>` : ''}`;
@@ -778,15 +889,59 @@
       showCustomerDetailPro(phone);
     } catch (e) { showToast(e.message, 'error'); }
   };
+  window.saveCustomerDeliveryHint = async function (phone) {
+    const deliveryHint = document.getElementById('cust-hint-input')?.value || '';
+    try {
+      await apiFetch(`/api/admin/customers/${encodeURIComponent(phone)}`, { method: 'PUT', body: JSON.stringify({ deliveryHint }) });
+      showToast('Đã lưu gợi ý giao hàng', 'success');
+      showCustomerDetailPro(phone);
+    } catch (e) { showToast(e.message, 'error'); }
+  };
   window.appendCustomerNote = async function (phone) {
     const appendNote = document.getElementById('cust-note-input')?.value || '';
+    const noteVisibility = document.getElementById('cust-note-visibility')?.value || 'admin';
     if (!appendNote.trim()) return;
     try {
-      await apiFetch(`/api/admin/customers/${encodeURIComponent(phone)}`, { method: 'PUT', body: JSON.stringify({ appendNote }) });
+      await apiFetch(`/api/admin/customers/${encodeURIComponent(phone)}`, { method: 'PUT', body: JSON.stringify({ appendNote, noteVisibility }) });
       showToast('Đã thêm ghi chú', 'success');
       showCustomerDetailPro(phone);
     } catch (e) { showToast(e.message, 'error'); }
   };
+
+  // Patch editShipper → add "Khách đã giao" button
+  const _editShipper = editShipper;
+  editShipper = function (phone) {
+    _editShipper(phone);
+    setTimeout(() => {
+      const footer = document.querySelector('#shipper-modal .modal__footer');
+      if (!footer || document.getElementById('shipper-customers-btn')) return;
+      footer.insertAdjacentHTML('afterbegin', `
+        <button type="button" class="btn btn--secondary btn--sm" id="shipper-customers-btn" onclick="closeModal('shipper-modal');openCustomersForShipper('${escapeHtml(phone)}')">
+          <i class="fa-solid fa-users"></i> Khách đã giao
+        </button>`);
+    }, 50);
+  };
+  window.editShipper = editShipper;
+
+  // Also add button on shippers table rows already has Chi tiết — enhance loadShippersPage row action
+  const _loadShippersPageOrig = window.loadShippersPage;
+  if (typeof _loadShippersPageOrig === 'function') {
+    const prev = _loadShippersPageOrig;
+    window.loadShippersPage = async function () {
+      await prev();
+      document.querySelectorAll('#shippers-table-body tbody tr').forEach(tr => {
+        const phone = tr.querySelector('.ship-check')?.dataset?.phone || tr.querySelector('.mono.text-sm')?.textContent?.trim();
+        if (!phone || tr.querySelector('.shipper-cust-btn')) return;
+        const actions = tr.querySelector('td:last-child');
+        if (actions) {
+          actions.insertAdjacentHTML('beforeend', `
+            <button class="btn btn--ghost btn--sm shipper-cust-btn" title="Khách đã giao" onclick="openCustomersForShipper('${escapeHtml(phone)}')">
+              <i class="fa-solid fa-users"></i>
+            </button>`);
+        }
+      });
+    };
+  }
 
   // ── Settings tabs ────────────────────────────────────────────────────────
   const _renderSettings = renderSettings;
@@ -1090,6 +1245,181 @@
   window.renderSettings = renderSettings;
   window.renderDashboard = renderDashboard;
   window.showCustomerDetail = showCustomerDetailPro;
+
+  window.redeemLoyaltyPrompt = async function (phone) {
+    const pts = prompt('Số điểm muốn đổi (1 điểm ≈ 100đ):', '50');
+    if (!pts) return;
+    try {
+      const res = await apiFetch(`/api/admin/loyalty/${encodeURIComponent(phone)}/redeem`, {
+        method: 'POST',
+        body: JSON.stringify({ points: Number(pts) })
+      });
+      showToast(`Đã đổi ${pts} điểm → gợi ý giảm ${formatCurrency(res.data?.discountSuggestion || 0)}`, 'success');
+      showCustomerDetailPro(phone);
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  window.addShipperCustomerBlacklist = async function (customerPhone) {
+    const shipperPhone = document.getElementById('cust-bl-shipper')?.value;
+    if (!shipperPhone) return showToast('Chọn tài xế', 'warning');
+    const reason = prompt('Lý do chặn (TX sẽ không nhận đơn khách này):', 'Khách khó giao') || '';
+    try {
+      await apiFetch('/api/admin/shipper-blacklist', {
+        method: 'POST',
+        body: JSON.stringify({ shipperPhone, customerPhone, reason })
+      });
+      showToast('Đã thêm blacklist TX↔KH', 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+  };
+
+  // Heatmap page
+  let heatMapInstance = null;
+  async function renderHeatmapPage() {
+    const body = document.getElementById('main-body');
+    const shipperOpts = (cachedShippers || []).map(s =>
+      `<option value="${escapeHtml(s.phone)}">${escapeHtml(s.name)} (${escapeHtml(s.phone)})</option>`
+    ).join('');
+    body.innerHTML = `
+      <div class="page-section-header">
+        <h2>Heatmap khách hàng</h2>
+        <div class="page-section-header__actions">
+          <select class="form-input" id="heat-shipper" style="width:auto;" onchange="loadHeatmapData()">
+            <option value="">Tất cả tài xế</option>${shipperOpts}
+          </select>
+          <button class="btn btn--secondary btn--sm" onclick="loadHeatmapData()"><i class="fa-solid fa-rotate"></i> Tải lại</button>
+        </div>
+      </div>
+      <p class="text-sm text-muted mb-4">Mật độ điểm giao theo tọa độ ghim — dùng để tối ưu ca trực / khu vực.</p>
+      <div id="customer-heatmap" style="height:520px;border-radius:12px;overflow:hidden;border:1px solid var(--border);"></div>
+      <div class="mt-4 text-sm text-muted" id="heat-stats">Đang tải...</div>`;
+    setTimeout(() => {
+      if (heatMapInstance) { try { heatMapInstance.remove(); } catch (_) {} heatMapInstance = null; }
+      heatMapInstance = L.map('customer-heatmap').setView([10.0452, 105.7469], 12);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OSM &copy; CARTO', maxZoom: 19
+      }).addTo(heatMapInstance);
+      loadHeatmapData();
+    }, 80);
+  }
+  window.loadHeatmapData = async function () {
+    const shipperPhone = document.getElementById('heat-shipper')?.value || '';
+    const params = new URLSearchParams();
+    if (shipperPhone) params.set('shipperPhone', shipperPhone);
+    try {
+      const res = await apiFetch(`/api/admin/customers/heatmap?${params}`);
+      const points = res.data || [];
+      const stats = document.getElementById('heat-stats');
+      if (stats) stats.textContent = `${points.length} ô lưới · ${points.reduce((s, p) => s + p.orders, 0)} đơn có tọa độ`;
+      if (!heatMapInstance) return;
+      if (window.__heatLayer) { heatMapInstance.removeLayer(window.__heatLayer); window.__heatLayer = null; }
+      if (typeof L.heatLayer !== 'function') {
+        if (stats) stats.textContent += ' (thiếu leaflet.heat — dùng marker)';
+        points.slice(0, 200).forEach(p => {
+          L.circleMarker([p.lat, p.lon], { radius: 4 + Math.min(12, p.weight), color: '#10b981', fillOpacity: 0.5 }).addTo(heatMapInstance)
+            .bindPopup(`${p.orders} đơn · ${p.uniqueCustomers} khách`);
+        });
+        return;
+      }
+      const heatData = points.map(p => [p.lat, p.lon, Math.min(1, p.weight / 5)]);
+      window.__heatLayer = L.heatLayer(heatData, { radius: 28, blur: 22, maxZoom: 16 }).addTo(heatMapInstance);
+      if (points.length) {
+        heatMapInstance.fitBounds(points.map(p => [p.lat, p.lon]), { padding: [30, 30] });
+      }
+    } catch (e) {
+      showToast(e.message, 'error');
+    }
+  };
+
+  // Patch navigate for heatmap + CSAT panel in settings
+  const _navHeat = navigateTo;
+  navigateTo = function (page) {
+    if (page === 'heatmap') {
+      currentPage = page;
+      document.querySelectorAll('.sidebar__link').forEach(link => {
+        link.classList.toggle('active', link.dataset.page === page);
+      });
+      document.getElementById('header-title').textContent = 'Heatmap KH';
+      document.getElementById('header-breadcrumb').textContent = 'Khách hàng';
+      renderHeatmapPage();
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('page', page);
+        history.pushState({ page }, '', url);
+      } catch (_) {}
+      document.getElementById('sidebar')?.classList.remove('open');
+      return;
+    }
+    if (page !== 'heatmap' && heatMapInstance) {
+      try { heatMapInstance.remove(); } catch (_) {}
+      heatMapInstance = null;
+    }
+    _navHeat(page);
+    if (page === 'settings') {
+      setTimeout(loadCsatAndBlacklistPanels, 200);
+    }
+  };
+
+  async function loadCsatAndBlacklistPanels() {
+    const body = document.getElementById('main-body');
+    if (!body) return;
+    let wrap = document.getElementById('csat-bl-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.id = 'csat-bl-wrap';
+      wrap.className = 'grid-2';
+      wrap.style.cssText = 'gap:20px;margin-top:20px;';
+      wrap.innerHTML = `
+        <div class="card" id="csat-panel">
+          <h3 class="mb-4"><i class="fa-solid fa-comment-sms" style="color:var(--amber);margin-right:8px;"></i>CSAT follow-up</h3>
+          <div id="csat-panel-body" class="text-sm text-muted">Đang tải...</div>
+        </div>
+        <div class="card" id="shipper-bl-panel">
+          <h3 class="mb-4"><i class="fa-solid fa-user-slash" style="color:var(--rose);margin-right:8px;"></i>Blacklist TX↔KH</h3>
+          <div id="shipper-bl-body" class="text-sm text-muted">Đang tải...</div>
+        </div>`;
+      body.appendChild(wrap);
+    }
+    const csatElPre = document.getElementById('csat-panel-body');
+    const blElPre = document.getElementById('shipper-bl-body');
+    if (csatElPre) csatElPre.textContent = 'Đang tải...';
+    if (blElPre) blElPre.textContent = 'Đang tải...';
+    try {
+      const [csat, bl] = await Promise.all([
+        apiFetch('/api/admin/csat-followups?limit=20'),
+        apiFetch('/api/admin/shipper-blacklist')
+      ]);
+      const csatEl = document.getElementById('csat-panel-body');
+      const list = csat.data || [];
+      csatEl.innerHTML = list.length ? `<table class="data-table"><thead><tr><th>Đơn</th><th>SĐT</th><th>TT</th><th>Kênh</th></tr></thead>
+        <tbody>${list.slice(0, 15).map(e => `<tr>
+          <td class="mono text-xs">${escapeHtml(e.orderId)}</td>
+          <td class="mono text-xs">${escapeHtml(e.customerPhone)}</td>
+          <td>${escapeHtml(e.status)}</td>
+          <td class="text-xs">${escapeHtml(e.channel || '')}</td>
+        </tr>`).join('')}</tbody></table>
+        <p class="text-xs text-muted mt-2">Sau giao: webhook CSAT_WEBHOOK_URL hoặc Telegram admin (copy tin Zalo/SMS).</p>`
+        : '<p>Chưa có follow-up. Sẽ tạo khi đơn DELIVERED.</p>';
+      const blEl = document.getElementById('shipper-bl-body');
+      const blList = bl.data || [];
+      blEl.innerHTML = blList.length ? `<table class="data-table"><thead><tr><th>TX</th><th>KH</th><th>Lý do</th><th></th></tr></thead>
+        <tbody>${blList.slice(0, 20).map(e => `<tr>
+          <td class="mono text-xs">${escapeHtml(e.shipperPhone)}</td>
+          <td class="mono text-xs">${escapeHtml(e.customerPhone)}</td>
+          <td class="text-xs">${escapeHtml(e.reason || '')}</td>
+          <td>${canMutate() ? `<button class="btn btn--ghost btn--sm" onclick="removeShipperBl('${escapeHtml(e.shipperPhone)}','${escapeHtml(e.customerPhone)}')">Gỡ</button>` : ''}</td>
+        </tr>`).join('')}</tbody></table>`
+        : '<p>Trống — thêm từ profile khách (Chặn TX↔KH).</p>';
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+  window.removeShipperBl = async function (shipperPhone, customerPhone) {
+    try {
+      await apiFetch(`/api/admin/shipper-blacklist/${encodeURIComponent(shipperPhone)}/${encodeURIComponent(customerPhone)}`, { method: 'DELETE' });
+      showToast('Đã gỡ blacklist', 'success');
+      loadCsatAndBlacklistPanels();
+    } catch (e) { showToast(e.message, 'error'); }
+  };
 
   console.log('[CRM Pro] loaded');
 })();

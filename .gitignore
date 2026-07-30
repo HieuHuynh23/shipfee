@@ -70,6 +70,12 @@ server/migrate_db.js
 server/verify_optimization.js
 server/test_*.js
 
+# Local CRM / customer-ops runtime stores
+server/customer-crm-local.json
+server/shipper-blacklist-local.json
+server/loyalty-local.json
+server/csat-followups-local.json
+
 .vercel
 .env*
 

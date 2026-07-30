@@ -501,7 +501,7 @@ function updateCartItemNote(cartKey, note) {
   saveState(state);
 }
 
-async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode) {
+async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode, loyaltyPointsRedeem) {
   const state = getState();
   const cart   = state.cart;
   const totals = getCartTotal();
@@ -566,6 +566,7 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     isRelative: isRelative || false,
     note: note || '',
     promoCode: promoCode || null,
+    loyaltyPointsRedeem: Number(loyaltyPointsRedeem) > 0 ? Math.floor(Number(loyaltyPointsRedeem)) : 0,
     createdAt: Date.now()
   };
 

@@ -224,6 +224,13 @@ function findNearestAvailableShipper(ctx, restaurantLat, restaurantLon, declined
       const activeOrders = getShipperActiveOrders(cleanedPhone, orders, cleanPhone);
       if (activeOrders.length >= CONFIG.MAX_ACTIVE_ORDERS_PER_SHIPPER) return null;
 
+      // Per-shipper blacklist: skip this customer for this shipper
+      const customerPhone = cleanPhone(orderHint.deliveryPhone || orderHint.ordererPhone);
+      if (customerPhone && ctx.customerOps) {
+        const bl = ctx.customerOps.isShipperBlacklistedCustomer(cleanedPhone, customerPhone);
+        if (bl) return null;
+      }
+
       const resolved = resolveShipperDispatchLocation(s, cleanedPhone, onlineShipperLocations, now);
       if (requireLiveGps && (!resolved || resolved.source !== 'live')) return null;
 
@@ -263,6 +270,16 @@ function findNearestAvailableShipper(ctx, restaurantLat, restaurantLon, declined
       // Ưu tiên idle hơn load+1 khi điểm gần bằng
       if (activeOrders.length === 0) score *= 0.92;
 
+      // Prefer shipper who previously delivered to this customer
+      let preferCount = 0;
+      if (ctx.customerOps && customerPhone) {
+        const boosted = ctx.customerOps.applyPreferShipperBoost(
+          score, cleanedPhone, orderHint, orders, cleanPhone
+        );
+        score = boosted.score;
+        preferCount = boosted.preferCount;
+      }
+
       return {
         phone: s.phone,
         name: s.name,
@@ -271,7 +288,8 @@ function findNearestAvailableShipper(ctx, restaurantLat, restaurantLon, declined
         batchCompatible,
         batchReason,
         score,
-        locSource
+        locSource,
+        preferCount
       };
     };
 
@@ -294,7 +312,10 @@ function findNearestAvailableShipper(ctx, restaurantLat, restaurantLon, declined
       const tag = bestShipper.batchCompatible
         ? `GHÉP ĐƠN:${bestShipper.batchReason}`
         : (bestShipper.activeLoad === 0 ? 'ĐƠN LẺ' : 'LOAD+1');
-      console.log(`[Dispatch] 🎯 Chọn ${bestShipper.name} (${bestShipper.phone}) [${tag}] dist=${bestShipper.distance.toFixed(2)}km score=${bestScore.toFixed(2)}`);
+      const prefer = bestShipper.preferCount
+        ? ` prefer×${bestShipper.preferCount}`
+        : '';
+      console.log(`[Dispatch] 🎯 Chọn ${bestShipper.name} (${bestShipper.phone}) [${tag}${prefer}] dist=${bestShipper.distance.toFixed(2)}km score=${bestScore.toFixed(2)}`);
       return bestShipper;
     }
 

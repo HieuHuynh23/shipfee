@@ -123,6 +123,11 @@ app.post('/api/admin/orders/:id/status', authenticateAdmin, mutateOps, async (re
     scheduleUpsertOrder(updatedOrder, 'admin');
     if (telegramBot) telegramBot.sendOrderStatusUpdateNotification(updatedOrder).catch(() => {});
     crm.logAdminAudit(req, 'order_status', { orderId, status });
+    if (status === 'DELIVERED' && updatedOrder) {
+      try {
+        require('../customerOps').onOrderDelivered(updatedOrder, { telegramBot, crm, addNotification });
+      } catch (_) {}
+    }
     res.json({ success: true, data: updatedOrder });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

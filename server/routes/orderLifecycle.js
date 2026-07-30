@@ -62,6 +62,19 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
       return res.status(409).json({ success: false, error: `Bạn đang mang tối đa ${MAX_ACTIVE_ORDERS_PER_SHIPPER} đơn. Hãy hoàn thành một đơn trước.` });
     }
 
+    // Shipper-specific blacklist
+    try {
+      const customerOps = require('../customerOps');
+      const snap = (typeof readOrdersDatabase === 'function' ? readOrdersDatabase() : []).find(o => o && o.id === id);
+      const cust = snap ? cleanPhone(snap.deliveryPhone || snap.ordererPhone) : '';
+      if (cust && customerOps.isShipperBlacklistedCustomer(authPhone, cust)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Bạn đã chặn khách hàng này. Không thể nhận đơn.'
+        });
+      }
+    } catch (_) {}
+
     let updatedOrder = null;
     let found = false;
     let alreadyAccepted = false;
@@ -264,7 +277,18 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
     }
     scheduleUpsertOrder(updatedOrder, 'status');
     if (telegramNotify) telegramNotify.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
-    res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false }) });
+    if (status === 'DELIVERED' && updatedOrder) {
+      try {
+        require('../customerOps').onOrderDelivered(updatedOrder, {
+          telegramBot: telegramNotify || telegramBot,
+          crm,
+          addNotification
+        });
+      } catch (e) {
+        console.warn('[CustomerOps] onOrderDelivered:', e.message);
+      }
+    }
+    res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false, forShipper: true }) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

@@ -1054,7 +1054,9 @@ function getDispatchCtx() {
     readOrdersDatabase,
     onlineShipperLocations,
     updateOrdersDatabase,
-    isSseConnected: (phone) => shipperPresence.isSseConnected(phone, cleanPhone)
+    isSseConnected: (phone) => shipperPresence.isSseConnected(phone, cleanPhone),
+    customerOps: require('./customerOps'),
+    crm
   };
 }
 
@@ -1407,10 +1409,16 @@ function extractLegacyOrderPhone(req) {
   return cleanPhone(h['x-delivery-phone'] || q.phone || '');
 }
 
-function stripOrderSecrets(order, { keepTrackingToken = false } = {}) {
+function stripOrderSecrets(order, { keepTrackingToken = false, forShipper = false } = {}) {
   if (!order || typeof order !== 'object') return order;
-  const clone = { ...order };
+  let clone = { ...order };
   if (!keepTrackingToken) delete clone.trackingToken;
+  if (forShipper) {
+    try {
+      const customerOps = require('./customerOps');
+      clone = customerOps.enrichOrderForShipper(clone, crm);
+    } catch (_) {}
+  }
   return clone;
 }
 
@@ -5734,6 +5742,23 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       crm.incrementPromoUse(promoResult.promo.code);
     }
 
+    // Loyalty redeem (optional)
+    if (orderData.loyaltyPointsRedeem && Number(orderData.loyaltyPointsRedeem) > 0) {
+      const customerOps = require('./customerOps');
+      const loyaltyResult = customerOps.applyLoyaltyDiscountToOrder(
+        newOrder,
+        Number(orderData.loyaltyPointsRedeem)
+      );
+      if (!loyaltyResult.ok) {
+        return res.status(400).json({ success: false, error: loyaltyResult.error });
+      }
+    }
+
+    // Attach CRM delivery hint for shippers (also re-enriched on list)
+    try {
+      require('./customerOps').enrichOrderForShipper(newOrder, crm);
+    } catch (_) {}
+
     // Find nearest available shipper for targeted dispatch
     // GPS Foody chạy nền SAU khi đã đề xuất — không chặn nhận đơn
     const nearest = findNearestAvailableShipper(newOrder.restaurantLat, newOrder.restaurantLon, [], newOrder);
@@ -7323,6 +7348,60 @@ app.get('/api/shippers/profile', authenticateShipper, (req, res) => {
       avatarUrl: normalizeImageUrl(shipper.avatarUrl, req)
     };
     res.json({ success: true, shipper: responseShipper });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * POST /api/shippers/blacklist-customer
+ * Tài xế tự chặn khách (chỉ ảnh hưởng dispatch của chính TX đó)
+ */
+app.post('/api/shippers/blacklist-customer', authenticateShipper, (req, res) => {
+  try {
+    const customerOps = require('./customerOps');
+    const shipperPhone = cleanPhone(req.shipperPhone);
+    const customerPhone = cleanPhone(req.body?.customerPhone);
+    const reason = String(req.body?.reason || 'Shipper tự chặn').slice(0, 200);
+    if (!customerPhone) {
+      return res.status(400).json({ success: false, error: 'Thiếu SĐT khách' });
+    }
+    const existing = customerOps.isShipperBlacklistedCustomer(shipperPhone, customerPhone);
+    if (existing) {
+      return res.json({ success: true, data: existing, already: true });
+    }
+    const entry = customerOps.addShipperBlacklist(shipperPhone, customerPhone, reason, 'shipper');
+    res.json({ success: true, data: entry });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/shippers/blacklist
+ * Danh sách khách TX đã chặn
+ */
+app.get('/api/shippers/blacklist', authenticateShipper, (req, res) => {
+  try {
+    const customerOps = require('./customerOps');
+    res.json({ success: true, data: customerOps.listShipperBlacklist(req.shipperPhone) });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/loyalty/:phone
+ * Điểm loyalty công khai theo SĐT (checkout / profile khách)
+ */
+app.get('/api/loyalty/:phone', (req, res) => {
+  try {
+    const customerOps = require('./customerOps');
+    const phone = cleanPhone(req.params.phone);
+    if (!phone || phone.length < 9) {
+      return res.status(400).json({ success: false, error: 'SĐT không hợp lệ' });
+    }
+    res.json({ success: true, data: customerOps.getLoyaltyProfile(phone) });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

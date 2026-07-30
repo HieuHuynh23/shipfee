@@ -58,7 +58,7 @@ function registerOrderRoutes(app, ctx) {
       const sanitized = enrichOrdersWithShipperAvatar(
         hydrateOrdersRestaurantCoords(resultData),
         req
-      ).map((o) => stripOrderSecrets(o, { keepTrackingToken: false }));
+      ).map((o) => stripOrderSecrets(o, { keepTrackingToken: false, forShipper: true }));
 
       res.json({ success: true, data: sanitized });
       scheduleOrdersRestaurantNavGpsAfterOffer(resultData, { label: 'list' });

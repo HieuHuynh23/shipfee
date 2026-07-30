@@ -139,30 +139,33 @@ function writeCustomerCrmStore(store) {
 
 function getCustomerCrmProfile(phone) {
   const p = cleanPhone(phone);
-  if (!p) return { phone: '', notes: [], tags: [], updatedAt: null };
+  if (!p) return { phone: '', notes: [], tags: [], deliveryHint: '', updatedAt: null };
   const store = readCustomerCrmStore();
   const row = store[p] || {};
   return {
     phone: p,
     notes: Array.isArray(row.notes) ? row.notes : [],
     tags: Array.isArray(row.tags) ? row.tags : [],
+    deliveryHint: row.deliveryHint || '',
     updatedAt: row.updatedAt || null
   };
 }
 
-function upsertCustomerCrmProfile(phone, { notes, tags, appendNote } = {}) {
+function upsertCustomerCrmProfile(phone, { notes, tags, appendNote, deliveryHint, noteVisibility } = {}) {
   const p = cleanPhone(phone);
   if (!p) return null;
   const store = readCustomerCrmStore();
   const current = store[p] || { notes: [], tags: [] };
   if (Array.isArray(notes)) current.notes = notes;
   if (Array.isArray(tags)) current.tags = [...new Set(tags.map((t) => String(t).trim()).filter(Boolean))];
+  if (typeof deliveryHint === 'string') current.deliveryHint = deliveryHint.trim().slice(0, 500);
   if (appendNote && String(appendNote).trim()) {
     current.notes = current.notes || [];
     current.notes.unshift({
       id: `note-${Date.now()}`,
       text: String(appendNote).trim(),
-      at: Date.now()
+      at: Date.now(),
+      visibility: noteVisibility === 'shipper' ? 'shipper' : 'admin'
     });
     if (current.notes.length > 100) current.notes.length = 100;
   }

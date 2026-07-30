@@ -308,6 +308,16 @@
         <div id="promo-code-msg" class="text-xs" style="margin-top:8px;color:var(--clr-text-muted);"></div>
       </div>
 
+      <!-- LOYALTY -->
+      <div class="section-card animate-fade-in" id="loyalty-section" style="display:none;">
+        <div class="section-card__title"><i class="fa-solid fa-gift"></i> Điểm thưởng</div>
+        <div id="loyalty-balance" class="text-sm" style="margin-bottom:8px;color:var(--clr-text-muted);">—</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="number" min="0" step="10" class="form-input" id="loyalty-redeem-input" placeholder="Điểm đổi (1đ≈100đ)" style="flex:1;">
+          <span class="text-xs" id="loyalty-hint" style="color:var(--clr-text-muted);white-space:nowrap;"></span>
+        </div>
+      </div>
+
       <!-- TERMS NOTE -->
       <div class="info-box info-box--info animate-fade-in" style="margin-bottom:var(--space-md);">
         <i class="fa-solid fa-circle-info" style="color:var(--clr-info);margin-top:2px;flex-shrink:0;"></i>
@@ -419,7 +429,32 @@
       renderOrderItems(cart, state);
       renderAddress(state);
       renderPriceBreakdown(cartTotals);
+      loadLoyaltyBalance(state);
     });
+
+    async function loadLoyaltyBalance(state) {
+      const phone = (state.ordererPhone || state.deliveryPhone || '').replace(/\s+/g, '');
+      const sec = document.getElementById('loyalty-section');
+      if (!sec || !phone || phone.length < 9) return;
+      try {
+        const res = await fetch(`${SF.API_BASE || ''}/api/loyalty/${encodeURIComponent(phone)}`);
+        const data = await res.json();
+        if (!data.success || !data.data) return;
+        const p = data.data;
+        if ((p.points || 0) <= 0) return;
+        sec.style.display = '';
+        document.getElementById('loyalty-balance').textContent =
+          `Bạn có ${p.points} điểm (${p.tier}) · đổi tối đa khi đặt`;
+        const input = document.getElementById('loyalty-redeem-input');
+        if (input) {
+          input.max = p.points;
+          input.addEventListener('input', () => {
+            const n = Math.min(p.points, Math.max(0, parseInt(input.value || '0', 10) || 0));
+            document.getElementById('loyalty-hint').textContent = n ? `≈ ${SF.formatCurrency(n * 100)}` : '';
+          });
+        }
+      } catch (_) {}
+    }
 
     function renderOrderItems(cart, state) {
       const restaurant = SF.RESTAURANTS.find(r => r.id === cart.restaurantId);
@@ -610,6 +645,7 @@
       const noteVal = noteEl ? noteEl.value.trim() : '';
 
       try {
+        const loyaltyPts = parseInt(document.getElementById('loyalty-redeem-input')?.value || '0', 10) || 0;
         const order = await SF.placeOrder(
           state.deliveryAddress,
           state.deliveryName,
@@ -619,7 +655,8 @@
           state.userLon,
           state.isRelative,
           noteVal,
-          appliedPromoCode
+          appliedPromoCode,
+          loyaltyPts
         );
 
         // Show success modal

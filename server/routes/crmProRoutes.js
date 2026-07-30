@@ -151,10 +151,19 @@ function registerCrmProRoutes(app, ctx) {
       readOrdersDatabase(),
       ORDER_HISTORY_RETENTION_DAYS || 90
     );
+    const shipperFilter = cleanPhone(req.query.shipperPhone || '');
+    const deliveredOnly = req.query.deliveredOnly !== '0' && req.query.deliveredOnly !== 'false';
+
     const customerMap = new Map();
     orders.forEach((o) => {
       const phone = o.deliveryPhone || o.ordererPhone;
       if (!phone) return;
+      const orderShipper = cleanPhone(o.shipperPhone || o.assignedShipperPhone || '');
+      if (shipperFilter) {
+        if (orderShipper !== shipperFilter) return;
+        if (deliveredOnly && o.status !== 'DELIVERED') return;
+      }
+
       if (!customerMap.has(phone)) {
         customerMap.set(phone, {
           name: o.deliveryName || '—',
@@ -162,28 +171,64 @@ function registerCrmProRoutes(app, ctx) {
           address: o.deliveryAddress || '',
           ordersCount: 0,
           totalSpent: 0,
-          lastOrderAt: 0
+          lastOrderAt: 0,
+          deliveredCount: 0,
+          ratingSum: 0,
+          ratingCount: 0,
+          shipperMap: {}
         });
       }
       const c = customerMap.get(phone);
       c.ordersCount++;
       c.totalSpent += o.appTotal || 0;
       c.lastOrderAt = Math.max(c.lastOrderAt || 0, o.createdAt || 0);
+      if (o.status === 'DELIVERED') c.deliveredCount++;
+      if (typeof o.rating === 'number' && o.rating > 0) {
+        c.ratingSum += o.rating;
+        c.ratingCount += 1;
+      }
+      if (orderShipper) {
+        if (!c.shipperMap[orderShipper]) {
+          c.shipperMap[orderShipper] = {
+            phone: orderShipper,
+            name: o.shipperName || orderShipper,
+            orders: 0,
+            delivered: 0
+          };
+        }
+        c.shipperMap[orderShipper].orders += 1;
+        if (o.status === 'DELIVERED') c.shipperMap[orderShipper].delivered += 1;
+      }
       if (o.deliveryName) c.name = o.deliveryName;
       if (o.deliveryAddress) c.address = o.deliveryAddress;
     });
+
     const blacklist = new Set((crm.readBlacklist() || []).map((b) => cleanPhone(b.phone)));
     const crmStore = crm.readCustomerCrmStore();
     let list = Array.from(customerMap.values()).map((c) => {
       const p = cleanPhone(c.phone);
       const profile = crmStore[p] || {};
+      const servingShippers = Object.values(c.shipperMap || {}).sort((a, b) => b.orders - a.orders);
       return {
-        ...c,
+        phone: c.phone,
+        name: c.name,
+        address: c.address,
+        ordersCount: c.ordersCount,
+        deliveredCount: c.deliveredCount,
+        totalSpent: c.totalSpent,
+        lastOrderAt: c.lastOrderAt,
+        avgRating: c.ratingCount ? Math.round((c.ratingSum / c.ratingCount) * 10) / 10 : null,
+        ratingCount: c.ratingCount,
         blacklisted: blacklist.has(p),
         tags: Array.isArray(profile.tags) ? profile.tags : [],
-        notesCount: Array.isArray(profile.notes) ? profile.notes.length : 0
+        notesCount: Array.isArray(profile.notes) ? profile.notes.length : 0,
+        deliveryHint: profile.deliveryHint || '',
+        servingShippersCount: servingShippers.length,
+        topShipper: servingShippers[0] || null,
+        isRepeat: c.deliveredCount >= 2 || c.ordersCount >= 2
       };
     });
+
     const { q, sort = 'spent', minSpent, minOrders, segment } = req.query;
     if (q) {
       const ql = String(q).toLowerCase();
@@ -191,7 +236,9 @@ function registerCrmProRoutes(app, ctx) {
         (c.name || '').toLowerCase().includes(ql) ||
         (c.phone || '').includes(q) ||
         (c.address || '').toLowerCase().includes(ql) ||
-        (c.tags || []).some((t) => String(t).toLowerCase().includes(ql))
+        (c.tags || []).some((t) => String(t).toLowerCase().includes(ql)) ||
+        (c.topShipper?.name || '').toLowerCase().includes(ql) ||
+        (c.topShipper?.phone || '').includes(q)
       );
     }
     if (minSpent) list = list.filter((c) => c.totalSpent >= Number(minSpent));
@@ -204,17 +251,24 @@ function registerCrmProRoutes(app, ctx) {
     else if (segment === 'inactive') {
       const monthAgo = Date.now() - 30 * 86400000;
       list = list.filter((c) => (c.lastOrderAt || 0) < monthAgo);
+    } else if (segment === 'repeat') {
+      list = list.filter((c) => c.isRepeat);
+    } else if (segment === 'rated') {
+      list = list.filter((c) => c.ratingCount > 0);
     }
+
     if (sort === 'orders') list.sort((a, b) => b.ordersCount - a.ordersCount);
     else if (sort === 'recent') list.sort((a, b) => (b.lastOrderAt || 0) - (a.lastOrderAt || 0));
     else if (sort === 'name') list.sort((a, b) => String(a.name).localeCompare(String(b.name), 'vi'));
+    else if (sort === 'rating') list.sort((a, b) => (b.avgRating || 0) - (a.avgRating || 0));
     else list.sort((a, b) => b.totalSpent - a.totalSpent);
-    return list;
+
+    return { list, shipperFilter };
   }
 
   app.get('/api/admin/customers', authenticateAdmin, async (req, res) => {
     try {
-      const list = await buildCustomerList(req);
+      const { list, shipperFilter } = await buildCustomerList(req);
       const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
       const limitNum = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
       const start = (pageNum - 1) * limitNum;
@@ -224,7 +278,8 @@ function registerCrmProRoutes(app, ctx) {
         total: list.length,
         page: pageNum,
         limit: limitNum,
-        hasMore: start + limitNum < list.length
+        hasMore: start + limitNum < list.length,
+        shipperPhone: shipperFilter || null
       });
     } catch (e) {
       res.status(500).json({ success: false, error: e.message });
@@ -233,12 +288,14 @@ function registerCrmProRoutes(app, ctx) {
 
   app.get('/api/admin/customers/export', authenticateAdmin, async (req, res) => {
     try {
-      const list = await buildCustomerList(req);
-      const headers = ['phone', 'name', 'address', 'ordersCount', 'totalSpent', 'lastOrderAt', 'tags', 'blacklisted'];
+      const { list } = await buildCustomerList(req);
+      const headers = ['phone', 'name', 'address', 'ordersCount', 'deliveredCount', 'totalSpent', 'avgRating', 'topShipper', 'lastOrderAt', 'tags', 'blacklisted', 'deliveryHint'];
       const rows = list.map((c) => [
-        c.phone, c.name, c.address, c.ordersCount, c.totalSpent,
+        c.phone, c.name, c.address, c.ordersCount, c.deliveredCount, c.totalSpent,
+        c.avgRating ?? '',
+        c.topShipper ? `${c.topShipper.name}|${c.topShipper.phone}` : '',
         c.lastOrderAt ? new Date(c.lastOrderAt).toISOString() : '',
-        (c.tags || []).join('|'), c.blacklisted
+        (c.tags || []).join('|'), c.blacklisted, c.deliveryHint || ''
       ]);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', 'attachment; filename="shipfee-customers.csv"');
@@ -248,23 +305,94 @@ function registerCrmProRoutes(app, ctx) {
     }
   });
 
-  app.get('/api/admin/customers/:phone', authenticateAdmin, async (req, res) => {
+  app.get('/api/admin/customers/heatmap', authenticateAdmin, async (req, res) => {
     try {
-      const phone = cleanPhone(req.params.phone);
+      const customerOps = require('../customerOps');
       const orders = await mergeOrdersFromSupabaseForRange(
         readOrdersDatabase(),
         ORDER_HISTORY_RETENTION_DAYS || 90
       );
-      const history = orders
+      const points = customerOps.buildCustomerHeatmap(orders, {
+        shipperPhone: req.query.shipperPhone,
+        from: req.query.from,
+        to: req.query.to
+      });
+      res.json({ success: true, data: points, total: points.length });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get('/api/admin/shippers/:phone/customers', authenticateAdmin, async (req, res) => {
+    try {
+      req.query.shipperPhone = req.params.phone;
+      const { list, shipperFilter } = await buildCustomerList(req);
+      const pageNum = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limitNum = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50));
+      const start = (pageNum - 1) * limitNum;
+      res.json({
+        success: true,
+        data: list.slice(start, start + limitNum),
+        total: list.length,
+        page: pageNum,
+        limit: limitNum,
+        hasMore: start + limitNum < list.length,
+        shipperPhone: shipperFilter
+      });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get('/api/admin/customers/:phone', authenticateAdmin, async (req, res) => {
+    try {
+      const phone = cleanPhone(req.params.phone);
+      const shipperFilter = cleanPhone(req.query.shipperPhone || '');
+      const orders = await mergeOrdersFromSupabaseForRange(
+        readOrdersDatabase(),
+        ORDER_HISTORY_RETENTION_DAYS || 90
+      );
+      let history = orders
         .filter((o) => cleanPhone(o.deliveryPhone) === phone || cleanPhone(o.ordererPhone) === phone)
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      if (shipperFilter) {
+        history = history.filter((o) =>
+          cleanPhone(o.shipperPhone || o.assignedShipperPhone) === shipperFilter
+        );
+      }
       if (!history.length && !crm.getCustomerCrmProfile(phone).notes.length) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy khách hàng' });
       }
       const profile = crm.getCustomerCrmProfile(phone);
       const blacklisted = !!crm.isBlacklisted(phone);
       const totalSpent = history.reduce((s, o) => s + (o.appTotal || 0), 0);
+      const rated = history.filter((o) => typeof o.rating === 'number' && o.rating > 0);
+      const avgRating = rated.length
+        ? Math.round((rated.reduce((s, o) => s + o.rating, 0) / rated.length) * 10) / 10
+        : null;
+      const shipperMap = {};
+      history.forEach((o) => {
+        const sp = cleanPhone(o.shipperPhone || o.assignedShipperPhone);
+        if (!sp) return;
+        if (!shipperMap[sp]) {
+          shipperMap[sp] = { phone: sp, name: o.shipperName || sp, orders: 0, delivered: 0, ratingSum: 0, ratingCount: 0 };
+        }
+        shipperMap[sp].orders += 1;
+        if (o.status === 'DELIVERED') shipperMap[sp].delivered += 1;
+        if (typeof o.rating === 'number' && o.rating > 0) {
+          shipperMap[sp].ratingSum += o.rating;
+          shipperMap[sp].ratingCount += 1;
+        }
+      });
+      const servingShippers = Object.values(shipperMap)
+        .map((s) => ({
+          ...s,
+          avgRating: s.ratingCount ? Math.round((s.ratingSum / s.ratingCount) * 10) / 10 : null
+        }))
+        .sort((a, b) => b.orders - a.orders);
       const last = history[0] || {};
+      let loyalty = null;
+      try { loyalty = require('../customerOps').getLoyaltyProfile(phone); } catch (_) {}
       res.json({
         success: true,
         data: {
@@ -272,12 +400,19 @@ function registerCrmProRoutes(app, ctx) {
           name: last.deliveryName || '—',
           address: last.deliveryAddress || '',
           ordersCount: history.length,
+          deliveredCount: history.filter((o) => o.status === 'DELIVERED').length,
           totalSpent,
           ltv: totalSpent,
+          avgRating,
+          ratingCount: rated.length,
           lastOrderAt: last.createdAt || null,
           blacklisted,
           tags: profile.tags,
           notes: profile.notes,
+          deliveryHint: profile.deliveryHint || '',
+          servingShippers,
+          loyalty,
+          filteredByShipper: shipperFilter || null,
           orders: history.slice(0, 50)
         }
       });
@@ -289,9 +424,16 @@ function registerCrmProRoutes(app, ctx) {
   app.put('/api/admin/customers/:phone', authenticateAdmin, mutateOps, (req, res) => {
     try {
       const phone = cleanPhone(req.params.phone);
-      const { tags, notes, appendNote } = req.body || {};
-      const profile = crm.upsertCustomerCrmProfile(phone, { tags, notes, appendNote });
-      crm.logAdminAudit(req, 'customer_crm_update', { phone, tags: profile.tags, appendNote: !!appendNote });
+      const { tags, notes, appendNote, deliveryHint, noteVisibility } = req.body || {};
+      const profile = crm.upsertCustomerCrmProfile(phone, {
+        tags, notes, appendNote, deliveryHint, noteVisibility
+      });
+      crm.logAdminAudit(req, 'customer_crm_update', {
+        phone,
+        tags: profile.tags,
+        appendNote: !!appendNote,
+        deliveryHint: !!deliveryHint
+      });
       res.json({ success: true, data: profile });
     } catch (e) {
       res.status(500).json({ success: false, error: e.message });
@@ -518,6 +660,81 @@ function registerCrmProRoutes(app, ctx) {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="shipfee-analytics-${tab}.csv"`);
       res.send(crm.buildCsv(headers, rows));
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // ── Customer ops: shipper blacklist, loyalty, CSAT, heatmap ─────────────
+  const customerOps = require('../customerOps');
+
+  app.get('/api/admin/shipper-blacklist', authenticateAdmin, (req, res) => {
+    try {
+      res.json({ success: true, data: customerOps.listShipperBlacklist(req.query.shipperPhone) });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post('/api/admin/shipper-blacklist', authenticateAdmin, mutateOps, (req, res) => {
+    try {
+      const { shipperPhone, customerPhone, reason } = req.body || {};
+      const entry = customerOps.addShipperBlacklist(
+        shipperPhone,
+        customerPhone,
+        reason,
+        req.user?.email || 'admin'
+      );
+      if (!entry) return res.status(400).json({ success: false, error: 'Thiếu SĐT hoặc đã tồn tại' });
+      crm.logAdminAudit(req, 'shipper_blacklist_add', entry);
+      res.json({ success: true, data: entry });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.delete('/api/admin/shipper-blacklist/:shipperPhone/:customerPhone', authenticateAdmin, mutateOps, (req, res) => {
+    try {
+      const ok = customerOps.removeShipperBlacklist(req.params.shipperPhone, req.params.customerPhone);
+      crm.logAdminAudit(req, 'shipper_blacklist_remove', {
+        shipperPhone: req.params.shipperPhone,
+        customerPhone: req.params.customerPhone
+      });
+      res.json({ success: true, removed: ok });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get('/api/admin/loyalty/:phone', authenticateAdmin, (req, res) => {
+    try {
+      res.json({ success: true, data: customerOps.getLoyaltyProfile(req.params.phone) });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post('/api/admin/loyalty/:phone/redeem', authenticateAdmin, mutateOps, (req, res) => {
+    try {
+      const result = customerOps.redeemLoyaltyPoints(
+        req.params.phone,
+        req.body?.points,
+        req.body?.note || 'Admin đổi điểm'
+      );
+      if (!result.ok) return res.status(400).json({ success: false, error: result.error });
+      crm.logAdminAudit(req, 'loyalty_redeem', { phone: req.params.phone, points: req.body?.points });
+      res.json({ success: true, data: result });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.get('/api/admin/csat-followups', authenticateAdmin, (req, res) => {
+    try {
+      res.json({
+        success: true,
+        data: customerOps.listCsatFollowups({ status: req.query.status, limit: parseInt(req.query.limit, 10) || 50 })
+      });
     } catch (e) {
       res.status(500).json({ success: false, error: e.message });
     }
