@@ -517,8 +517,12 @@
           <div class="tracking-topbar__label">Mã đơn</div>
           <div class="tracking-topbar__id" id="order-id-display">SPF-———</div>
         </div>
+        <span class="pay-badge" id="pay-method-badge" hidden>COD</span>
         <span class="order-id-bar__status status-PENDING" id="order-status-badge">Đang tìm shipper</span>
       </div>
+      <button type="button" class="tracking-topbar__btn" id="share-tracking-btn" title="Chia sẻ" aria-label="Chia sẻ đơn">
+        <i class="fa-solid fa-share-nodes"></i>
+      </button>
       <button type="button" class="tracking-topbar__btn" onclick="SF.navigate('./')" title="Đặt thêm" aria-label="Đặt thêm">
         <i class="fa-solid fa-plus"></i>
       </button>
@@ -1108,10 +1112,13 @@
             const msgs = {
               ACCEPTED:  ['🛵 Shipper đã nhận đơn!', (updated.shipperName || 'Tài xế') + ' đang di chuyển đến quán lấy hàng.'],
               PURCHASED: ['🛒 Đã mua hàng tại quán!', 'Shipper đã ứng tiền trả và đang giao đến bạn.'],
-              DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán COD và đánh giá tài xế nhé!']
+              DELIVERED: ['🎉 Giao hàng thành công!', 'Hãy thanh toán và đánh giá tài xế nhé!']
             };
             if (msgs[updated.status]) {
               SF.showToast(msgs[updated.status][0], msgs[updated.status][1], 'success');
+              SF.notifyLocal(msgs[updated.status][0], msgs[updated.status][1], {
+                url: SF.getTrackingShareUrl(updated) || undefined
+              });
             }
           }
 
@@ -1126,6 +1133,7 @@
             state.activeOrder.statusHistory.push({ status: updated.status, time: Date.now() });
           }
           SF.saveState(state);
+          if (SF.upsertOrderHistory) SF.upsertOrderHistory(state.activeOrder);
 
           checkNewMessages(order, updated);
 
@@ -1252,16 +1260,58 @@
       });
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      if (SF.applyTheme) SF.applyTheme();
       if (SF.initNavScroll) SF.initNavScroll();
       initTrackingBottomSheet();
+
+      const urlOrderId = SF.getParam('orderId') || SF.getParam('id');
+      const urlToken = SF.getParam('token');
       order = SF.getActiveOrder();
+
+      if (urlOrderId) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (urlToken) headers['X-Order-Token'] = urlToken;
+          if (SF.orderAuthHeaders && order && String(order.id) === String(urlOrderId)) {
+            Object.assign(headers, SF.orderAuthHeaders(order));
+          }
+          const qs = urlToken ? `?token=${encodeURIComponent(urlToken)}` : '';
+          const response = await fetch(`${API_BASE}/api/orders/${encodeURIComponent(urlOrderId)}${qs}`, {
+            headers
+          });
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success && result.data) {
+              const fetched = result.data;
+              if (urlToken && !fetched.trackingToken) fetched.trackingToken = urlToken;
+              const state = SF.getState();
+              state.activeOrder = { ...(state.activeOrder || {}), ...fetched };
+              SF.saveState(state);
+              if (SF.upsertOrderHistory) SF.upsertOrderHistory(state.activeOrder);
+              order = state.activeOrder;
+            }
+          }
+        } catch (e) {
+          console.warn('[Tracking] fetch by orderId failed', e);
+        }
+      }
 
       if (!order) {
         SF.showToast('Không có đơn hàng', 'Hãy đặt đơn trước.', 'warning');
         setTimeout(() => SF.navigate('./'), 1500);
         return;
       }
+
+      document.getElementById('share-tracking-btn')?.addEventListener('click', async () => {
+        try {
+          const result = await SF.shareTrackingLink(order);
+          if (result === 'copied') SF.showToast('Đã sao chép', 'Link theo dõi đã copy vào clipboard.', 'success');
+          else if (result === 'shared') SF.showToast('Đã chia sẻ', 'Link theo dõi đã gửi.', 'success');
+        } catch (e) {
+          SF.showToast('Không chia sẻ được', e.message || 'Thử lại sau.', 'error');
+        }
+      });
 
       // Đơn đã hủy còn lưu local → không treo tracking
       if (order.status === 'CANCELLED') {
@@ -1616,6 +1666,21 @@
       document.getElementById('order-id-display').textContent = order.id;
       document.getElementById('summary-total-items').textContent = SF.formatCurrency(order.appTotal);
       document.getElementById('summary-total').textContent   = SF.formatCurrency(order.appTotal);
+      const payBadge = document.getElementById('pay-method-badge');
+      if (payBadge) {
+        const pm = String(order.paymentMethod || '').toUpperCase();
+        if (pm === 'BANK_TRANSFER') {
+          payBadge.hidden = false;
+          payBadge.textContent = 'Chuyển khoản';
+          payBadge.classList.add('is-bank');
+        } else if (pm === 'COD' || pm) {
+          payBadge.hidden = false;
+          payBadge.textContent = 'COD';
+          payBadge.classList.remove('is-bank');
+        } else {
+          payBadge.hidden = true;
+        }
+      }
       const esc = SF.escapeHtml || ((s) => String(s == null ? '' : s));
       
       if (order.isRelative) {

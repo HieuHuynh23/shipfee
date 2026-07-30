@@ -191,7 +191,7 @@ function writePromos(list) {
   writeJson(PROMOS_FILE, list);
 }
 
-function validatePromo(code, subtotal) {
+function validatePromo(code, subtotal, opts = {}) {
   if (!code) return { valid: false, error: 'Thiếu mã giảm giá' };
   const promos = readPromos();
   const promo = promos.find(p => p.code.toUpperCase() === String(code).trim().toUpperCase() && p.active !== false);
@@ -205,6 +205,44 @@ function validatePromo(code, subtotal) {
   if (promo.minOrder && subtotal < promo.minOrder) {
     return { valid: false, error: `Đơn tối thiểu ${promo.minOrder.toLocaleString('vi-VN')}đ` };
   }
+  if (promo.firstOrderOnly === true && opts.hasPreviousOrders === true) {
+    return { valid: false, error: 'Mã chỉ dành cho đơn đầu tiên' };
+  }
+
+  const phone = cleanPhone(opts.phone || '');
+  if (Array.isArray(promo.phones) && promo.phones.length) {
+    const allowed = promo.phones.map(cleanPhone);
+    if (!phone || !allowed.includes(phone)) {
+      return { valid: false, error: 'Mã không áp dụng cho SĐT này' };
+    }
+  }
+  if (promo.forNew || promo.forReturning || promo.minOrders != null || promo.maxOrders != null) {
+    const ordersCount = Number(opts.ordersCount);
+    const hasPrev = opts.hasPreviousOrders === true || (Number.isFinite(ordersCount) && ordersCount > 0);
+    if (promo.forNew && hasPrev) {
+      return { valid: false, error: 'Mã chỉ dành cho khách mới' };
+    }
+    if (promo.forReturning && !hasPrev) {
+      return { valid: false, error: 'Mã chỉ dành cho khách quay lại' };
+    }
+    if (Number.isFinite(ordersCount)) {
+      if (promo.minOrders != null && ordersCount < promo.minOrders) {
+        return { valid: false, error: 'Chưa đủ số đơn để dùng mã này' };
+      }
+      if (promo.maxOrders != null && ordersCount > promo.maxOrders) {
+        return { valid: false, error: 'Mã không còn áp dụng cho tài khoản này' };
+      }
+    }
+  }
+
+  // Time / weekday windows (Asia/Ho_Chi_Minh)
+  try {
+    const growth = require('./growthPackages');
+    if (!growth.isPromoTimeValid(promo)) {
+      return { valid: false, error: 'Mã không áp dụng trong khung giờ / ngày này' };
+    }
+  } catch (_) {}
+
   let discount = 0;
   if (promo.type === 'percent') {
     discount = Math.round(subtotal * (promo.value / 100) / 100) * 100;
@@ -212,7 +250,9 @@ function validatePromo(code, subtotal) {
   } else if (promo.type === 'fixed') {
     discount = promo.value;
   } else if (promo.type === 'free_ship') {
-    discount = 0;
+    // Giảm đúng phần phí giao ước tính nếu client/server truyền deliveryFee
+    const deliveryFee = Number(opts.deliveryFee) || 0;
+    discount = deliveryFee > 0 ? deliveryFee : Math.min(15000, Math.round(subtotal * 0.1 / 100) * 100);
   }
   discount = Math.min(discount, subtotal);
   return { valid: true, promo, discount };

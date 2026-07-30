@@ -75,6 +75,7 @@ server/customer-crm-local.json
 server/shipper-blacklist-local.json
 server/loyalty-local.json
 server/csat-followups-local.json
+server/customer-portal-local.json
 
 .vercel
 .env*

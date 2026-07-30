@@ -82,6 +82,29 @@ function computeShipperEarning(feePool, minShipperEarning, surplusShare) {
   return minE + round100(surplus * share);
 }
 
+/**
+ * Ưu đãi từ món thứ 2: giảm multiItemDiscount (15%) giá quán mỗi món sau món đắt nhất.
+ * Trừ vào feePool; không kéo feePool dưới minShipperEarning.
+ * @param {number[]} unitPrices in-store unit prices (one entry per item qty)
+ */
+function computeMultiItemDiscount(unitPrices, multiItemDiscountRate, feePoolRaw, minShipperEarning) {
+  const rate = Number(multiItemDiscountRate ?? 0.15);
+  const minE = Number(minShipperEarning ?? 15000);
+  const prices = (Array.isArray(unitPrices) ? unitPrices : [])
+    .map((p) => Number(p) || 0)
+    .filter((p) => p > 0);
+  if (prices.length < 2 || !(rate > 0)) return 0;
+
+  prices.sort((a, b) => b - a);
+  let discountValue = 0;
+  for (let i = 1; i < prices.length; i++) {
+    // 15% giá món; tối thiểu 2.000đ/món thêm để vẫn cảm nhận được với món rẻ
+    discountValue += Math.max(2000, round100(prices[i] * rate));
+  }
+  const maxDiscount = Math.max(0, Number(feePoolRaw) - minE);
+  return Math.min(discountValue, maxDiscount);
+}
+
 function buildFeeWaiverHint({
   storeTotal,
   itemCount,
@@ -266,13 +289,12 @@ function recomputeOrderPricingFromMenu({
 
   let discountValue = 0;
   if (itemCount > 1) {
-    const avgUnit = storeTotal / itemCount;
-    const perExtra = Math.max(
-      2000,
-      round100(surchargePerItem * multiItemDiscount + avgUnit * 0.03)
+    discountValue = computeMultiItemDiscount(
+      lineUnits.map((u) => u.inStorePrice),
+      multiItemDiscount,
+      feePoolRaw,
+      minShipperEarning
     );
-    discountValue = perExtra * (itemCount - 1);
-    discountValue = Math.min(discountValue, Math.max(0, feePoolRaw - minShipperEarning));
   }
 
   let feePool = Math.max(0, feePoolRaw - discountValue);
@@ -396,13 +418,15 @@ function computeCartFeeTotals({
 
   let discountValue = 0;
   if (itemCount > 1) {
+    // Client mirror: approximate with equal avg units when line list unavailable
     const avgUnit = storeTotal / itemCount;
-    const perExtra = Math.max(
-      2000,
-      round100((Number(surchargePerItem) || 0) * multiItemDiscount + avgUnit * 0.03)
+    const unitPrices = Array.from({ length: itemCount }, () => avgUnit);
+    discountValue = computeMultiItemDiscount(
+      unitPrices,
+      multiItemDiscount,
+      feePoolRaw,
+      minShipperEarning
     );
-    discountValue = perExtra * (itemCount - 1);
-    discountValue = Math.min(discountValue, Math.max(0, feePoolRaw - minShipperEarning));
   }
 
   let feePool = Math.max(0, feePoolRaw - discountValue);
@@ -495,5 +519,6 @@ module.exports = {
   splitFeePool,
   computeShipperEarning,
   recomputeOrderPricingFromMenu,
-  computeCartFeeTotals
+  computeCartFeeTotals,
+  computeMultiItemDiscount
 };

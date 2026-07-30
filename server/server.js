@@ -40,6 +40,7 @@ const { registerOrderLifecycleRoutes } = require('./routes/orderLifecycle');
 const { registerOrderCallRoutes } = require('./routes/orderCalls');
 const { registerAdminOrderRoutes } = require('./routes/adminOrders');
 const { registerCrmProRoutes } = require('./routes/crmProRoutes');
+const { registerCustomerPortalRoutes } = require('./routes/customerPortalRoutes');
 
 // ── SYSTEM NOTIFICATIONS (Lưu cục bộ và đồng bộ Supabase) ────────────────────
 const NOTIFICATIONS_FILE = path.join(__dirname, 'notifications-local.json');
@@ -1727,7 +1728,7 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Order-Token', 'X-Delivery-Phone'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Order-Token', 'X-Delivery-Phone', 'X-Customer-Token'],
   optionsSuccessStatus: 200
 }));
 
@@ -5694,6 +5695,13 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       pinnedLon: pinLon,
       isRelative: orderData.isRelative === true,
       note: orderData.note || '',
+      paymentMethod: ['COD', 'BANK_TRANSFER'].includes(String(orderData.paymentMethod || '').toUpperCase())
+        ? String(orderData.paymentMethod).toUpperCase()
+        : 'COD',
+      paymentStatus: ['COD', 'BANK_TRANSFER'].includes(String(orderData.paymentMethod || '').toUpperCase())
+        && String(orderData.paymentMethod).toUpperCase() === 'BANK_TRANSFER'
+        ? 'AWAITING_TRANSFER'
+        : 'COD',
       createdAt: Date.now(),
       acceptedAt: null,
       purchasedAt: null,
@@ -5720,11 +5728,13 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       return res.status(400).json({ success: false, error: zoneCheck.error });
     }
 
-    // Kiểm tra đơn hàng thứ 2+ của cùng một khách hàng để tự động giảm giá
+    // Kiểm tra đơn hàng thứ 2+ / first-order promo
     const orders = readOrdersDatabase();
-    const cleanedOrdererPhone = newOrder.ordererPhone.trim().replace(/\s+/g, '');
+    const cleanedOrdererPhone = (newOrder.ordererPhone || '').trim().replace(/\s+/g, '');
+    let hasPreviousOrders = false;
     if (cleanedOrdererPhone) {
-      const hasPreviousOrders = orders.some(o => 
+      hasPreviousOrders = orders.some(o =>
+        o && o.ordererPhone &&
         o.ordererPhone.trim().replace(/\s+/g, '') === cleanedOrdererPhone &&
         o.id !== newOrder.id
       );
@@ -5738,6 +5748,7 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
         const maxDiscount = Math.max(0, subtotal - minApp);
         const discountVal = Math.min(rawDiscount, maxDiscount);
         newOrder.discountValue = (newOrder.discountValue || 0) + discountVal;
+        newOrder.secondOrderDiscount = discountVal;
         newOrder.appTotal = Math.max(minApp, subtotal - discountVal);
         const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
         newOrder.feePool = feeLeft;
@@ -5754,31 +5765,46 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       }
     }
 
-    if (orderData.promoCode) {
-      const promoResult = crm.validatePromo(orderData.promoCode, newOrder.appTotal);
+    // Auto gợi ý / áp mã chào khách mới nếu chưa nhập promo
+    let promoCodeToApply = orderData.promoCode || null;
+    if (!promoCodeToApply && !hasPreviousOrders) {
+      try {
+        const growthPackages = require('./growthPackages');
+        promoCodeToApply = growthPackages.getSuggestedFirstOrderCode(false);
+      } catch (_) {}
+    }
+
+    if (promoCodeToApply) {
+      const promoResult = crm.validatePromo(promoCodeToApply, newOrder.appTotal, {
+        hasPreviousOrders,
+        deliveryFee: newOrder.deliveryFee || 0
+      });
       if (!promoResult.valid) {
-        return res.status(400).json({ success: false, error: promoResult.error });
+        // Auto-welcome thất bại thì bỏ qua; mã khách nhập thì báo lỗi
+        if (orderData.promoCode) {
+          return res.status(400).json({ success: false, error: promoResult.error });
+        }
+      } else {
+        newOrder.promoCode = promoResult.promo.code;
+        const minApp = newOrder.storeTotal + (pricingConfig.minShipperEarning || 15000);
+        const maxDiscount = Math.max(0, newOrder.appTotal - minApp);
+        const appliedPromo = Math.min(promoResult.discount, maxDiscount);
+        newOrder.promoDiscount = appliedPromo;
+        newOrder.discountValue = (newOrder.discountValue || 0) + appliedPromo;
+        newOrder.appTotal = Math.max(minApp, newOrder.appTotal - appliedPromo);
+        const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
+        newOrder.feePool = feeLeft;
+        newOrder.shipperEarning = pricingEngine.computeShipperEarning(
+          feeLeft,
+          pricingConfig.minShipperEarning,
+          pricingConfig.shipperSurplusShare
+        );
+        const split = pricingEngine.splitFeePool(feeLeft, pricingConfig.platformFeeShare);
+        newOrder.platformFee = split.platformFee;
+        newOrder.deliveryFee = split.deliveryFee;
+        newOrder.platformKeep = Math.max(0, feeLeft - newOrder.shipperEarning);
+        crm.incrementPromoUse(promoResult.promo.code);
       }
-      newOrder.promoCode = promoResult.promo.code;
-      newOrder.promoDiscount = promoResult.discount;
-      const minApp = newOrder.storeTotal + (pricingConfig.minShipperEarning || 15000);
-      const maxDiscount = Math.max(0, newOrder.appTotal - minApp);
-      const appliedPromo = Math.min(promoResult.discount, maxDiscount);
-      newOrder.promoDiscount = appliedPromo;
-      newOrder.discountValue = (newOrder.discountValue || 0) + appliedPromo;
-      newOrder.appTotal = Math.max(minApp, newOrder.appTotal - appliedPromo);
-      const feeLeft = Math.max(0, newOrder.appTotal - newOrder.storeTotal);
-      newOrder.feePool = feeLeft;
-      newOrder.shipperEarning = pricingEngine.computeShipperEarning(
-        feeLeft,
-        pricingConfig.minShipperEarning,
-        pricingConfig.shipperSurplusShare
-      );
-      const split = pricingEngine.splitFeePool(feeLeft, pricingConfig.platformFeeShare);
-      newOrder.platformFee = split.platformFee;
-      newOrder.deliveryFee = split.deliveryFee;
-      newOrder.platformKeep = Math.max(0, feeLeft - newOrder.shipperEarning);
-      crm.incrementPromoUse(promoResult.promo.code);
     }
 
     // Loyalty redeem (optional)
@@ -6686,6 +6712,7 @@ app.get('/api/config', (req, res) => {
     minShipperEarning: pricingConfig.minShipperEarning,
     freeDistanceKm: pricingConfig.freeDistanceKm,
     multiItemDiscount: pricingConfig.multiItemDiscount,
+    secondOrderDiscountRate: pricingConfig.secondOrderDiscountRate,
     platformFeeShare: pricingConfig.platformFeeShare,
     deliveryFeeShare: pricingConfig.deliveryFeeShare,
     shipperSurplusShare: pricingConfig.shipperSurplusShare,
@@ -7454,6 +7481,68 @@ app.get('/api/loyalty/:phone', (req, res) => {
 });
 
 /**
+ * GET /api/customer/orders?phone=
+ * Lịch sử đơn của khách theo SĐT (deliveryPhone hoặc ordererPhone).
+ * Trả về bản tóm tắt — không lộ chi tiết nội bộ pricing/shipper.
+ */
+app.get('/api/customer/orders', rateLimitStrict, async (req, res) => {
+  try {
+    const phone = cleanPhone(req.query.phone || req.headers['x-delivery-phone'] || '');
+    if (!phone || phone.length < 9) {
+      return res.status(400).json({ success: false, error: 'SĐT không hợp lệ' });
+    }
+
+    const orders = await mergeOrdersFromSupabaseForRange(
+      readOrdersDatabase(),
+      ORDER_HISTORY_RETENTION_DAYS || 90
+    );
+
+    const history = orders
+      .filter((o) => cleanPhone(o.deliveryPhone) === phone || cleanPhone(o.ordererPhone) === phone)
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, 50)
+      .map((o) => {
+        const inProgress = o.status !== 'DELIVERED' && o.status !== 'CANCELLED';
+        return {
+          id: o.id,
+          status: o.status,
+          restaurantId: o.restaurantId,
+          restaurantName: o.restaurantName,
+          restaurantImg: o.restaurantImg || null,
+          items: (o.items || []).map((i) => ({
+            id: i.id || i.realItemId,
+            name: i.name,
+            quantity: i.quantity || i.qty || 1,
+            price: i.appPrice != null ? i.appPrice : i.price,
+            selectedOptions: Array.isArray(i.selectedOptions) ? i.selectedOptions : []
+          })),
+          appTotal: o.appTotal || 0,
+          createdAt: o.createdAt || null,
+          deliveredAt: o.deliveredAt || null,
+          rating: typeof o.rating === 'number' ? o.rating : null,
+          deliveryAddress: o.deliveryAddress || '',
+          deliveryPhone: o.deliveryPhone || '',
+          ordererPhone: o.ordererPhone || '',
+          trackingToken: inProgress && o.trackingToken ? o.trackingToken : null
+        };
+      });
+
+    res.json({ success: true, data: history });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+registerCustomerPortalRoutes(app, {
+  rateLimitAuth,
+  rateLimitStrict,
+  readOrdersDatabase,
+  mergeOrdersFromSupabaseForRange,
+  ORDER_HISTORY_RETENTION_DAYS,
+  cleanPhone
+});
+
+/**
  * GET /api/admin/restaurants
  * Danh sách quán cho CRM — toàn bộ database, không giới hạn bán kính 3km
  */
@@ -7957,9 +8046,10 @@ app.post('/api/admin/pricing-config', authenticateAdmin, crm.requireAdminRole('a
       shipperSurplusShare,
       waivePlatformMinItems,
       waivePlatformMinStoreTotal,
-      halfDeliveryMinItems,
-      halfDeliveryMinStoreTotal,
-      telegramConfig
+    halfDeliveryMinItems,
+    halfDeliveryMinStoreTotal,
+    shipperSurplusShare,
+    telegramConfig
     } = req.body;
     
     if (typeof markupRate === 'number') {
@@ -8411,8 +8501,19 @@ app.post('/api/admin/menus/reconcile', authenticateAdmin, crm.requireAdminRole('
  */
 app.post('/api/promos/validate', (req, res) => {
   try {
-    const { code, subtotal } = req.body || {};
-    const result = crm.validatePromo(code, Number(subtotal) || 0);
+    const { code, subtotal, phone, deliveryFee } = req.body || {};
+    let hasPreviousOrders = false;
+    const cleaned = String(phone || '').trim().replace(/\s+/g, '');
+    if (cleaned) {
+      const orders = readOrdersDatabase();
+      hasPreviousOrders = orders.some(
+        (o) => o && o.ordererPhone && o.ordererPhone.trim().replace(/\s+/g, '') === cleaned
+      );
+    }
+    const result = crm.validatePromo(code, Number(subtotal) || 0, {
+      hasPreviousOrders,
+      deliveryFee: Number(deliveryFee) || 0
+    });
     if (!result.valid) {
       return res.status(400).json({ success: false, error: result.error });
     }
@@ -8421,9 +8522,74 @@ app.post('/api/promos/validate', (req, res) => {
       data: {
         code: result.promo.code,
         type: result.promo.type,
-        discount: result.discount
+        discount: result.discount,
+        description: result.promo.description || null
       }
     });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * GET /api/growth-offers?phone=
+ * Public — danh sách gói ưu đãi giai đoạn đầu (checkout / home)
+ */
+app.get('/api/growth-offers', (req, res) => {
+  try {
+    const growthPackages = require('./growthPackages');
+    const phone = String(req.query.phone || '').trim().replace(/\s+/g, '');
+    let hasPreviousOrders = false;
+    if (phone) {
+      const orders = readOrdersDatabase();
+      hasPreviousOrders = orders.some(
+        (o) => o && o.ordererPhone && o.ordererPhone.trim().replace(/\s+/g, '') === phone
+      );
+    }
+    const offers = growthPackages.resolveCustomerOffers({
+      hasPreviousOrders,
+      pricingConfig
+    });
+    res.json({
+      success: true,
+      data: {
+        hasPreviousOrders,
+        suggestedCode: growthPackages.getSuggestedFirstOrderCode(hasPreviousOrders),
+        offers
+      }
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.get('/api/admin/growth-packages', authenticateAdmin, (req, res) => {
+  try {
+    const growthPackages = require('./growthPackages');
+    res.json({ success: true, data: growthPackages.listPackagesForAdmin() });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.put('/api/admin/growth-packages/:id', authenticateAdmin, crm.requireAdminRole('admin'), (req, res) => {
+  try {
+    const growthPackages = require('./growthPackages');
+    const result = growthPackages.updatePackage(req.params.id, req.body || {});
+    if (result.error) return res.status(404).json({ success: false, error: result.error });
+    crm.logAdminAudit(req, 'growth_package_update', { id: req.params.id, patch: req.body });
+    res.json({ success: true, data: result.package });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/growth-packages/seed', authenticateAdmin, crm.requireAdminRole('admin'), (req, res) => {
+  try {
+    const growthPackages = require('./growthPackages');
+    const result = growthPackages.seedPromosFromPackages();
+    crm.logAdminAudit(req, 'growth_packages_seed', result);
+    res.json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -9320,6 +9486,14 @@ app.listen(PORT, () => {
   console.log('👉 Mở trình duyệt tại: http://localhost:3001/app/index.html');
   console.log('   (hoặc nhấn Ctrl+Click vào link trên)');
   console.log('');
+
+  try {
+    const growthPackages = require('./growthPackages');
+    const seeded = growthPackages.seedPromosFromPackages();
+    console.log(`[Growth] Seeded promos from packages:`, seeded);
+  } catch (e) {
+    console.warn('[Growth] Seed failed:', e.message);
+  }
 
   // Catalog: ưu tiên Supabase (no menu) — chunk chỉ seed nếu thiếu dữ liệu
   bootRestaurantsCatalogFromSupabase()

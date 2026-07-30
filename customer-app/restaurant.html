@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.8">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <style>
@@ -540,6 +540,9 @@
     <div class="restaurant-header" id="restaurant-header">
       <img id="restaurant-img" src="" alt="" class="restaurant-header__img">
       <div class="restaurant-header__overlay"></div>
+      <button type="button" class="fav-btn" id="restaurant-fav-btn" title="Yêu thích" aria-label="Yêu thích">
+        <i class="fa-regular fa-heart"></i>
+      </button>
       <div class="restaurant-header__info">
         <div id="restaurant-tags" class="mb-xs"></div>
         <h1 class="restaurant-header__name" id="restaurant-name">Đang tải...</h1>
@@ -643,6 +646,19 @@
       if (SF.loadPricingConfig) SF.loadPricingConfig();
       const restaurantId = SF.getParam('id');
       if (!restaurantId) { SF.navigate('./'); return; }
+
+      document.getElementById('restaurant-fav-btn')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!RESTAURANT) return;
+        const on = SF.toggleFavorite(RESTAURANT);
+        syncFavoriteButton();
+        SF.showToast(on ? 'Đã lưu' : 'Đã bỏ', on ? 'Quán đã vào danh sách yêu thích.' : 'Đã bỏ khỏi yêu thích.', on ? 'success' : 'info');
+      });
+
+      if (SF.getParam('reorder') === '1') {
+        SF.showToast('Đặt lại', 'Đã thêm lại món vào giỏ — kiểm tra rồi thanh toán.', 'success');
+      }
 
       // 1. Paint header from slim index immediately (don't block on menu API)
       RESTAURANT = SF.getRestaurantById
@@ -1029,6 +1045,15 @@
     }
 
     // ── RENDER HEADER ──
+    function syncFavoriteButton() {
+      const btn = document.getElementById('restaurant-fav-btn');
+      if (!btn || !RESTAURANT) return;
+      const on = SF.isFavorite(RESTAURANT.id);
+      btn.classList.toggle('is-on', on);
+      const icon = btn.querySelector('i');
+      if (icon) icon.className = (on ? 'fa-solid' : 'fa-regular') + ' fa-heart';
+    }
+
     function renderHeader() {
       document.title = RESTAURANT.name + ' — ShipFee';
       document.getElementById('restaurant-img').src      = RESTAURANT.img;
@@ -1039,13 +1064,14 @@
       document.getElementById('restaurant-rating').textContent =
         reviews > 0 ? `${RESTAURANT.rating} · ${reviews.toLocaleString()}` : String(RESTAURANT.rating || '—');
       document.getElementById('restaurant-distance').textContent = RESTAURANT.distance;
-      document.getElementById('restaurant-time').textContent = RESTAURANT.time;
+      document.getElementById('restaurant-time').textContent = SF.formatEtaLabel(RESTAURANT);
 
       const tagsEl = document.getElementById('restaurant-tags');
       const category = RESTAURANT.category || (Array.isArray(RESTAURANT.tags) ? RESTAURANT.tags[0] : '');
       tagsEl.innerHTML = category
         ? `<span class="badge badge--glass">${SF.escapeHtml ? SF.escapeHtml(category) : category}</span>`
         : '';
+      syncFavoriteButton();
     }
 
     // ── CATEGORY TABS ──

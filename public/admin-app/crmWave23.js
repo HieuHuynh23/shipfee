@@ -371,7 +371,74 @@ async function resolveDispute(id) {
 // ── GROWTH SETTINGS (Promos, Zones, Settlement, Audit) ─────────────────────
 async function loadGrowthSettingsPanels() {
   if (currentPage !== 'settings') return;
-  await Promise.all([loadPromosPanel(), loadZonesPanel(), loadSettlementPanel(), loadAuditPanel(), loadBlacklistPanel()]);
+  await Promise.all([
+    loadGrowthPackagesPanel(),
+    loadPromosPanel(),
+    loadZonesPanel(),
+    loadSettlementPanel(),
+    loadAuditPanel(),
+    loadBlacklistPanel()
+  ]);
+}
+
+async function loadGrowthPackagesPanel() {
+  const el = document.getElementById('growth-packages-panel-body');
+  if (!el) return;
+  try {
+    const res = await apiFetch('/api/admin/growth-packages');
+    const list = (res.data && res.data.packages) || [];
+    const stageLabel = { acquisition: 'Thu hút', aov: 'Tăng món', retention: 'Quay lại' };
+    el.innerHTML = `
+      <p class="text-sm text-muted mb-4">Gói chiến lược giai đoạn đầu — bật/tắt để đẩy mã & copy ra app khách. Seed lại mã: 
+        ${canMutate() ? `<button class="btn btn--secondary btn--sm" onclick="seedGrowthPackages()">Seed promo</button>` : ''}
+      </p>
+      <table class="data-table"><thead><tr>
+        <th>Gói</th><th>Giai đoạn</th><th>Loại</th><th>Mã / Engine</th><th>Trạng thái</th><th></th>
+      </tr></thead>
+      <tbody>${list.map(p => `
+        <tr>
+          <td>
+            <div style="font-weight:600;">${escapeHtml(p.name)}</div>
+            <div class="text-xs text-muted">${escapeHtml(p.customerCopy || '')}</div>
+          </td>
+          <td>${stageLabel[p.stage] || p.stage || '—'}</td>
+          <td class="mono text-xs">${escapeHtml(p.kind)}</td>
+          <td class="mono text-xs">${escapeHtml(p.promoCode || p.engineKey || p.kind)}</td>
+          <td>${p.enabled !== false
+            ? '<span style="color:var(--success,#22c55e);font-weight:700;">ON</span>'
+            : '<span class="text-muted">OFF</span>'}</td>
+          <td>${canMutate()
+            ? `<button class="btn btn--sm ${p.enabled !== false ? 'btn--secondary' : 'btn--primary'}" onclick="toggleGrowthPackage('${escapeHtml(p.id)}', ${p.enabled === false})">${p.enabled !== false ? 'Tắt' : 'Bật'}</button>`
+            : ''}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="text-muted">Chưa có gói</td></tr>'}
+      </tbody></table>`;
+  } catch (e) {
+    el.innerHTML = `<p class="text-muted text-sm">${escapeHtml(e.message)}</p>`;
+  }
+}
+
+async function toggleGrowthPackage(id, enable) {
+  try {
+    const res = await apiFetch(`/api/admin/growth-packages/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify({ enabled: !!enable })
+    });
+    if (res.success) {
+      showToast(enable ? 'Đã bật gói' : 'Đã tắt gói', 'success');
+      loadGrowthPackagesPanel();
+      loadPromosPanel();
+    } else showToast(res.error || 'Lỗi', 'error');
+  } catch (e) { showToast(e.message || 'Lỗi', 'error'); }
+}
+
+async function seedGrowthPackages() {
+  try {
+    const res = await apiFetch('/api/admin/growth-packages/seed', { method: 'POST', body: '{}' });
+    if (res.success) {
+      showToast(`Đã seed ${res.data?.seeded || 0} mã promo`, 'success');
+      loadPromosPanel();
+    } else showToast(res.error || 'Lỗi seed', 'error');
+  } catch (e) { showToast(e.message || 'Lỗi', 'error'); }
 }
 
 async function loadPromosPanel() {
@@ -563,6 +630,7 @@ renderSettings = function() {
     extra.style.gap = '20px';
     extra.style.marginTop = '20px';
     extra.innerHTML = `
+      <div class="card" style="grid-column:1/-1;"><h3 class="mb-4"><i class="fa-solid fa-rocket" style="color:var(--clr-primary);margin-right:8px;"></i>Gói chiến lược thu hút (Growth)</h3><div id="growth-packages-panel-body"><p class="text-muted text-sm">Đang tải...</p></div></div>
       <div class="card"><h3 class="mb-4"><i class="fa-solid fa-ticket" style="color:var(--violet);margin-right:8px;"></i>Mã giảm giá</h3><div id="promos-panel-body"><p class="text-muted text-sm">Đang tải...</p></div></div>
       <div class="card"><h3 class="mb-4"><i class="fa-solid fa-map" style="color:var(--blue);margin-right:8px;"></i>Khu giao hàng</h3><div id="zones-panel-body"><p class="text-muted text-sm">Đang tải...</p></div></div>
       <div class="card"><h3 class="mb-4"><i class="fa-solid fa-hand-holding-dollar" style="color:var(--emerald-500);margin-right:8px;"></i>Settlement quán</h3><div id="settlement-panel-body"><p class="text-muted text-sm">Đang tải...</p></div></div>
@@ -680,6 +748,8 @@ window.filterShipperSupport = filterShipperSupport;
 window.replyShipperSupport = replyShipperSupport;
 window.resolveShipperSupport = resolveShipperSupport;
 window.createPromo = createPromo;
+window.toggleGrowthPackage = toggleGrowthPackage;
+window.seedGrowthPackages = seedGrowthPackages;
 window.createZone = createZone;
 window.deleteZone = deleteZone;
 window.addBlacklist = addBlacklist;

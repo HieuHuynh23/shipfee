@@ -1,0 +1,145 @@
+{
+  "updatedAt": 1785403965562,
+  "packages": [
+    {
+      "id": "welcome_first",
+      "name": "Chào khách mới",
+      "stage": "acquisition",
+      "enabled": true,
+      "kind": "promo",
+      "promoCode": "WELCOME15",
+      "promo": {
+        "type": "fixed",
+        "value": 15000,
+        "firstOrderOnly": true,
+        "minOrder": 0,
+        "maxUses": null,
+        "active": true,
+        "description": "Giảm 15.000đ cho đơn đầu tiên"
+      },
+      "customerCopy": "Đơn đầu giảm 15.000đ — mã WELCOME15",
+      "crmNote": "Acquisition: khách mới, clamp sàn ship 15k",
+      "priority": 10
+    },
+    {
+      "id": "multi_item_15",
+      "name": "Ưu đãi từ món thứ 2",
+      "stage": "aov",
+      "enabled": true,
+      "kind": "engine",
+      "engineKey": "multiItemDiscount",
+      "customerCopy": "Từ món thứ 2: giảm 15% giá món (trừ vào phí)",
+      "crmNote": "Engine multiItemDiscount — không cần mã",
+      "priority": 20
+    },
+    {
+      "id": "return_10",
+      "name": "Khách quay lại",
+      "stage": "retention",
+      "enabled": true,
+      "kind": "engine",
+      "engineKey": "secondOrderDiscountRate",
+      "customerCopy": "Đơn thứ 2 trở đi: tự động giảm thêm 10% tổng đơn",
+      "crmNote": "pricingConfig.secondOrderDiscountRate",
+      "priority": 30
+    },
+    {
+      "id": "waive_platform_79",
+      "name": "Giảm phí nền tảng",
+      "stage": "aov",
+      "enabled": true,
+      "kind": "engine",
+      "engineKey": "waivePlatform",
+      "customerCopy": "Đặt từ 79.000đ hoặc ≥3 món để giảm phí nền tảng",
+      "crmNote": "waivePlatformMinStoreTotal / MinItems",
+      "priority": 40
+    },
+    {
+      "id": "half_delivery_120",
+      "name": "Giảm 50% phí giao",
+      "stage": "aov",
+      "enabled": true,
+      "kind": "engine",
+      "engineKey": "halfDelivery",
+      "customerCopy": "Đặt từ 120.000đ hoặc ≥3 món: giảm 50% phí giao",
+      "crmNote": "halfDeliveryMinStoreTotal / MinItems",
+      "priority": 50
+    },
+    {
+      "id": "lunch_deal",
+      "name": "Deal giờ trưa",
+      "stage": "acquisition",
+      "enabled": true,
+      "kind": "promo",
+      "promoCode": "TRUA10",
+      "promo": {
+        "type": "fixed",
+        "value": 10000,
+        "minOrder": 50000,
+        "hours": [
+          10,
+          14
+        ],
+        "active": true,
+        "description": "Giảm 10.000đ đơn từ 50k (10h–14h)"
+      },
+      "customerCopy": "10h–14h: mã TRUA10 giảm 10.000đ (đơn từ 50k)",
+      "crmNote": "Peak lunch conversion",
+      "priority": 60
+    },
+    {
+      "id": "evening_deal",
+      "name": "Deal giờ tối",
+      "stage": "acquisition",
+      "enabled": true,
+      "kind": "promo",
+      "promoCode": "TOI12",
+      "promo": {
+        "type": "fixed",
+        "value": 12000,
+        "minOrder": 60000,
+        "hours": [
+          17,
+          21
+        ],
+        "active": true,
+        "description": "Giảm 12.000đ đơn từ 60k (17h–21h)"
+      },
+      "customerCopy": "17h–21h: mã TOI12 giảm 12.000đ (đơn từ 60k)",
+      "crmNote": "Dinner peak",
+      "priority": 70
+    },
+    {
+      "id": "weekend_boost",
+      "name": "Cuối tuần thêm món",
+      "stage": "aov",
+      "enabled": true,
+      "kind": "promo",
+      "promoCode": "CUOITUAN20",
+      "promo": {
+        "type": "fixed",
+        "value": 20000,
+        "minOrder": 100000,
+        "weekdays": [
+          0,
+          6
+        ],
+        "active": true,
+        "description": "CN & Thứ 7: giảm 20k đơn từ 100k"
+      },
+      "customerCopy": "Cuối tuần: mã CUOITUAN20 giảm 20.000đ (đơn từ 100k)",
+      "crmNote": "Weekend AOV push",
+      "priority": 75
+    },
+    {
+      "id": "loyalty_boost",
+      "name": "Tích điểm đổi thưởng",
+      "stage": "retention",
+      "enabled": true,
+      "kind": "loyalty",
+      "customerCopy": "Giao xong tích điểm — 1 điểm ≈ 100đ khi đặt lại",
+      "crmNote": "customerOps loyalty",
+      "priority": 80
+    }
+  ]
+}

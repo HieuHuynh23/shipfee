@@ -36,8 +36,15 @@ $$\text{giá hiển thị} = \text{inStorePrice}$$
 $$\text{feePoolRaw} = \text{round100}(\text{storeTotal} \times 0.28) + \text{surchargePerItem} \times N$$
 
 ### C. Ưu đãi từ món thứ 2 (trừ trên phí)
-$$(N-1) \times \max\big(2000,\ \text{round100}(\text{surchargePerItem}\times 0.15 + \text{avgUnit}\times 0.03)\big)$$
-Không được kéo `feePool` dưới 15.000đ.
+Mỗi món từ món thứ 2 trở đi (sau món đắt nhất) được giảm **15% giá quán** của món đó:
+
+$$\text{perExtra} = \max\big(2000,\ \text{round100}(\text{inStoreUnit} \times 0.15)\big)$$
+
+$$\text{discountValue} = \sum \text{perExtra}\ \text{(món 2, 3, …)}$$
+
+Ví dụ: 2 burger 35.000đ → giảm `round100(35000×0.15) = 5.250đ` (không còn kẹt sàn 2.000đ do công thức phụ thu cũ).
+
+Ưu đãi trừ vào `feePool`; không được kéo `feePool` dưới 15.000đ (nếu vượt thì chỉ giảm phần dư trên sàn).
 
 ### D. Sàn shipper (top-up)
 Nếu `feePool < 15.000` → cộng top-up đến đúng 15.000đ (khách thấy trong phí).
@@ -82,10 +89,14 @@ Slogan mẫu: `Đặt thêm 59.000đ nữa để giảm …đ phí nền tảng.
 | | |
 |---|---|
 | Món | 70.000đ (menu hiện 35k/món — khớp Shopee) |
-| feePool thô | 19.600 − ưu đãi món 2 ≈ **17.600** |
-| Phí nền tảng / giao | ~10.600 / ~7.000 |
-| Khách trả | **~87.600đ** (Shopee không voucher ~88k) |
-| Shipper | 15.000 + 70%×2.600 ≈ **16.800đ** (> sàn) |
+| feePool thô | 19.600 |
+| Ưu đãi món 2 (15%×35k) | 5.250đ → clamp sàn còn **4.600đ** (giữ feePool ≥ 15k) |
+| feePool sau giảm | **15.000đ** |
+| Phí nền tảng / giao (60/40) | 9.000 / 6.000 |
+| Khách trả | **85.000đ** |
+| Shipper | **15.000đ** (đúng sàn vì ưu đãi lớn trên đơn gần) |
+
+> Đơn xa / nhiều món hơn: `feePool` lớn hơn → đủ chỗ áp đủ 15%/món và shipper vẫn > 15k.
 
 ### Ví dụ C — Đơn lớn / xa
 `storeTotal` và phụ thu km lớn → `feePool` lớn → shipper tăng theo (ví dụ pool 40k → ship ~32.500đ).
@@ -105,18 +116,29 @@ Không ghi “Miễn phí giao hàng” cứng khi vẫn đang thu phí.
 
 ---
 
-## 5. Chiến lược thu hút & đặt lại
+## 5. Chiến lược thu hút & đặt lại (Growth packages)
 
-| Giai đoạn | Cách | Bảo vệ ship |
-|---|---|---|
-| Khách mới | Giá món = giá quán; phí 60/40 minh bạch | Không copy voucher 50–90% Shopee |
-| Tăng món/đơn | Banner thiếu **Xđ** / giảm **Yđ**; ưu đãi từ món 2 | Clamp feePool ≥ 15k |
-| Đơn 2+ | `secondOrderDiscountRate` 10% + loyalty điểm | Sau giảm: tính lại ship = 15k + 70% dư trên fee còn lại |
-| Thương hiệu | Không “Free ship” giả; khoe giá thật + tài xế đủ sống và tăng theo đơn | — |
+Gói quản lý tại CRM → Settings → Growth, file `server/growth-packages.json`, API `/api/growth-offers`.
+
+| Gói | Mục tiêu | Cách | Mã / Engine |
+|---|---|---|---|
+| Chào khách mới | Acquisition | Giảm 15k đơn đầu (auto hoặc mã) | `WELCOME15` |
+| Món thứ 2+ | AOV | Giảm 15% giá quán mỗi món từ món 2 | Engine `multiItemDiscount` |
+| Khách quay lại | Retention | Giảm 10% tổng đơn thứ 2+ | Engine `secondOrderDiscountRate` |
+| Phí nền tảng | AOV | Đủ 79k hoặc ≥3 món | Engine waive platform |
+| 50% phí giao | AOV | Đủ 120k hoặc ≥3 món | Engine half delivery |
+| Deal trưa | Peak | Giảm 10k đơn ≥50k (10h–14h) | `TRUA10` |
+| Deal tối | Peak | Giảm 12k đơn ≥60k (17h–21h) | `TOI12` |
+| Cuối tuần | AOV | Giảm 20k đơn ≥100k (CN & T7) | `CUOITUAN20` |
+| Loyalty | Retention | Tích điểm khi giao xong | customerOps |
+
+Mọi giảm giá **clamp** `feePool ≥ 15.000đ` (sàn shipper). CRM có thể bật/tắt từng gói và seed promo.
 
 ---
 
 ## 6. Changelog
 
-*   **1.3 (Hiện tại)**: Menu = inStore; feePool checkout tách 60/40; shipper = sàn 15k + 70% phần dư; slogan số tiền; ngưỡng miễn phí nền tảng 79k / ≥3 món; giảm 50% phí giao 120k / ≥3 món; bỏ nhồi markup + Free ship giả trên UI.
-*   **1.2**: Markup 28% trên món; Free ship hiển thị; sàn 15k qua phí đơn nhỏ; ưu đãi món 2+; đơn 2+ giảm 10%.
+*   **1.3.2**: Growth packages (CRM + app khách) — WELCOME15, deal trưa/tối/cuối tuần, UI ưu đãi checkout/home.
+*   **1.3.1**: Sửa ưu đãi món 2+ — giảm **15% giá quán**/món.
+*   **1.3**: Menu = inStore; feePool checkout tách 60/40; shipper = sàn 15k + 70% phần dư.
+*   **1.2**: Markup 28% trên món; Free ship hiển thị; sàn 15k; ưu đãi món 2+; đơn 2+ giảm 10%.

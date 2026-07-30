@@ -370,7 +370,8 @@ const STATE_KEY = 'shipfee_state';
 function getState() {
   try {
     const raw = localStorage.getItem(STATE_KEY);
-    return raw ? JSON.parse(raw) : getDefaultState();
+    const state = raw ? JSON.parse(raw) : getDefaultState();
+    return normalizeState(state);
   } catch { return getDefaultState(); }
 }
 
@@ -378,6 +379,14 @@ function getDefaultState() {
   return {
     cart: { restaurantId: null, items: {}, itemNotes: {} },
     activeOrder: null,
+    orderHistory: [],
+    favorites: [],
+    savedAddresses: [],
+    customerToken: '',
+    customerProfile: null,
+    theme: 'system',
+    paymentMethod: 'COD',
+    pushPromptedAt: 0,
     deliveryAddress: '',
     deliveryName: '',
     deliveryPhone: '',
@@ -388,8 +397,505 @@ function getDefaultState() {
   };
 }
 
+function normalizeState(state) {
+  if (!state || typeof state !== 'object') return getDefaultState();
+  if (!state.cart || typeof state.cart !== 'object') {
+    state.cart = { restaurantId: null, items: {}, itemNotes: {} };
+  }
+  if (!Array.isArray(state.orderHistory)) state.orderHistory = [];
+  if (!Array.isArray(state.favorites)) state.favorites = [];
+  if (!Array.isArray(state.savedAddresses)) state.savedAddresses = [];
+  if (!state.customerToken) state.customerToken = '';
+  if (!state.theme) state.theme = 'system';
+  if (!state.paymentMethod) state.paymentMethod = 'COD';
+  return state;
+}
+
 function saveState(state) {
-  try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch {}
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(normalizeState(state))); } catch {}
+}
+
+const ORDER_HISTORY_MAX = 50;
+const FAVORITES_MAX = 40;
+
+function getCustomerPhone() {
+  const s = getState();
+  const fromProfile = s.customerProfile && s.customerProfile.phone;
+  const phone = String(fromProfile || s.ordererPhone || s.deliveryPhone || '').trim();
+  return /^0[35789]\d{8}$/.test(phone) ? phone : '';
+}
+
+function customerAuthHeaders(extra = {}) {
+  const headers = { 'Content-Type': 'application/json', ...extra };
+  const token = getState().customerToken;
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+    headers['X-Customer-Token'] = token;
+  }
+  const phone = getCustomerPhone();
+  if (phone) headers['X-Delivery-Phone'] = phone;
+  return headers;
+}
+
+function isCustomerLoggedIn() {
+  return !!(getState().customerToken && getCustomerPhone());
+}
+
+async function requestCustomerOtp(phone) {
+  const res = await fetch(`${_API_BASE}/api/customer/otp/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone })
+  });
+  const result = await res.json();
+  if (!res.ok || !result.success) throw new Error(result.error || 'Không gửi được OTP');
+  return result.data;
+}
+
+async function verifyCustomerOtp(phone, code, name) {
+  const res = await fetch(`${_API_BASE}/api/customer/otp/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone, code, name: name || '' })
+  });
+  const result = await res.json();
+  if (!res.ok || !result.success) throw new Error(result.error || 'OTP không hợp lệ');
+  const state = getState();
+  state.customerToken = result.data.token;
+  state.customerProfile = result.data.profile;
+  if (result.data.profile?.phone) {
+    if (!state.deliveryPhone) state.deliveryPhone = result.data.profile.phone;
+    if (!state.ordererPhone) state.ordererPhone = result.data.profile.phone;
+  }
+  if (result.data.profile?.name && !state.deliveryName) {
+    state.deliveryName = result.data.profile.name;
+  }
+  if (Array.isArray(result.data.profile?.favorites) && result.data.profile.favorites.length) {
+    const map = new Map();
+    [...result.data.profile.favorites, ...state.favorites].forEach((f) => {
+      if (f && f.id != null) map.set(String(f.id), f);
+    });
+    state.favorites = Array.from(map.values()).slice(0, FAVORITES_MAX);
+  }
+  if (Array.isArray(result.data.profile?.addresses)) {
+    state.savedAddresses = result.data.profile.addresses;
+  }
+  if (result.data.profile?.theme) state.theme = result.data.profile.theme;
+  saveState(state);
+  applyTheme(state.theme);
+  return result.data;
+}
+
+function logoutCustomer() {
+  const state = getState();
+  state.customerToken = '';
+  state.customerProfile = null;
+  saveState(state);
+}
+
+async function syncCustomerProfile(patch) {
+  if (!isCustomerLoggedIn()) return null;
+  const res = await fetch(`${_API_BASE}/api/customer/me`, {
+    method: 'PUT',
+    headers: customerAuthHeaders(),
+    body: JSON.stringify(patch || {})
+  });
+  const result = await res.json();
+  if (!res.ok || !result.success) throw new Error(result.error || 'Không lưu được hồ sơ');
+  const state = getState();
+  state.customerProfile = result.data;
+  if (Array.isArray(result.data.addresses)) state.savedAddresses = result.data.addresses;
+  if (Array.isArray(result.data.favorites)) state.favorites = result.data.favorites;
+  if (result.data.theme) state.theme = result.data.theme;
+  saveState(state);
+  return result.data;
+}
+
+async function syncFavoritesToServer() {
+  if (!isCustomerLoggedIn()) return;
+  try {
+    await syncCustomerProfile({ favorites: getFavorites() });
+  } catch (e) {
+    console.warn('[App] sync favorites failed', e);
+  }
+}
+
+function getSavedAddresses() {
+  const state = getState();
+  if (Array.isArray(state.savedAddresses) && state.savedAddresses.length) return state.savedAddresses;
+  return (state.customerProfile && state.customerProfile.addresses) || [];
+}
+
+function saveAddressLocal(addr) {
+  const state = getState();
+  const list = Array.isArray(state.savedAddresses) ? state.savedAddresses.slice() : [];
+  const row = {
+    id: addr.id || `addr-${Date.now()}`,
+    label: addr.label || 'Địa chỉ',
+    address: addr.address || '',
+    name: addr.name || state.deliveryName || '',
+    phone: addr.phone || state.deliveryPhone || '',
+    lat: addr.lat ?? state.userLat,
+    lon: addr.lon ?? state.userLon,
+    isDefault: !!addr.isDefault
+  };
+  const idx = list.findIndex((a) => a.id === row.id);
+  if (idx >= 0) list[idx] = row;
+  else list.unshift(row);
+  if (row.isDefault) list.forEach((a) => { a.isDefault = a.id === row.id; });
+  state.savedAddresses = list.slice(0, 8);
+  saveState(state);
+  if (isCustomerLoggedIn()) {
+    syncCustomerProfile({ addresses: state.savedAddresses }).catch(() => {});
+  }
+  return state.savedAddresses;
+}
+
+function applySavedAddress(addr) {
+  if (!addr) return;
+  const state = getState();
+  state.deliveryAddress = addr.address || state.deliveryAddress;
+  state.deliveryName = addr.name || state.deliveryName;
+  state.deliveryPhone = addr.phone || state.deliveryPhone;
+  if (Number.isFinite(Number(addr.lat))) state.userLat = Number(addr.lat);
+  if (Number.isFinite(Number(addr.lon))) state.userLon = Number(addr.lon);
+  saveState(state);
+}
+
+function applyTheme(theme) {
+  const mode = theme || getState().theme || 'system';
+  const state = getState();
+  state.theme = mode;
+  saveState(state);
+  const root = document.documentElement;
+  let effective = mode;
+  if (mode === 'system') {
+    effective = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+      ? 'dark'
+      : 'light';
+  }
+  root.setAttribute('data-theme', effective);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', effective === 'dark' ? '#0F172A' : '#EF4444');
+}
+
+function toggleTheme() {
+  const cur = getState().theme || 'system';
+  const next = cur === 'dark' ? 'light' : cur === 'light' ? 'system' : 'dark';
+  applyTheme(next);
+  if (isCustomerLoggedIn()) syncCustomerProfile({ theme: next }).catch(() => {});
+  return next;
+}
+
+function estimateEtaMinutes(restaurant) {
+  if (!restaurant || restaurant.isClosed) return null;
+  const d = Number(restaurant.distanceValue);
+  if (Number.isFinite(d)) return Math.max(18, Math.min(55, Math.round(12 + d * 3.5 + 5)));
+  const timeStr = String(restaurant.time || '');
+  const m = timeStr.match(/(\d+)\s*[-–]\s*(\d+)/);
+  if (m) return Math.round((Number(m[1]) + Number(m[2])) / 2);
+  const single = timeStr.match(/(\d+)\s*phút/i);
+  if (single) return Number(single[1]);
+  return 25;
+}
+
+function formatEtaLabel(restaurant) {
+  const eta = estimateEtaMinutes(restaurant);
+  if (eta == null) return restaurant?.isClosed ? 'Đóng cửa' : (restaurant?.time || '—');
+  return `~${eta} phút`;
+}
+
+async function fetchCustomerOffers() {
+  const phone = getCustomerPhone();
+  if (!phone) return [];
+  try {
+    const res = await fetch(
+      `${_API_BASE}/api/customer/offers?phone=${encodeURIComponent(phone)}`,
+      { headers: customerAuthHeaders() }
+    );
+    const result = await res.json();
+    return result.success ? (result.data || []) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchCustomerSuggestions() {
+  const phone = getCustomerPhone();
+  try {
+    const url = phone
+      ? `${_API_BASE}/api/customer/suggestions?phone=${encodeURIComponent(phone)}`
+      : `${_API_BASE}/api/customer/suggestions`;
+    const res = await fetch(url, { headers: customerAuthHeaders() });
+    const result = await res.json();
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchPaymentConfig() {
+  try {
+    const res = await fetch(`${_API_BASE}/api/config/payment`);
+    const result = await res.json();
+    return result.success ? result.data : null;
+  } catch {
+    return null;
+  }
+}
+
+function setPaymentMethod(method) {
+  const state = getState();
+  state.paymentMethod = method === 'BANK_TRANSFER' ? 'BANK_TRANSFER' : 'COD';
+  saveState(state);
+  return state.paymentMethod;
+}
+
+function getTrackingShareUrl(order) {
+  const o = order || getActiveOrder();
+  if (!o || !o.id) return '';
+  const base = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}`;
+  const params = new URLSearchParams({ orderId: o.id });
+  if (o.trackingToken) params.set('token', o.trackingToken);
+  return `${base}tracking.html?${params.toString()}`;
+}
+
+async function shareTrackingLink(order) {
+  const url = getTrackingShareUrl(order);
+  if (!url) throw new Error('Không có đơn để chia sẻ');
+  const title = 'Theo dõi đơn ShipFee';
+  const text = `Theo dõi đơn ${order?.id || ''} trên ShipFee`;
+  if (navigator.share) {
+    await navigator.share({ title, text, url });
+    return 'shared';
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(url);
+    return 'copied';
+  }
+  return url;
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function enablePushNotifications() {
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    throw new Error('Trình duyệt không hỗ trợ thông báo');
+  }
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') throw new Error('Bạn đã từ chối thông báo');
+
+  const reg = await navigator.serviceWorker.ready;
+  let vapidPublic = '';
+  try {
+    const res = await fetch(`${_API_BASE}/api/customer/push/vapid-public-key`);
+    const result = await res.json();
+    vapidPublic = result?.data?.publicKey || '';
+  } catch (_) {}
+
+  if (vapidPublic && isCustomerLoggedIn()) {
+    try {
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublic)
+      });
+      await fetch(`${_API_BASE}/api/customer/push/subscribe`, {
+        method: 'POST',
+        headers: customerAuthHeaders(),
+        body: JSON.stringify({ subscription: sub.toJSON() })
+      });
+    } catch (e) {
+      console.warn('[Push] subscribe failed, local notifications still ok', e);
+    }
+  }
+
+  const state = getState();
+  state.pushPromptedAt = Date.now();
+  saveState(state);
+  return true;
+}
+
+function notifyLocal(title, body, opts = {}) {
+  try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const n = new Notification(title, {
+      body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-96.png',
+      ...opts
+    });
+    n.onclick = () => {
+      window.focus();
+      if (opts.url) window.location.href = opts.url;
+      n.close();
+    };
+  } catch (_) {}
+}
+
+// Apply theme ASAP for FOUC reduction
+try { applyTheme(getState().theme); } catch (_) {}
+
+function toHistoryEntry(order) {
+  if (!order || !order.id) return null;
+  return {
+    id: order.id,
+    trackingToken: order.trackingToken || null,
+    restaurantId: order.restaurantId,
+    restaurantName: order.restaurantName || 'Quán ăn',
+    restaurantImg: order.restaurantImg || null,
+    items: (order.items || []).map((i) => ({
+      id: i.id || i.realItemId,
+      name: i.name,
+      quantity: i.quantity || i.qty || 1,
+      price: i.appPrice != null ? i.appPrice : i.price,
+      selectedOptions: Array.isArray(i.selectedOptions) ? i.selectedOptions : []
+    })),
+    appTotal: Number(order.appTotal) || 0,
+    status: order.status || 'PENDING',
+    createdAt: order.createdAt || Date.now(),
+    deliveredAt: order.deliveredAt || null,
+    rating: typeof order.rating === 'number' ? order.rating : null,
+    deliveryAddress: order.deliveryAddress || '',
+    deliveryPhone: order.deliveryPhone || '',
+    ordererPhone: order.ordererPhone || ''
+  };
+}
+
+function upsertOrderHistory(order) {
+  const entry = toHistoryEntry(order);
+  if (!entry) return;
+  const state = getState();
+  const idx = state.orderHistory.findIndex((o) => o && o.id === entry.id);
+  if (idx >= 0) state.orderHistory[idx] = { ...state.orderHistory[idx], ...entry };
+  else state.orderHistory.unshift(entry);
+  state.orderHistory = state.orderHistory.slice(0, ORDER_HISTORY_MAX);
+  saveState(state);
+}
+
+function getOrderHistory() {
+  const state = getState();
+  const map = new Map();
+  (state.orderHistory || []).forEach((o) => {
+    if (o && o.id) map.set(o.id, o);
+  });
+  if (state.activeOrder && state.activeOrder.id) {
+    map.set(state.activeOrder.id, toHistoryEntry(state.activeOrder));
+  }
+  return Array.from(map.values()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+async function fetchOrderHistoryFromServer() {
+  const phone = getCustomerPhone();
+  const local = getOrderHistory();
+  if (!phone) return local;
+  try {
+    const res = await fetch(
+      `${_API_BASE}/api/customer/orders?phone=${encodeURIComponent(phone)}`,
+      { headers: customerAuthHeaders() }
+    );
+    const result = await res.json();
+    if (!res.ok || !result.success || !Array.isArray(result.data)) return local;
+
+    const state = getState();
+    const byId = new Map();
+    (state.orderHistory || []).forEach((o) => {
+      if (o && o.id) byId.set(o.id, o);
+    });
+    result.data.forEach((remote) => {
+      const entry = toHistoryEntry(remote);
+      if (!entry) return;
+      const prev = byId.get(entry.id);
+      byId.set(entry.id, prev ? { ...prev, ...entry } : entry);
+    });
+    state.orderHistory = Array.from(byId.values())
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+      .slice(0, ORDER_HISTORY_MAX);
+    saveState(state);
+    return getOrderHistory();
+  } catch (e) {
+    console.warn('[App] fetchOrderHistoryFromServer failed:', e);
+    return local;
+  }
+}
+
+function getFavorites() {
+  return getState().favorites || [];
+}
+
+function isFavorite(restaurantId) {
+  if (restaurantId == null) return false;
+  const id = String(restaurantId);
+  return getFavorites().some((f) => String(f.id) === id);
+}
+
+function toggleFavorite(restaurant) {
+  if (!restaurant || restaurant.id == null) return false;
+  const state = getState();
+  const id = String(restaurant.id);
+  const idx = state.favorites.findIndex((f) => String(f.id) === id);
+  if (idx >= 0) {
+    state.favorites.splice(idx, 1);
+    saveState(state);
+    syncFavoritesToServer();
+    return false;
+  }
+  state.favorites.unshift({
+    id: restaurant.id,
+    name: restaurant.name || 'Quán ăn',
+    img: restaurant.img || '',
+    rating: restaurant.rating || 0,
+    reviews: restaurant.reviews || 0,
+    tags: Array.isArray(restaurant.tags) ? restaurant.tags.slice(0, 3) : [],
+    address: restaurant.address || '',
+    distance: restaurant.distance || '',
+    time: restaurant.time || '',
+    savedAt: Date.now()
+  });
+  state.favorites = state.favorites.slice(0, FAVORITES_MAX);
+  saveState(state);
+  syncFavoritesToServer();
+  return true;
+}
+
+function removeFavorite(restaurantId) {
+  const state = getState();
+  const id = String(restaurantId);
+  state.favorites = (state.favorites || []).filter((f) => String(f.id) !== id);
+  saveState(state);
+  syncFavoritesToServer();
+}
+
+function reorderFromHistory(order) {
+  if (!order || !order.restaurantId || !Array.isArray(order.items) || !order.items.length) {
+    throw new Error('Không thể đặt lại đơn này.');
+  }
+  const state = getState();
+  const items = {};
+  const itemNotes = {};
+  order.items.forEach((item) => {
+    const itemId = item.id || item.realItemId;
+    if (!itemId) return;
+    const optionsKey = item.selectedOptions && item.selectedOptions.length
+      ? `::${JSON.stringify(item.selectedOptions)}`
+      : '';
+    const cartKey = `${itemId}${optionsKey}`;
+    const qty = Number(item.quantity || item.qty) || 1;
+    items[cartKey] = (items[cartKey] || 0) + qty;
+    if (item.note) itemNotes[cartKey] = item.note;
+  });
+  if (!Object.keys(items).length) {
+    throw new Error('Đơn không còn món hợp lệ để đặt lại.');
+  }
+  state.cart = { restaurantId: order.restaurantId, items, itemNotes };
+  saveState(state);
+  navigate('restaurant.html', { id: String(order.restaurantId), reorder: '1' });
 }
 
 /* Cart helpers */
@@ -408,6 +914,7 @@ function getCartTotal() {
 
   let storeTotal = 0;
   let itemCount = 0;
+  const unitPrices = [];
   Object.entries(cart.items || {}).forEach(([cartKey, qty]) => {
     const [itemId, optionsStr] = cartKey.split('::');
     const item = restaurant.menu.find(m => m.id === itemId);
@@ -418,8 +925,10 @@ function getCartTotal() {
           JSON.parse(optionsStr).forEach(opt => { toppingsInStore += Number(opt.price) || 0; });
         } catch (e) {}
       }
-      storeTotal += ((Number(item.inStorePrice) || 0) + toppingsInStore) * qty;
+      const unitStore = (Number(item.inStorePrice) || 0) + toppingsInStore;
+      storeTotal += unitStore * qty;
       itemCount += qty;
+      for (let i = 0; i < qty; i++) unitPrices.push(unitStore);
     }
   });
 
@@ -430,9 +939,12 @@ function getCartTotal() {
 
   let discountValue = 0;
   if (itemCount > 1) {
-    const avgUnit = storeTotal / itemCount;
-    const perExtra = Math.max(2000, round100(surchargePerItem * MULTI_ITEM_DISCOUNT + avgUnit * 0.03));
-    discountValue = Math.min(perExtra * (itemCount - 1), Math.max(0, feePoolRaw - MIN_SHIPPER_EARNING));
+    // 15% giá quán mỗi món từ món thứ 2 (bỏ món đắt nhất); tối thiểu 2k/món; clamp sàn ship
+    const sorted = unitPrices.slice().sort((a, b) => b - a);
+    for (let i = 1; i < sorted.length; i++) {
+      discountValue += Math.max(2000, round100(sorted[i] * MULTI_ITEM_DISCOUNT));
+    }
+    discountValue = Math.min(discountValue, Math.max(0, feePoolRaw - MIN_SHIPPER_EARNING));
   }
 
   let feePool = Math.max(0, feePoolRaw - discountValue);
@@ -572,7 +1084,7 @@ function updateCartItemNote(cartKey, note) {
   saveState(state);
 }
 
-async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode, loyaltyPointsRedeem) {
+async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedLon, isRelative, note, promoCode, loyaltyPointsRedeem, paymentMethod) {
   const state = getState();
   const cart   = state.cart;
   const totals = getCartTotal();
@@ -609,6 +1121,10 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     throw new Error('Giỏ hàng trống hoặc món không còn hợp lệ.');
   }
 
+  const pay = (paymentMethod || state.paymentMethod || 'COD') === 'BANK_TRANSFER'
+    ? 'BANK_TRANSFER'
+    : 'COD';
+
   const orderPayload = {
     restaurantId: cart.restaurantId,
     restaurantName: restaurant.name,
@@ -618,7 +1134,6 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     restaurantLon: (typeof restaurant.longitude === 'number' ? restaurant.longitude : null)
       ?? (typeof restaurant.lon === 'number' ? restaurant.lon : null),
     items,
-    // Totals gửi để UI ước lượng — server tính lại từ menu
     storeTotal: totals.storeTotal,
     appTotal: totals.appTotal,
     shipperEarning: totals.shipperEarning,
@@ -638,6 +1153,7 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
     note: note || '',
     promoCode: promoCode || null,
     loyaltyPointsRedeem: Number(loyaltyPointsRedeem) > 0 ? Math.floor(Number(loyaltyPointsRedeem)) : 0,
+    paymentMethod: pay,
     createdAt: Date.now()
   };
 
@@ -661,11 +1177,15 @@ async function placeOrder(address, name, phone, ordererPhone, pinnedLat, pinnedL
   const savedOrder = result.data;
   savedOrder.statusTime = Date.now();
   savedOrder.statusHistory = [{ status: 'PENDING', time: Date.now() }];
-  
+  if (!savedOrder.restaurantImg && restaurant.img) {
+    savedOrder.restaurantImg = restaurant.img;
+  }
+
   state.activeOrder = savedOrder;
   state.cart = { restaurantId: null, items: {}, itemNotes: {} };
   saveState(state);
-  
+  upsertOrderHistory(savedOrder);
+
   return savedOrder;
 }
 
@@ -709,6 +1229,7 @@ async function rateOrder(orderId, rating, comment) {
         state.activeOrder.trackingToken = result.data.trackingToken;
       }
       saveState(state);
+      upsertOrderHistory(state.activeOrder);
     }
     return result.data;
   } catch (error) {
@@ -738,6 +1259,7 @@ function isOrderInProgress(orderOrStatus) {
 function clearActiveOrder() {
   const state = getState();
   if (!state.activeOrder) return;
+  upsertOrderHistory(state.activeOrder);
   state.activeOrder = null;
   saveState(state);
 }
@@ -1344,7 +1866,37 @@ window.SF = {
   showToast, updateCartBar,
   initNavScroll,
   isOrderInProgress,
-  clearActiveOrder
+  clearActiveOrder,
+  getCustomerPhone,
+  getOrderHistory,
+  fetchOrderHistoryFromServer,
+  upsertOrderHistory,
+  reorderFromHistory,
+  getFavorites,
+  isFavorite,
+  toggleFavorite,
+  removeFavorite,
+  customerAuthHeaders,
+  isCustomerLoggedIn,
+  requestCustomerOtp,
+  verifyCustomerOtp,
+  logoutCustomer,
+  syncCustomerProfile,
+  getSavedAddresses,
+  saveAddressLocal,
+  applySavedAddress,
+  applyTheme,
+  toggleTheme,
+  estimateEtaMinutes,
+  formatEtaLabel,
+  fetchCustomerOffers,
+  fetchCustomerSuggestions,
+  fetchPaymentConfig,
+  setPaymentMethod,
+  getTrackingShareUrl,
+  shareTrackingLink,
+  enablePushNotifications,
+  notifyLocal
 };
 
 /* --------------------------------------------------------------------------

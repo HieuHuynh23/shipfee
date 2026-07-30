@@ -41,6 +41,28 @@ function registerOrderLifecycleRoutes(app, ctx) {
   } = ctx;
   const telegramNotify = telegramBot;
 
+  function notifyCustomerPush(order, title, body) {
+    try {
+      const portal = require('../customerPortal');
+      const phones = [order.ordererPhone, order.deliveryPhone]
+        .map((p) => portal.cleanPhone(p))
+        .filter(Boolean);
+      const unique = [...new Set(phones)];
+      const payload = {
+        title: title || 'ShipFee',
+        body: body || '',
+        url: order.id
+          ? `/customer-app/tracking.html?orderId=${encodeURIComponent(order.id)}${order.trackingToken ? `&token=${encodeURIComponent(order.trackingToken)}` : ''}`
+          : '/customer-app/',
+        orderId: order.id,
+        status: order.status
+      };
+      unique.forEach((phone) => {
+        portal.sendPushToPhone(phone, payload).catch(() => {});
+      });
+    } catch (_) {}
+  }
+
 app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
   try {
     const { id } = req.params;
@@ -165,6 +187,11 @@ app.post('/api/orders/:id/accept', authenticateShipper, async (req, res) => {
 
     scheduleUpsertOrder(updatedOrder, 'accept');
     if (telegramNotify) telegramNotify.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram nhận đơn:', e.message));
+    notifyCustomerPush(
+      updatedOrder,
+      'Tài xế đã nhận đơn',
+      `${updatedOrder.shipperName || 'Tài xế'} đang đến quán lấy món.`
+    );
     res.json({ success: true, data: stripOrderSecrets(updatedOrder, { keepTrackingToken: false }) });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -277,6 +304,11 @@ app.post('/api/orders/:id/status', authenticateShipper, async (req, res) => {
     }
     scheduleUpsertOrder(updatedOrder, 'status');
     if (telegramNotify) telegramNotify.sendOrderStatusUpdateNotification(updatedOrder).catch(e => console.error('Lỗi gửi Telegram cập nhật đơn:', e.message));
+    if (status === 'PURCHASED') {
+      notifyCustomerPush(updatedOrder, 'Đang giao đến bạn', 'Tài xế đã mua xong và đang trên đường giao.');
+    } else if (status === 'DELIVERED') {
+      notifyCustomerPush(updatedOrder, 'Giao hàng thành công', 'Cảm ơn bạn đã đặt ShipFee. Hãy đánh giá tài xế nhé!');
+    }
     if (status === 'DELIVERED' && updatedOrder) {
       try {
         require('../customerOps').onOrderDelivered(updatedOrder, {

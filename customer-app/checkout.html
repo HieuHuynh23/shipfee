@@ -211,6 +211,7 @@
         <div class="section-card__title">
           <i class="fa-solid fa-location-dot"></i> Địa chỉ giao hàng
         </div>
+        <div class="addr-chip-row" id="saved-addr-chips" style="margin-bottom:10px;"></div>
         <div class="address-display">
           <div class="address-display__icon"><i class="fa-solid fa-house"></i></div>
           <div class="address-display__info">
@@ -238,7 +239,7 @@
         <div class="section-card__title">
           <i class="fa-solid fa-wallet"></i> Phương thức thanh toán
         </div>
-        <div class="payment-option selected" id="pay-cod">
+        <div class="payment-option selected" id="pay-cod" data-method="COD" role="button" tabindex="0">
           <div class="payment-option__icon" style="background:#FEF3C7;font-size:22px;">💵</div>
           <div class="payment-option__text">
             <div class="payment-option__name">Tiền mặt khi nhận (COD)</div>
@@ -246,7 +247,16 @@
           </div>
           <div class="payment-option__radio"></div>
         </div>
-        <div style="margin-top:var(--space-sm);text-align:center;">
+        <div class="payment-option" id="pay-bank" data-method="BANK_TRANSFER" role="button" tabindex="0">
+          <div class="payment-option__icon" style="background:#DBEAFE;font-size:20px;">🏦</div>
+          <div class="payment-option__text">
+            <div class="payment-option__name">Chuyển khoản ngân hàng</div>
+            <div class="payment-option__desc">Chuyển trước, xác nhận với tài xế khi giao</div>
+          </div>
+          <div class="payment-option__radio"></div>
+        </div>
+        <div class="bank-transfer-box" id="bank-transfer-box"></div>
+        <div style="margin-top:var(--space-sm);text-align:center;" id="cod-badge-wrap">
           <span class="cod-badge">
             <i class="fa-solid fa-shield-halved"></i>
             An toàn · Không cần thẻ ngân hàng
@@ -290,7 +300,7 @@
             <span id="bd-waiver-applied-price" style="font-weight:600;color:var(--clr-primary);">-0đ</span>
           </div>
           <div class="price-breakdown__row total">
-            <span>Tổng thanh toán (COD)</span>
+            <span id="bd-total-label">Tổng thanh toán (COD)</span>
             <span id="bd-total" class="text-primary">—</span>
           </div>
         </div>
@@ -302,11 +312,18 @@
         </div>
       </div>
 
+      <!-- GROWTH OFFERS -->
+      <div class="section-card animate-fade-in" id="growth-offers-card">
+        <div class="section-card__title"><i class="fa-solid fa-gift"></i> Ưu đãi đang áp dụng</div>
+        <div id="growth-offers-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div id="growth-return-hint" class="text-xs" style="margin-top:10px;color:var(--clr-text-muted);display:none;"></div>
+      </div>
+
       <!-- PROMO CODE -->
       <div class="section-card animate-fade-in">
         <div class="section-card__title"><i class="fa-solid fa-ticket"></i> Mã giảm giá</div>
         <div style="display:flex;gap:8px;">
-          <input type="text" class="form-input" id="promo-code-input" placeholder="Nhập mã (vd. SHIPFEE10)" style="flex:1;text-transform:uppercase;">
+          <input type="text" class="form-input" id="promo-code-input" placeholder="Nhập mã (vd. WELCOME15)" style="flex:1;text-transform:uppercase;">
           <button type="button" class="btn btn--secondary btn--sm" onclick="applyPromoCode()">Áp dụng</button>
         </div>
         <div id="promo-code-msg" class="text-xs" style="margin-top:8px;color:var(--clr-text-muted);"></div>
@@ -337,7 +354,7 @@
         <div class="total-summary">
           <div>
             <div class="total-summary__label">Tổng thanh toán</div>
-            <div style="font-size:11px;color:var(--clr-text-muted);">Trả khi nhận hàng (COD)</div>
+            <div style="font-size:11px;color:var(--clr-text-muted);" id="sticky-pay-hint">Trả khi nhận hàng (COD)</div>
           </div>
           <div class="total-summary__value" id="sticky-total">—</div>
         </div>
@@ -368,7 +385,7 @@
           <span id="modal-order-id" style="font-weight:700;font-family:monospace;color:var(--clr-primary);">—</span>
         </div>
         <div class="price-breakdown__row">
-          <span style="color:var(--clr-text-muted);">Tổng thanh toán (COD)</span>
+          <span style="color:var(--clr-text-muted);" id="modal-total-label">Tổng thanh toán (COD)</span>
           <span id="modal-total" style="font-weight:700;">—</span>
         </div>
       </div>
@@ -385,6 +402,57 @@
   <script>
     let cartTotals = null;
     let appliedPromoCode = null;
+    let growthOffersData = null;
+
+    async function loadGrowthOffers(state) {
+      const listEl = document.getElementById('growth-offers-list');
+      const hintEl = document.getElementById('growth-return-hint');
+      if (!listEl) return;
+      const phone = (state.ordererPhone || state.deliveryPhone || '').replace(/\s+/g, '');
+      try {
+        const qs = phone ? `?phone=${encodeURIComponent(phone)}` : '';
+        const res = await fetch(`${SF.API_BASE}/api/growth-offers${qs}`).then(r => r.json());
+        if (!res.success) {
+          listEl.innerHTML = '<p class="text-xs" style="color:var(--clr-text-muted);">Không tải được ưu đãi.</p>';
+          return;
+        }
+        growthOffersData = res.data;
+        const offers = res.data.offers || [];
+        listEl.innerHTML = offers.slice(0, 6).map(o => {
+          const canTap = o.actionable && o.code;
+          return `<button type="button" class="growth-offer-chip" data-code="${SF.escapeHtml(o.code || '')}"
+            style="text-align:left;border:1px solid var(--clr-border);background:${canTap ? 'rgba(249,115,22,0.06)' : 'transparent'};border-radius:10px;padding:10px 12px;cursor:${canTap ? 'pointer' : 'default'};">
+            <div style="font-size:12px;font-weight:800;color:var(--clr-text-primary);">${SF.escapeHtml(o.name)}</div>
+            <div style="font-size:11px;color:var(--clr-text-muted);margin-top:2px;line-height:1.4;">${SF.escapeHtml(o.copy || '')}</div>
+            ${canTap ? `<div style="font-size:11px;font-weight:700;color:var(--clr-primary);margin-top:4px;">Chạm để dùng mã ${SF.escapeHtml(o.code)}</div>` : ''}
+          </button>`;
+        }).join('') || '<p class="text-xs" style="color:var(--clr-text-muted);">Chưa có ưu đãi hiển thị.</p>';
+
+        listEl.querySelectorAll('.growth-offer-chip[data-code]').forEach(btn => {
+          const code = btn.getAttribute('data-code');
+          if (!code) return;
+          btn.addEventListener('click', () => {
+            const input = document.getElementById('promo-code-input');
+            if (input) input.value = code;
+            applyPromoCode();
+          });
+        });
+
+        if (hintEl) {
+          if (res.data.hasPreviousOrders) {
+            hintEl.style.display = 'block';
+            hintEl.textContent = 'Bạn là khách quen: hệ thống tự giảm thêm ~10% tổng đơn (giữ sàn tài xế 15k).';
+          } else if (res.data.suggestedCode) {
+            hintEl.style.display = 'block';
+            hintEl.innerHTML = `Đơn đầu: có thể dùng <strong>${SF.escapeHtml(res.data.suggestedCode)}</strong> — hoặc để trống, hệ thống tự áp khi đặt.`;
+            const input = document.getElementById('promo-code-input');
+            if (input && !input.value) input.placeholder = res.data.suggestedCode;
+          }
+        }
+      } catch (_) {
+        listEl.innerHTML = '<p class="text-xs" style="color:var(--clr-text-muted);">Không kết nối được ưu đãi.</p>';
+      }
+    }
 
     async function applyPromoCode() {
       const code = document.getElementById('promo-code-input')?.value?.trim();
@@ -392,10 +460,17 @@
       if (!code) { if (msgEl) msgEl.textContent = ''; appliedPromoCode = null; return; }
       try {
         const totals = SF.getCartTotal();
+        const state = SF.getState();
+        const phone = (state.ordererPhone || state.deliveryPhone || '').replace(/\s+/g, '');
         const res = await fetch(`${SF.API_BASE}/api/promos/validate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, subtotal: totals.appTotal })
+          body: JSON.stringify({
+            code,
+            subtotal: totals.appTotal,
+            phone,
+            deliveryFee: totals.deliveryFee || 0
+          })
         }).then(r => r.json());
         if (!res.success) {
           appliedPromoCode = null;
@@ -409,7 +484,78 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    let paymentConfig = null;
+    let checkoutMapInstance = null;
+
+    function updatePaymentLabels() {
+      const method = SF.getState().paymentMethod || 'COD';
+      const isBank = method === 'BANK_TRANSFER';
+      const label = isBank ? 'Tổng thanh toán (Chuyển khoản)' : 'Tổng thanh toán (COD)';
+      const hint = isBank ? 'Chuyển khoản trước khi nhận hàng' : 'Trả khi nhận hàng (COD)';
+      const bdLabel = document.getElementById('bd-total-label');
+      const stickyHint = document.getElementById('sticky-pay-hint');
+      const modalLabel = document.getElementById('modal-total-label');
+      if (bdLabel) bdLabel.textContent = label;
+      if (stickyHint) stickyHint.textContent = hint;
+      if (modalLabel) modalLabel.textContent = label;
+      document.getElementById('pay-cod')?.classList.toggle('selected', !isBank);
+      document.getElementById('pay-bank')?.classList.toggle('selected', isBank);
+      const badgeWrap = document.getElementById('cod-badge-wrap');
+      if (badgeWrap) badgeWrap.style.display = isBank ? 'none' : '';
+      const box = document.getElementById('bank-transfer-box');
+      if (box) {
+        if (isBank && paymentConfig && paymentConfig.bankTransfer) {
+          const b = paymentConfig.bankTransfer;
+          const esc = SF.escapeHtml;
+          box.classList.add('is-visible');
+          box.innerHTML = `
+            <div><strong>Ngân hàng:</strong> ${esc(b.bankName || '—')}</div>
+            <div><strong>Chủ TK:</strong> ${esc(b.accountName || '—')}</div>
+            <div><strong>Số TK:</strong> ${esc(b.accountNumber || 'Liên hệ hỗ trợ')}</div>
+            <div style="margin-top:6px;">${esc(b.noteHint || 'Nội dung: SPF + SĐT đặt hàng')}</div>`;
+        } else {
+          box.classList.remove('is-visible');
+          box.textContent = '';
+        }
+      }
+    }
+
+    function selectPaymentMethod(method) {
+      SF.setPaymentMethod(method);
+      updatePaymentLabels();
+    }
+
+    function renderSavedAddressChips(state) {
+      const wrap = document.getElementById('saved-addr-chips');
+      if (!wrap) return;
+      const list = SF.getSavedAddresses() || [];
+      if (!list.length) {
+        wrap.innerHTML = '';
+        return;
+      }
+      const esc = SF.escapeHtml;
+      const current = state.deliveryAddress || '';
+      wrap.innerHTML = list.map((a) => `
+        <button type="button" class="addr-chip${a.address === current ? ' is-active' : ''}" data-id="${esc(String(a.id))}">
+          <i class="fa-solid fa-location-dot"></i>
+          <span>${esc(a.label || a.address || 'Địa chỉ')}</span>
+        </button>
+      `).join('');
+      wrap.querySelectorAll('.addr-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+          const addr = list.find((a) => String(a.id) === String(chip.dataset.id));
+          if (!addr) return;
+          SF.applySavedAddress(addr);
+          const next = SF.getState();
+          renderAddress(next);
+          renderSavedAddressChips(next);
+          SF.showToast('Đã chọn địa chỉ', addr.address || '', 'success');
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      SF.applyTheme();
       SF.initNavScroll();
       if (SF.loadPricingConfig) SF.loadPricingConfig();
 
@@ -430,10 +576,24 @@
         return;
       }
 
+      document.getElementById('pay-cod')?.addEventListener('click', () => selectPaymentMethod('COD'));
+      document.getElementById('pay-bank')?.addEventListener('click', () => selectPaymentMethod('BANK_TRANSFER'));
+
+      try {
+        paymentConfig = await SF.fetchPaymentConfig();
+      } catch (_) {
+        paymentConfig = null;
+      }
+
+      if (!state.paymentMethod) SF.setPaymentMethod('COD');
+      updatePaymentLabels();
+
       renderOrderItems(cart, state);
       renderAddress(state);
+      renderSavedAddressChips(state);
       renderPriceBreakdown(cartTotals);
       loadLoyaltyBalance(state);
+      loadGrowthOffers(state);
     });
 
     async function loadLoyaltyBalance(state) {
@@ -555,7 +715,7 @@
         }
       }
 
-      // Initialize map (Leaflet on-demand)
+      // Initialize / refresh map (Leaflet on-demand)
       const deliveryLat = state.userLat || 10.0345;
       const deliveryLon = state.userLon || 105.7876;
       
@@ -563,6 +723,10 @@
         try {
           if (!window.L && SF.loadLeaflet) await SF.loadLeaflet();
           if (!window.L) return;
+          if (checkoutMapInstance) {
+            try { checkoutMapInstance.remove(); } catch (_) {}
+            checkoutMapInstance = null;
+          }
           const checkMap = L.map('checkout-map', {
             zoomControl: false,
             scrollWheelZoom: false,
@@ -571,6 +735,7 @@
             touchZoom: false,
             preferCanvas: true
           }).setView([deliveryLat, deliveryLon], 16);
+          checkoutMapInstance = checkMap;
 
           L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -706,7 +871,8 @@
           state.isRelative,
           noteVal,
           appliedPromoCode,
-          loyaltyPts
+          loyaltyPts,
+          SF.getState().paymentMethod
         );
 
         // Show success modal

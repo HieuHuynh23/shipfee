@@ -25,7 +25,7 @@
   <link rel="dns-prefetch" href="https://unpkg.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
-  <link rel="stylesheet" href="style.css?v=2.7">
+  <link rel="stylesheet" href="style.css?v=2.8">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
   <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
   <!-- Leaflet loaded on-demand when opening address modal (mobile perf) -->
@@ -259,7 +259,7 @@
   </style>
 </head>
 
-<body>
+<body class="has-tabbar">
   <!-- ── NAVIGATION ── -->
   <nav class="nav" id="main-nav">
     <div class="nav__inner">
@@ -268,9 +268,15 @@
         <span class="nav__logo-text">ShipFee</span>
       </a>
       <div class="nav__actions">
+        <button type="button" class="nav__icon-btn theme-toggle" id="theme-toggle-btn" onclick="SF.toggleTheme()" title="Đổi giao diện" aria-label="Đổi giao diện">
+          <i class="fa-solid fa-moon"></i>
+        </button>
         <button class="nav__icon-btn" onclick="document.getElementById('search-input').focus()" title="Tìm kiếm" id="nav-search-btn">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
+        <a class="nav__icon-btn" href="account.html?tab=orders" title="Đơn hàng của tôi" aria-label="Đơn hàng của tôi">
+          <i class="fa-solid fa-receipt"></i>
+        </a>
         <button class="nav__icon-btn" onclick="goToCart()" title="Giỏ hàng" id="nav-cart-btn">
           <i class="fa-solid fa-bag-shopping"></i>
           <span class="nav__badge hidden" id="nav-cart-badge">0</span>
@@ -323,12 +329,43 @@
     <!-- Soft benefit strip (replaces heavy promo + fake stats) -->
     <section class="section benefit-strip-wrap" style="padding-bottom:0;">
       <div class="benefit-strip animate-fade-in">
-        <span class="benefit-strip__item"><i class="fa-solid fa-motorcycle"></i> Giao nhanh</span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-store"></i> Giá = giá quán</span>
         <span class="benefit-strip__dot"></span>
-        <span class="benefit-strip__item"><i class="fa-solid fa-tags"></i> Giảm khi đặt từ 2 món</span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-tags"></i> Món 2− giảm 15%</span>
         <span class="benefit-strip__dot"></span>
-        <span class="benefit-strip__item"><i class="fa-solid fa-wallet"></i> Thanh toán tiền mặt</span>
+        <span class="benefit-strip__item"><i class="fa-solid fa-gift"></i> Đơn đầu −15k</span>
       </div>
+    </section>
+
+    <section class="section" style="padding-top:12px;padding-bottom:0;">
+      <div id="home-growth-offers" class="animate-fade-in" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </section>
+
+    <div id="home-login-cta" class="home-login-cta" hidden>
+      <div class="home-login-cta__text">Đăng nhập để lưu địa chỉ, ưu đãi và đặt lại nhanh.</div>
+      <a href="account.html?tab=login">Đăng nhập</a>
+    </div>
+
+    <section class="section" id="offers-section-wrap" style="padding-bottom:0;" hidden>
+      <div class="section-header" style="margin-bottom:10px;">
+        <h3 class="section-title" style="font-size:15px;font-weight:800;color:var(--clr-text-primary);">Ưu đãi cho bạn</h3>
+      </div>
+      <div class="offer-chip-row" id="home-offers-list"></div>
+    </section>
+
+    <section class="section" id="recent-orders-wrap" style="padding-bottom:0;" hidden>
+      <div class="section-header" style="margin-bottom:10px;">
+        <h3 class="section-title" style="font-size:15px;font-weight:800;color:var(--clr-text-primary);">Đơn gần đây</h3>
+        <a class="section-link" href="account.html?tab=orders">Xem tất cả</a>
+      </div>
+      <div class="recent-orders-row" id="home-recent-orders"></div>
+    </section>
+
+    <section class="section" id="suggestions-wrap" style="padding-bottom:0;" hidden>
+      <div class="section-header" style="margin-bottom:10px;">
+        <h3 class="section-title" style="font-size:15px;font-weight:800;color:var(--clr-text-primary);" id="suggestions-title">Gợi ý cho bạn</h3>
+      </div>
+      <div class="suggestion-chip-row" id="home-suggestions-list"></div>
     </section>
 
     <!-- CATEGORY FILTER -->
@@ -345,6 +382,16 @@
 
     <!-- RESTAURANT LIST -->
     <section class="section" id="restaurants-section">
+      <div id="favorites-section-wrap" class="home-fav-section animate-fade-in" hidden>
+        <div class="section-header" style="margin-bottom: 12px;">
+          <h3 class="section-title" style="font-size: 15px; font-weight: 800; color: var(--clr-text-primary);">
+            Quán yêu thích
+          </h3>
+          <a class="section-link" href="account.html?tab=favorites">Xem tất cả</a>
+        </div>
+        <div class="horizontal-scroll" id="home-favorites-list"></div>
+      </div>
+
       <!-- Featured Section (New) -->
       <div id="featured-section-wrap" class="animate-fade-in" style="margin-bottom: 22px;">
         <div class="section-header" style="margin-bottom: 12px;">
@@ -414,6 +461,18 @@
       <span style="opacity:0.45;">© 2026 ShipFee</span>
     </footer>
   </div>
+
+  <nav class="app-tabbar" aria-label="Điều hướng chính">
+    <a href="./" class="app-tabbar__item is-active">
+      <i class="fa-solid fa-house"></i><span>Trang chủ</span>
+    </a>
+    <a href="account.html?tab=favorites" class="app-tabbar__item">
+      <i class="fa-solid fa-heart"></i><span>Yêu thích</span>
+    </a>
+    <a href="account.html?tab=orders" class="app-tabbar__item">
+      <i class="fa-solid fa-receipt"></i><span>Đơn hàng</span>
+    </a>
+  </nav>
 
   <!-- ADDRESS MODAL -->
   <div class="overlay" id="address-overlay" onclick="closeAddressModal(event)">
@@ -504,7 +563,27 @@
     let   ALL_DATA  = []; // Danh sách quán đang hiển thị
 
     // ── PAGE INIT ──
+    async function loadHomeGrowthOffers() {
+      const el = document.getElementById('home-growth-offers');
+      if (!el) return;
+      try {
+        const state = SF.getState();
+        const phone = (state.ordererPhone || state.deliveryPhone || '').replace(/\s+/g, '');
+        const qs = phone ? `?phone=${encodeURIComponent(phone)}` : '';
+        const res = await fetch(`${SF.API_BASE}/api/growth-offers${qs}`).then(r => r.json());
+        if (!res.success || !Array.isArray(res.data?.offers)) return;
+        const top = res.data.offers.filter(o => o.kind === 'promo' || o.id === 'multi_item_15' || o.id === 'welcome_first').slice(0, 3);
+        if (!top.length) return;
+        el.innerHTML = top.map(o => `
+          <div style="border:1px solid var(--clr-border);border-radius:12px;padding:10px 12px;background:rgba(249,115,22,0.04);">
+            <div style="font-size:12px;font-weight:800;">${SF.escapeHtml(o.name)}</div>
+            <div style="font-size:11px;color:var(--clr-text-muted);margin-top:2px;line-height:1.4;">${SF.escapeHtml(o.copy || '')}</div>
+          </div>`).join('');
+      } catch (_) {}
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
+      SF.applyTheme();
       SF.initNavScroll();
 
       // Auto-redirect only for in-progress orders (not DELIVERED / CANCELLED)
@@ -521,6 +600,12 @@
 
       loadSavedAddress();
       updateNavCartBadge();
+      renderHomeFavorites();
+      renderHomeOffers();
+      renderRecentOrders();
+      renderSuggestions();
+      updateHomeLoginCta();
+      loadHomeGrowthOffers();
 
       // Paint cached/offline data immediately so the page never blocks on cold start
       const userLat = state.userLat || 10.0345;
@@ -741,6 +826,126 @@
       if (state.deliveryAddress) {
         document.getElementById('hero-address-text').textContent = state.deliveryAddress;
       }
+      renderHomeOffers();
+      renderRecentOrders();
+      renderSuggestions();
+      updateHomeLoginCta();
+    }
+
+    function updateHomeLoginCta() {
+      const el = document.getElementById('home-login-cta');
+      if (!el) return;
+      el.hidden = !!SF.isCustomerLoggedIn();
+    }
+
+    async function renderHomeOffers() {
+      const wrap = document.getElementById('offers-section-wrap');
+      const listEl = document.getElementById('home-offers-list');
+      if (!wrap || !listEl) return;
+      try {
+        const offers = await SF.fetchCustomerOffers();
+        if (!offers || !offers.length) {
+          wrap.hidden = true;
+          listEl.textContent = '';
+          return;
+        }
+        const esc = SF.escapeHtml;
+        wrap.hidden = false;
+        listEl.innerHTML = offers.slice(0, 8).map((o) => `
+          <div class="offer-chip">
+            ${o.badge ? `<div class="offer-chip__badge">${esc(o.badge)}</div>` : ''}
+            <div class="offer-chip__title">${esc(o.title || 'Ưu đãi')}</div>
+            <div class="offer-chip__desc">${esc(o.desc || '')}</div>
+            ${o.code ? `<div class="offer-chip__code">Mã: ${esc(o.code)}</div>` : ''}
+          </div>
+        `).join('');
+      } catch (_) {
+        wrap.hidden = true;
+      }
+    }
+
+    async function renderRecentOrders() {
+      const wrap = document.getElementById('recent-orders-wrap');
+      const listEl = document.getElementById('home-recent-orders');
+      if (!wrap || !listEl) return;
+      let list = [];
+      try {
+        list = await SF.fetchOrderHistoryFromServer();
+      } catch (_) {
+        list = SF.getOrderHistory() || [];
+      }
+      const done = (list || []).filter((o) => o && (o.status === 'DELIVERED' || !SF.isOrderInProgress(o))).slice(0, 6);
+      if (!done.length) {
+        wrap.hidden = true;
+        listEl.textContent = '';
+        return;
+      }
+      const esc = SF.escapeHtml;
+      wrap.hidden = false;
+      listEl.innerHTML = done.map((o) => `
+        <article class="recent-order-card" data-id="${esc(String(o.id))}">
+          <div>
+            <h4 class="recent-order-card__name">${esc(o.restaurantName || 'Quán ăn')}</h4>
+            <div class="recent-order-card__meta">${esc(SF.formatCurrency(Number(o.appTotal) || 0))}</div>
+          </div>
+          <button type="button" class="btn btn--sm btn--primary" data-action="reorder">Đặt lại</button>
+        </article>
+      `).join('');
+      listEl.querySelectorAll('.recent-order-card').forEach((card) => {
+        const order = done.find((o) => String(o.id) === String(card.dataset.id));
+        card.querySelector('[data-action="reorder"]')?.addEventListener('click', () => {
+          if (!order) return;
+          try {
+            SF.reorderFromHistory(order);
+          } catch (e) {
+            SF.showToast('Không đặt lại được', e.message || 'Thử mở quán và chọn món lại.', 'error');
+          }
+        });
+      });
+    }
+
+    async function renderSuggestions() {
+      const wrap = document.getElementById('suggestions-wrap');
+      const listEl = document.getElementById('home-suggestions-list');
+      const titleEl = document.getElementById('suggestions-title');
+      if (!wrap || !listEl) return;
+      try {
+        const data = await SF.fetchCustomerSuggestions();
+        const rests = (data && data.frequentRestaurants) || [];
+        const items = (data && data.frequentItems) || [];
+        if (titleEl && data && data.timeLabel) titleEl.textContent = data.timeLabel;
+        const chips = [];
+        rests.slice(0, 4).forEach((r) => {
+          chips.push({ label: r.name || 'Quán', id: r.id, type: 'rest' });
+        });
+        items.slice(0, 4).forEach((it) => {
+          chips.push({
+            label: it.name || 'Món',
+            id: it.restaurantId,
+            type: 'item'
+          });
+        });
+        if (!chips.length) {
+          wrap.hidden = true;
+          listEl.textContent = '';
+          return;
+        }
+        const esc = SF.escapeHtml;
+        wrap.hidden = false;
+        listEl.innerHTML = chips.map((c) => `
+          <button type="button" class="suggestion-chip" data-id="${esc(String(c.id || ''))}">
+            <i class="fa-solid ${c.type === 'item' ? 'fa-utensils' : 'fa-store'}"></i>
+            ${esc(c.label)}
+          </button>
+        `).join('');
+        listEl.querySelectorAll('.suggestion-chip').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.id) SF.navigate('restaurant.html', { id: btn.dataset.id });
+          });
+        });
+      } catch (_) {
+        wrap.hidden = true;
+      }
     }
 
     function updateNavCartBadge() {
@@ -867,12 +1072,15 @@
         const safeName = esc(r.name || '');
         const safeImg = esc(r.img || '');
         const safeDist = esc(r.distance || '');
-        const safeTime = esc(r.time || '');
+        const safeTime = esc(SF.formatEtaLabel(r));
         const safeTags = tags.map(t => `<span class="badge badge--glass">${esc(t)}</span>`).join('');
 
         card.innerHTML = `
           <div class="card__img-wrap">
             <img src="${safeImg}" alt="${safeName}" class="card__img" loading="lazy" decoding="async" fetchpriority="${i < 3 && !isAppend ? 'high' : 'auto'}" width="400" height="160">
+            <button type="button" class="fav-btn${SF.isFavorite(r.id) ? ' is-on' : ''}" data-fav-id="${esc(String(r.id))}" title="Yêu thích" aria-label="Yêu thích">
+              <i class="${SF.isFavorite(r.id) ? 'fa-solid' : 'fa-regular'} fa-heart"></i>
+            </button>
             <div class="card__badge">
               ${isClosed
                 ? `<span class="badge" style="background:rgba(239,68,68,0.85);color:white;border:none;">Đóng cửa</span>`
@@ -901,6 +1109,20 @@
               </span>
             </div>
           </div>`;
+
+        const favBtn = card.querySelector('.fav-btn');
+        if (favBtn) {
+          favBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const on = SF.toggleFavorite(r);
+            favBtn.classList.toggle('is-on', on);
+            favBtn.querySelector('i').className = (on ? 'fa-solid' : 'fa-regular') + ' fa-heart';
+            SF.showToast(on ? 'Đã lưu' : 'Đã bỏ', on ? 'Quán đã vào danh sách yêu thích.' : 'Đã bỏ khỏi yêu thích.', on ? 'success' : 'info');
+            renderHomeFavorites();
+          });
+        }
+
         frag.appendChild(card);
       });
 
@@ -985,6 +1207,40 @@
       return getReadyRestaurants(list)
         .sort((a, b) => (a.distanceValue || 0) - (b.distanceValue || 0))
         .slice(0, limit);
+    }
+
+    function renderHomeFavorites() {
+      const wrap = document.getElementById('favorites-section-wrap');
+      const listEl = document.getElementById('home-favorites-list');
+      if (!wrap || !listEl) return;
+      const favs = SF.getFavorites();
+      if (!favs.length) {
+        wrap.hidden = true;
+        listEl.textContent = '';
+        return;
+      }
+      wrap.hidden = false;
+      const esc = SF.escapeHtml;
+      listEl.innerHTML = favs.slice(0, 10).map((f) => `
+        <div class="card-mini" data-id="${esc(String(f.id))}" role="button" tabindex="0">
+          <div class="card-mini__img-wrap">
+            <img src="${esc(f.img || '')}" alt="${esc(f.name || '')}" class="card-mini__img" loading="lazy" decoding="async">
+            <span class="badge badge--glass" style="position:absolute;top:8px;left:8px;font-size:9px;padding:2px 6px;">
+              <i class="fa-solid fa-heart" style="color:#EF4444;"></i> Yêu thích
+            </span>
+          </div>
+          <div class="card-mini__body">
+            <h4 class="card-mini__name" title="${esc(f.name || '')}">${esc(f.name || '')}</h4>
+            <div class="card-mini__meta">
+              ${f.rating ? `<span><i class="fa-solid fa-star" style="color:#F59E0B;"></i> ${esc(String(f.rating))}</span>` : ''}
+              ${f.distance ? `<span>${esc(f.distance)}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+      listEl.querySelectorAll('.card-mini').forEach((card) => {
+        card.addEventListener('click', () => SF.navigate('restaurant.html', { id: card.dataset.id }), { passive: true });
+      });
     }
 
     function renderMiniCards(containerId, list) {

@@ -3235,8 +3235,28 @@ function renderSettings() {
           <input type="number" class="form-input" id="settings-min-earning" min="0" value="15000">
         </div>
         <div class="form-group">
-          <label class="form-label">Giảm phụ thu món 2+ (%)</label>
+          <label class="form-label">Giảm giá món 2+ (% giá quán)</label>
           <input type="number" class="form-input" id="settings-multi-discount" min="0" max="100" value="15">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Miễn phí nền tảng từ (đ món)</label>
+          <input type="number" class="form-input" id="settings-waive-platform-store" min="0" value="79000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Miễn phí nền tảng từ (số món)</label>
+          <input type="number" class="form-input" id="settings-waive-platform-items" min="1" value="3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Giảm 50% phí giao từ (đ món)</label>
+          <input type="number" class="form-input" id="settings-half-delivery-store" min="0" value="120000">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Giảm 50% phí giao từ (số món)</label>
+          <input type="number" class="form-input" id="settings-half-delivery-items" min="1" value="3">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Shipper nhận % phần dư trên sàn</label>
+          <input type="number" class="form-input" id="settings-shipper-surplus" min="0" max="100" value="70">
         </div>
         <button class="btn btn--primary btn--sm" onclick="savePricingSettings()">
           <i class="fa-solid fa-floppy-disk"></i> Lưu cấu hình
@@ -3369,6 +3389,11 @@ function renderSettings() {
         set('settings-surcharge-coef', res.data.surchargeCoefficient);
         set('settings-min-earning', res.data.minShipperEarning);
         set('settings-multi-discount', Math.round((res.data.multiItemDiscount || 0) * 100));
+        set('settings-waive-platform-store', res.data.waivePlatformMinStoreTotal ?? 79000);
+        set('settings-waive-platform-items', res.data.waivePlatformMinItems ?? 3);
+        set('settings-half-delivery-store', res.data.halfDeliveryMinStoreTotal ?? 120000);
+        set('settings-half-delivery-items', res.data.halfDeliveryMinItems ?? 3);
+        set('settings-shipper-surplus', Math.round((res.data.shipperSurplusShare ?? 0.7) * 100));
         const tg = res.data.telegramConfig || {};
         const setCheck = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
         setCheck('tg-enable-new-shipper', tg.enableNewShipperAlert !== false);
@@ -3477,7 +3502,12 @@ async function savePricingSettings() {
     freeDistanceKm: num('settings-free-distance'),
     surchargeCoefficient: num('settings-surcharge-coef'),
     minShipperEarning: num('settings-min-earning'),
-    multiItemDiscount: num('settings-multi-discount', 100)
+    multiItemDiscount: num('settings-multi-discount', 100),
+    waivePlatformMinStoreTotal: num('settings-waive-platform-store'),
+    waivePlatformMinItems: num('settings-waive-platform-items'),
+    halfDeliveryMinStoreTotal: num('settings-half-delivery-store'),
+    halfDeliveryMinItems: num('settings-half-delivery-items'),
+    shipperSurplusShare: num('settings-shipper-surplus', 100)
   };
 
   if (payload.markupRate == null || payload.secondOrderDiscountRate == null) {

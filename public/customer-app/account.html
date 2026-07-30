@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#EF4444">
+  <meta name="application-name" content="SHIPFEE">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="SHIPFEE">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Tài khoản — ShipFee</title>
+  <meta name="description" content="Xem lịch sử đặt hàng và quán yêu thích trên ShipFee.">
+  <link rel="manifest" href="manifest.webmanifest?v=20260730logo">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png?v=20260730logo">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png?v=20260730logo">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=20260730logo">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"></noscript>
+  <link rel="stylesheet" href="style.css?v=2.8">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"></noscript>
+</head>
+<body class="has-tabbar">
+  <nav class="nav" id="main-nav">
+    <div class="nav__inner">
+      <a href="./" class="nav__back-btn">
+        <i class="fa-solid fa-arrow-left"></i> Trang chủ
+      </a>
+      <div class="nav__actions">
+        <button type="button" class="nav__icon-btn theme-toggle" onclick="SF.toggleTheme()" title="Đổi giao diện" aria-label="Đổi giao diện">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="nav__icon-btn" onclick="SF.navigate('./')" title="Trang chủ">
+          <i class="fa-solid fa-house"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <div class="page-wrapper account-page">
+    <section class="account-hero">
+      <div class="account-hero__avatar" aria-hidden="true">
+        <i class="fa-solid fa-user"></i>
+      </div>
+      <div class="account-hero__info">
+        <h1 class="account-hero__name" id="account-name">Khách ShipFee</h1>
+        <p class="account-hero__meta" id="account-meta">Nhập địa chỉ giao hàng để đồng bộ lịch sử đơn</p>
+      </div>
+    </section>
+
+    <div class="login-sheet" id="login-sheet" hidden>
+      <div class="login-sheet__title">Đăng nhập bằng SĐT</div>
+      <div class="form-row">
+        <input type="tel" class="form-input" id="login-phone" placeholder="Số điện thoại" inputmode="tel" autocomplete="tel">
+        <button type="button" class="btn btn--sm btn--primary" id="btn-send-otp">Gửi OTP</button>
+      </div>
+      <div class="form-row">
+        <input type="text" class="form-input" id="login-otp" placeholder="Mã OTP" inputmode="numeric" autocomplete="one-time-code">
+        <button type="button" class="btn btn--sm btn--outline" id="btn-verify-otp">Xác nhận</button>
+      </div>
+      <input type="text" class="form-input" id="login-name" placeholder="Tên (tuỳ chọn)" style="width:100%;margin-bottom:8px;">
+      <div class="login-sheet__hint" id="login-hint"></div>
+    </div>
+
+    <div class="account-tabs" role="tablist">
+      <button type="button" class="account-tabs__btn is-active" data-tab="orders" role="tab" aria-selected="true">
+        <i class="fa-solid fa-receipt"></i> Đơn hàng
+      </button>
+      <button type="button" class="account-tabs__btn" data-tab="favorites" role="tab" aria-selected="false">
+        <i class="fa-solid fa-heart"></i> Yêu thích
+      </button>
+      <button type="button" class="account-tabs__btn" data-tab="addresses" role="tab" aria-selected="false">
+        <i class="fa-solid fa-location-dot"></i> Địa chỉ
+      </button>
+      <button type="button" class="account-tabs__btn" data-tab="offers" role="tab" aria-selected="false">
+        <i class="fa-solid fa-tags"></i> Ưu đãi
+      </button>
+      <button type="button" class="account-tabs__btn" data-tab="settings" role="tab" aria-selected="false">
+        <i class="fa-solid fa-gear"></i> Cài đặt
+      </button>
+    </div>
+
+    <section class="account-panel is-active" id="panel-orders" role="tabpanel">
+      <div id="orders-list" class="order-hist-list">
+        <div class="account-loading"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải lịch sử...</div>
+      </div>
+    </section>
+
+    <section class="account-panel" id="panel-favorites" role="tabpanel" hidden>
+      <div id="favorites-list" class="fav-grid"></div>
+    </section>
+
+    <section class="account-panel" id="panel-addresses" role="tabpanel" hidden>
+      <div style="margin-bottom:12px;">
+        <button type="button" class="btn btn--primary btn--sm" id="btn-save-current-addr">
+          <i class="fa-solid fa-plus"></i> Lưu địa chỉ đang giao
+        </button>
+      </div>
+      <div id="addresses-list" class="addr-list"></div>
+    </section>
+
+    <section class="account-panel" id="panel-offers" role="tabpanel" hidden>
+      <div id="offers-list" class="offer-chip-row" style="flex-direction:column;overflow:visible;"></div>
+    </section>
+
+    <section class="account-panel" id="panel-settings" role="tabpanel" hidden>
+      <div class="settings-list">
+        <div class="settings-row">
+          <div>
+            <div class="settings-row__label">Giao diện</div>
+            <div class="settings-row__desc">Sáng / tối / theo hệ thống</div>
+          </div>
+          <button type="button" class="btn btn--sm btn--outline" id="btn-theme-toggle">Đổi theme</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <div class="settings-row__label">Thông báo đẩy</div>
+            <div class="settings-row__desc">Nhận cập nhật trạng thái đơn</div>
+          </div>
+          <button type="button" class="btn btn--sm btn--outline" id="btn-enable-push">Bật thông báo</button>
+        </div>
+        <div class="settings-row" id="logout-row" hidden>
+          <div>
+            <div class="settings-row__label">Đăng xuất</div>
+            <div class="settings-row__desc">Xóa phiên đăng nhập trên máy này</div>
+          </div>
+          <button type="button" class="btn btn--sm btn--primary" id="btn-logout">Đăng xuất</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <nav class="app-tabbar" aria-label="Điều hướng chính">
+    <a href="./" class="app-tabbar__item">
+      <i class="fa-solid fa-house"></i><span>Trang chủ</span>
+    </a>
+    <a href="account.html?tab=favorites" class="app-tabbar__item" id="tab-favorites">
+      <i class="fa-solid fa-heart"></i><span>Yêu thích</span>
+    </a>
+    <a href="account.html?tab=orders" class="app-tabbar__item" id="tab-orders">
+      <i class="fa-solid fa-receipt"></i><span>Đơn hàng</span>
+    </a>
+  </nav>
+
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      const VALID_TABS = ['orders', 'favorites', 'addresses', 'offers', 'settings', 'login'];
+      const STATUS_LABEL = {
+        PENDING: 'Chờ tài xế',
+        ACCEPTED: 'Đã nhận đơn',
+        PURCHASED: 'Đang giao',
+        DELIVERED: 'Đã giao',
+        CANCELLED: 'Đã hủy'
+      };
+      const STATUS_CLASS = {
+        PENDING: 'is-pending',
+        ACCEPTED: 'is-accepted',
+        PURCHASED: 'is-shipping',
+        DELIVERED: 'is-done',
+        CANCELLED: 'is-cancelled'
+      };
+
+      function switchTab(tab) {
+        let next = VALID_TABS.includes(tab) ? tab : 'orders';
+        if (next === 'login') next = 'settings';
+        document.querySelectorAll('.account-tabs__btn').forEach((btn) => {
+          const on = btn.dataset.tab === next;
+          btn.classList.toggle('is-active', on);
+          btn.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('.account-panel').forEach((panel) => {
+          const on = panel.id === 'panel-' + next;
+          panel.classList.toggle('is-active', on);
+          panel.hidden = !on;
+        });
+        document.getElementById('tab-orders')?.classList.toggle('is-active', next === 'orders');
+        document.getElementById('tab-favorites')?.classList.toggle('is-active', next === 'favorites');
+        try {
+          const url = new URL(window.location.href);
+          url.searchParams.set('tab', next);
+          history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString());
+        } catch (_) {}
+        if (next === 'addresses') renderAddresses();
+        if (next === 'offers') renderOffers();
+      }
+
+      function renderProfile() {
+        const state = SF.getState();
+        const loggedIn = SF.isCustomerLoggedIn();
+        const name = (state.customerProfile && state.customerProfile.name) || state.deliveryName || 'Khách ShipFee';
+        const phone = SF.getCustomerPhone();
+        document.getElementById('account-name').textContent = name;
+        document.getElementById('account-meta').textContent = phone
+          ? phone + (state.deliveryAddress ? ' · ' + state.deliveryAddress : '')
+          : 'Nhập địa chỉ giao hàng trên trang chủ để đồng bộ lịch sử';
+        const loginSheet = document.getElementById('login-sheet');
+        if (loginSheet) loginSheet.hidden = loggedIn;
+        const logoutRow = document.getElementById('logout-row');
+        if (logoutRow) logoutRow.hidden = !loggedIn;
+      }
+
+      function formatOrderWhen(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '';
+        const now = new Date();
+        const sameDay = d.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const time = SF.formatTime(ts);
+        if (sameDay) return 'Hôm nay · ' + time;
+        if (d.toDateString() === yesterday.toDateString()) return 'Hôm qua · ' + time;
+        return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' · ' + time;
+      }
+
+      function itemSummary(order) {
+        const items = order.items || [];
+        if (!items.length) return 'Không có món';
+        const names = items.map((i) => {
+          const qty = i.quantity || i.qty || 1;
+          return qty > 1 ? `${i.name} ×${qty}` : i.name;
+        });
+        if (names.length <= 2) return names.join(', ');
+        return names.slice(0, 2).join(', ') + ` +${names.length - 2} món`;
+      }
+
+      function renderOrders(list) {
+        const wrap = document.getElementById('orders-list');
+        const esc = SF.escapeHtml;
+        if (!list.length) {
+          wrap.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state__icon"><i class="fa-solid fa-receipt"></i></div>
+              <div class="empty-state__title">Chưa có đơn nào</div>
+              <div class="empty-state__desc">Đặt món lần đầu để xem lịch sử và đặt lại nhanh tại đây.</div>
+              <button type="button" class="btn btn--primary" style="margin-top:16px" onclick="SF.navigate('./')">Khám phá quán</button>
+            </div>`;
+          return;
+        }
+
+        wrap.innerHTML = list.map((o) => {
+          const status = o.status || 'PENDING';
+          const inProgress = SF.isOrderInProgress(status);
+          const when = o.createdAt ? formatOrderWhen(o.createdAt) : '';
+          return `
+            <article class="order-hist-card" data-id="${esc(o.id)}">
+              <div class="order-hist-card__top">
+                <div>
+                  <h3 class="order-hist-card__name">${esc(o.restaurantName || 'Quán ăn')}</h3>
+                  <div class="order-hist-card__time">${esc(when)}</div>
+                </div>
+                <span class="order-hist-status ${STATUS_CLASS[status] || ''}">${esc(STATUS_LABEL[status] || status)}</span>
+              </div>
+              <p class="order-hist-card__items">${esc(itemSummary(o))}</p>
+              <div class="order-hist-card__bottom">
+                <strong class="order-hist-card__total">${SF.formatCurrency(Number(o.appTotal) || 0)}</strong>
+                <div class="order-hist-card__actions">
+                  ${inProgress
+                    ? `<button type="button" class="btn btn--sm btn--primary" data-action="track">Theo dõi</button>`
+                    : `<button type="button" class="btn btn--sm btn--outline" data-action="reorder">Đặt lại</button>
+                       <button type="button" class="btn btn--sm btn--ghost" data-action="open">Xem quán</button>`
+                  }
+                </div>
+              </div>
+            </article>`;
+        }).join('');
+
+        wrap.querySelectorAll('.order-hist-card').forEach((card) => {
+          const id = card.dataset.id;
+          const order = list.find((o) => String(o.id) === String(id));
+          card.querySelectorAll('[data-action]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const action = btn.dataset.action;
+              if (!order) return;
+              if (action === 'track') {
+                const state = SF.getState();
+                state.activeOrder = { ...(state.activeOrder && state.activeOrder.id === order.id ? state.activeOrder : {}), ...order };
+                SF.saveState(state);
+                SF.navigate('tracking.html');
+                return;
+              }
+              if (action === 'reorder') {
+                try {
+                  SF.reorderFromHistory(order);
+                } catch (e) {
+                  SF.showToast('Không đặt lại được', e.message || 'Thử mở quán và chọn món lại.', 'error');
+                }
+                return;
+              }
+              if (action === 'open' && order.restaurantId) {
+                SF.navigate('restaurant.html', { id: String(order.restaurantId) });
+              }
+            });
+          });
+        });
+      }
+
+      function renderFavorites() {
+        const wrap = document.getElementById('favorites-list');
+        const list = SF.getFavorites();
+        const esc = SF.escapeHtml;
+        if (!list.length) {
+          wrap.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state__icon"><i class="fa-regular fa-heart"></i></div>
+              <div class="empty-state__title">Chưa có quán yêu thích</div>
+              <div class="empty-state__desc">Nhấn trái tim trên quán để lưu lại và đặt nhanh lần sau.</div>
+              <button type="button" class="btn btn--primary" style="margin-top:16px" onclick="SF.navigate('./')">Tìm quán</button>
+            </div>`;
+          return;
+        }
+
+        wrap.innerHTML = list.map((f) => `
+          <article class="fav-card" data-id="${esc(String(f.id))}">
+            <button type="button" class="fav-card__heart is-on" data-action="unfav" title="Bỏ yêu thích" aria-label="Bỏ yêu thích">
+              <i class="fa-solid fa-heart"></i>
+            </button>
+            <div class="fav-card__body" data-action="open">
+              <img class="fav-card__img" src="${esc(f.img || '')}" alt="" loading="lazy" width="72" height="72" onerror="this.style.display='none'">
+              <div class="fav-card__info">
+                <h3 class="fav-card__name">${esc(f.name || 'Quán ăn')}</h3>
+                <div class="fav-card__meta">
+                  ${f.rating ? `<span><i class="fa-solid fa-star"></i> ${esc(String(f.rating))}</span>` : ''}
+                  ${f.distance ? `<span><i class="fa-solid fa-location-dot"></i> ${esc(f.distance)}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          </article>
+        `).join('');
+
+        wrap.querySelectorAll('.fav-card').forEach((card) => {
+          const id = card.dataset.id;
+          card.querySelector('[data-action="open"]')?.addEventListener('click', () => {
+            SF.navigate('restaurant.html', { id });
+          });
+          card.querySelector('[data-action="unfav"]')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            SF.removeFavorite(id);
+            SF.showToast('Đã bỏ', 'Quán đã được bỏ khỏi yêu thích.', 'info');
+            renderFavorites();
+          });
+        });
+      }
+
+      function renderAddresses() {
+        const wrap = document.getElementById('addresses-list');
+        if (!wrap) return;
+        const list = SF.getSavedAddresses() || [];
+        const esc = SF.escapeHtml;
+        if (!list.length) {
+          wrap.innerHTML = '<p class="section-muted-empty">Chưa có địa chỉ đã lưu. Thêm địa chỉ giao hàng hiện tại bên trên.</p>';
+          return;
+        }
+        wrap.innerHTML = list.map((a) => `
+          <div class="addr-list__item" data-id="${esc(String(a.id))}">
+            <div style="flex:1;min-width:0;">
+              <strong>${esc(a.label || 'Địa chỉ')}${a.isDefault ? ' · Mặc định' : ''}</strong>
+              <p>${esc(a.address || '')}</p>
+              <p>${esc([a.name, a.phone].filter(Boolean).join(' · '))}</p>
+            </div>
+            <div class="addr-list__actions">
+              <button type="button" class="btn btn--sm btn--primary" data-action="apply">Dùng</button>
+              <button type="button" class="btn btn--sm btn--ghost" data-action="delete">Xóa</button>
+            </div>
+          </div>
+        `).join('');
+
+        wrap.querySelectorAll('.addr-list__item').forEach((row) => {
+          const addr = list.find((a) => String(a.id) === String(row.dataset.id));
+          row.querySelector('[data-action="apply"]')?.addEventListener('click', () => {
+            SF.applySavedAddress(addr);
+            renderProfile();
+            SF.showToast('Đã áp dụng', 'Địa chỉ giao hàng đã được cập nhật.', 'success');
+          });
+          row.querySelector('[data-action="delete"]')?.addEventListener('click', () => {
+            const state = SF.getState();
+            state.savedAddresses = (state.savedAddresses || []).filter((a) => String(a.id) !== String(row.dataset.id));
+            SF.saveState(state);
+            if (SF.isCustomerLoggedIn() && SF.syncCustomerProfile) {
+              SF.syncCustomerProfile({ addresses: state.savedAddresses }).catch(() => {});
+            }
+            renderAddresses();
+          });
+        });
+      }
+
+      async function renderOffers() {
+        const wrap = document.getElementById('offers-list');
+        if (!wrap) return;
+        const esc = SF.escapeHtml;
+        wrap.innerHTML = '<p class="section-muted-empty">Đang tải ưu đãi...</p>';
+        try {
+          const offers = await SF.fetchCustomerOffers();
+          if (!offers || !offers.length) {
+            wrap.innerHTML = '<p class="section-muted-empty">Chưa có ưu đãi. Đăng nhập / có SĐT để xem ưu đãi cá nhân.</p>';
+            return;
+          }
+          wrap.innerHTML = offers.map((o) => `
+            <div class="offer-chip" style="max-width:none;width:100%;">
+              ${o.badge ? `<div class="offer-chip__badge">${esc(o.badge)}</div>` : ''}
+              <div class="offer-chip__title">${esc(o.title || 'Ưu đãi')}</div>
+              <div class="offer-chip__desc">${esc(o.desc || '')}</div>
+              ${o.code ? `<div class="offer-chip__code">Mã: ${esc(o.code)}</div>` : ''}
+            </div>
+          `).join('');
+        } catch (_) {
+          wrap.innerHTML = '<p class="section-muted-empty">Không tải được ưu đãi.</p>';
+        }
+      }
+
+      async function loadOrders() {
+        try {
+          const list = await SF.fetchOrderHistoryFromServer();
+          renderOrders(list);
+        } catch (_) {
+          renderOrders(SF.getOrderHistory());
+        }
+      }
+
+      document.querySelectorAll('.account-tabs__btn').forEach((btn) => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+
+      document.getElementById('btn-send-otp')?.addEventListener('click', async () => {
+        const phone = document.getElementById('login-phone')?.value?.trim();
+        const hint = document.getElementById('login-hint');
+        if (!phone) {
+          SF.showToast('Thiếu SĐT', 'Nhập số điện thoại để nhận OTP.', 'warning');
+          return;
+        }
+        try {
+          const data = await SF.requestCustomerOtp(phone);
+          let msg = 'Đã gửi OTP. Kiểm tra tin nhắn.';
+          if (data && data.demoCode) msg += ` Mã demo: ${data.demoCode}`;
+          if (hint) hint.textContent = msg;
+          SF.showToast('Đã gửi OTP', data?.demoCode ? `Mã demo: ${data.demoCode}` : 'Kiểm tra tin nhắn.', 'success');
+        } catch (e) {
+          if (hint) hint.textContent = e.message || 'Không gửi được OTP';
+          SF.showToast('Lỗi OTP', e.message || 'Thử lại sau.', 'error');
+        }
+      });
+
+      document.getElementById('btn-verify-otp')?.addEventListener('click', async () => {
+        const phone = document.getElementById('login-phone')?.value?.trim();
+        const code = document.getElementById('login-otp')?.value?.trim();
+        const name = document.getElementById('login-name')?.value?.trim();
+        if (!phone || !code) {
+          SF.showToast('Thiếu thông tin', 'Nhập SĐT và mã OTP.', 'warning');
+          return;
+        }
+        try {
+          await SF.verifyCustomerOtp(phone, code, name);
+          SF.showToast('Đăng nhập thành công', 'Chào mừng bạn quay lại ShipFee!', 'success');
+          renderProfile();
+          loadOrders();
+          renderOffers();
+        } catch (e) {
+          SF.showToast('OTP sai', e.message || 'Thử lại.', 'error');
+        }
+      });
+
+      document.getElementById('btn-save-current-addr')?.addEventListener('click', () => {
+        const state = SF.getState();
+        if (!state.deliveryAddress) {
+          SF.showToast('Chưa có địa chỉ', 'Nhập địa chỉ trên trang chủ trước.', 'warning');
+          return;
+        }
+        SF.saveAddressLocal({
+          label: 'Giao hàng',
+          address: state.deliveryAddress,
+          name: state.deliveryName,
+          phone: state.deliveryPhone,
+          lat: state.userLat,
+          lon: state.userLon,
+          isDefault: true
+        });
+        renderAddresses();
+        SF.showToast('Đã lưu', 'Địa chỉ đã được thêm vào danh sách.', 'success');
+      });
+
+      document.getElementById('btn-theme-toggle')?.addEventListener('click', () => {
+        const next = SF.toggleTheme();
+        SF.showToast('Đã đổi giao diện', `Chế độ: ${next}`, 'info');
+      });
+
+      document.getElementById('btn-enable-push')?.addEventListener('click', async () => {
+        try {
+          await SF.enablePushNotifications();
+          SF.showToast('Đã bật thông báo', 'Bạn sẽ nhận cập nhật trạng thái đơn.', 'success');
+        } catch (e) {
+          SF.showToast('Không bật được', e.message || 'Trình duyệt từ chối thông báo.', 'error');
+        }
+      });
+
+      document.getElementById('btn-logout')?.addEventListener('click', () => {
+        SF.logoutCustomer();
+        renderProfile();
+        SF.showToast('Đã đăng xuất', 'Phiên đăng nhập đã được xóa.', 'info');
+      });
+
+      SF.applyTheme();
+      const paramTab = SF.getParam('tab');
+      const initialTab = VALID_TABS.includes(paramTab) ? paramTab : 'orders';
+      if (paramTab === 'login') {
+        const sheet = document.getElementById('login-sheet');
+        if (sheet) sheet.hidden = false;
+      }
+      switchTab(initialTab === 'login' ? 'settings' : initialTab);
+      renderProfile();
+      renderFavorites();
+      loadOrders();
+    })();
+  </script>
+</body>
+</html>

@@ -16,15 +16,16 @@
     "crossref:gps:one": "node crossref_foody_gps.js --id"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "axios": "^1.7.2",
     "cheerio": "^1.2.0",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "puppeteer": "^22.10.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
-    "@supabase/supabase-js": "^2.45.0",
-    "dotenv": "^16.4.5"
+    "web-push": "^3.6.7"
   }
 }
