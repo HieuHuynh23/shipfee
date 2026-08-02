@@ -525,19 +525,21 @@ ul, ol {
 .search-bar__input {
   width: 100%;
   padding: 14px 16px 14px 46px;
-  background: white;
-  border: 2px solid transparent;
+  background: var(--clr-surface);
+  border: 2px solid var(--clr-border);
   border-radius: var(--radius-lg);
   font-size: 16px; /* iOS: avoid focus zoom */
   font-weight: 500;
   color: var(--clr-text-primary);
+  caret-color: var(--clr-primary);
   box-shadow: var(--shadow-md);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), background var(--transition-base), color var(--transition-base);
   outline: none;
 }
 
 .search-bar__input::placeholder {
-  color: var(--clr-text-muted);
+  color: var(--clr-text-secondary);
+  opacity: 1;
   font-weight: 400;
 }
 
@@ -551,7 +553,7 @@ ul, ol {
   left: 15px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--clr-text-muted);
+  color: var(--clr-text-secondary);
   font-size: 16px;
   pointer-events: none;
   transition: color var(--transition-base);
@@ -2423,7 +2425,7 @@ body.has-tabbar .page-wrapper {
 }
 
 .account-tabs__btn.is-active {
-  background: #fff;
+  background: var(--clr-surface);
   color: var(--clr-primary);
   box-shadow: var(--shadow-xs);
 }
@@ -2620,6 +2622,49 @@ html[data-theme="dark"] {
 html[data-theme="dark"] body {
   background: var(--clr-bg);
   color: var(--clr-text-primary);
+}
+
+html[data-theme="dark"] .search-bar__input {
+  background: var(--clr-surface);
+  color: var(--clr-text-primary);
+  border-color: var(--clr-border-strong);
+}
+
+html[data-theme="dark"] .search-bar__input::placeholder {
+  color: #CBD5E1;
+  opacity: 1;
+}
+
+html[data-theme="dark"] .search-bar__icon {
+  color: #94A3B8;
+}
+
+html[data-theme="dark"] .form-input,
+html[data-theme="dark"] .auth-field__input,
+html[data-theme="dark"] .note-input,
+html[data-theme="dark"] .item-note-input {
+  background: var(--clr-surface-2);
+  color: var(--clr-text-primary);
+  border-color: var(--clr-border-strong);
+}
+
+html[data-theme="dark"] .form-input::placeholder,
+html[data-theme="dark"] .auth-field__input::placeholder,
+html[data-theme="dark"] .note-input::placeholder,
+html[data-theme="dark"] .item-note-input::placeholder {
+  color: #94A3B8;
+  opacity: 1;
+}
+
+/* Chrome autofill giữ nền tối */
+html[data-theme="dark"] input:-webkit-autofill,
+html[data-theme="dark"] input:-webkit-autofill:hover,
+html[data-theme="dark"] input:-webkit-autofill:focus,
+html[data-theme="dark"] textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--clr-text-primary) !important;
+  caret-color: var(--clr-primary);
+  box-shadow: 0 0 0 1000px var(--clr-surface) inset !important;
+  transition: background-color 99999s ease-out;
 }
 
 html[data-theme="dark"] .nav,
