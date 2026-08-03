@@ -4727,49 +4727,77 @@ function updateRestaurantPhoneUi(order) {
   const phoneEl = document.getElementById('trip-restaurant-phone');
   const btnInline = document.getElementById('btn-call-restaurant');
   const btnAction = document.getElementById('shipper-restaurant-call-btn');
+
   if (phoneEl) {
+    phoneEl.style.display = 'block';
     if (phone) {
-      phoneEl.style.display = '';
-      phoneEl.textContent = `SĐT quán: ${phone}`;
+      phoneEl.innerHTML = `<span style="color: #f97316; font-weight: 700;"><i class="fa-solid fa-phone"></i> SĐT quán: ${escapeHtml(phone)}</span>`;
     } else {
-      phoneEl.style.display = 'none';
-      phoneEl.textContent = '—';
+      phoneEl.innerHTML = `<span style="color: var(--clr-text-muted); font-size: 12px; font-weight: 500;"><i class="fa-solid fa-circle-info"></i> SĐT quán: Chưa cập nhật trên hệ thống</span>`;
     }
   }
-  if (btnInline) btnInline.style.display = phone ? '' : 'none';
-  if (btnAction) btnAction.style.display = phone ? '' : 'none';
+
+  if (btnInline) {
+    btnInline.style.display = 'inline-flex';
+    if (phone) {
+      btnInline.innerHTML = `<i class="fa-solid fa-phone"></i> Gọi quán (${escapeHtml(phone)})`;
+      btnInline.className = 'btn-nav-maps btn-nav-maps--restaurant-call';
+      btnInline.onclick = makeRestaurantCall;
+    } else {
+      btnInline.innerHTML = `<i class="fa-solid fa-headset"></i> Nhờ CRM gọi quán`;
+      btnInline.className = 'btn-nav-maps btn-nav-maps--restaurant';
+      btnInline.onclick = function() {
+        if (typeof reportTripIncident === 'function') reportTripIncident();
+        else if (typeof openCrmSupportSheet === 'function') openCrmSupportSheet();
+      };
+    }
+  }
+
+  if (btnAction) {
+    btnAction.style.display = 'inline-flex';
+    if (phone) {
+      btnAction.innerHTML = `<i class="fa-solid fa-phone"></i> Gọi quán (${escapeHtml(phone)})`;
+      btnAction.onclick = makeRestaurantCall;
+    } else {
+      btnAction.innerHTML = `<i class="fa-solid fa-headset"></i> Báo sự cố quán không SĐT`;
+      btnAction.onclick = function() {
+        if (typeof reportTripIncident === 'function') reportTripIncident();
+        else if (typeof openCrmSupportSheet === 'function') openCrmSupportSheet();
+      };
+    }
+  }
 
   const jobPhoneEl = document.getElementById('job-restaurant-phone');
   if (jobPhoneEl) {
+    jobPhoneEl.style.display = 'block';
     if (phone) {
-      jobPhoneEl.style.display = '';
-      jobPhoneEl.textContent = `SĐT quán: ${phone}`;
+      jobPhoneEl.innerHTML = `<span style="color: #f97316; font-weight: 700;"><i class="fa-solid fa-phone"></i> SĐT quán: ${escapeHtml(phone)}</span>`;
     } else {
-      jobPhoneEl.style.display = 'none';
-      jobPhoneEl.textContent = '—';
+      jobPhoneEl.innerHTML = `<span style="color: var(--clr-text-muted); font-size: 12px;"><i class="fa-solid fa-circle-info"></i> SĐT quán: Chưa cập nhật trên hệ thống</span>`;
     }
   }
 
   const offerPhoneEl = document.getElementById('offer-restaurant-phone');
   if (offerPhoneEl) {
+    offerPhoneEl.style.display = 'block';
     if (phone) {
-      offerPhoneEl.style.display = '';
-      offerPhoneEl.textContent = `SĐT quán: ${phone}`;
+      offerPhoneEl.innerHTML = `<span style="color: #f97316; font-weight: 700;"><i class="fa-solid fa-phone"></i> SĐT quán: ${escapeHtml(phone)}</span>`;
     } else {
-      offerPhoneEl.style.display = 'none';
-      offerPhoneEl.textContent = '—';
+      offerPhoneEl.innerHTML = `<span style="color: var(--clr-text-muted); font-size: 12px;"><i class="fa-solid fa-circle-info"></i> SĐT quán: Chưa cập nhật trên hệ thống</span>`;
     }
   }
 }
 
 function makeRestaurantCall() {
   if (!activeOrder) {
-    showToast('Lỗi', 'Không tìm thấy thông tin đơn hàng.', 'error');
+    if (typeof showToast === 'function') showToast('Lỗi', 'Không tìm thấy thông tin đơn hàng.', 'error');
     return;
   }
   const phone = getRestaurantPhone(activeOrder);
   if (!phone) {
-    showToast('Thiếu SĐT', 'Chưa có số điện thoại quán cho đơn này.', 'error');
+    if (typeof showToast === 'function') showToast('Chưa có SĐT', 'Quán này chưa cập nhật số điện thoại. Đang mở hỗ trợ CRM...', 'info');
+    if (typeof reportTripIncident === 'function') reportTripIncident();
+    else if (typeof openCrmSupportSheet === 'function') openCrmSupportSheet();
     return;
   }
   window.location.href = `tel:${phone.replace(/\s+/g, '')}`;

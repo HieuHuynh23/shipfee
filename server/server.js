@@ -7558,7 +7558,7 @@ app.get('/api/admin/restaurants', authenticateAdmin, (req, res) => {
 app.put('/api/admin/restaurants/:id', authenticateAdmin, crm.requireAdminRole('admin', 'ops'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, address, category, isClosed } = req.body;
+    const { name, address, category, isClosed, phone } = req.body;
     let found = false;
     let updatedData = null;
 
@@ -7568,6 +7568,12 @@ app.put('/api/admin/restaurants/:id', authenticateAdmin, crm.requireAdminRole('a
         if (name) restaurants[idx].name = name;
         if (address) restaurants[idx].address = address;
         if (category) restaurants[idx].category = category;
+        if (phone !== undefined) {
+          const norm = restaurantMeta.normalizePhone(phone);
+          restaurants[idx].phone = norm;
+          restaurants[idx].phoneSource = norm ? 'admin' : '';
+          restaurants[idx].phoneUpdatedAt = new Date().toISOString();
+        }
         if (typeof isClosed === 'boolean') {
           restaurants[idx].isClosed = isClosed;
           if (isClosed) {
