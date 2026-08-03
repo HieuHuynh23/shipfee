@@ -1409,6 +1409,11 @@ function switchTab(tabId) {
     renderPendingOrders([]);
   } else if (tabId === 'trip') {
     renderActiveTrip();
+    if (typeof tripMap !== 'undefined' && tripMap) {
+      setTimeout(() => {
+        try { tripMap.invalidateSize({ animate: false }); } catch (_) {}
+      }, 50);
+    }
   } else if (tabId === 'history') {
     lastHistoryFingerprint = '';
     renderHistoryAndStats();

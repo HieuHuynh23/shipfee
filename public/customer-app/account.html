@@ -210,7 +210,7 @@
         CANCELLED: 'is-cancelled'
       };
 
-      function switchTab(tab) {
+      function switchTab(tab, updateHistory = true) {
         let next = VALID_TABS.includes(tab) ? tab : 'orders';
         if (next === 'login') next = 'settings';
         document.querySelectorAll('.account-tabs__btn').forEach((btn) => {
@@ -225,11 +225,19 @@
         });
         document.getElementById('tab-orders')?.classList.toggle('is-active', next === 'orders');
         document.getElementById('tab-favorites')?.classList.toggle('is-active', next === 'favorites');
-        try {
-          const url = new URL(window.location.href);
-          url.searchParams.set('tab', next);
-          history.replaceState(null, '', url.pathname + '?' + url.searchParams.toString());
-        } catch (_) {}
+
+        if (updateHistory) {
+          try {
+            const url = new URL(window.location.href);
+            if (url.searchParams.get('tab') !== next) {
+              url.searchParams.set('tab', next);
+              history.pushState({ tab: next }, '', url.pathname + '?' + url.searchParams.toString());
+            }
+          } catch (_) {}
+        }
+
+        if (next === 'orders') renderOrders(SF.getOrderHistory());
+        if (next === 'favorites') renderFavorites();
         if (next === 'addresses') renderAddresses();
         if (next === 'offers') renderOffers();
       }
@@ -619,13 +627,12 @@
         });
       }
 
+      let offersCache = null;
       async function renderOffers() {
         const wrap = document.getElementById('offers-list');
         if (!wrap) return;
         const esc = SF.escapeHtml;
-        wrap.innerHTML = '<p class="section-muted-empty">Đang tải ưu đãi...</p>';
-        try {
-          const offers = await SF.fetchCustomerOffers();
+        const renderList = (offers) => {
           if (!offers || !offers.length) {
             wrap.innerHTML = '<p class="section-muted-empty">Chưa có ưu đãi. Đăng nhập / có SĐT để xem ưu đãi cá nhân.</p>';
             return;
@@ -638,22 +645,63 @@
               ${o.code ? `<div class="offer-chip__code">Mã: ${esc(o.code)}</div>` : ''}
             </div>
           `).join('');
+        };
+
+        if (offersCache) {
+          renderList(offersCache);
+          return;
+        }
+
+        try {
+          const offers = await SF.fetchCustomerOffers();
+          offersCache = offers;
+          renderList(offers);
         } catch (_) {
-          wrap.innerHTML = '<p class="section-muted-empty">Không tải được ưu đãi.</p>';
+          if (!offersCache) {
+            wrap.innerHTML = '<p class="section-muted-empty">Không tải được ưu đãi.</p>';
+          }
         }
       }
 
       async function loadOrders() {
+        const local = SF.getOrderHistory();
+        if (local && local.length > 0) {
+          renderOrders(local);
+        }
         try {
           const list = await SF.fetchOrderHistoryFromServer();
           renderOrders(list);
         } catch (_) {
-          renderOrders(SF.getOrderHistory());
+          if (!local || local.length === 0) {
+            renderOrders([]);
+          }
         }
       }
 
       document.querySelectorAll('.account-tabs__btn').forEach((btn) => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab, true));
+      });
+
+      document.querySelectorAll('.app-tabbar__item').forEach((item) => {
+        item.addEventListener('click', (e) => {
+          const href = item.getAttribute('href') || '';
+          if (href.includes('account.html')) {
+            e.preventDefault();
+            try {
+              const u = new URL(href, window.location.href);
+              const tab = u.searchParams.get('tab') || 'orders';
+              switchTab(tab, true);
+            } catch (_) {
+              switchTab('orders', true);
+            }
+          }
+        });
+      });
+
+      window.addEventListener('popstate', (e) => {
+        const paramTab = SF.getParam('tab');
+        const tab = VALID_TABS.includes(paramTab) ? paramTab : (e.state?.tab || 'orders');
+        switchTab(tab, false);
       });
 
       document.getElementById('btn-open-login')?.addEventListener('click', () => openAuthSheet('phone'));
@@ -726,7 +774,7 @@
       SF.applyTheme();
       const paramTab = SF.getParam('tab');
       const initialTab = VALID_TABS.includes(paramTab) ? paramTab : 'orders';
-      switchTab(initialTab === 'login' ? 'settings' : initialTab);
+      switchTab(initialTab === 'login' ? 'settings' : initialTab, false);
       renderProfile();
       renderFavorites();
       loadOrders();

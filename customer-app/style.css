@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    SHIPFEE — Customer App Design System
    ========================================================================== */
 
@@ -2428,6 +2428,20 @@ body.has-tabbar .page-wrapper {
   background: var(--clr-surface);
   color: var(--clr-primary);
   box-shadow: var(--shadow-xs);
+}
+
+.account-panel {
+  display: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.15s cubic-bezier(0.16, 1, 0.3, 1), transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.account-panel.is-active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .account-loading {
