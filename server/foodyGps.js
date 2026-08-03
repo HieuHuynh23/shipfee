@@ -6,6 +6,7 @@
  */
 
 const axios = require('axios');
+const { extractPhoneFromFoodyHtml } = require('./restaurantMeta');
 
 const FOODY_HEADERS = {
   'User-Agent':
@@ -91,7 +92,9 @@ async function fetchFoodyGpsBySlug(slug, opts = {}) {
       });
       if (res.status !== 200 || typeof res.data !== 'string') continue;
       const gps = extractGpsFromFoodyHtml(res.data);
-      if (gps) return { ...gps, url };
+      const phone = extractPhoneFromFoodyHtml(res.data);
+      if (gps) return { ...gps, url, phone: phone || '' };
+      if (phone) return { lat: null, lon: null, source: 'foody', url, phone };
     } catch (_) {
       /* thử URL kế */
     }
@@ -144,5 +147,6 @@ module.exports = {
   resolveFoodySlugFromRestaurant,
   slugFromFoodyHref,
   isPlausibleCanThoGps,
-  foodyUrlsForSlug
+  foodyUrlsForSlug,
+  extractPhoneFromFoodyHtml
 };

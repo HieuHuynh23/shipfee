@@ -12,7 +12,7 @@ if not exist "node_modules\" (
   call npm install
 )
 set CRAWL_TIMEOUT_MS=90000
-node crawl_restaurant_menus.js --only-fallback --open-only --threads=2 --delay=2500
+node crawl_restaurant_menus.js --only-fallback --open-only --threads=3 --delay=2000
 echo.
 echo Xong. Nhan phim bat ky de dong...
 pause >nul

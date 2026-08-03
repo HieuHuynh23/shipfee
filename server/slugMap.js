@@ -1,14 +1,12 @@
 /**
- * Shared ShopeeFood slug rewrites — brand portals → chi nhánh cụ thể.
+ * Shared ShopeeFood slug rewrites — legacy branch slug → chi nhánh cụ thể (1:1 only).
+ * Không map city-level portals (kfc-can-tho, jollibee-can-tho, …) → tránh nhiều quán cùng 1 menu.
  */
 const SLUG_REWRITER_MAP = {
   'he-thong-lumos-coffee-cake': 'lumos-bakery-joy-banh-au-tra',
   'he-thong-lau-bang-chuyen-kichi-kichi': 'kichi-kichi-lotte-mart-can-tho',
   'he-thong-quan-itada-am-thuc-han-quoc': 'itada-mi-cay-han-quoc-duong-3-thang-2',
-  'jollibee-can-tho': 'ga-ran-va-mi-y-jollibee-duong-30-thang-4',
-  'highlands-coffee-can-tho': 'highlands-coffee-go-can-tho',
-  'kfc-can-tho': 'ga-ran-kfc-lotte-mart-can-tho',
-  'lotteria-can-tho': 'ga-ran-burger-lotteria-can-tho-nguyen-van-cu',
+
   'lotteria-vincom-xuan-khanh': 'ga-ran-burger-lotteria-vincom-xuan-khanh',
   'lotteria-can-tho-big-c': 'ga-ran-burger-lotteria-can-tho-big-c',
   'lotteria-can-tho-nguyen-van-cu': 'ga-ran-burger-lotteria-can-tho-nguyen-van-cu',

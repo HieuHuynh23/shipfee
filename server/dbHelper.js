@@ -189,6 +189,7 @@ function getCrawlQueue() {
   const all = readAll();
   return all.filter(r => {
     if (!r) return false;
+    if (r.permanentlyClosed === true) return false;
     // Lấy quán đóng cửa tạm thời (không phải vĩnh viễn) hoặc quán chưa có menu thực tế
     const isTempClosed = r.isClosed && !(r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn')));
     const needMenu = !r.isClosed && !r.hasRealMenu;

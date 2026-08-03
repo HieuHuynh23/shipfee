@@ -31,7 +31,7 @@ function sleep(ms) {
 
 // ── Configuration ──────────────────────────────────────────────────────────────
 const API_BASE = process.env.API_BASE || 'http://localhost:3001';
-const CONCURRENCY = parseInt(process.argv.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '2', 10);
+const CONCURRENCY = parseInt(process.argv.find(a => a.startsWith('--concurrency='))?.split('=')[1] || '3', 10);
 const FORCE = process.argv.includes('--force');
 const CHECK_CLOSED_ONLY = process.argv.includes('--check-closed');
 const TIMEOUT_MS = 120_000; // 120s timeout per restaurant scrape
@@ -104,7 +104,13 @@ async function crawlMenuBatch() {
   currentPhase = 'menu';
   
   const allRestaurants = dbHelper.read();
-  const targets = allRestaurants.filter(r => r && r.id && r.hasRealMenu !== true && r.isClosed !== true);
+  const targets = allRestaurants.filter(r => {
+    if (!r || !r.id || r.hasRealMenu === true || r.isClosed === true) return false;
+    if (r.permanentlyClosed === true) return false;
+    if (r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn'))) return false;
+    if (r.lastCrawlError === 'not_on_shopeefood' && Number(r.notOnShopeefoodCount || 0) >= 2) return false;
+    return true;
+  });
   
   writeLog(`📊 [Phase 1: Menu] DB: ${allRestaurants.length} quán | Chưa có menu real: ${targets.length} quán`);
   
@@ -180,8 +186,10 @@ async function checkClosedBatch() {
   // Lấy quán tạm đóng (không phải đóng vĩnh viễn)
   const closedTargets = allRestaurants.filter(r => {
     if (!r || !r.id || !r.isClosed) return false;
+    if (r.permanentlyClosed === true) return false;
     // Bỏ qua quán đã đánh dấu đóng vĩnh viễn
     if (r.closedReason && (r.closedReason.includes('permanently') || r.closedReason.includes('vĩnh viễn'))) return false;
+    if (r.lastCrawlError === 'not_on_shopeefood' && Number(r.notOnShopeefoodCount || 0) >= 2) return false;
     return true;
   });
   

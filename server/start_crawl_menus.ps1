@@ -3,7 +3,7 @@
 # Tuy chon:  .\start_crawl_menus.ps1 -Threads 4 -Limit 100
 
 param(
-  [int]$Threads = 4,
+  [int]$Threads = 3,
   [int]$DelayMs = 1500,
   [int]$Limit = 0,
   [string]$Id = "",

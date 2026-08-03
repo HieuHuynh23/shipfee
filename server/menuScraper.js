@@ -2,6 +2,15 @@ const puppeteer = require('puppeteer-extra');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const fs = require('fs');
+const {
+  extractRestaurantMetaFromDetail,
+  extractPhoneFromFoodyHtml,
+  isRealRestaurantPhone,
+  normalizePhone,
+  verifyRestaurantIdentity,
+  normalizeClosedReason,
+  isPermanentCloseReason
+} = require('./restaurantMeta');
 
 function getBrowserPath() {
   const paths = [
@@ -77,12 +86,78 @@ function extractMenuFromApiData(apiData, slug) {
   return cleanDishes;
 }
 
-function wrapResult(dishes, { closed = false, closedReason = '', slug, altSlugs = [] } = {}) {
-  if (!dishes || dishes.length === 0) return null;
-  if (closed) {
-    return { closed: true, reason: closedReason, menu: dishes, usedSlug: slug, altSlugs };
+function wrapResult(dishes, { closed = false, closedReason = '', slug, altSlugs = [], meta = {} } = {}) {
+  const phone = meta.phone && isRealRestaurantPhone(meta.phone) ? normalizePhone(meta.phone) : '';
+  const baseMeta = {
+    phone: phone || '',
+    address: meta.address || '',
+    name: meta.name || '',
+    lat: Number.isFinite(meta.lat) ? meta.lat : null,
+    lon: Number.isFinite(meta.lon) ? meta.lon : null,
+    usedSlug: slug,
+    altSlugs
+  };
+  if (!dishes || dishes.length === 0) {
+    if (closed) {
+      return {
+        closed: true,
+        reason: normalizeClosedReason(closedReason, { notFound: false }),
+        permanentlyClosed: isPermanentCloseReason(closedReason),
+        menu: [],
+        ...baseMeta
+      };
+    }
+    return null;
   }
-  return dishes;
+  if (closed) {
+    return {
+      closed: true,
+      reason: normalizeClosedReason(closedReason, { notFound: false }),
+      permanentlyClosed: isPermanentCloseReason(closedReason),
+      menu: dishes,
+      ...baseMeta
+    };
+  }
+  // Always return object so callers can read phone/address (backward-compat: also Array-like via .menu)
+  return {
+    menu: dishes,
+    closed: false,
+    ...baseMeta
+  };
+}
+
+/** Normalize scrape payload → { menu, meta, closed, ... } regardless of legacy array shape. */
+function unwrapScrapeResult(raw) {
+  if (!raw) return { menu: null, closed: false, blocked: false, notFound: false, meta: {} };
+  if (Array.isArray(raw)) {
+    return {
+      menu: raw.length ? raw : null,
+      closed: false,
+      blocked: false,
+      notFound: false,
+      meta: {},
+      usedSlug: raw.usedSlug || ''
+    };
+  }
+  const menu = Array.isArray(raw.menu) && raw.menu.length ? raw.menu : null;
+  return {
+    menu,
+    closed: raw.closed === true,
+    blocked: raw.blocked === true,
+    notFound: raw.notFound === true,
+    permanentlyClosed: raw.permanentlyClosed === true || isPermanentCloseReason(raw.reason),
+    reason: raw.reason || '',
+    meta: {
+      phone: raw.phone || '',
+      address: raw.address || '',
+      name: raw.name || '',
+      lat: raw.lat,
+      lon: raw.lon
+    },
+    usedSlug: raw.usedSlug || '',
+    altSlugs: raw.altSlugs || [],
+    recoveredFromSearch: raw.recoveredFromSearch === true
+  };
 }
 
 async function apiGetJson(page, apiPath) {
@@ -408,24 +483,47 @@ async function searchAltSlugs(page, query, addressHint = '') {
     .split(/[^a-z0-9]+/)
     .filter(t => t.length > 2);
 
+  const addrFold = String(addressHint || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+  const addrTokens = addrFold.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+  const streetNum = (addressHint || '').match(/(?:^|[,\s])(\d{1,4}[a-zA-Z]?(?:\/\d{1,4}[a-zA-Z]?)?)\s/);
+  const streetToken = streetNum ? streetNum[1].toLowerCase() : '';
+
   list = list.filter(a => {
     if (junk.test(a.slug) || junk.test(a.name)) return false;
     const hay = `${a.slug} ${a.name}`.toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/đ/g, 'd');
-    // Ít nhất 1 token tên quán khớp
     const hits = qTokens.filter(t => hay.includes(t)).length;
-    return hits >= Math.min(2, qTokens.length);
+    const needHits = Math.min(2, Math.max(1, qTokens.length));
+    const nameOk = hits >= needHits;
+    if (!nameOk) return false;
+    // Nếu có address hint: bắt buộc khớp số nhà hoặc ≥1 token địa chỉ
+    if (addrTokens.length > 0) {
+      const ahay = `${a.address || ''} ${a.slug}`.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd');
+      const addrHit = addrTokens.some(t => ahay.includes(t));
+      const numHit = streetToken && ahay.includes(streetToken);
+      if (!addrHit && !numHit) return false;
+    }
+    return true;
   });
 
-  const addr = String(addressHint || '').toLowerCase();
-  if (addr) {
-    const token = addr.split(/[,\s]+/).find(t => t.length > 3) || '';
+  if (addrFold) {
     list.sort((a, b) => {
-      const as = token && (a.address || '').toLowerCase().includes(token) ? 1 : 0;
-      const bs = token && (b.address || '').toLowerCase().includes(token) ? 1 : 0;
-      return bs - as;
+      const ascore =
+        (streetToken && (a.address || '').toLowerCase().includes(streetToken) ? 2 : 0) +
+        addrTokens.filter(t => (a.address || '').toLowerCase().includes(t)).length;
+      const bscore =
+        (streetToken && (b.address || '').toLowerCase().includes(streetToken) ? 2 : 0) +
+        addrTokens.filter(t => (b.address || '').toLowerCase().includes(t)).length;
+      return bscore - ascore;
     });
   }
   return list.slice(0, 5);
@@ -500,6 +598,16 @@ async function scrapeMenu(slug, options = {}) {
       let detailOk = false;
       let closedDetected = false;
       let closedReason = '';
+      let detailMeta = { phone: '', name: '', address: '', lat: null, lon: null };
+
+      const mergeDetailMeta = parsed => {
+        const m = extractRestaurantMetaFromDetail(parsed);
+        if (m.phone && !detailMeta.phone) detailMeta.phone = m.phone;
+        if (m.name) detailMeta.name = m.name;
+        if (m.address) detailMeta.address = m.address;
+        if (Number.isFinite(m.lat)) detailMeta.lat = m.lat;
+        if (Number.isFinite(m.lon)) detailMeta.lon = m.lon;
+      };
 
       const onResponse = async response => {
         const respUrl = response.url();
@@ -520,6 +628,7 @@ async function scrapeMenu(slug, options = {}) {
             }
             const text = await response.text();
             const parsed = JSON.parse(text);
+            mergeDetailMeta(parsed);
             const items = (parsed?.reply?.menu_infos || []).reduce((acc, c) => acc + (c.dishes || []).length, 0);
             if (items > apiCapturedCount) {
               apiData = parsed;
@@ -538,9 +647,13 @@ async function scrapeMenu(slug, options = {}) {
               detailOk = true;
               const text = await response.text();
               const parsed = JSON.parse(text);
+              mergeDetailMeta(parsed);
               if (parsed?.reply?.menu_infos?.length && apiCapturedCount === 0) {
                 apiData = parsed;
                 apiCapturedCount = parsed.reply.menu_infos.reduce((a, c) => a + (c.dishes || []).length, 0);
+              }
+              if (detailMeta.phone) {
+                console.log(`[menuScraper] 📞 get_detail phone=${detailMeta.phone}`);
               }
             } else if ([403, 429, 503].includes(status)) {
               apiBlocked = true;
@@ -566,6 +679,58 @@ async function scrapeMenu(slug, options = {}) {
         await activateMenuUi(page);
         await Promise.race([scrollToLoad(page), new Promise(r => setTimeout(r, 8000))]);
         await waitForMenuCapture(() => apiCapturedCount, Math.min(API_WAIT_MS, 15000));
+      };
+
+      const enrichMetaFromDom = async () => {
+        if (detailMeta.phone && detailMeta.address && detailMeta.name) return;
+        try {
+          const domMeta = await page.evaluate(() => {
+            const tel = document.querySelector('a[href^="tel:"]');
+            const phone = tel ? (tel.getAttribute('href') || '').replace(/^tel:/i, '') : '';
+            const name =
+              document.querySelector('h1')?.innerText?.trim() ||
+              document.querySelector('[class*="name"]')?.innerText?.trim() ||
+              '';
+            let address = '';
+            const addrEl = document.querySelector(
+              '[class*="address"], [class*="Address"], [itemprop="address"]'
+            );
+            if (addrEl) address = addrEl.innerText?.trim() || '';
+            return { phone, name, address, html: document.documentElement.innerHTML.slice(0, 200000) };
+          });
+          if (!detailMeta.phone) {
+            const fromTel = normalizePhone(domMeta.phone);
+            const fromHtml = extractPhoneFromFoodyHtml(domMeta.html || '');
+            detailMeta.phone = isRealRestaurantPhone(fromTel)
+              ? fromTel
+              : fromHtml || '';
+          }
+          if (!detailMeta.name && domMeta.name) detailMeta.name = domMeta.name;
+          if (!detailMeta.address && domMeta.address) detailMeta.address = domMeta.address;
+        } catch (_) {}
+      };
+
+      const finishWithIdentity = result => {
+        if (options.verifyExpected) {
+          const identity = verifyRestaurantIdentity(options.verifyExpected, {
+            name: detailMeta.name || result.name || '',
+            address: detailMeta.address || result.address || ''
+          });
+          if (!identity.ok) {
+            console.log(
+              `[menuScraper] 🚫 Identity mismatch slug=${currentSlug} score=${identity.score.toFixed(2)} (${identity.reason})`
+            );
+            return {
+              ok: false,
+              identityMismatch: true,
+              reason: identity.reason,
+              score: identity.score,
+              slug: currentSlug,
+              meta: { ...detailMeta }
+            };
+          }
+        }
+        return { ok: true, result, slug: currentSlug, meta: { ...detailMeta } };
       };
 
       try {
@@ -631,10 +796,17 @@ async function scrapeMenu(slug, options = {}) {
           }
         }
 
+        await enrichMetaFromDom();
+
         if (apiCapturedCount > 0 && apiData) {
           const dishes = extractMenuFromApiData(apiData, currentSlug);
-          const wrapped = wrapResult(dishes, { closed: closedDetected, closedReason, slug: currentSlug });
-          if (wrapped) return { ok: true, result: wrapped, slug: currentSlug };
+          const wrapped = wrapResult(dishes, {
+            closed: closedDetected,
+            closedReason,
+            slug: currentSlug,
+            meta: detailMeta
+          });
+          if (wrapped) return finishWithIdentity(wrapped);
         }
 
         // DOM fallback
@@ -643,66 +815,70 @@ async function scrapeMenu(slug, options = {}) {
         console.log(`[menuScraper] [DOM] ${raw.length} món thô`);
         if (raw.length > 0) {
           const dishes = normalizeDomDishes(raw, currentSlug);
-          const wrapped = wrapResult(dishes, { closed: closedDetected, closedReason, slug: currentSlug });
-          if (wrapped) return { ok: true, result: wrapped, slug: currentSlug };
+          const wrapped = wrapResult(dishes, {
+            closed: closedDetected,
+            closedReason,
+            slug: currentSlug,
+            meta: detailMeta
+          });
+          if (wrapped) return finishWithIdentity(wrapped);
         }
 
         const nf = await pageNotFound(page);
         if (nf) {
           console.log('[menuScraper] 🚫 Trang báo không tồn tại / chưa có dịch vụ');
-          return { ok: false, notFound: true, slug: currentSlug };
+          return { ok: false, notFound: true, slug: currentSlug, meta: { ...detailMeta } };
         }
 
         // 403/429: quán vẫn tồn tại — không đánh closed / empty vĩnh viễn
         if (apiBlocked) {
           console.log('[menuScraper] ⏳ API bị chặn nhưng trang quán còn — trả blocked để thử lại sau');
-          return {
-            ok: true,
-            result: {
-              blocked: true,
-              reason: 'ShopeeFood tạm chặn API menu (403/429). Quán vẫn tồn tại — sẽ cào lại.',
-              usedSlug: currentSlug,
-              detailOk,
-              requestId: requestId || undefined
-            }
-          };
+          return finishWithIdentity({
+            blocked: true,
+            reason: 'ShopeeFood tạm chặn API menu (403/429). Quán vẫn tồn tại — sẽ cào lại.',
+            usedSlug: currentSlug,
+            detailOk,
+            requestId: requestId || undefined,
+            ...detailMeta
+          });
         }
 
         // Có get_detail OK / requestId nhưng không dishes → thường là rate-limit im lặng
         if ((detailOk || requestId) && apiCapturedCount === 0 && !apiOkEmpty) {
           console.log('[menuScraper] ⏳ Có chi tiết quán nhưng chưa lấy dishes — coi như blocked tạm');
-          return {
-            ok: true,
-            result: {
-              blocked: true,
-              reason: 'Chưa bắt được menu API (quán tồn tại). Sẽ thử lại sau.',
-              usedSlug: currentSlug,
-              detailOk,
-              requestId: requestId || undefined
-            }
-          };
+          return finishWithIdentity({
+            blocked: true,
+            reason: 'Chưa bắt được menu API (quán tồn tại). Sẽ thử lại sau.',
+            usedSlug: currentSlug,
+            detailOk,
+            requestId: requestId || undefined,
+            ...detailMeta
+          });
         }
 
         if (closedDetected) {
-          return {
-            ok: true,
-            result: { closed: true, reason: closedReason || 'Quán đang đóng cửa.', usedSlug: currentSlug }
-          };
+          return finishWithIdentity({
+            closed: true,
+            reason: normalizeClosedReason(closedReason || 'Quán đang đóng cửa.'),
+            permanentlyClosed: isPermanentCloseReason(closedReason),
+            usedSlug: currentSlug,
+            menu: [],
+            ...detailMeta
+          });
         }
 
         // Chỉ khi API 200 thật sự trả 0 món mới coi ngoài giờ / không nhận đơn
         if (apiOkEmpty) {
-          return {
-            ok: true,
-            result: {
-              closed: true,
-              reason: 'Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.',
-              usedSlug: currentSlug
-            }
-          };
+          return finishWithIdentity({
+            closed: true,
+            reason: 'Quán hiện không nhận đơn giao hàng. Vui lòng quay lại vào giờ làm việc.',
+            usedSlug: currentSlug,
+            menu: [],
+            ...detailMeta
+          });
         }
 
-        return { ok: false, empty: true, slug: currentSlug };
+        return { ok: false, empty: true, slug: currentSlug, meta: { ...detailMeta } };
       } finally {
         page.off('response', onResponse);
         try {
@@ -713,12 +889,13 @@ async function scrapeMenu(slug, options = {}) {
 
     // ── Thử từng slug ──
     let lastNotFound = false;
+    let lastMeta = {};
     for (let i = 0; i < uniqueSlugs.length; i++) {
       const s = uniqueSlugs[i];
       let attempt = await scrapeOneSlug(s, { blockMedia: true });
       // Retry bỏ chặn media khi empty hoặc bị 403 (script menu đôi khi cần asset đầy đủ)
       const needMediaRetry = !fast && (
-        (!attempt.ok && attempt.empty && !attempt.notFound) ||
+        (!attempt.ok && attempt.empty && !attempt.notFound && !attempt.identityMismatch) ||
         (attempt.ok && attempt.result && attempt.result.blocked === true)
       );
       if (needMediaRetry) {
@@ -731,8 +908,15 @@ async function scrapeMenu(slug, options = {}) {
           attempt = retry;
         }
       }
+      if (attempt.meta) lastMeta = attempt.meta;
+      if (attempt.identityMismatch) {
+        console.log(`[menuScraper] ⏭️ Bỏ slug ${s} (identity mismatch)`);
+        continue;
+      }
       if (attempt.ok) {
-        if (Array.isArray(attempt.result)) return attempt.result;
+        if (Array.isArray(attempt.result)) {
+          return wrapResult(attempt.result, { slug: s, meta: attempt.meta || lastMeta });
+        }
         return { ...attempt.result, altSlugs: discoveredAlts.map(a => a.slug) };
       }
       lastNotFound = !!attempt.notFound;
@@ -754,10 +938,15 @@ async function scrapeMenu(slug, options = {}) {
       for (const a of discoveredAlts) {
         if (uniqueSlugs.includes(a.slug)) continue;
         const attempt = await scrapeOneSlug(a.slug, { blockMedia: true });
+        if (attempt.identityMismatch) continue;
         if (attempt.ok) {
           const res = attempt.result;
           if (Array.isArray(res)) {
-            return Object.assign(res, { usedSlug: a.slug });
+            return wrapResult(res, {
+              slug: a.slug,
+              meta: attempt.meta || {},
+              altSlugs: discoveredAlts.map(x => x.slug)
+            });
           }
           return {
             ...res,
@@ -773,8 +962,13 @@ async function scrapeMenu(slug, options = {}) {
       return {
         closed: true,
         notFound: true,
-        reason: 'Cửa hàng chưa có hoặc đã ngưng dịch vụ đặt món trên ShopeeFood.',
-        altSlugs: discoveredAlts.map(a => a.slug)
+        permanentlyClosed: true,
+        reason: normalizeClosedReason(
+          'Cửa hàng chưa có hoặc đã ngưng dịch vụ đặt món trên ShopeeFood.',
+          { notFound: true }
+        ),
+        altSlugs: discoveredAlts.map(a => a.slug),
+        ...lastMeta
       };
     }
 
@@ -830,5 +1024,7 @@ module.exports = {
   scrapeMenu,
   launchBrowser,
   closeBrowserSafe,
-  extractMenuFromApiData
+  extractMenuFromApiData,
+  unwrapScrapeResult,
+  wrapResult
 };

@@ -1583,6 +1583,7 @@ function openJobDetail(orderId) {
   
   document.getElementById('job-restaurant-name').textContent = order.restaurantName;
   document.getElementById('job-restaurant-address').textContent = order.restaurantAddress;
+  updateRestaurantPhoneUi(order);
   document.getElementById('job-customer-address').textContent = order.deliveryAddress;
   document.getElementById('job-earning').textContent = formatCurrency(order.shipperEarning);
   document.getElementById('job-app-total').textContent = formatCurrency(order.appTotal);
@@ -1942,6 +1943,7 @@ function renderActiveTrip() {
   
   document.getElementById('trip-restaurant-name').textContent = activeOrder.restaurantName;
   document.getElementById('trip-restaurant-address').textContent = activeOrder.restaurantAddress || '—';
+  updateRestaurantPhoneUi(activeOrder);
   
   const clientName = activeOrder.isRelative ? `👤 ${activeOrder.deliveryName} (Người thân)` : activeOrder.deliveryName || 'Khách hàng';
   document.getElementById('trip-customer-name').textContent = clientName;
@@ -2718,6 +2720,7 @@ function handleTargetedOffer(offer, opts = {}) {
     
     document.getElementById('offer-restaurant-name').textContent = offer.restaurantName;
     document.getElementById('offer-restaurant-address').textContent = offer.restaurantAddress;
+    updateRestaurantPhoneUi(offer);
     document.getElementById('offer-customer-address').textContent = offer.deliveryAddress;
     document.getElementById('offer-earning').textContent = formatCurrency(offer.shipperEarning);
     document.getElementById('offer-app-total').textContent = formatCurrency(offer.appTotal);
@@ -4711,6 +4714,67 @@ function makeDirectCall() {
   }
 }
 window.makeDirectCall = makeDirectCall;
+
+function getRestaurantPhone(order) {
+  const raw = (order && (order.restaurantPhone || order.restaurant_phone)) || '';
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.length < 9 || digits.length > 11) return '';
+  return String(raw).trim();
+}
+
+function updateRestaurantPhoneUi(order) {
+  const phone = getRestaurantPhone(order);
+  const phoneEl = document.getElementById('trip-restaurant-phone');
+  const btnInline = document.getElementById('btn-call-restaurant');
+  const btnAction = document.getElementById('shipper-restaurant-call-btn');
+  if (phoneEl) {
+    if (phone) {
+      phoneEl.style.display = '';
+      phoneEl.textContent = `SĐT quán: ${phone}`;
+    } else {
+      phoneEl.style.display = 'none';
+      phoneEl.textContent = '—';
+    }
+  }
+  if (btnInline) btnInline.style.display = phone ? '' : 'none';
+  if (btnAction) btnAction.style.display = phone ? '' : 'none';
+
+  const jobPhoneEl = document.getElementById('job-restaurant-phone');
+  if (jobPhoneEl) {
+    if (phone) {
+      jobPhoneEl.style.display = '';
+      jobPhoneEl.textContent = `SĐT quán: ${phone}`;
+    } else {
+      jobPhoneEl.style.display = 'none';
+      jobPhoneEl.textContent = '—';
+    }
+  }
+
+  const offerPhoneEl = document.getElementById('offer-restaurant-phone');
+  if (offerPhoneEl) {
+    if (phone) {
+      offerPhoneEl.style.display = '';
+      offerPhoneEl.textContent = `SĐT quán: ${phone}`;
+    } else {
+      offerPhoneEl.style.display = 'none';
+      offerPhoneEl.textContent = '—';
+    }
+  }
+}
+
+function makeRestaurantCall() {
+  if (!activeOrder) {
+    showToast('Lỗi', 'Không tìm thấy thông tin đơn hàng.', 'error');
+    return;
+  }
+  const phone = getRestaurantPhone(activeOrder);
+  if (!phone) {
+    showToast('Thiếu SĐT', 'Chưa có số điện thoại quán cho đơn này.', 'error');
+    return;
+  }
+  window.location.href = `tel:${phone.replace(/\s+/g, '')}`;
+}
+window.makeRestaurantCall = makeRestaurantCall;
 
 function callPerson(type) {
   const overlay = document.getElementById('call-select-overlay');

@@ -28,6 +28,8 @@ const crm = require('./crmHelpers');
 const realtimeHub = require('./realtimeHub');
 const demoOrders = require('./demoOrders');
 const foodyGps = require('./foodyGps');
+const restaurantMeta = require('./restaurantMeta');
+const { unwrapScrapeResult } = menuScraper;
 const pricingEngine = require('./pricingEngine');
 const { createRateLimiter } = require('./rateLimit');
 const orderPersist = require('./orderPersist');
@@ -1830,12 +1832,16 @@ function hasReopenTime(reason) {
 
 function resetClosedIfNextAttemptReached(restaurant) {
   if (restaurant && restaurant.isClosed && restaurant.crawlNextAttempt) {
+    if (restaurantMeta.isPermanentlyUnavailableRestaurant(restaurant)) {
+      return false;
+    }
     if (new Date() >= new Date(restaurant.crawlNextAttempt)) {
-      console.log(`[Database] 🔄 Resetting closed state for "${restaurant.name}" as crawlNextAttempt (${restaurant.crawlNextAttempt}) has been reached.`);
-      restaurant.isClosed = false;
-      delete restaurant.closedAt;
-      delete restaurant.closedReason;
+      // Không mở lại lạc quan — chỉ xếp lịch cào lại; giữ isClosed đến khi scrape chứng minh mở
+      console.log(
+        `[Database] 🔄 Due re-check for "${restaurant.name}" (crawlNextAttempt=${restaurant.crawlNextAttempt}) — giữ isClosed, enqueue scrape.`
+      );
       delete restaurant.crawlNextAttempt;
+      restaurant.needsRescrape = true;
       return true;
     }
   }
@@ -1848,14 +1854,10 @@ const SEARCHED_RESTAURANTS_CACHE = new Map(); // id -> restaurant object
 
 // Bản đồ dịch ngược Slug Hệ thống sang Slug chi nhánh ShopeeFood thực tế
 const SLUG_REWRITER_MAP = {
-  // Brand portals maps
+  // Brand portals maps (1 portal → 1 representative branch ONLY for portal expand — not city-wide brands)
   'he-thong-lumos-coffee-cake': 'lumos-bakery-joy-banh-au-tra',
   'he-thong-lau-bang-chuyen-kichi-kichi': 'kichi-kichi-lotte-mart-can-tho',
   'he-thong-quan-itada-am-thuc-han-quoc': 'itada-mi-cay-han-quoc-duong-3-thang-2',
-  'jollibee-can-tho': 'ga-ran-va-mi-y-jollibee-duong-30-thang-4',
-  'highlands-coffee-can-tho': 'highlands-coffee-go-can-tho',
-  'kfc-can-tho': 'ga-ran-kfc-lotte-mart-can-tho',
-  'lotteria-can-tho': 'ga-ran-burger-lotteria-can-tho-nguyen-van-cu',
 
   // Jollibee branch legacy slug maps
   'jollibee-duong-30-thang-4': 'ga-ran-va-mi-y-jollibee-duong-30-thang-4',
@@ -2895,6 +2897,7 @@ function fastSearch(query) {
   // Mỗi tiêu chí phải chứa ĐỦ mọi token; ưu tiên cụm từ trong tên quán.
   const scored = [];
   for (const entry of searchIndex) {
+    if (entry.permanentlyClosed) continue;
     const phraseName = !!normQuery && entry.normName.includes(normQuery);
     const nameAll = tokens.every(t => entry.normName.includes(t));
     const addrAll = tokens.every(t => entry.normAddress.includes(t));
@@ -3243,6 +3246,11 @@ function hydrateOrderRestaurantCoords(order) {
   if (mem.name && String(mem.name).trim()) {
     order.restaurantName = String(mem.name).trim();
   }
+  if (restaurantMeta.isRealRestaurantPhone(mem.phone)) {
+    order.restaurantPhone = restaurantMeta.normalizePhone(mem.phone);
+  } else if (!order.restaurantPhone) {
+    order.restaurantPhone = '';
+  }
 
   // Reclassify on read — sửa quán từng bị đóng băng ở heuristic dù đã có GPS crawl
   if (
@@ -3435,7 +3443,11 @@ function normalizeUserCoords(lat, lon) {
 }
 
 function toListRestaurant(r, distKm) {
+  if (!r || restaurantMeta.isPermanentlyUnavailableRestaurant(r)) return null;
   const estMins = 12 + Math.round(distKm * 5);
+  const phone = restaurantMeta.isRealRestaurantPhone(r.phone)
+    ? restaurantMeta.normalizePhone(r.phone)
+    : '';
   return {
     id: r.id,
     name: r.name,
@@ -3443,13 +3455,14 @@ function toListRestaurant(r, distKm) {
     rating: r.rating,
     reviews: r.reviews,
     address: r.address,
-    phone: r.phone,
+    phone,
     img: r.img,
     tags: r.tags,
     minOrder: r.minOrder,
     isClosed: !!r.isClosed,
     closedAt: r.closedAt || null,
     closedReason: r.closedReason || null,
+    permanentlyClosed: !!r.permanentlyClosed,
     hasRealMenu: r.hasRealMenu === true,
     menuTemplateFallback: r.menuTemplateFallback === true,
     menuUpdatedAt: r.menuUpdatedAt || null,
@@ -3482,6 +3495,7 @@ function getNearbyRestaurantsPage(lat, lon, page = 1, limit = 20) {
     for (let i = 0; i < cachedRestaurants.length; i++) {
       const r = cachedRestaurants[i];
       if (!r || !r.id) continue;
+      if (restaurantMeta.isPermanentlyUnavailableRestaurant(r)) continue;
       let coords;
       if (typeof r.latitude === 'number' && typeof r.longitude === 'number') {
         coords = { lat: r.latitude, lon: r.longitude };
@@ -3853,7 +3867,7 @@ async function fetchAndParseFromFoody(q = '') {
               distance: (Math.random() * 2 + 0.3).toFixed(1) + ' km',
               time:     `${15 + Math.floor(Math.random() * 20)}-${25 + Math.floor(Math.random() * 20)} phút`,
               address:  branch.address,
-              phone:    '0292 3' + Math.floor(100000 + Math.random() * 900000),
+              phone:    '',
               img:      branch.img,
               tags:     [rating > 7.5 ? 'Nổi bật' : 'Đang mở', reviews > 400 ? 'Yêu thích' : 'Mới mở'].slice(0, 2),
               minOrder: 30000,
@@ -3933,7 +3947,7 @@ async function fetchAndParseFromFoody(q = '') {
         distance,
         time,
         address,
-        phone:    '0292 3' + Math.floor(100000 + Math.random() * 900000),
+        phone:    '',
         img,
         tags:     [rating > 7.5 ? 'Nổi bật' : 'Đang mở', reviews > 400 ? 'Yêu thích' : 'Mới mở'].slice(0, 2),
         minOrder: 30000,
@@ -4499,150 +4513,14 @@ function triggerBackgroundMenuScrape(restaurant) {
     }
     
     console.log(`[Background Scraper] ⏳ Đang cào menu thực tế chạy ngầm cho: "${restaurant.name}" (${finalSlug})...`);
-    return menuScraper.scrapeMenu(finalSlug);
+    return menuScraper.scrapeMenu(finalSlug, {
+      name: restaurant.name || '',
+      address: restaurant.address || '',
+      verifyExpected: { name: restaurant.name || '', address: restaurant.address || '' }
+    });
   }).then(realMenu => {
     restaurant._isScraping = false;
-
-    let isClosed = false;
-    let closedReason = '';
-    let menu = null;
-
-    if (realMenu && realMenu.blocked === true) {
-      console.log(`[Background Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
-      return;
-    }
-
-    if (realMenu && realMenu.closed === true) {
-      isClosed = true;
-      closedReason = realMenu.reason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.';
-      if (Array.isArray(realMenu.menu) && realMenu.menu.length > 0) {
-        menu = realMenu.menu;
-      }
-    } else if (Array.isArray(realMenu) && realMenu.length > 0) {
-      isClosed = false;
-      menu = realMenu;
-    }
-
-    if (isClosed) {
-      console.log(`[Background Scraper] 🔴 Xác nhận quán ĐÓNG CỬA: "${restaurant.name}" (${closedReason})`);
-
-      if (restaurant.isClosed !== true) {
-        notifyCrmAndTelegram('status_change', restaurant.id, restaurant.name, 'Quán đóng cửa', `Cửa hàng đã tạm đóng cửa hoặc ngưng hợp tác trên ShopeeFood (Lý do: ${closedReason})`);
-      }
-
-      // Quán đóng cửa tạm thời
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(7, 0, 0, 0);
-
-      restaurant.isClosed = true;
-      restaurant.closedAt = new Date().toISOString();
-      restaurant.closedReason = closedReason;
-      restaurant.crawlNextAttempt = tomorrow.toISOString();
-
-      if (menu) {
-        writeRestaurantMenu(restaurant.id, menu);
-        restaurant.menu = menu;
-        restaurant.hasRealMenu = true;
-        restaurant.menuUpdatedAt = new Date().toISOString();
-        delete restaurant.menuTemplateFallback;
-        console.log(`[Background Scraper] ⚡ Cập nhật menu thực tế thành công cho quán ĐÓNG CỬA TẠM THỜI: "${restaurant.name}" (${menu.length} món)`);
-      }
-
-      SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-
-      updateLocalDatabase((localData) => {
-        const idx = localData.findIndex(r => String(r.id) === String(restaurant.id));
-        if (idx !== -1) {
-          localData[idx].isClosed = true;
-          localData[idx].closedAt = restaurant.closedAt;
-          localData[idx].closedReason = restaurant.closedReason;
-          localData[idx].crawlNextAttempt = restaurant.crawlNextAttempt;
-          if (menu) {
-            localData[idx].hasRealMenu = true;
-            localData[idx].menuUpdatedAt = restaurant.menuUpdatedAt;
-            localData[idx].dishNames = menu.map(m => m.name).filter(Boolean);
-            delete localData[idx].menuTemplateFallback;
-            delete localData[idx].menu;
-          }
-          return true;
-        } else {
-          const toSave = { ...restaurant };
-          delete toSave._isScraping;
-          if (toSave.menu) {
-            toSave.dishNames = toSave.menu.map(m => m.name).filter(Boolean);
-            delete toSave.menu;
-          }
-          localData.push(toSave);
-          return true;
-        }
-      }).then(() => {
-        console.log(`[Background Scraper] 💾 Đã lưu trạng thái đóng cửa tạm thời cho "${restaurant.name}"`);
-      }).catch(err => {
-        console.error('[Background Scraper] Lỗi khi ghi đè cập nhật restaurants-local.json:', err.message);
-      });
-
-    } else if (menu) {
-      const oldMenu = readRestaurantMenu(restaurant.id) || [];
-      const oldClosedVal = restaurant.isClosed;
-
-      writeRestaurantMenu(restaurant.id, menu);
-      restaurant.menu = menu;
-      restaurant.hasRealMenu = true;
-      restaurant.menuUpdatedAt = new Date().toISOString();
-      if (restaurant.isClosed) {
-        console.log(`[Background Scraper] 🟢 Xóa trạng thái đóng cửa SAI cho: "${restaurant.name}" - quán có menu thực tế!`);
-        restaurant.isClosed = false;
-        delete restaurant.closedAt;
-        delete restaurant.closedReason;
-      }
-      delete restaurant.menuTemplateFallback;
-      console.log(`[Background Scraper] ⚡ Cập nhật menu thực tế thành công cho: "${restaurant.name}" (${menu.length} món)`);
-
-      if (oldClosedVal === true) {
-        notifyCrmAndTelegram('status_change', restaurant.id, restaurant.name, 'Quán hoạt động trở lại', 'Cửa hàng đã hoạt động trở lại trên ShopeeFood.');
-      }
-
-      diffAndLogMenuChanges(restaurant, oldMenu, menu);
-
-      SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-
-      updateLocalDatabase((localData) => {
-        const idx = localData.findIndex(r => String(r.id) === String(restaurant.id));
-        if (idx !== -1) {
-          localData[idx].hasRealMenu = true;
-          localData[idx].menuUpdatedAt = restaurant.menuUpdatedAt;
-          localData[idx].dishNames = menu.map(m => m.name).filter(Boolean);
-          if (localData[idx].isClosed) {
-            localData[idx].isClosed = false;
-            delete localData[idx].closedAt;
-            delete localData[idx].closedReason;
-          }
-          delete localData[idx].menuTemplateFallback;
-          delete localData[idx].menu;
-          return true;
-        } else {
-          const toSave = { ...restaurant };
-          delete toSave._isScraping;
-          if (toSave.menu) {
-            toSave.dishNames = toSave.menu.map(m => m.name).filter(Boolean);
-            delete toSave.menu;
-          }
-          localData.push(toSave);
-          return true;
-        }
-      }).then(() => {
-        console.log(`[Background Scraper] 💾 Đã lưu menu thực tế của "${restaurant.name}" vào database`);
-      }).catch(err => {
-        console.error('[Background Scraper] Lỗi khi ghi đè cập nhật restaurants-local.json:', err.message);
-      });
-
-    } else {
-      // Technical scrape failure — do NOT overwrite disk with fabricated template menus
-      console.warn(`[Background Scraper] ⚠️ Lỗi kỹ thuật khi cào "${restaurant.name}". Giữ nguyên menu hiện có (không ghi template).`);
-      restaurant.menuStatus = 'unavailable';
-      SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-    }
+    return applySyncScrapeResult(restaurant, realMenu);
   }).catch(err => {
     restaurant._isScraping = false;
     console.error(`[Background Scraper] Lỗi luồng cào ngầm cho "${restaurant.name}":`, err.message);
@@ -4670,25 +4548,53 @@ async function resolveRestaurantSlugForSync(restaurant, options = {}) {
   return slug;
 }
 
-async function applySyncScrapeResult(restaurant, realMenu) {
-  let isClosed = false;
-  let closedReason = '';
-  let menu = null;
-
-  if (realMenu && realMenu.blocked === true) {
-    console.log(`[Sync Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
-    return { restaurant, outcome: 'blocked', reason: realMenu.reason || 'ShopeeFood chặn API menu (403/429).' };
+function parseScrapeMenuPayload(realMenu) {
+  const u = unwrapScrapeResult(realMenu);
+  let menu = u.menu;
+  let isClosed = u.closed;
+  let closedReason = u.reason || '';
+  let blocked = u.blocked;
+  let notFound = u.notFound;
+  let meta = { ...(u.meta || {}) };
+  if (realMenu && typeof realMenu === 'object' && !Array.isArray(realMenu)) {
+    meta = {
+      phone: realMenu.phone || meta.phone || '',
+      address: realMenu.address || meta.address || '',
+      name: realMenu.name || meta.name || '',
+      lat: realMenu.lat != null ? realMenu.lat : meta.lat,
+      lon: realMenu.lon != null ? realMenu.lon : meta.lon,
+      phoneSource: 'shopeefood',
+      addressSource: 'shopeefood'
+    };
   }
+  if (u.permanentlyClosed || u.notFound) {
+    closedReason = restaurantMeta.normalizeClosedReason(closedReason || u.reason, {
+      notFound: !!u.notFound
+    });
+  }
+  return { menu, isClosed, closedReason, blocked, notFound, meta, permanentlyClosed: !!u.permanentlyClosed || !!u.notFound };
+}
 
-  if (realMenu && realMenu.closed === true) {
-    isClosed = true;
-    closedReason = realMenu.reason || 'Quán hiện đang đóng cửa ngoài giờ phục vụ.';
-    if (Array.isArray(realMenu.menu) && realMenu.menu.length > 0) {
-      menu = realMenu.menu;
-    }
-  } else if (Array.isArray(realMenu) && realMenu.length > 0) {
-    isClosed = false;
-    menu = realMenu;
+function persistMetaOntoRestaurant(restaurant, meta, localRow) {
+  restaurantMeta.applyScrapedMetaToRestaurant(restaurant, {
+    ...meta,
+    clearFakePhone: true
+  });
+  if (localRow) {
+    restaurantMeta.applyScrapedMetaToRestaurant(localRow, {
+      ...meta,
+      clearFakePhone: true
+    });
+  }
+}
+
+async function applySyncScrapeResult(restaurant, realMenu) {
+  const parsed = parseScrapeMenuPayload(realMenu);
+  let { menu, isClosed, closedReason, blocked, meta, permanentlyClosed } = parsed;
+
+  if (blocked) {
+    console.log(`[Sync Scraper] ⏳ API bị chặn (quán vẫn tồn tại): "${restaurant.name}" — thử lại sau.`);
+    return { restaurant, outcome: 'blocked', reason: closedReason || 'ShopeeFood chặn API menu (403/429).' };
   }
 
   if (isClosed) {
@@ -4700,11 +4606,16 @@ async function applySyncScrapeResult(restaurant, realMenu) {
     restaurant.isClosed = true;
     restaurant.closedAt = new Date().toISOString();
     restaurant.closedReason = closedReason;
-
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(7, 0, 0, 0);
-    restaurant.crawlNextAttempt = tomorrow.toISOString();
+    if (permanentlyClosed || restaurantMeta.isPermanentCloseReason(closedReason)) {
+      restaurant.permanentlyClosed = true;
+      delete restaurant.crawlNextAttempt;
+    } else {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(7, 0, 0, 0);
+      restaurant.crawlNextAttempt = tomorrow.toISOString();
+    }
+    persistMetaOntoRestaurant(restaurant, meta);
 
     if (menu) {
       writeRestaurantMenu(restaurant.id, menu);
@@ -4722,6 +4633,8 @@ async function applySyncScrapeResult(restaurant, realMenu) {
         localData[idx].closedAt = restaurant.closedAt;
         localData[idx].closedReason = restaurant.closedReason;
         localData[idx].crawlNextAttempt = restaurant.crawlNextAttempt;
+        localData[idx].permanentlyClosed = restaurant.permanentlyClosed;
+        persistMetaOntoRestaurant(localData[idx], meta);
         if (menu) {
           localData[idx].hasRealMenu = true;
           localData[idx].menuUpdatedAt = restaurant.menuUpdatedAt;
@@ -4746,7 +4659,10 @@ async function applySyncScrapeResult(restaurant, realMenu) {
     restaurant.isClosed = false;
     delete restaurant.closedAt;
     delete restaurant.closedReason;
+    delete restaurant.crawlNextAttempt;
+    delete restaurant.permanentlyClosed;
     delete restaurant.menuTemplateFallback;
+    persistMetaOntoRestaurant(restaurant, meta);
 
     console.log(`[Sync Scraper] ⚡ Cập nhật menu thực tế thành công cho: "${restaurant.name}" (${menu.length} món)`);
 
@@ -4767,23 +4683,25 @@ async function applySyncScrapeResult(restaurant, realMenu) {
         localData[idx].isClosed = false;
         delete localData[idx].closedAt;
         delete localData[idx].closedReason;
+        delete localData[idx].crawlNextAttempt;
+        delete localData[idx].permanentlyClosed;
         delete localData[idx].menuTemplateFallback;
+        persistMetaOntoRestaurant(localData[idx], meta);
         return true;
       }
       return false;
     });
-    return { restaurant, outcome: 'synced' };
+    return { restaurant, outcome: 'ready' };
   }
 
-  console.warn(`[Sync Scraper] ⚠️ Lỗi khi cào "${restaurant.name}". Không ghi menu template giả.`);
-  restaurant.menuStatus = 'unavailable';
-  SEARCHED_RESTAURANTS_CACHE.set(restaurant.id, restaurant);
-  return { restaurant, outcome: 'failed' };
+  console.warn(`[Sync Scraper] ⚠️ Không có menu cho "${restaurant.name}".`);
+  return { restaurant, outcome: 'empty' };
 }
 
 function isSyncMenuEmpty(realMenu) {
   if (!realMenu) return true;
   if (realMenu.blocked === true || realMenu.closed === true) return false;
+  if (realMenu.menu && Array.isArray(realMenu.menu)) return realMenu.menu.length === 0 && !realMenu.closed;
   return Array.isArray(realMenu) && realMenu.length === 0;
 }
 
@@ -4791,7 +4709,11 @@ function buildScrapeMenuOptions(restaurant, scrapeOptions = {}) {
   return {
     ...scrapeOptions,
     name: restaurant.name,
-    address: restaurant.address
+    address: restaurant.address,
+    verifyExpected: {
+      name: restaurant.name || '',
+      address: restaurant.address || ''
+    }
   };
 }
 
@@ -5600,6 +5522,7 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
     const restMem = findRestaurantInCache(orderData.restaurantId);
     let restaurantAddress = (orderData.restaurantAddress || '').trim();
     let restaurantName = (orderData.restaurantName || '').trim();
+    let restaurantPhone = '';
     let restLat = orderData.restaurantLat;
     let restLon = orderData.restaurantLon;
     let restaurantCoordsExact = false;
@@ -5610,6 +5533,9 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       }
       if (restMem.name && String(restMem.name).trim()) {
         restaurantName = String(restMem.name).trim();
+      }
+      if (restaurantMeta.isRealRestaurantPhone(restMem.phone)) {
+        restaurantPhone = restaurantMeta.normalizePhone(restMem.phone);
       }
       if (isNavGradeRestaurantCoords(restMem)) {
         restLat = restMem.latitude;
@@ -5669,6 +5595,7 @@ app.post('/api/orders', rateLimitOrders, async (req, res) => {
       restaurantId: orderData.restaurantId || null,
       restaurantName: restaurantName || '',
       restaurantAddress: restaurantAddress || '',
+      restaurantPhone: restaurantPhone || '',
       restaurantLat: restLat,
       restaurantLon: restLon,
       restaurantCoordsExact,

@@ -30,6 +30,7 @@
  *   --portals-only    chỉ xử lý portal "Hệ thống" (address = N chi nhánh)
  *   --expand-only     portal: chỉ thêm chi nhánh vào DB, không cào menu
  *   --sf-priority     ưu tiên quán đã discover từ ShopeeFood / có shopeefoodSlug
+ *   --allow-sibling-borrow  cho phép mượn menu chi nhánh (mặc định TẮT)
  */
 
 'use strict';
@@ -64,6 +65,17 @@ const {
   resolveBranchesForRestaurant,
   resolveShopeefoodSlugFromFoody
 } = require('./brandResolver');
+const {
+  applyScrapedMetaToRestaurant,
+  normalizeClosedReason,
+  isPermanentCloseReason,
+  isRealRestaurantPhone,
+  isFakeRestaurantPhone,
+  verifyRestaurantIdentity,
+  isPermanentlyUnavailableRestaurant
+} = require('./restaurantMeta');
+const foodyGps = require('./foodyGps');
+const { unwrapScrapeResult } = menuScraper;
 
 // ── CLI ─────────────────────────────────────────────────
 function argVal(name, fallback) {
@@ -74,7 +86,7 @@ function hasFlag(name) {
   return process.argv.includes(`--${name}`);
 }
 
-const THREADS = Math.max(1, parseInt(argVal('threads', '1'), 10) || 1);
+const THREADS = Math.max(1, parseInt(argVal('threads', '3'), 10) || 3);
 const DELAY_MS = Math.max(400, parseInt(argVal('delay', '1500'), 10) || 1500);
 const LIMIT = parseInt(argVal('limit', '0'), 10) || 0;
 const ONLY_ID = argVal('id', '') || '';
@@ -86,6 +98,7 @@ const SKIP_SUPABASE = hasFlag('skip-supabase');
 const PORTALS_ONLY = hasFlag('portals-only');
 const EXPAND_ONLY = hasFlag('expand-only');
 const SF_PRIORITY = hasFlag('sf-priority');
+const ALLOW_SIBLING_BORROW = hasFlag('allow-sibling-borrow');
 
 const MENUS_DIR = path.join(__dirname, 'menus');
 const STATE_FILE = path.join(__dirname, 'crawl_restaurant_menus.state.json');
@@ -234,9 +247,35 @@ function buildSlugCandidates(restaurant, primarySlug) {
 
 function menuFromRaw(raw) {
   if (!raw) return null;
-  if (raw && raw.closed === true && Array.isArray(raw.menu)) return raw.menu;
-  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw) && raw.length > 0) return raw;
+  if (raw && Array.isArray(raw.menu) && raw.menu.length > 0) return raw.menu;
   return null;
+}
+
+async function maybeEnrichPhoneFromFoody(restaurant, meta) {
+  if (meta && isRealRestaurantPhone(meta.phone)) return meta;
+  try {
+    const slug =
+      foodyGps.resolveFoodySlugFromRestaurant(restaurant) ||
+      restaurant.shopeefoodSlug ||
+      '';
+    if (!slug) return meta || {};
+    const foody = await foodyGps.fetchFoodyGpsBySlug(slug, { timeoutMs: 8000 });
+    if (!foody) return meta || {};
+    const next = { ...(meta || {}) };
+    if (foody.phone && isRealRestaurantPhone(foody.phone)) {
+      next.phone = foody.phone;
+      next.phoneSource = 'foody';
+    }
+    if (Number.isFinite(foody.lat) && Number.isFinite(foody.lon)) {
+      next.lat = foody.lat;
+      next.lon = foody.lon;
+      next.geoSource = 'foody';
+    }
+    return next;
+  } catch (_) {
+    return meta || {};
+  }
 }
 
 async function scrapeWithSlugFallback(restaurant, workerId) {
@@ -255,14 +294,20 @@ async function scrapeWithSlugFallback(restaurant, workerId) {
   const altSlugs = candidates.slice(1);
   log(`${tag} ⚡ Cào slug chính: ${primarySlug}${altSlugs.length ? ` (+${altSlugs.length} ứng viên)` : ''}`);
 
+  const scrapeOpts = {
+    name: restaurant.name || '',
+    address: restaurant.address || '',
+    altSlugs,
+    verifyExpected: {
+      name: restaurant.name || '',
+      address: restaurant.address || ''
+    }
+  };
+
   let lastRaw = null;
   let usedSlug = primarySlug;
   try {
-    lastRaw = await menuScraper.scrapeMenu(primarySlug, {
-      name: restaurant.name || '',
-      address: restaurant.address || '',
-      altSlugs
-    });
+    lastRaw = await menuScraper.scrapeMenu(primarySlug, scrapeOpts);
   } catch (e) {
     log(`${tag} ⚠️ Lỗi scrape: ${e.message}`);
     return { raw: null, slug: usedSlug };
@@ -278,7 +323,11 @@ async function scrapeWithSlugFallback(restaurant, workerId) {
       if (!alt || candidates.includes(alt) || alt === usedSlug) continue;
       log(`${tag} 🔁 Thử slug search: ${alt}`);
       try {
-        const raw2 = await menuScraper.scrapeMenu(alt, { name: restaurant.name || '', address: restaurant.address || '' });
+        const raw2 = await menuScraper.scrapeMenu(alt, {
+          name: restaurant.name || '',
+          address: restaurant.address || '',
+          verifyExpected: scrapeOpts.verifyExpected
+        });
         const m2 = menuFromRaw(raw2);
         if (m2 && m2.length > 0) {
           return { raw: raw2, slug: (raw2 && raw2.usedSlug) || alt };
@@ -300,6 +349,9 @@ async function scrapeWithSlugFallback(restaurant, workerId) {
  */
 async function trySiblingBrandMenu(restaurant, workerId) {
   const tag = `[W${workerId}]`;
+  if (!ALLOW_SIBLING_BORROW) {
+    return null;
+  }
   if (!restaurant.brandPortalId && !isGenericBrandPortal(restaurant.name, restaurant.address)) {
     // cùng chuỗi theo tên gốc (bỏ địa chỉ sau dấu -)
     const base = String(restaurant.name || '').split(/\s*[-–]\s*/)[0].trim().toLowerCase();
@@ -445,50 +497,88 @@ async function expandAndCrawlPortal(restaurant, workerId) {
 }
 
 // ── Persist + sync ──────────────────────────────────────
-async function persistSuccess(restaurant, menu, slug, { closed = false, closedReason = '' } = {}) {
+async function persistSuccess(restaurant, menu, slug, {
+  closed = false,
+  closedReason = '',
+  meta = {},
+  borrowed = false
+} = {}) {
   const quality = analyzeMenuQuality(menu);
   if (!quality.isReal) {
     return { ok: false, reason: `menu_not_real:${quality.reason}`, quality };
   }
 
+  if (meta && (meta.name || meta.address) && !borrowed) {
+    const identity = verifyRestaurantIdentity(
+      { name: restaurant.name, address: restaurant.address },
+      { name: meta.name, address: meta.address }
+    );
+    if (!identity.ok) {
+      return { ok: false, reason: `identity_mismatch:${identity.reason}`, quality };
+    }
+  }
+
   writeMenuFile(restaurant.id, menu);
   const dishNames = menu.map(m => m && m.name).filter(Boolean);
+  const permanent = closed && isPermanentCloseReason(closedReason);
+  const reasonNorm = closed ? normalizeClosedReason(closedReason) : '';
 
   await withDb(data => {
     const idx = data.findIndex(r => String(r.id) === String(restaurant.id));
     if (idx === -1) return { save: false };
     const row = data[idx];
-    row.hasRealMenu = true;
-    delete row.menuTemplateFallback;
+    if (borrowed) {
+      row.hasRealMenu = false;
+      row.menuTemplateFallback = true;
+      row.menuBorrowedFromSibling = true;
+      row.menuSuspectDuplicate = true;
+    } else {
+      row.hasRealMenu = true;
+      delete row.menuTemplateFallback;
+      delete row.menuBorrowedFromSibling;
+      delete row.menuSuspectDuplicate;
+      row.shopeefoodSlug = slug;
+    }
     row.dishNames = dishNames;
     row.menuUpdatedAt = new Date().toISOString();
-    row.shopeefoodSlug = slug;
     delete row.menu;
+    applyScrapedMetaToRestaurant(row, {
+      ...meta,
+      phoneSource: meta.phoneSource || 'shopeefood',
+      addressSource: meta.addressSource || 'shopeefood',
+      clearFakePhone: true
+    });
     if (closed) {
       row.isClosed = true;
       row.closedAt = new Date().toISOString();
-      row.closedReason = closedReason || 'Ngoài giờ / tạm đóng trên ShopeeFood';
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(7, 0, 0, 0);
-      row.crawlNextAttempt = tomorrow.toISOString();
-    } else if (row.isClosed) {
+      row.closedReason = reasonNorm || 'Ngoài giờ / tạm đóng trên ShopeeFood';
+      if (permanent) {
+        row.permanentlyClosed = true;
+        delete row.crawlNextAttempt;
+      } else {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(7, 0, 0, 0);
+        row.crawlNextAttempt = tomorrow.toISOString();
+      }
+    } else if (row.isClosed && !row.permanentlyClosed) {
       row.isClosed = false;
       delete row.closedAt;
       delete row.closedReason;
       delete row.crawlNextAttempt;
+      delete row.permanentlyClosed;
     }
     return { save: true };
   });
 
-  if (supabase) {
+  if (supabase && !borrowed) {
     try {
       await supabase.from('restaurants').upsert({
         id: restaurant.id,
         name: restaurant.name,
-        address: restaurant.address || '',
+        address: (meta && meta.address) || restaurant.address || '',
         is_closed: !!closed,
-        closed_reason: closed ? (closedReason || '') : '',
+        closed_reason: closed ? reasonNorm : '',
         has_real_menu: true,
         dish_names: dishNames,
         menu,
@@ -499,7 +589,7 @@ async function persistSuccess(restaurant, menu, slug, { closed = false, closedRe
     }
   }
 
-  return { ok: true, quality, dishCount: menu.length };
+  return { ok: true, quality, dishCount: menu.length, borrowed: !!borrowed };
 }
 
 async function markChecked(restaurantId, patch = {}) {
@@ -543,16 +633,32 @@ async function crawlOne(restaurant, workerId, opts = {}) {
   let closedReason = '';
   let notFound = false;
   let apiBlocked = false;
+  let meta = {};
+  let permanentlyClosed = false;
 
-  if (raw && raw.blocked === true) {
+  const unwrapped = unwrapScrapeResult(raw);
+  meta = unwrapped.meta || {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    meta = {
+      phone: raw.phone || meta.phone || '',
+      address: raw.address || meta.address || '',
+      name: raw.name || meta.name || '',
+      lat: raw.lat != null ? raw.lat : meta.lat,
+      lon: raw.lon != null ? raw.lon : meta.lon
+    };
+  }
+  meta = await maybeEnrichPhoneFromFoody(restaurant, meta);
+
+  if (unwrapped.blocked) {
     apiBlocked = true;
-  } else if (raw && raw.closed === true) {
+  } else if (unwrapped.closed) {
     closed = true;
-    closedReason = raw.reason || '';
-    notFound = raw.notFound === true;
-    if (Array.isArray(raw.menu) && raw.menu.length > 0) menu = raw.menu;
-  } else if (Array.isArray(raw) && raw.length > 0) {
-    menu = raw;
+    closedReason = unwrapped.reason || '';
+    notFound = unwrapped.notFound === true;
+    permanentlyClosed = unwrapped.permanentlyClosed === true || unwrapped.notFound === true;
+    if (unwrapped.menu && unwrapped.menu.length > 0) menu = unwrapped.menu;
+  } else if (unwrapped.menu && unwrapped.menu.length > 0) {
+    menu = unwrapped.menu;
   }
 
   // 403/429: quán tồn tại — không đánh closed / empty / not_on_shopeefood
@@ -561,61 +667,85 @@ async function crawlOne(restaurant, workerId, opts = {}) {
     await markChecked(restaurant.id, {
       lastCrawlError: 'api_blocked',
       shopeefoodSlug: slug,
-      crawlNextAttempt: new Date(Date.now() + 20 * 60 * 1000).toISOString()
+      crawlNextAttempt: new Date(Date.now() + 20 * 60 * 1000).toISOString(),
+      ...(isRealRestaurantPhone(meta.phone) ? { phone: meta.phone, phoneSource: meta.phoneSource || 'shopeefood' } : {})
     });
     return { status: 'api_blocked' };
   }
 
   if (!menu || menu.length === 0) {
-    // Fallback: mượn menu chi nhánh cùng thương hiệu (Foody còn, SF slug chết)
-    if (notFound || !menu || menu.length === 0) {
+    // Fallback: mượn menu chi nhánh (chỉ khi --allow-sibling-borrow)
+    if (ALLOW_SIBLING_BORROW && (notFound || !menu || menu.length === 0)) {
       const borrowed = await trySiblingBrandMenu(restaurant, workerId);
       if (borrowed && borrowed.menu.length > 0) {
         const rebound = borrowed.menu.map((item, i) => ({
           ...item,
           id: `${safeMenuId(restaurant.id)}-item-${i}`
         }));
-        const saved = await persistSuccess(restaurant, rebound, borrowed.slug || slug, {
+        const saved = await persistSuccess(restaurant, rebound, slug, {
           closed: false,
-          closedReason: ''
+          closedReason: '',
+          meta,
+          borrowed: true
         });
         if (saved.ok) {
           await markChecked(restaurant.id, {
             menuFromSiblingId: borrowed.sibling.id,
-            lastCrawlError: '',
+            lastCrawlError: 'borrowed_sibling_menu',
+            // Giữ slug của quán đích — không ghi đè bằng slug sibling
             shopeefoodSlug: restaurant.shopeefoodSlug || slug
           });
-          log(`${tag} ✅ ${saved.dishCount} món [sibling:${borrowed.sibling.id}] "${name}"`);
-          return { status: 'success', dishCount: saved.dishCount, fromSibling: true };
+          log(`${tag} ⚠️ ${saved.dishCount} món [sibling-borrow:${borrowed.sibling.id}] "${name}" (không đánh real)`);
+          return { status: 'borrowed_sibling', dishCount: saved.dishCount, fromSibling: true };
         }
       }
     }
 
     if (notFound) {
-      log(`${tag} 🚫 Không có trên ShopeeFood: "${name}" (slug=${slug})`);
+      const prevCount = Number(restaurant.notOnShopeefoodCount || 0) + 1;
+      const promotePermanent = prevCount >= 2;
+      const reason = normalizeClosedReason(
+        'Cửa hàng chưa có hoặc đã ngưng dịch vụ đặt món trên ShopeeFood.',
+        { notFound: true }
+      );
+      log(`${tag} 🚫 Không có trên ShopeeFood: "${name}" (slug=${slug}, count=${prevCount})`);
       await markChecked(restaurant.id, {
         lastCrawlError: 'not_on_shopeefood',
         shopeefoodSlug: slug,
-        // Ngoài giờ / delist — không đánh isClosed vĩnh viễn; ghi nhận để bỏ qua sớm lần sau
-        crawlNextAttempt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+        notOnShopeefoodCount: prevCount,
+        isClosed: promotePermanent,
+        permanentlyClosed: promotePermanent,
+        closedAt: promotePermanent ? new Date().toISOString() : restaurant.closedAt,
+        closedReason: promotePermanent ? reason : restaurant.closedReason,
+        crawlNextAttempt: promotePermanent
+          ? undefined
+          : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        ...(isRealRestaurantPhone(meta.phone) ? { phone: meta.phone } : {})
       });
       return { status: 'not_found' };
     }
     if (closed) {
+      const reason = normalizeClosedReason(closedReason || 'Đóng cửa trên ShopeeFood');
       log(`${tag} 🔒 Đóng cửa / không menu: "${name}" (slug=${slug})`);
       await markChecked(restaurant.id, {
-        lastCrawlError: 'closed_no_menu',
+        lastCrawlError: permanentlyClosed || isPermanentCloseReason(reason) ? 'permanently_closed' : 'closed_no_menu',
         shopeefoodSlug: slug,
         isClosed: true,
+        permanentlyClosed: permanentlyClosed || isPermanentCloseReason(reason),
         closedAt: new Date().toISOString(),
-        closedReason: closedReason || 'Đóng cửa trên ShopeeFood'
+        closedReason: reason,
+        ...(isRealRestaurantPhone(meta.phone)
+          ? { phone: meta.phone, phoneSource: meta.phoneSource || 'shopeefood' }
+          : {}),
+        ...(meta.address ? { address: meta.address, addressSource: 'shopeefood' } : {})
       });
       return { status: 'closed_no_menu' };
     }
     log(`${tag} ⚠️ Không có menu API cho "${name}" (slug=${slug})`);
     await markChecked(restaurant.id, {
       lastCrawlError: 'empty_menu',
-      shopeefoodSlug: slug
+      shopeefoodSlug: slug,
+      ...(isRealRestaurantPhone(meta.phone) ? { phone: meta.phone } : {})
     });
     return { status: 'empty' };
   }
@@ -626,19 +756,27 @@ async function crawlOne(restaurant, workerId, opts = {}) {
     id: `${safeMenuId(restaurant.id)}-item-${i}`
   }));
 
-  const saved = await persistSuccess(restaurant, menu, slug, { closed, closedReason });
+  const saved = await persistSuccess(restaurant, menu, slug, {
+    closed,
+    closedReason: permanentlyClosed
+      ? normalizeClosedReason(closedReason, { notFound: false })
+      : closedReason,
+    meta
+  });
   if (!saved.ok) {
     log(`${tag} 🚫 Bỏ qua menu không đạt chuẩn scraped (${saved.reason}) — "${name}"`);
     await markChecked(restaurant.id, {
       lastCrawlError: saved.reason,
       shopeefoodSlug: slug,
       hasRealMenu: false,
-      menuTemplateFallback: true
+      menuTemplateFallback: true,
+      menuSuspectDuplicate: String(saved.reason || '').includes('identity')
     });
     return { status: 'rejected_template' };
   }
 
-  log(`${tag} ✅ ${saved.dishCount} món [${saved.quality.reason}] "${name}"${closed ? ' (đóng cửa nhưng có menu)' : ''}`);
+  const phoneNote = isRealRestaurantPhone(meta.phone) ? ` phone=${meta.phone}` : '';
+  log(`${tag} ✅ ${saved.dishCount} món [${saved.quality.reason}] "${name}"${closed ? ' (đóng cửa nhưng có menu)' : ''}${phoneNote}`);
   return { status: closed ? 'closed_with_menu' : 'success', dishCount: saved.dishCount };
 }
 

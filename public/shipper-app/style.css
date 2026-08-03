@@ -1310,6 +1310,13 @@ input:checked + .slider:before {
   border-color: rgba(59, 130, 246, 0.28);
 }
 
+.btn-nav-maps--restaurant-call {
+  display: inline-flex;
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.28);
+}
+
 .btn-nav-maps--customer {
   background: rgba(16, 185, 129, 0.12);
   color: #10b981;
