@@ -1728,7 +1728,8 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 18,
           updateWhenIdle: true,
-          keepBuffer: 0
+          keepBuffer: 0,
+          detectRetina: true
         }).addTo(leafletMap);
 
         mapMarker = L.marker(coords, { draggable: true }).addTo(leafletMap);

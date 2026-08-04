@@ -2259,7 +2259,8 @@ async function initTripMap() {
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '© OpenStreetMap'
+        attribution: '© OpenStreetMap',
+        detectRetina: true
       }).addTo(tripMap);
 
       const restIcon = L.divIcon({
@@ -2403,12 +2404,16 @@ function updateTripProximityHint() {
   };
   if (!el || !activeOrder) {
     if (el) el.style.display = 'none';
+    const etaEl = document.getElementById('trip-eta-countdown');
+    if (etaEl) etaEl.style.display = 'none';
     syncPeek();
     return;
   }
   const next = activeOrder.status === 'ACCEPTED' ? 'PURCHASED' : (activeOrder.status === 'PURCHASED' ? 'DELIVERED' : null);
   if (!next) {
     el.style.display = 'none';
+    const etaEl = document.getElementById('trip-eta-countdown');
+    if (etaEl) etaEl.style.display = 'none';
     syncPeek();
     return;
   }
@@ -2418,6 +2423,8 @@ function updateTripProximityHint() {
     el.style.display = 'block';
     el.textContent = !live ? 'Đang chờ GPS để xác nhận khoảng cách…' : `Chưa có tọa độ ${target ? target.label : 'đích'}`;
     el.className = 'trip-proximity-hint trip-proximity-hint--wait';
+    const etaEl = document.getElementById('trip-eta-countdown');
+    if (etaEl) etaEl.style.display = 'none';
     syncPeek();
     return;
   }
@@ -2434,6 +2441,23 @@ function updateTripProximityHint() {
   el.textContent = ok
     ? `Đã trong vùng ${target.label} (~${meters}m) — có thể vuốt xác nhận`
     : `Còn ~${meters}m tới ${target.label} (cần ≤${Math.round(limit * 1000)}m)`;
+
+  const etaEl = document.getElementById('trip-eta-countdown');
+  if (etaEl) {
+    if (d > 0) {
+      etaEl.style.display = 'block';
+      const etaMinutes = d / 30 * 60; // Tốc độ 30km/h
+      const totalSeconds = Math.max(0, Math.round(etaMinutes * 60));
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      const mm = m < 10 ? '0'+m : m;
+      const ss = s < 10 ? '0'+s : s;
+      etaEl.innerHTML = `<i class="fa-regular fa-clock"></i> ${mm}:${ss}`;
+    } else {
+      etaEl.style.display = 'none';
+    }
+  }
+
   syncPeek();
 }
 

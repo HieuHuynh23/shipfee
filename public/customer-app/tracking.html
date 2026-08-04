@@ -1572,7 +1572,8 @@
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
           maxZoom: 19,
           attribution: '© OpenStreetMap',
-          updateWhenIdle: true
+          updateWhenIdle: true,
+          detectRetina: true
         }).addTo(trackingMap);
 
         const restIcon = L.divIcon({
@@ -1713,14 +1714,32 @@
       const progressLabel = document.getElementById('eta-progress-label');
       if (progressLabel) progressLabel.textContent = cfg.progress + '%';
       
+      let etaVal = cfg.eta;
+      if ((status === 'ACCEPTED' || status === 'PURCHASED') && order.shipperLat && order.shipperLon) {
+        const { restLat, restLon, deliveryLat, deliveryLon } = getOrderPointCoords();
+        const sLat = Number(order.shipperLat);
+        const sLon = Number(order.shipperLon);
+        const calcDist = (l1, n1, l2, n2) => {
+          const R = 6371;
+          const a = Math.sin((l2-l1)*Math.PI/360) ** 2 + Math.cos(l1*Math.PI/180) * Math.cos(l2*Math.PI/180) * Math.sin((n2-n1)*Math.PI/360) ** 2;
+          return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        };
+        const targetLat = status === 'ACCEPTED' ? restLat : deliveryLat;
+        const targetLon = status === 'ACCEPTED' ? restLon : deliveryLon;
+        if (targetLat && targetLon) {
+          const d = calcDist(sLat, sLon, targetLat, targetLon);
+          etaVal = Math.max(1, Math.ceil(d / 30 * 60)).toString(); // 30km/h
+        }
+      }
+
       const etaStatus = document.getElementById('eta-status-text');
       if (etaStatus) etaStatus.textContent = cfg.etaText;
       
       const etaTime = document.getElementById('eta-time-text');
-      if (etaTime) etaTime.textContent   = cfg.eta === '0' ? 'Đã giao' : '~' + cfg.eta + ' phút';
+      if (etaTime) etaTime.textContent   = cfg.eta === '0' ? 'Đã giao' : '~' + etaVal + ' phút';
       
       const mapEta = document.getElementById('map-eta-min');
-      if (mapEta) mapEta.textContent     = cfg.eta === '0' ? '✓' : cfg.eta;
+      if (mapEta) mapEta.textContent     = cfg.eta === '0' ? '✓' : etaVal;
       const mapEtaBadge = document.getElementById('map-eta-badge');
       if (mapEtaBadge) {
         mapEtaBadge.style.display = (status === 'CANCELLED') ? 'none' : '';
